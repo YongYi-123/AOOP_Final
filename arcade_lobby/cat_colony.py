@@ -1,17 +1,15 @@
-"""CatColony: every cat in the arcade hub, and the shared rules between them.
+"""CatColony: the cats living in one hub room, and the shared rules between them.
 
 The colony is the cats' view of the world: the player, the room's collision,
-places cats should keep clear of (machine fronts, the doorway), the single
-follow slot and the shared meow cooldown. The arcade room scene owns one
-colony; minigame scenes never see it, and pause()/resume() bracket a
-minigame so cats stop cleanly and pick up where they were afterwards."""
+places cats should keep clear of (machine fronts, doorways), the single
+follow slot and the shared meow cooldown. Every room scene owns one colony
+with only the cats that live there (a cat is never in two rooms); minigame
+scenes never see it, and pause()/resume() bracket a minigame or a room change
+so cats stop cleanly and pick up where they were afterwards."""
 import math
 import random
 
-import pygame
-
 from cat import CatNPC, CatProfile, CatState
-from settings import DOOR_W, DOOR_X, FLOOR_BOTTOM
 
 
 class CatColony:
@@ -22,10 +20,10 @@ class CatColony:
     def __init__(self, roster, room, rng=None):
         self.rng = rng or random.Random()
         self.room_solids = room.solids
-        # Cats never pick a spot in front of a machine or in the doorway.
+        # Cats never pick a spot in front of a machine or in a doorway.
         self.keep_clear = [m.zone for m in room.machines]
         self.keep_clear += [p.zone for p in room.props if hasattr(p, "zone")]   # stations
-        self.keep_clear.append(pygame.Rect(DOOR_X - 6, FLOOR_BOTTOM - 36, DOOR_W + 12, 36))
+        self.keep_clear += list(room.keep_clear_areas)
         self.cats = [CatNPC(CatProfile.from_data(data), room.cat_spots[data["id"]],
                             random.Random(self.rng.random()))
                      for data in roster]

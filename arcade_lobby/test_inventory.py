@@ -14,6 +14,7 @@ os.environ.setdefault("SDL_AUDIODRIVER", "dummy")
 
 import pygame  # noqa: E402
 
+from room_testing import goto_room  # noqa: E402
 from game import Game  # noqa: E402
 from game_clock import GameClock  # noqa: E402
 from inventory import Inventory  # noqa: E402
@@ -461,7 +462,8 @@ class InventoryInArcadeTests(unittest.TestCase):
         self.assertEqual(room.player.x, x)
 
     def test_cannot_open_during_dialogue_or_flash(self):
-        g, room = self.make_game()
+        g, _ = self.make_game()
+        room = goto_room(g, "arcade_floor")
         machine = room.machines[0]
         room.player.x, room.player.y = machine.zone.centerx, machine.zone.bottom - 2
         self.frames(g, 5)

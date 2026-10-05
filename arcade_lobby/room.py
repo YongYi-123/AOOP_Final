@@ -1,15 +1,13 @@
-"""The neon arcade room: background art, furniture props, collision, neon
-signs, animated floor strips and pre-baked lighting layers."""
+"""Shared room furniture: the Prop base class (depth-sorted, collidable,
+glowing furniture), a few prop sprites and the wall collision rects."""
 import math
-import random
 
 import pygame
 
 from font import get_font
-from gfx import (glow_line, lerp_color, neon_rect_glow, outlined, radial_glow,
-                 scale_color, shade, soft_shadow)
-from settings import (Col, DOOR_W, DOOR_X, FLOOR_BOTTOM, FLOOR_TOP, VIEW_H,
-                      VIEW_W, WALL_SIDE)
+from gfx import neon_rect_glow, outlined, shade, soft_shadow
+from settings import (Col, FLOOR_BOTTOM, FLOOR_TOP, SIDE_DOOR_H, SIDE_DOOR_Y,
+                      VIEW_H, VIEW_W, WALL_SIDE)
 
 LEAF = (60, 170, 110)
 LEAF_DARK = (36, 120, 90)
@@ -128,7 +126,7 @@ def make_prize_counter():
     label = font.render_glow("PRIZES", Col.YELLOW, (140, 90, 20))
     s.blit(label, (w // 2 - label.get_width() // 2, 19))
     s.fill(Col.MAGENTA, (0, h - 3, w, 1))
-    return outlined(s)
+    return s
 
 
 def make_gumball():
@@ -200,275 +198,22 @@ class ClawMachine(Prop):
         surf.fill((220, 220, 240), (cx + 2, y + 12 + drop, 1, 2))
 
 
-# ------------------------------------------------------------------------ room
-def room_walls():
-    """Collision rects for the back, side and bottom walls."""
-    return [
+# ------------------------------------------------------------------------ walls
+def room_walls(door_sides=()):
+    """Collision rects for the back, side and bottom walls. A side named in
+    `door_sides` ("left" / "right") has a doorway gap, and a solid just
+    off-screen keeps the player from walking out of the world through it."""
+    gap_top, gap_bottom = SIDE_DOOR_Y, SIDE_DOOR_Y + SIDE_DOOR_H
+    walls = [
         pygame.Rect(0, 0, VIEW_W, FLOOR_TOP),
-        pygame.Rect(0, 0, WALL_SIDE, VIEW_H),
-        pygame.Rect(VIEW_W - WALL_SIDE, 0, WALL_SIDE, VIEW_H),
         pygame.Rect(0, FLOOR_BOTTOM, VIEW_W, VIEW_H - FLOOR_BOTTOM),
     ]
-
-
-class Room:
-    """The original bright neon room ("neon" style)."""
-    SIGN_POS = (112, 8)
-    # cat id -> cozy spots it hangs around (first = home), clear of paths
-    cat_spots = {
-        "miso": ((318, 214), (286, 232), (250, 200)),     # by the prize counter
-        "pixel": ((148, 128), (118, 126), (178, 126), (240, 112)),  # near the machines
-        "mochi": ((68, 222), (115, 168)),                 # by the table and stools
-        "luna": ((44, 100), (366, 170), (368, 236)),      # quiet corners
-        "bean": ((264, 108), (262, 236), (150, 170)),     # by the vending machine
-    }
-
-    def __init__(self, machines, stations=()):
-        self.machines = machines
-        self.props = self._build_props() + list(stations)
-        self.walls = room_walls()
-        self.solids = (self.walls + [p.footprint for p in self.props if p.solid]
-                       + [m.footprint for m in machines])
-
-        # Neon floor strips: (rect, colour). Pulsed and chased every frame.
-        self.strips = [
-            (pygame.Rect(40, 120, 196, 1), Col.CYAN),
-            (pygame.Rect(DOOR_X - 4, 236, 1, FLOOR_BOTTOM - 236), Col.MAGENTA),
-            (pygame.Rect(DOOR_X + DOOR_W + 3, 236, 1, FLOOR_BOTTOM - 236), Col.MAGENTA),
-        ]
-        self.background = self._build_background()
-        self._build_sign()
-        self.shade, self.glow = self._build_lighting()
-
-        rng = random.Random(7)
-        self.motes = [[rng.uniform(30, 370), rng.uniform(70, 270), rng.uniform(0, 6.28)]
-                      for _ in range(14)]
-        self.time = 0.0
-        self.sign_on = True
-
-    def _build_props(self):
-        stool = make_stool()
-        vend_glow = neon_rect_glow(30, 58, Col.CYAN, 7, 0.4)
-        prize_glow = neon_rect_glow(80, 34, Col.YELLOW, 6, 0.25)
-        return [
-            Prop(make_plant(), (22, 40), (24, FLOOR_TOP, 14, 4)),
-            Prop(make_plant(), (360, 40), (362, FLOOR_TOP, 14, 4)),
-            Prop(make_vending(), (248, 32), (249, FLOOR_TOP, 30, 26),
-                 vend_glow, (242, 27)),
-            ClawMachine((288, 30)),
-            Prop(make_prize_counter(), (294, 166), (295, 176, 80, 24),
-                 prize_glow, (289, 161)),
-            Prop(make_table(), (58, 184), (62, 198, 14, 10)),
-            Prop(stool, (40, 192), (41, 200, 12, 6)),
-            Prop(stool, (84, 192), (85, 200, 12, 6)),
-            Prop(stool, (108, 140), (109, 148, 12, 6)),
-            Prop(make_plant(), (22, 148), (25, 164, 13, 10)),
-            Prop(make_plant(), (356, 248), (359, 264, 13, 10)),
-            Prop(make_gumball(), (236, 252), (237, 268, 12, 6)),
-        ]
-
-    # ------------------------------------------------------------ background
-    def _build_background(self):
-        bg = pygame.Surface((VIEW_W, VIEW_H))
-        self._paint_floor(bg)
-        self._paint_back_wall(bg)
-        self._paint_walls(bg)
-        self._paint_strip_glows(bg)
-        return bg
-
-    def _paint_strip_glows(self, bg):
-        """Neon strip halos are baked under the sprites so cabinets occlude them."""
-        def add(surf, pos):
-            bg.blit(surf, pos, special_flags=pygame.BLEND_RGB_ADD)
-
-        add(glow_line(VIEW_W, Col.MAGENTA, spread=6, strength=0.35), (-6, 38))
-        add(glow_line(VIEW_W, Col.CYAN, spread=4, strength=0.3), (-4, -1))
-        for rect, color in self.strips:
-            vertical = rect.h > rect.w
-            g = glow_line(max(rect.w, rect.h), color, vertical, spread=5, strength=0.3)
-            add(g, (rect.x - 5, rect.y - 5))
-
-    def _paint_floor(self, bg):
-        """Dark arcade carpet with a scatter of little neon shapes."""
-        bg.fill(Col.FLOOR, (0, FLOOR_TOP, VIEW_W, FLOOR_BOTTOM - FLOOR_TOP))
-        for y in range(FLOOR_TOP, FLOOR_BOTTOM, 20):
-            for x in range(0, VIEW_W, 20):
-                if (x // 20 + y // 20) % 2:
-                    bg.fill(Col.FLOOR_ALT, (x, y, 20, 20))
-        rng = random.Random(3)
-        colors = [scale_color(c, 0.38) for c in (Col.MAGENTA, Col.CYAN, Col.PURPLE, Col.YELLOW)]
-        for _ in range(70):
-            x = rng.randrange(WALL_SIDE + 2, VIEW_W - WALL_SIDE - 6)
-            y = rng.randrange(FLOOR_TOP + 4, FLOOR_BOTTOM - 6)
-            c = rng.choice(colors)
-            kind = rng.randrange(4)
-            if kind == 0:      # tiny triangle
-                pygame.draw.polygon(bg, c, [(x, y + 3), (x + 2, y), (x + 4, y + 3)], 1)
-            elif kind == 1:    # squiggle
-                for i in range(5):
-                    bg.fill(c, (x + i, y + (i % 2), 1, 1))
-            elif kind == 2:    # plus
-                bg.fill(c, (x + 1, y, 1, 3))
-                bg.fill(c, (x, y + 1, 3, 1))
-            else:              # dot pair
-                bg.fill(c, (x, y, 1, 1))
-                bg.fill(c, (x + 2, y + 2, 1, 1))
-
-        # shadow at the base of the back wall
-        shadow = pygame.Surface((VIEW_W, 6), pygame.SRCALPHA)
-        shadow.fill((0, 0, 0, 90), (0, 0, VIEW_W, 3))
-        shadow.fill((0, 0, 0, 45), (0, 3, VIEW_W, 3))
-        bg.blit(shadow, (0, FLOOR_TOP))
-
-        # dim base colour of the neon strips (brightened per frame)
-        for rect, color in self.strips:
-            bg.fill(scale_color(color, 0.3), rect.inflate(2, 2) if rect.w > 1 else rect.inflate(2, 0))
-
-        # doorway and mat
-        bg.fill((14, 10, 30), (DOOR_X, FLOOR_BOTTOM, DOOR_W, VIEW_H - FLOOR_BOTTOM))
-        mat = pygame.Rect(DOOR_X + 4, FLOOR_BOTTOM - 14, DOOR_W - 8, 12)
-        bg.fill((40, 26, 70), mat)
-        pygame.draw.rect(bg, scale_color(Col.CYAN, 0.6), mat, 1)
-        for x in range(mat.x + 4, mat.right - 4, 4):
-            bg.fill((58, 40, 100), (x, mat.y + 3, 2, mat.h - 6))
-
-    def _paint_back_wall(self, bg):
-        bg.fill(Col.WALL, (0, 0, VIEW_W, FLOOR_TOP))
-        for x in range(0, VIEW_W, 16):
-            bg.fill(Col.WALL_PANEL, (x, 4, 1, FLOOR_TOP - 8))
-        for y in (16, 30):
-            bg.fill(shade(Col.WALL, -0.2), (0, y, VIEW_W, 1))
-        bg.fill(Col.WALL_CAP, (0, 0, VIEW_W, 3))
-        bg.fill(Col.CYAN, (0, 3, VIEW_W, 1))                      # ceiling neon
-        bg.fill(scale_color(Col.MAGENTA, 0.5), (0, 43, VIEW_W, 3))  # wall neon strip
-        bg.fill(Col.MAGENTA, (0, 44, VIEW_W, 1))
-        bg.fill(Col.WALL_CAP, (0, FLOOR_TOP - 4, VIEW_W, 4))
-        bg.fill(scale_color(Col.PURPLE, 0.6), (0, FLOOR_TOP - 4, VIEW_W, 1))
-
-        self._paint_cat_poster(bg, pygame.Rect(30, 9, 22, 28))
-        self._paint_scoreboard(bg, pygame.Rect(330, 8, 22, 26))
-        # little lightning bolts either side of the sign
-        for bx in (100, 190):
-            pygame.draw.polygon(bg, Col.YELLOW, [(bx + 3, 8), (bx, 15), (bx + 3, 15),
-                                                 (bx + 1, 22), (bx + 6, 13), (bx + 3, 13), (bx + 5, 8)])
-
-    def _paint_cat_poster(self, bg, r):
-        bg.fill(Col.CYAN, r.inflate(2, 2))
-        bg.fill((30, 14, 60), r)
-        cx, cy = r.centerx, r.centery + 1
-        pygame.draw.circle(bg, Col.MAGENTA, (cx, cy), 7)
-        pygame.draw.polygon(bg, Col.MAGENTA, [(cx - 7, cy - 2), (cx - 6, cy - 10), (cx - 2, cy - 6)])
-        pygame.draw.polygon(bg, Col.MAGENTA, [(cx + 7, cy - 2), (cx + 6, cy - 10), (cx + 2, cy - 6)])
-        bg.fill((30, 14, 60), (cx - 4, cy - 1, 2, 2))
-        bg.fill((30, 14, 60), (cx + 2, cy - 1, 2, 2))
-        bg.fill(Col.YELLOW, (cx - 1, cy + 2, 2, 1))
-        for sx, sy in ((3, 3), (18, 4), (4, 23), (17, 24)):
-            bg.fill(Col.YELLOW, (r.x + sx, r.y + sy, 1, 1))
-
-    def _paint_scoreboard(self, bg, r):
-        bg.fill(Col.PURPLE, r.inflate(2, 2))
-        bg.fill((8, 6, 20), r)
-        font = get_font()
-        bg.blit(font.render("HI", Col.CYAN), (r.x + 6, r.y + 3))
-        for i, w in enumerate((14, 12, 10)):
-            bg.fill(Col.YELLOW if i == 0 else Col.TEXT_MUTED, (r.x + 4, r.y + 13 + i * 4, w, 2))
-
-    def _paint_walls(self, bg):
-        for x in (0, VIEW_W - WALL_SIDE):
-            bg.fill(Col.WALL_CAP, (x, 0, WALL_SIDE, VIEW_H))
-            bg.fill(shade(Col.WALL_CAP, 0.12), (x + 3, 0, WALL_SIDE - 6, VIEW_H))
-        bg.fill(Col.PURPLE, (WALL_SIDE - 1, FLOOR_TOP, 1, FLOOR_BOTTOM - FLOOR_TOP))
-        bg.fill(Col.PURPLE, (VIEW_W - WALL_SIDE, FLOOR_TOP, 1, FLOOR_BOTTOM - FLOOR_TOP))
-        for x0, x1 in ((0, DOOR_X), (DOOR_X + DOOR_W, VIEW_W)):
-            bg.fill(Col.WALL_CAP, (x0, FLOOR_BOTTOM, x1 - x0, VIEW_H - FLOOR_BOTTOM))
-            bg.fill(shade(Col.WALL_CAP, 0.12), (x0, FLOOR_BOTTOM + 3, x1 - x0, VIEW_H - FLOOR_BOTTOM - 6))
-            bg.fill(Col.PURPLE, (x0, FLOOR_BOTTOM, x1 - x0, 1))
-        for x in (DOOR_X - 2, DOOR_X + DOOR_W):
-            bg.fill(Col.OUTLINE, (x, FLOOR_BOTTOM, 2, VIEW_H - FLOOR_BOTTOM))
-        # glowing EXIT sign beside the door
-        exit_sign = get_font().render_glow("EXIT", (170, 255, 190), (30, 140, 70))
-        self.exit_pos = (DOOR_X + DOOR_W + 6, FLOOR_BOTTOM + 5)
-        bg.fill((8, 20, 14), pygame.Rect(self.exit_pos, exit_sign.get_size()).inflate(4, 2))
-        bg.blit(exit_sign, self.exit_pos)
-
-    def _build_sign(self):
-        """Big 'ARCADE' neon sign: on/off versions plus its glow."""
-        font = get_font()
-        self.sign_on_img = font.render_glow("ARCADE", (255, 170, 235), Col.MAGENTA, scale=2)
-        self.sign_off_img = font.render_glow("ARCADE", (90, 40, 90), (60, 26, 64), scale=2)
-        w, h = self.sign_on_img.get_size()
-        self.sign_glow = neon_rect_glow(w, h, Col.MAGENTA, 10, 0.5)
-
-    # --------------------------------------------------------------- lighting
-    def _build_lighting(self):
-        # Multiply layer: cool purple tint with a pixel-banded vignette.
-        shade_layer = pygame.Surface((VIEW_W, VIEW_H))
-        edge, center = (110, 90, 150), (236, 230, 255)
-        shade_layer.fill(edge)
-        bands = 9
-        for i in range(bands):
-            k = (i + 1) / bands
-            rect = pygame.Rect(0, 0, int(VIEW_W * (1.5 - 0.9 * k)), int(VIEW_H * (1.5 - 0.9 * k)))
-            rect.center = (VIEW_W // 2, VIEW_H // 2 + 10)
-            pygame.draw.ellipse(shade_layer, lerp_color(edge, center, k), rect)
-
-        # Additive layer for static lights: wall neon, strips, exit, pools.
-        glow = pygame.Surface((VIEW_W, VIEW_H))
-        glow.fill((0, 0, 0))
-
-        def add(surf, pos):
-            glow.blit(surf, pos, special_flags=pygame.BLEND_RGB_ADD)
-
-        add(radial_glow(18, (20, 80, 40), bands=4), (self.exit_pos[0] - 6, self.exit_pos[1] - 14))
-        for pos, radius, color in (((200, 180), 110, (26, 14, 40)), ((330, 200), 60, (40, 30, 10)),
-                                   ((200, 300), 40, (20, 30, 50))):
-            add(radial_glow(radius, color), (pos[0] - radius, pos[1] - radius))
-        return shade_layer, glow
-
-    # ------------------------------------------------------------ per frame
-    def update(self, dt):
-        self.time += dt
-        for prop in self.props:
-            prop.update(dt)
-        for mote in self.motes:
-            mote[0] += math.sin(self.time * 0.5 + mote[2]) * 3 * dt
-            mote[1] -= 4 * dt
-            if mote[1] < 66:
-                mote[1] = 270
-        # The sign stutters off for a moment every ~7 seconds.
-        cycle = self.time % 7.0
-        self.sign_on = not (6.2 < cycle < 6.28 or 6.4 < cycle < 6.5)
-
-    def draw_background(self, surf):
-        surf.blit(self.background, (0, 0))
-        surf.blit(self.sign_on_img if self.sign_on else self.sign_off_img, self.SIGN_POS)
-        self._draw_strips(surf)
-
-    def _draw_strips(self, surf):
-        pulse = 0.65 + 0.35 * math.sin(self.time * 1.6)
-        for i, (rect, color) in enumerate(self.strips):
-            surf.fill(scale_color(color, pulse), rect)
-            # a bright spark chasing along the strip
-            length = max(rect.w, rect.h)
-            pos = int((self.time * 60 + i * 37) % (length + 20)) - 10
-            if rect.w > rect.h:
-                spark = pygame.Rect(rect.x + pos, rect.y, 6, 1).clip(rect)
-            else:
-                spark = pygame.Rect(rect.x, rect.y + pos, 1, 6).clip(rect)
-            if spark.w and spark.h:
-                surf.fill(shade(color, 0.7), spark)
-
-    def drawables(self):
-        return self.props + self.machines
-
-    def draw_lighting(self, surf):
-        surf.blit(self.shade, (0, 0), special_flags=pygame.BLEND_RGB_MULT)
-        surf.blit(self.glow, (0, 0), special_flags=pygame.BLEND_RGB_ADD)
-        if self.sign_on:
-            sx, sy = self.SIGN_POS
-            surf.blit(self.sign_glow, (sx - 10, sy - 10), special_flags=pygame.BLEND_RGB_ADD)
-        for prop in self.props:
-            prop.draw_glow(surf)
-        for x, y, phase in self.motes:
-            if math.sin(self.time * 1.7 + phase * 3) > 0.3:
-                surf.fill((200, 180, 255), (int(x), int(y), 1, 1))
+    for side, x in (("left", 0), ("right", VIEW_W - WALL_SIDE)):
+        if side in door_sides:
+            walls.append(pygame.Rect(x, 0, WALL_SIDE, gap_top))
+            walls.append(pygame.Rect(x, gap_bottom, WALL_SIDE, VIEW_H - gap_bottom))
+            edge = -WALL_SIDE if side == "left" else VIEW_W
+            walls.append(pygame.Rect(edge, 0, WALL_SIDE, VIEW_H))
+        else:
+            walls.append(pygame.Rect(x, 0, WALL_SIDE, VIEW_H))
+    return walls

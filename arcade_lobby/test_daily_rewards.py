@@ -22,6 +22,7 @@ import pygame  # noqa: E402
 from daily_rewards import DailyRewardManager  # noqa: E402
 from daily_tasks import DailyTaskManager  # noqa: E402
 from daily_ui import TaskPanel  # noqa: E402
+from room_testing import goto_room  # noqa: E402
 from game import Game  # noqa: E402
 from game_clock import GameClock  # noqa: E402
 from item_registry import FREE_PLAY_COUPON  # noqa: E402
@@ -317,7 +318,7 @@ class CouponTaskTests(unittest.TestCase):
             g = Game(save_path=path, clock=clock_at())
             g.profile._tasks = DailyTaskManager(pool=[self.spec()], count=1)
             g.profile._tasks.ensure_current(DAY1)
-            room = g.scenes.current
+            room = goto_room(g, "arcade_floor")
 
             def frames(n, events=()):
                 g.step(list(events), DT)

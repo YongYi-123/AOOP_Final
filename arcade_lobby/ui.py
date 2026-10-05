@@ -9,7 +9,7 @@ import pygame
 from font import LINE_H, get_font
 from gfx import scale_color, shade
 from settings import (BACK_KEYS, CONFIRM_KEYS, Col, NEXT_KEYS, PREV_KEYS,
-                      VIEW_H, VIEW_W)
+                      ROOM_TITLE_TIME, VIEW_H, VIEW_W)
 
 
 def draw_text(surf, text, pos, color=Col.TEXT, scale=1, anchor="topleft", glow=None):
@@ -203,18 +203,76 @@ class SpeechBubble:
 
 
 class InstructionBox:
-    """Small always-visible controls reminder (pre-rendered)."""
+    """Small always-visible controls reminder (pre-rendered). Each room gives
+    its own rows, so only the hints that matter there are on screen. A row is
+    a list of (text, colour) pieces drawn left to right."""
+    ROW_H = 11
 
-    def __init__(self):
-        self.image = neon_panel(84, 41).copy()
-        draw_text(self.image, "MOVE: WASD", (7, 6), Col.TEXT)
-        x = draw_text(self.image, "INTERACT:", (7, 17), Col.TEXT).right
-        draw_text(self.image, "E", (x + 4, 17), Col.YELLOW)
-        x = draw_text(self.image, "I :", (7, 28), Col.TEXT).right
-        draw_text(self.image, "BAG", (x + 4, 28), Col.YELLOW)
+    def __init__(self, rows=None):
+        rows = rows or DEFAULT_HINTS
+        font = get_font()
+        widths = [sum(font.size(t)[0] + 4 for t, _ in row) for row in rows]
+        w = max(84, max(widths) + 11)
+        self.image = neon_panel(w, 8 + self.ROW_H * len(rows)).copy()
+        for i, row in enumerate(rows):
+            x, y = 7, 6 + i * self.ROW_H
+            for text, color in row:
+                x = draw_text(self.image, text, (x, y), color).right + 4
 
     def draw(self, surf):
         surf.blit(self.image, (4, VIEW_H - self.image.get_height() - 4))
+
+
+DEFAULT_HINTS = (
+    [("MOVE: WASD", Col.TEXT)],
+    [("INTERACT:", Col.TEXT), ("E", Col.YELLOW)],
+    [("I :", Col.TEXT), ("BAG", Col.YELLOW)],
+)
+
+
+class RoomTitle:
+    """The neon name of a room (HOME, ARCADE FLOOR ...) that fades in when you
+    walk in and fades away again. Pre-rendered; only the alpha changes."""
+    FADE_IN, FADE_OUT = 0.3, 0.7
+
+    def __init__(self, text, color, glow, hold=ROOM_TITLE_TIME, y=34):
+        img = get_font().render_glow(text, color, glow, scale=3)
+        self.image = img.copy()
+        self.y = y
+        self.hold = hold
+        self.age = None         # None: not showing
+        self.delay = 0.0
+
+    @property
+    def visible(self):
+        return self.age is not None and self.age >= 0
+
+    def show(self, delay=0.0):
+        self.age = -delay
+
+    def clear(self):
+        self.age = None
+
+    def update(self, dt):
+        if self.age is not None:
+            self.age += dt
+            if self.age >= self.hold:
+                self.age = None
+
+    def alpha(self):
+        if self.age is None or self.age < 0:
+            return 0
+        if self.age < self.FADE_IN:
+            return int(255 * self.age / self.FADE_IN)
+        left = self.hold - self.age
+        return int(255 * min(1.0, left / self.FADE_OUT))
+
+    def draw(self, surf):
+        a = self.alpha()
+        if a <= 0:
+            return
+        self.image.set_alpha(a)
+        surf.blit(self.image, self.image.get_rect(midtop=(VIEW_W // 2, self.y)))
 
 
 class DialogueBox:

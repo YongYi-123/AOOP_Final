@@ -17,8 +17,9 @@ from cat import CURIOUS, FRIENDLY, CatNPC, CatState  # noqa: E402
 from cat_sprites import CatLook, cat_sheet  # noqa: E402
 from cat_voice import KINDS, CatVoice, meow_bank, synth_samples  # noqa: E402
 from game import Game  # noqa: E402
-from scenes import ArcadeRoomScene, MinigamePlaceholderScene  # noqa: E402
-from settings import CATS  # noqa: E402
+from room_testing import goto_room  # noqa: E402
+from scenes import MinigamePlaceholderScene  # noqa: E402
+from settings import CATS, ROOM_IDS  # noqa: E402
 from ui import SpeechBubble  # noqa: E402
 
 DT = 1 / 60
@@ -29,15 +30,20 @@ def key(k, down=True):
 
 
 class CatSceneTest(unittest.TestCase):
-    STYLE = "lofi"
-
     def setUp(self):
         self.dir = tempfile.mkdtemp()
-        self.game = Game(style=self.STYLE, save_path=os.path.join(self.dir, "save.json"))
+        self.game = Game(save_path=os.path.join(self.dir, "save.json"))
         self.room = self.game.scenes.current
         self.cats = self.room.cats
         self.run_frames(3, [key(pygame.K_ESCAPE)])   # put off the daily bonus popup
         assert self.room.popup is None
+
+    def use_room(self, room_id):
+        """Run the test in another room (cats live in one room each: HOME
+        has most, Pixel is on the ARCADE FLOOR)."""
+        self.room = goto_room(self.game, room_id)
+        self.cats = self.room.cats
+        self.run_frames(2)
 
     def tearDown(self):
         shutil.rmtree(self.dir, ignore_errors=True)
@@ -73,9 +79,18 @@ class SpawnTests(CatSceneTest):
         for cat in self.cats:
             self.assertEqual(cat.position, tuple(map(float, cat.spots[0])))   # at home
 
+    def all_cats(self):
+        return [c for room_id in ROOM_IDS for c in self.game.hub.room(room_id).cats]
+
     def test_several_personalities(self):
-        kinds = {c.personality.name for c in self.cats}
+        kinds = {c.personality.name for c in self.all_cats()}
         self.assertTrue({"friendly", "shy", "lazy", "curious"} <= kinds)
+
+    def test_most_cats_live_at_home_and_none_is_duplicated(self):
+        names = [c.name for c in self.all_cats()]
+        self.assertEqual(sorted(names), sorted(d["name"] for d in CATS))
+        self.assertEqual(len(set(names)), len(names))
+        self.assertGreater(len(self.cats), len(names) / 2)
 
     def test_one_reusable_class(self):
         # One CatNPC class configured by data, no per-cat subclasses
@@ -83,18 +98,18 @@ class SpawnTests(CatSceneTest):
 
 
 class SpotTests(unittest.TestCase):
-    def test_every_spot_is_clear_in_both_rooms(self):
-        """Spots are not inside furniture, machine fronts or the doorway."""
-        for style in ("lofi", "neon"):
-            with self.subTest(style=style):
-                d = tempfile.mkdtemp()
-                try:
-                    room = Game(style=style, save_path=os.path.join(d, "s.json")).scenes.current
-                    for cat in room.cats:
-                        for spot in cat.spots:
-                            self.assertTrue(room.cats.is_free(spot), (style, cat.name, spot))
-                finally:
-                    shutil.rmtree(d, ignore_errors=True)
+    def test_every_spot_is_clear_in_every_room(self):
+        """Spots are not inside furniture, machine fronts or a doorway."""
+        d = tempfile.mkdtemp()
+        try:
+            game = Game(save_path=os.path.join(d, "s.json"))
+            for room_id in ROOM_IDS:
+                room = game.hub.room(room_id)
+                for cat in room.cats:
+                    for spot in cat.spots:
+                        self.assertTrue(room.cats.is_free(spot), (room_id, cat.name, spot))
+        finally:
+            shutil.rmtree(d, ignore_errors=True)
 
 
 # ---------------------------------------------------------------- looks
@@ -200,6 +215,7 @@ class InteractionTests(CatSceneTest):
         self.assertGreater(self.room.player.y, y)
 
     def test_machine_prompt_wins_over_cat(self):
+        self.use_room("arcade_floor")
         machine = self.room.machines[1]
         p = self.room.player
         p.x, p.y = machine.rect.centerx, machine.rect.bottom + 12
@@ -276,6 +292,7 @@ class FollowTests(CatSceneTest):
         self.assertTrue(self.cats.request_follow(a))
 
     def test_curious_cat_trails_a_passing_player(self):
+        self.use_room("arcade_floor")
         cat = next(c for c in self.cats if c.personality is CURIOUS)
         self.isolate(cat)
         cat.set_state(CatState.SIT, 999)
@@ -288,6 +305,7 @@ class FollowTests(CatSceneTest):
         self.run_frames(1, [key(pygame.K_s, down=False)])
 
     def test_follow_stops_when_dialogue_opens(self):
+        self.use_room("arcade_floor")
         cat = self.cats.cats[0]
         self.isolate(cat)
         self.cats.request_follow(cat)
@@ -337,11 +355,19 @@ class CollisionTests(CatSceneTest):
                 if cat.state in (CatState.SIT, CatState.SLEEP, CatState.IDLE):
                     self.assertEqual(cat.feet.collidelist(self.cats.keep_clear), -1,
                                      (cat.name, cat.position, cat.state))
-        self.assertTrue(p.feet.collidelist(self.room.room.solids) == -1)
+        self.assertTrue(p.feet.collidelist(self.room.solids) == -1)
+
+    def test_resting_cats_keep_clear_on_the_arcade_floor_too(self):
+        self.use_room("arcade_floor")
+        self.test_resting_cats_keep_machine_fronts_and_door_clear()
 
 
 # ---------------------------------------------------------------- scenes
 class SceneSafetyTests(CatSceneTest):
+    def setUp(self):
+        super().setUp()
+        self.use_room("arcade_floor")
+
     def enter_minigame(self):
         machine = next(m for m in self.room.machines if m.id == "space_blaster")
         self.room.player.x, self.room.player.y = machine.rect.centerx, machine.rect.bottom + 12
@@ -351,7 +377,7 @@ class SceneSafetyTests(CatSceneTest):
         self.assertIsInstance(self.game.scenes.current, MinigamePlaceholderScene)
 
     def test_enter_and_leave_minigame(self):
-        cat = self.cats.get("miso")
+        cat = self.cats.get("pixel")
         cat.say("meow!", "meow")
         self.cats.request_follow(cat)
         cat.start_follow(99)
@@ -369,7 +395,7 @@ class SceneSafetyTests(CatSceneTest):
         self.assertEqual(frozen, [(c.time, c.position) for c in self.cats])
 
         self.run_frames(40, [key(pygame.K_ESCAPE)])
-        self.assertIsInstance(self.game.scenes.current, ArcadeRoomScene)
+        self.assertIs(self.game.scenes.current, self.room)
         self.assertFalse(self.cats.paused)
         self.run_frames(30)
         self.assertTrue(all(c.time > t for c, (t, _) in zip(self.cats, frozen)))
@@ -384,15 +410,11 @@ class SceneSafetyTests(CatSceneTest):
         self.assertEqual(cat.voice.plays, plays + 1)
 
     def test_e_in_minigame_does_not_pet(self):
-        cat = self.cats.get("miso")
+        cat = self.cats.get("pixel")
         self.enter_minigame()
         self.run_frames(5, [key(pygame.K_e)])
         self.assertNotEqual(cat.state, CatState.PET)
         self.assertFalse(self.cats.interact(cat))
-
-
-class NeonRoomTests(SpawnTests):
-    STYLE = "neon"
 
 
 if __name__ == "__main__":

@@ -10,7 +10,7 @@ from font import get_font
 from gfx import neon_rect_glow, outlined, scale_color, shade
 from high_low import HighLowGame
 from lucky_wheel import LuckyWheelGame
-from room import Prop
+from room import Prop, make_prize_counter
 from settings import INTERACT_FLASH, Col
 
 
@@ -185,11 +185,43 @@ class LuckySign(Prop):
                 surf.fill(Col.YELLOW, (self.pos[0] + 2 + i, self.pos[1] - 1, 2, 1))
 
 
-def build_stations(profile):
-    """Every station in the arcade, in a fixed order."""
+class SoonStation(Prop):
+    """A switched-off Lucky Corner bay waiting for a future chance game."""
+
+    def __init__(self, pos):
+        x, y = pos
+        dim = (74, 62, 116)
+        sprite = _lucky_sprite("SOON", dim, dim)
+        sprite.fill((10, 8, 22), (5, 11, LUCKY_SIZE[0] - 10, 12))
+        super().__init__(outlined(sprite), (x - 1, y - 1), (x + 1, y + 28, 28, 12))
+        self.rect = pygame.Rect(x, y, *LUCKY_SIZE)
+
+
+class PrizeCounter(Station):
+    """The prize counter in the PRIZE PLAZA. Only a placeholder for now: it
+    opens a 'coming soon' notice (the shop comes later)."""
+    prompt_label = "PRIZE COUNTER"
+
+    def __init__(self, pos):
+        x, y = pos
+        super().__init__(make_prize_counter(), pos, (x + 1, y + 20, 80, 16),
+                         Col.YELLOW, Col.MAGENTA, 0.25)
+
+    def interact(self, scene):
+        scene.open_prize_counter()
+
+
+def build_daily_board(profile, pos):
+    """The daily challenge board that lives in HOME."""
+    return DailyBoard(pos, profile)
+
+
+def build_lucky_corner(x, y, spacing=40):
+    """The Lucky Corner in the PRIZE PLAZA: its sign, the two chance games and
+    a dark bay for the next one. (x, y) is the top-left of the first machine."""
     return [
-        DailyBoard((146, 226), profile),
-        LuckySign((297, 93)),
-        ChanceStation((298, 108), LuckyWheelGame, "SPIN", (255, 70, 200), (255, 214, 90)),
-        ChanceStation((338, 108), HighLowGame, "HI-LO", (80, 240, 255), (90, 255, 150)),
+        LuckySign((x - 1, y - 15)),
+        ChanceStation((x, y), LuckyWheelGame, "SPIN", (255, 70, 200), (255, 214, 90)),
+        ChanceStation((x + spacing, y), HighLowGame, "HI-LO", (80, 240, 255), (90, 255, 150)),
+        SoonStation((x + spacing * 2, y)),
     ]

@@ -24,6 +24,7 @@ from game import Game  # noqa: E402
 from game_clock import GameClock  # noqa: E402
 from high_low import HIGHER, LOWER, HighLowGame  # noqa: E402
 from lucky_wheel import SPIN_TIME, LuckyWheelGame  # noqa: E402
+from room_testing import goto_room  # noqa: E402
 from machine import ArcadeMachine  # noqa: E402
 from player_profile import SAVE_VERSION, PlayerProfile, ProfileStore  # noqa: E402
 from settings import (DAILY_REWARDS, DAILY_TASK_COUNT, DAILY_TASK_POOL,  # noqa: E402
@@ -718,7 +719,7 @@ class ArcadeEconomyFlowTests(TempDirTest):
     def make_game(self, day=DAY1, popup=False, **kw):
         self.clock = clock_at(day)
         g = Game(save_path=self.path, clock=self.clock, **kw)
-        room = g.scenes.current
+        room = g.scenes.current            # HOME: where the game starts and the daily systems live
         if not popup and room.popup:
             self.run_frames(g, 3, [key(pygame.K_ESCAPE)])
         return g, room
@@ -815,7 +816,7 @@ class ArcadeEconomyFlowTests(TempDirTest):
     # ---- board
     def test_board_opens_shows_tasks_and_claims(self):
         g, room = self.make_game()
-        board = next(s for s in room.stations if isinstance(s, DailyBoard))
+        board = next(p for p in room.props if isinstance(p, DailyBoard))
         self.stand_at(g, room, board)
         self.assertIs(room.nearby, board)
         self.assertEqual(room.prompt.label, "DAILY CHALLENGES")
@@ -874,7 +875,8 @@ class ArcadeEconomyFlowTests(TempDirTest):
         self.assertEqual(g.profile.cats_petted, 1)
 
     def test_visiting_machines_counts_distinct_ones(self):
-        g, room = self.make_game()
+        g, _ = self.make_game()
+        room = goto_room(g, "arcade_floor")
         mgr = DailyTaskManager(pool=[{"id": "v", "description": "VISIT 3", "event": "machine_visited",
                                       "distinct": True, "target": 3, "reward": 5}], count=1)
         g.profile._tasks = mgr
@@ -892,7 +894,8 @@ class ArcadeEconomyFlowTests(TempDirTest):
         self.assertEqual(mgr.tasks[0].progress, 2)
 
     def test_playing_a_machine_progresses_play_tasks(self):
-        g, room = self.make_game()
+        g, _ = self.make_game()
+        room = goto_room(g, "arcade_floor")
         mgr = DailyTaskManager(pool=[{"id": "p", "description": "PLAY 1", "event": "game_played",
                                       "target": 1, "reward": 5}], count=1)
         g.profile._tasks = mgr
@@ -907,20 +910,22 @@ class ArcadeEconomyFlowTests(TempDirTest):
 
     # ---- lucky corner
     def lucky(self, room, cls_name):
-        return next(s for s in room.stations if isinstance(s, ChanceStation)
+        return next(s for s in room.props if isinstance(s, ChanceStation)
                     and s.game_cls.__name__ == cls_name)
 
     def test_lucky_corner_stations_exist_and_are_interactable(self):
-        g, room = self.make_game()
+        g, _ = self.make_game()
+        room = goto_room(g, "prize_plaza")
         for cls in ("LuckyWheelGame", "HighLowGame"):
             st = self.lucky(room, cls)
             self.assertIn(st, room.interactables)
-            self.assertIn(st.footprint, room.room.solids)
-        sign = next(p for p in room.room.props if p.__class__.__name__ == "LuckySign")
-        self.assertNotIn(sign.footprint, room.room.solids)
+            self.assertIn(st.footprint, room.solids)
+        sign = next(p for p in room.props if p.__class__.__name__ == "LuckySign")
+        self.assertNotIn(sign.footprint, room.solids)
 
     def test_playing_the_wheel_through_the_scene_charges_and_pays_once(self):
-        g, room = self.make_game()
+        g, _ = self.make_game()
+        room = goto_room(g, "prize_plaza")
         st = self.lucky(room, "LuckyWheelGame")
         self.stand_at(g, room, st)
         self.assertIs(room.nearby, st)

@@ -26,7 +26,7 @@ from settings import (STARTING_TICKETS, STARTING_TOKENS,
                       TRANSACTION_HISTORY_SIZE)
 
 # field: "tokens", "tickets", "games_played", "high_score", "daily", "tasks",
-#        "chance_games", "cats_petted" or "inventory"
+#        "chance_games", "cats_petted", "inventory" or "decorations"
 # delta: signed change (for "high_score": the new score); value: new total
 ProfileChange = namedtuple("ProfileChange", "field delta value")
 
@@ -51,7 +51,8 @@ class PlayerProfile:
     def __init__(self, tokens=STARTING_TOKENS, tickets=STARTING_TICKETS, high_scores=None,
                  total_games_played=0, lifetime_tickets_earned=0, lifetime_tokens_earned=0,
                  lifetime_tokens_spent=0, chance_games_played=0, cats_petted=0,
-                 daily=None, daily_tasks=None, history=(), clock=None, inventory=None):
+                 daily=None, daily_tasks=None, history=(), clock=None, inventory=None,
+                 home_decorations=None):
         self._tokens = tokens
         self._tickets = tickets
         self._high_scores = dict(high_scores or {})
@@ -71,6 +72,9 @@ class PlayerProfile:
         self._dirty = False
         self._inventory = inventory or Inventory()
         self._inventory.on_change = lambda: self._notify("inventory", 0, 0)
+        # HOME decoration slot id -> the decoration the player put there. Slots
+        # not listed show their default (see decorations.HomeDecorationManager).
+        self._home_decorations = dict(home_decorations or {})
         self._tasks.ensure_current(self.clock.today(), eligible=self._task_eligible)
 
     # ------------------------------------------------------------ read-only
@@ -110,6 +114,22 @@ class PlayerProfile:
     def inventory(self):
         """The player's Inventory (change it with its add_item / remove_item;\n        the profile autosaves when it changes)."""
         return self._inventory
+
+    @property
+    def home_decorations(self):
+        return dict(self._home_decorations)  # a copy: edit through set_home_decoration()
+
+    def set_home_decoration(self, slot_id, decoration_id):
+        """Put `decoration_id` in a HOME slot (None puts the slot back to its
+        default). Whether the decoration fits is the decoration manager's call."""
+        if decoration_id is None:
+            changed = self._home_decorations.pop(slot_id, None) is not None
+        else:
+            changed = self._home_decorations.get(slot_id) != decoration_id
+            self._home_decorations[slot_id] = decoration_id
+        if changed:
+            self._notify("decorations", 0, len(self._home_decorations))
+        return changed
 
     @property
     def high_scores(self):
@@ -364,6 +384,7 @@ class PlayerProfile:
             "daily_tasks": self._tasks.to_dict(),
             "transaction_history": list(self._history),
             "inventory": self._inventory.to_dict(),
+            "home_decorations": dict(self._home_decorations),
         }
 
     @classmethod
@@ -384,6 +405,9 @@ class PlayerProfile:
         history = [{"date": str(e.get("date", "")), "delta": e["delta"], "reason": str(e.get("reason", "OTHER"))}
                    for e in history if isinstance(e, dict) and isinstance(e.get("delta"), int)
                    and not isinstance(e["delta"], bool)] if isinstance(history, list) else []
+        decorations = data.get("home_decorations")
+        decorations = {k: v for k, v in decorations.items() if isinstance(k, str) and isinstance(v, str)
+                       } if isinstance(decorations, dict) else {}
         return cls(
             tokens=tokens,
             tickets=tickets,
@@ -399,6 +423,7 @@ class PlayerProfile:
             history=history,
             clock=clock,
             inventory=Inventory.from_dict(data.get("inventory")),
+            home_decorations=decorations,
         )
 
 

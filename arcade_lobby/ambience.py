@@ -26,6 +26,7 @@ class AmbienceManager:
     def __init__(self, folder=AMBIENCE_DIR, layers=LAYERS):
         self.sounds = {}
         self.channels = {}
+        self.mix = {}
         paths = {name: (os.path.join(folder, fname), vol) for name, (fname, vol) in layers.items()}
         available = {n: pv for n, pv in paths.items() if os.path.isfile(pv[0])}
         if not available:
@@ -39,6 +40,14 @@ class AmbienceManager:
                 self.sounds[name] = sound
         except pygame.error:
             self.sounds.clear()   # no audio device: stay silent
+
+    def set_mix(self, mix):
+        """Set each layer's volume for the room now on screen; layers the mix
+        does not name go quiet. Rooms differ only in this mix, so nothing
+        restarts when you walk through a door."""
+        self.mix = dict(mix)
+        for name, sound in self.sounds.items():
+            sound.set_volume(self.mix.get(name, 0.0))
 
     @property
     def enabled(self):

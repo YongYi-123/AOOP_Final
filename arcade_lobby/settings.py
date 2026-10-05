@@ -17,13 +17,17 @@ FPS = 60
 FLOOR_TOP = 64          # back wall occupies y < FLOOR_TOP
 WALL_SIDE = 20          # thickness of the left/right walls
 FLOOR_BOTTOM = 282      # bottom wall starts here
-DOOR_X, DOOR_W = 180, 40
-PLAYER_START = (200, 262)
 
-# Room look: "lofi" (chill late-night arcade) or "neon" (the original bright
-# style). Override at launch with:  python main.py --style neon
-BACKGROUND_STYLES = ("lofi", "neon")
-BACKGROUND_STYLE = "lofi"
+# The hub is three rooms side by side (ARCADE FLOOR <-> HOME <-> PRIZE PLAZA).
+# Doorways are gaps in the side walls; walking into one changes room.
+ROOM_IDS = ("arcade_floor", "home", "prize_plaza")
+START_ROOM = "home"
+SIDE_DOOR_Y, SIDE_DOOR_H = 198, 52      # the doorway gap in a side wall
+EXIT_DEPTH = 12                         # feet this close to the screen edge trigger the exit
+ENTRY_INSET = 34                        # where a player arriving through a door stands
+ARRIVAL_GRACE = 0.4                     # seconds after arriving before exits work again
+PLAYER_START = (200, 250)               # first spawn, in HOME
+ROOM_TITLE_TIME = 2.0                   # seconds the room name stays on screen
 
 PLAYER_SPEED = 72       # canvas pixels per second
 TRANSITION_TIME = 0.18  # seconds for each half of the scanline wipe
@@ -194,9 +198,14 @@ class Lofi:
     LEAF_LIGHT = (116, 196, 150)
 
 
-# The three arcade machines. The id is what the minigame scene registry
-# (scenes.MINIGAME_SCENES) and the save file's high scores key off.
-# "play_cost" is optional and defaults to DEFAULT_PLAY_COST.
+# The arcade machines on the ARCADE FLOOR (see arcade_layout.py, which turns
+# each entry into an ArcadeMachineDefinition). The id is what the minigame
+# scene registry (scenes.MINIGAME_SCENES) and the save file's high scores key
+# off. A new teammate game is just one more entry here.
+#   "x" / "y"    where the cabinet stands; or "slot": a name from
+#                arcade_layout.ARCADE_SLOTS instead of x / y
+#   "game_id"    optional: the minigame (and high-score) id, defaults to "id"
+#   "play_cost"  optional, defaults to DEFAULT_PLAY_COST
 MACHINES = [
     {
         "id": "retro_racer",
@@ -204,7 +213,7 @@ MACHINES = [
         "marquee": "RACE",
         "description": "Zoom down neon highways and race the sunrise home. "
                        "Three laps, one tiny car, zero brakes.",
-        "x": 70,
+        "x": 36,
         "neon": (255, 72, 72),
         "accent": (255, 168, 60),
         "screen": "racer",
@@ -216,7 +225,7 @@ MACHINES = [
         "marquee": "SPACE",
         "description": "Wobbly critters are drifting past the moon! "
                        "Defend the city skies with your trusty pew-pew ship.",
-        "x": 130,
+        "x": 92,
         "neon": (60, 130, 255),
         "accent": (90, 240, 255),
         "screen": "space",
@@ -228,7 +237,7 @@ MACHINES = [
         "marquee": "DROP",
         "description": "Stack the falling candies and clear full rows "
                        "before the sweet jar overflows.",
-        "x": 190,
+        "x": 148,
         "neon": (170, 80, 255),
         "accent": (255, 110, 210),
         "screen": "puzzle",
@@ -240,7 +249,9 @@ MACHINES = [
 # The arcade cats. Each entry is pure data for one cats.CatNPC: its look
 # (cat_sprites.CatLook fields), personality (friendly / shy / lazy / curious,
 # see cat.PERSONALITIES) and meow pitch. Where each cat lives is up to the
-# room style: Room.cat_spots maps the id to its spots (the first is home).
+# room: each room's cat_spots maps the id to its spots (the first is home).
+# "room" is the one room the cat lives in (default "home"); a cat is never in
+# two rooms.
 CATS = [
     {
         "id": "miso", "name": "Miso", "personality": "friendly", "pitch": 1.0,
@@ -249,6 +260,7 @@ CATS = [
     },
     {
         "id": "pixel", "name": "Pixel", "personality": "curious", "pitch": 1.12,
+        "room": "arcade_floor",
         # black cat with a white bib and socks, glowing green eyes
         "look": {"fur": (62, 56, 84), "shade": (42, 38, 60), "belly": (232, 228, 248),
                  "eye": (170, 255, 120), "lid": (140, 130, 176), "nose": (230, 130, 170)},

@@ -20,7 +20,8 @@ from machine import ArcadeMachine  # noqa: E402
 from minigame import MinigameScene  # noqa: E402
 from player_profile import PlayerProfile, ProfileStore  # noqa: E402
 from rewards import PlaySession, RewardResult  # noqa: E402
-from scenes import ArcadeRoomScene, MinigamePlaceholderScene  # noqa: E402
+from room_testing import goto_room  # noqa: E402
+from scenes import MinigamePlaceholderScene  # noqa: E402
 from settings import (DEBUG_TOKENS, MACHINES, PLACEHOLDER_REWARD_TICKETS,  # noqa: E402
                       STARTING_TOKENS, STARTING_TICKETS)
 
@@ -218,12 +219,12 @@ class MachineAndSessionTests(unittest.TestCase):
 
 # ---------------------------------------------------------------- full game flow
 class ArcadeFlowTests(TempDirTest):
-    """Drives the real Game/SceneManager/ArcadeRoomScene with key events."""
+    """Drives the real Game/SceneManager/ARCADE FLOOR with key events."""
     MACHINE = "space_blaster"   # a placeholder minigame (no slow racer load)
 
     def make_game(self, **kw):
         g = Game(save_path=self.path, **kw)
-        room = g.scenes.current
+        room = goto_room(g, "arcade_floor")
         if room.popup:                   # put off the daily bonus (ESC): not under test here
             self.run_frames(g, 3, [key(pygame.K_ESCAPE)])
             self.assertIsNone(room.popup)

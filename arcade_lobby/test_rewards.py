@@ -27,7 +27,8 @@ from minigame import MinigameScene  # noqa: E402
 from player_profile import PlayerProfile, ProfileStore  # noqa: E402
 from rewards import (PlaySession, RewardBundle, RewardGrantResult,  # noqa: E402
                      RewardResult, RewardService)
-from scenes import ArcadeRoomScene, MinigamePlaceholderScene  # noqa: E402
+from room_testing import goto_room  # noqa: E402
+from scenes import MinigamePlaceholderScene  # noqa: E402
 from settings import MACHINES, PLACEHOLDER_REWARD_TICKETS  # noqa: E402
 
 DT = 1 / 60
@@ -295,8 +296,7 @@ class CouponFlowTests(unittest.TestCase):
         with open(self.path, "w") as f:
             json.dump(data, f)
         g = Game(save_path=self.path, clock=CLOCK())
-        room = g.scenes.current
-        self.frames(g, 3, [key(pygame.K_ESCAPE)])            # put off the daily bonus
+        room = goto_room(g, "arcade_floor")
         machine = next(m for m in room.machines if m.id == self.MACHINE)
         room.player.x, room.player.y = machine.rect.centerx, machine.rect.bottom + 12
         self.frames(g, 5)

@@ -64,6 +64,15 @@ class SceneManager:
     def pop(self, fade=True):
         self._request(self._pop, fade)
 
+    def replace(self, scene, fade=True):
+        """Swap the top scene for `scene` (room to room). Like push/pop it is
+        dropped if a wipe is already running, so a room change cannot be
+        requested twice. Returns whether it was accepted."""
+        if self.transitioning and self._pending is not None:
+            return False
+        self._request(lambda: self._replace(scene), fade)
+        return True
+
     def _request(self, action, fade):
         if not fade:
             action()
@@ -72,6 +81,12 @@ class SceneManager:
             self.fade_dir = 1
 
     def _push(self, scene):
+        self.stack.append(scene)
+        scene.on_enter()
+
+    def _replace(self, scene):
+        if self.stack:
+            self.stack.pop().on_exit()
         self.stack.append(scene)
         scene.on_enter()
 

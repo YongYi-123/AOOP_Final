@@ -3,14 +3,15 @@ import pygame
 
 from game_clock import GameClock
 from player_profile import ProfileStore
+from arcade_style import STYLES
+from room_scene import RoomHub
 from scene_base import SceneManager
-from scenes import ArcadeRoomScene
-from settings import (BACKGROUND_STYLE, DEBUG, FPS, SAVE_FILE, SCREEN_H,
-                      SCREEN_W, TITLE, VIEW_H, VIEW_W)
+from settings import (DEBUG, FPS, SAVE_FILE, SCREEN_H, SCREEN_W, TITLE, VIEW_H,
+                      VIEW_W)
 
 
 class Game:
-    def __init__(self, style=BACKGROUND_STYLE, save_path=SAVE_FILE, debug=DEBUG, clock=None):
+    def __init__(self, style=None, save_path=SAVE_FILE, debug=DEBUG, clock=None):
         # The profile is loaded before any scene exists and autosaves on
         # every change; scenes reach it through game.profile.
         self.debug = debug
@@ -27,7 +28,10 @@ class Game:
         self.running = True
 
         self.scenes = SceneManager()
-        self.scenes.push(ArcadeRoomScene(self, style), fade=False)
+        # The hub owns the three rooms and what they share; the game starts in HOME.
+        self.style = STYLES.get(style)      # None: the default (neon_lofi); unknown names fall back
+        self.hub = RoomHub(self, self.style)
+        self.hub.start()
 
     def step(self, events, dt):
         """Process one frame. Separate from run() so it can be driven by tests."""

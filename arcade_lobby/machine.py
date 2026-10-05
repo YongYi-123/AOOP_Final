@@ -11,11 +11,13 @@ from gfx import (flash_overlay, lerp_color, neon_rect_glow, outlined,
                  radial_glow, scale_color, shade)
 from item_registry import FREE_PLAY_COUPON
 from rewards import PlaySession
+from room import Prop
 from settings import Col, DEFAULT_PLAY_COST, FLOOR_TOP, INTERACT_FLASH
 
 W, H = 36, 62
 SCREEN = pygame.Rect(6, 15, 24, 16)          # relative to the cabinet
 MARQUEE = pygame.Rect(2, 1, W - 4, 10)
+FOOTPRINT_H = 28     # how deep a cabinet's collision box is (it stands against a wall or on the floor)
 GLOW_SPREAD = 9
 PULSE_LEVELS = (0.55, 0.7, 0.85, 1.0)
 SOFT_GLOW = 0.6         # halo scale when a room asks for soft_glow
@@ -205,6 +207,13 @@ def _scaled_copy(surf, k):
     return out
 
 
+def cabinet_footprint(rect):
+    """Collision box of a cabinet whose sprite is `rect`: its lower part, but
+    never above the back wall's foot."""
+    top = max(FLOOR_TOP, rect.bottom - FOOTPRINT_H)
+    return pygame.Rect(rect.x, top, rect.w, rect.bottom - top)
+
+
 # --------------------------------------------------------------------- machine
 class ArcadeMachine(AnimatedSprite):
     TOP_Y = 30
@@ -212,6 +221,7 @@ class ArcadeMachine(AnimatedSprite):
 
     def __init__(self, data):
         self.id = data["id"]
+        self.game_id = data.get("game_id", self.id)   # which minigame (and high score) it runs
         self.name = data["name"]
         self.description = data["description"]
         self.neon = data["neon"]
@@ -228,9 +238,9 @@ class ArcadeMachine(AnimatedSprite):
         self.pulse = AnimationController(
             {"loop": Animation((0, 1, 2, 3, 3, 2, 1, 0), info["pulse"])}, "loop")
 
-        x = data["x"]
-        self.rect = pygame.Rect(x, self.TOP_Y, W, H)
-        self.footprint = pygame.Rect(x, FLOOR_TOP, W, self.rect.bottom - FLOOR_TOP)
+        x, y = data["x"], data.get("y", self.TOP_Y)
+        self.rect = pygame.Rect(x, y, W, H)
+        self.footprint = cabinet_footprint(self.rect)
         self.zone = pygame.Rect(x - 8, self.rect.bottom - 2, W + 16, 24)
         self.highlight = False
         self.soft_glow = False  # set by rooms that want gentler neon
@@ -267,10 +277,10 @@ class ArcadeMachine(AnimatedSprite):
         if use_coupon:
             if not profile.consume_item(FREE_PLAY_COUPON):
                 return None
-            return PlaySession(profile, self.id, 0, name, coupon=True)
+            return PlaySession(profile, self.game_id, 0, name, coupon=True)
         if not profile.spend_tokens(self.play_cost, name):
             return None
-        return PlaySession(profile, self.id, self.play_cost, name)
+        return PlaySession(profile, self.game_id, self.play_cost, name)
 
     def activate(self):
         """Brief brighten + ring when the player presses E."""
@@ -313,3 +323,18 @@ class ArcadeMachine(AnimatedSprite):
         cx, cy = self.screen_center
         surf.fill(scale_color(self.accent, 0.12), (cx - 12, cy - 8, 24, 16),
                   special_flags=pygame.BLEND_RGB_ADD)
+
+
+class IdleCabinet(Prop):
+    """A dark, switched-off cabinet standing in an arcade slot that no game
+    has claimed yet. Solid, but nothing to interact with."""
+
+    def __init__(self, pos, label="SOON"):
+        x, y = pos
+        dim, dimmer = (74, 62, 116), (96, 84, 140)
+        base = _build_cabinet("space", label, 0, dim, dimmer)
+        base.fill((10, 8, 22), SCREEN)                      # screen off
+        base.fill(scale_color(dim, 0.5), (SCREEN.x + 4, SCREEN.centery - 1, SCREEN.w - 8, 1))  # idle line
+        rect = pygame.Rect(x, y, W, H)
+        super().__init__(outlined(base), (x - 1, y - 1), cabinet_footprint(rect))
+        self.rect = rect
