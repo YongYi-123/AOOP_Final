@@ -9,6 +9,7 @@ from animation import Animation, AnimationController, AnimatedSprite
 from font import get_font
 from gfx import (flash_overlay, lerp_color, neon_rect_glow, outlined,
                  radial_glow, scale_color, shade)
+from item_registry import FREE_PLAY_COUPON
 from rewards import PlaySession
 from settings import Col, DEFAULT_PLAY_COST, FLOOR_TOP, INTERACT_FLASH
 
@@ -251,10 +252,22 @@ class ArcadeMachine(AnimatedSprite):
     def can_afford(self, profile):
         return profile.can_afford_tokens(self.play_cost)
 
-    def start_play(self, profile):
-        """Charge one play. Returns the PlaySession the minigame's reward is
-        settled against, or None (nothing charged) if the player is short."""
+    def can_use_coupon(self, profile):
+        return profile.inventory.has_item(FREE_PLAY_COUPON)
+
+    def can_play(self, profile):
+        """Can the player enter at all: with tokens, or with a coupon?"""
+        return self.can_afford(profile) or self.can_use_coupon(profile)
+
+    def start_play(self, profile, use_coupon=False):
+        """Pay for one play: one Free Play Coupon (no tokens) if `use_coupon`,
+        else the token cost. Returns the PlaySession the minigame's reward is
+        settled against, or None (nothing taken) if the player cannot pay."""
         name = self.name.upper()
+        if use_coupon:
+            if not profile.consume_item(FREE_PLAY_COUPON):
+                return None
+            return PlaySession(profile, self.id, 0, name, coupon=True)
         if not profile.spend_tokens(self.play_cost, name):
             return None
         return PlaySession(profile, self.id, self.play_cost, name)

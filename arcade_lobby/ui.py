@@ -229,11 +229,13 @@ class DialogueBox:
     W = 236
 
     def __init__(self, title, body, options, on_choice, accent=Col.CYAN, glow=Col.MAGENTA,
-                 details=(), locked=()):
+                 details=(), locked=(), input_delay=0.0):
         self.title = title
+        self.body = body
         self.options = options
         self.on_choice = on_choice
         self.closed = False
+        self.input_delay = input_delay   # seconds the box ignores keys after opening
         self.selected = 0
         self.anim = 0.0
         self.time = 0.0
@@ -272,7 +274,7 @@ class DialogueBox:
         self.bar.fill((*accent, 170), (0, 0, 2, 11))
 
     def handle_event(self, event):
-        if event.type != pygame.KEYDOWN or self.closed:
+        if event.type != pygame.KEYDOWN or self.closed or self.time < self.input_delay:
             return
         if event.key in PREV_KEYS:
             self.selected = (self.selected - 1) % len(self.options)

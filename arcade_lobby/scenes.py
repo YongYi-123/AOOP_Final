@@ -19,6 +19,7 @@ from cat_colony import CatColony
 from chance_scene import ChanceGameScene
 from daily_ui import DailyBonusPopup, TaskPanel
 from inventory_ui import InventoryUI
+from item_registry import FREE_PLAY_COUPON
 from rewards import RewardService
 from font import LINE_H, get_font
 from gfx import lerp_color, scale_color, shade
@@ -44,6 +45,7 @@ from ui import (DialogueBox, InstructionBox, Notice, PromptBubble, draw_text,
 ROOM_STYLES = {"lofi": LofiRoom, "neon": Room}
 
 PLAY, PLAY_LOCKED, CANCEL = "PLAY", "PLAY  [LOCKED]", "CANCEL"
+COUPON_INPUT_DELAY = 0.3     # seconds the coupon question ignores keys
 
 
 class ArcadeRoomScene(BaseScene):
@@ -115,8 +117,8 @@ class ArcadeRoomScene(BaseScene):
         if not ran or scene.failed:
             if session.refund():
                 unit = "TOKEN" if session.cost == 1 else "TOKENS"
-                self.notice.show("GAME UNAVAILABLE", [(f"+{session.cost} {unit} REFUNDED", Col.YELLOW)],
-                                 Col.MAGENTA)
+                back = "COUPON RETURNED" if session.coupon else f"+{session.cost} {unit} REFUNDED"
+                self.notice.show("GAME UNAVAILABLE", [(back, Col.YELLOW)], Col.MAGENTA)
             return
         result = session.settle(scene.get_reward())
         if result is not None:
@@ -201,9 +203,12 @@ class ArcadeRoomScene(BaseScene):
     def open_dialogue(self, machine):
         # Opening (and cancelling) the dialogue is free: tokens are only taken
         # in _start_game, after PLAY is confirmed.
-        affordable = machine.can_afford(self.profile)
+        affordable = machine.can_play(self.profile)      # tokens, or a coupon
+        coupons = self.profile.inventory.get_quantity(FREE_PLAY_COUPON)
         details = [(f"COST: {machine.cost_label}", Col.YELLOW),
                    (f"TOKENS: {self.profile.tokens}", Col.TEXT_MUTED if affordable else Col.MAGENTA)]
+        if coupons:
+            details.append((f"FREE PLAY COUPONS: {coupons}", Col.GREEN))
         self.dialogue = DialogueBox(
             machine.name, machine.description, [PLAY if affordable else PLAY_LOCKED, CANCEL],
             on_choice=lambda choice: self._on_choice(machine, choice),
@@ -212,7 +217,31 @@ class ArcadeRoomScene(BaseScene):
 
     def _on_choice(self, machine, choice):
         self.dialogue = None
-        if choice in (PLAY, PLAY_LOCKED):
+        if choice not in (PLAY, PLAY_LOCKED):
+            return
+        if machine.can_use_coupon(self.profile):
+            self._ask_coupon(machine)
+        else:
+            self._start_game(machine)
+
+    def _ask_coupon(self, machine):
+        """PLAY was confirmed and the player owns a coupon: YES uses one
+        (no tokens), NO pays tokens as usual, ESC cancels. The box ignores
+        keys for a moment so a mashed PLAY cannot answer it by accident."""
+        count = self.profile.inventory.get_quantity(FREE_PLAY_COUPON)
+        self.dialogue = DialogueBox(
+            "COUPON", "USE FREE PLAY COUPON?", ["YES", "NO"],
+            on_choice=lambda choice: self._on_coupon_choice(machine, choice),
+            accent=Col.GREEN, glow=machine.neon,
+            details=[(f"YOU HAVE: {count}", Col.GREEN),
+                     (f"NO PAYS {machine.cost_label}", Col.TEXT_MUTED)],
+            input_delay=COUPON_INPUT_DELAY)
+
+    def _on_coupon_choice(self, machine, choice):
+        self.dialogue = None
+        if choice == "YES":
+            self._start_game(machine, use_coupon=True)
+        elif choice == "NO":
             self._start_game(machine)
 
     def _open_target(self, target):
@@ -232,18 +261,21 @@ class ArcadeRoomScene(BaseScene):
         self.cats.pause()
         self.game.scenes.push(ChanceGameScene(self.game, game_cls))
 
-    def _start_game(self, machine):
+    def _start_game(self, machine, use_coupon=False):
         # A paid game is already starting/running, or a wipe is in progress
         # (SceneManager would drop the push): never charge in those states.
         if self.active_play is not None or self.game.scenes.transitioning:
             return
-        if not machine.can_afford(self.profile):
+        if use_coupon and not machine.can_use_coupon(self.profile):
+            self.notice.show("NO COUPON LEFT", [("NOTHING WAS CHARGED", Col.TEXT_MUTED)], Col.MAGENTA)
+            return
+        if not use_coupon and not machine.can_afford(self.profile):
             self.notice.show("NOT ENOUGH TOKENS", [
                 (f"NEED: {machine.play_cost}", Col.YELLOW),
                 (f"YOU HAVE: {self.profile.tokens}", Col.TEXT_MUTED)], Col.MAGENTA)
             return
         scene = create_minigame_scene(self.game, machine)   # built before charging
-        session = machine.start_play(self.profile)
+        session = machine.start_play(self.profile, use_coupon)
         if session is None:
             return
         self.active_play = (session, scene)

@@ -14,6 +14,7 @@ import json
 import os
 import random
 from collections import deque, namedtuple
+from contextlib import contextmanager
 
 from daily_rewards import DailyRewardManager
 from daily_tasks import DailyTaskManager
@@ -63,6 +64,9 @@ class PlayerProfile:
         self._tasks = daily_tasks or DailyTaskManager()
         self._history = deque(history, maxlen=TRANSACTION_HISTORY_SIZE)
         self._listeners = []
+        self._save_listeners = []
+        self._batch_depth = 0
+        self._dirty = False
         self._inventory = inventory or Inventory()
         self._inventory.on_change = lambda: self._notify("inventory", 0, 0)
         self._tasks.ensure_current(self.clock.today())
@@ -187,6 +191,12 @@ class PlayerProfile:
         self._history.append({"date": self.clock.today().isoformat(), "delta": delta,
                               "reason": (reason or "OTHER").upper()})
 
+    # ------------------------------------------------------------ items
+    def consume_item(self, item_id, quantity=1):
+        """Use up owned items. Returns False (and changes nothing) if fewer
+        than `quantity` are owned."""
+        return self._inventory.remove_item(item_id, quantity)
+
     # ------------------------------------------------------------ tickets
     def add_tickets(self, amount):
         _check_amount(amount)
@@ -285,10 +295,36 @@ class PlayerProfile:
         if callback in self._listeners:
             self._listeners.remove(callback)
 
+    def subscribe_save(self, callback):
+        """callback() is called when the profile needs saving: after every
+        change, or once when a batch() of changes ends."""
+        self._save_listeners.append(callback)
+
+    @contextmanager
+    def batch(self):
+        """Group several changes (e.g. a mixed reward) into one save.
+        Subscribers still hear every change straight away; only the save
+        request waits until the outermost batch ends."""
+        self._batch_depth += 1
+        try:
+            yield self
+        finally:
+            self._batch_depth -= 1
+            if self._batch_depth == 0 and self._dirty:
+                self._request_save()
+
+    def _request_save(self):
+        self._dirty = False
+        for callback in list(self._save_listeners):
+            callback()
+
     def _notify(self, field, delta, value):
         change = ProfileChange(field, delta, value)
         for callback in list(self._listeners):
             callback(change)
+        self._dirty = True
+        if self._batch_depth == 0:
+            self._request_save()
 
     # ------------------------------------------------------------ (de)serialise
     def to_dict(self):
@@ -390,7 +426,7 @@ class ProfileStore:
 
     def autosave(self, profile):
         """Save `profile` after every change from now on."""
-        profile.subscribe(lambda _change: self.save(profile))
+        profile.subscribe_save(lambda: self.save(profile))
 
     def _move_aside(self):
         try:

@@ -12,6 +12,7 @@ CATEGORIES = (COSMETIC, ARCADE, COLLECTIBLE, CONSUMABLE)
 COMMON, UNCOMMON, RARE, EPIC = "COMMON", "UNCOMMON", "RARE", "EPIC"
 RARITIES = (COMMON, UNCOMMON, RARE, EPIC)
 DEFAULT_MAX_STACK = 99
+FREE_PLAY_COUPON = "free_play_coupon"   # the one item machines accept as payment
 
 
 @dataclass(frozen=True)
