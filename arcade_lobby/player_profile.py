@@ -18,11 +18,12 @@ from collections import deque, namedtuple
 from daily_rewards import DailyRewardManager
 from daily_tasks import DailyTaskManager
 from game_clock import GameClock
+from inventory import Inventory
 from settings import (STARTING_TICKETS, STARTING_TOKENS,
                       TRANSACTION_HISTORY_SIZE)
 
 # field: "tokens", "tickets", "games_played", "high_score", "daily", "tasks",
-#        "chance_games" or "cats_petted"
+#        "chance_games", "cats_petted" or "inventory"
 # delta: signed change (for "high_score": the new score); value: new total
 ProfileChange = namedtuple("ProfileChange", "field delta value")
 
@@ -47,7 +48,7 @@ class PlayerProfile:
     def __init__(self, tokens=STARTING_TOKENS, tickets=STARTING_TICKETS, high_scores=None,
                  total_games_played=0, lifetime_tickets_earned=0, lifetime_tokens_earned=0,
                  lifetime_tokens_spent=0, chance_games_played=0, cats_petted=0,
-                 daily=None, daily_tasks=None, history=(), clock=None):
+                 daily=None, daily_tasks=None, history=(), clock=None, inventory=None):
         self._tokens = tokens
         self._tickets = tickets
         self._high_scores = dict(high_scores or {})
@@ -62,6 +63,8 @@ class PlayerProfile:
         self._tasks = daily_tasks or DailyTaskManager()
         self._history = deque(history, maxlen=TRANSACTION_HISTORY_SIZE)
         self._listeners = []
+        self._inventory = inventory or Inventory()
+        self._inventory.on_change = lambda: self._notify("inventory", 0, 0)
         self._tasks.ensure_current(self.clock.today())
 
     # ------------------------------------------------------------ read-only
@@ -96,6 +99,11 @@ class PlayerProfile:
     @property
     def cats_petted(self):
         return self._cats_petted
+
+    @property
+    def inventory(self):
+        """The player's Inventory (change it with its add_item / remove_item;\n        the profile autosaves when it changes)."""
+        return self._inventory
 
     @property
     def high_scores(self):
@@ -298,6 +306,7 @@ class PlayerProfile:
             **self._daily.to_dict(),
             "daily_tasks": self._tasks.to_dict(),
             "transaction_history": list(self._history),
+            "inventory": self._inventory.to_dict(),
         }
 
     @classmethod
@@ -332,6 +341,7 @@ class PlayerProfile:
             daily_tasks=DailyTaskManager.from_dict(data.get("daily_tasks")),
             history=history,
             clock=clock,
+            inventory=Inventory.from_dict(data.get("inventory")),
         )
 
 

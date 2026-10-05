@@ -206,10 +206,12 @@ class InstructionBox:
     """Small always-visible controls reminder (pre-rendered)."""
 
     def __init__(self):
-        self.image = neon_panel(84, 30).copy()
+        self.image = neon_panel(84, 41).copy()
         draw_text(self.image, "MOVE: WASD", (7, 6), Col.TEXT)
         x = draw_text(self.image, "INTERACT:", (7, 17), Col.TEXT).right
         draw_text(self.image, "E", (x + 4, 17), Col.YELLOW)
+        x = draw_text(self.image, "I :", (7, 28), Col.TEXT).right
+        draw_text(self.image, "BAG", (x + 4, 28), Col.YELLOW)
 
     def draw(self, surf):
         surf.blit(self.image, (4, VIEW_H - self.image.get_height() - 4))

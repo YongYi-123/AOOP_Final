@@ -18,6 +18,8 @@ from ambience import AmbienceManager
 from cat_colony import CatColony
 from chance_scene import ChanceGameScene
 from daily_ui import DailyBonusPopup, TaskPanel
+from inventory_ui import InventoryUI
+from rewards import RewardService
 from font import LINE_H, get_font
 from gfx import lerp_color, scale_color, shade
 from hud import CurrencyHUD
@@ -29,8 +31,9 @@ from retro_racer_scene import RetroRacerScene
 from room import Room
 from scene_base import BaseScene
 from settings import (BACK_KEYS, BACKGROUND_STYLE, CATS, Col, DEBUG_NEXT_DAY_KEY,
-                      DEBUG_RESET_TASKS_KEY, DEBUG_TOKEN_KEY, DEBUG_TOKENS,
-                      INTERACT_FLASH, INTERACT_KEYS, MACHINES, MOVE_KEYS,
+                      DEBUG_COUPON_KEY, DEBUG_RESET_TASKS_KEY, DEBUG_STICKER_KEY,
+                      DEBUG_TOKEN_KEY, DEBUG_TOKENS, INTERACT_FLASH,
+                      INTERACT_KEYS, INVENTORY_KEY, MACHINES, MOVE_KEYS,
                       PLAYER_START, VIEW_H, VIEW_W)
 from stations import Station, build_stations
 from ui import (DialogueBox, InstructionBox, Notice, PromptBubble, draw_text,
@@ -60,6 +63,7 @@ class ArcadeRoomScene(BaseScene):
         self.activating = None  # (target, time left) while the E-flash plays
         self.popup = None       # DailyBonusPopup while the login bonus is offered
         self.panel = None       # TaskPanel while the daily board is open
+        self.inventory_ui = None    # InventoryUI while the bag is open
         self._declined_day = None   # the day the player pressed ESC on the bonus
         self._day_timer = 0.0
         self._ready_tasks = 0
@@ -85,6 +89,7 @@ class ArcadeRoomScene(BaseScene):
         self.activating = None
         self.dialogue = None
         self.panel = None
+        self.inventory_ui = None
         self.player.stop()
         self.ambience.resume()
         self.cats.resume()
@@ -154,7 +159,7 @@ class ArcadeRoomScene(BaseScene):
         elif event.type == pygame.KEYUP and event.key in self.held:
             self.held.remove(event.key)
 
-        modal = self.popup or self.panel or self.dialogue
+        modal = self.popup or self.panel or self.inventory_ui or self.dialogue
         if modal:
             modal.handle_event(event)
             return
@@ -162,7 +167,10 @@ class ArcadeRoomScene(BaseScene):
             return
         if self.game.debug and self._debug_key(event.key):
             return
-        if event.key in MOVE_KEYS and event.key not in self.held:
+        if event.key == INVENTORY_KEY:
+            self.inventory_ui = InventoryUI(self.profile.inventory)
+            self.held.clear()
+        elif event.key in MOVE_KEYS and event.key not in self.held:
             self.held.append(event.key)
         elif event.key in INTERACT_KEYS and self.nearby:
             if isinstance(self.nearby, ArcadeMachine):
@@ -182,6 +190,10 @@ class ArcadeRoomScene(BaseScene):
             self._check_new_day()
         elif key == DEBUG_RESET_TASKS_KEY:
             self.profile.reset_daily_tasks()
+        elif key == DEBUG_STICKER_KEY:
+            RewardService.grant_item(self.profile, "cat_sticker")
+        elif key == DEBUG_COUPON_KEY:
+            RewardService.grant_item(self.profile, "free_play_coupon")
         else:
             return False
         return True
@@ -263,7 +275,8 @@ class ArcadeRoomScene(BaseScene):
                 self._open_target(target)
 
         busy = (self.dialogue is not None or self.activating is not None
-                or self.popup is not None or self.panel is not None)
+                or self.popup is not None or self.panel is not None
+                or self.inventory_ui is not None)
         if self.dialogue:
             self.dialogue.update(dt)
         self._update_modals(dt)
@@ -299,6 +312,10 @@ class ArcadeRoomScene(BaseScene):
             self.panel.update(dt)
             if self.panel.closed:
                 self.panel = None
+        if self.inventory_ui:
+            self.inventory_ui.update(dt)
+            if self.inventory_ui.closed:
+                self.inventory_ui = None
 
     def _find_nearby(self):
         feet = self.player.feet
@@ -327,6 +344,8 @@ class ArcadeRoomScene(BaseScene):
             self.dialogue.draw(surf)
         if self.panel:
             self.panel.draw(surf)
+        if self.inventory_ui:
+            self.inventory_ui.draw(surf)
         if self.popup:
             self.popup.draw(surf)
 

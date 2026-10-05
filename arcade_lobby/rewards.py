@@ -13,6 +13,7 @@ minigame's RewardResult to the session.
 from dataclasses import dataclass
 
 
+
 @dataclass(frozen=True)
 class RewardResult:
     game_id: str
@@ -61,3 +62,38 @@ class PlaySession:
         self._settled = True
         self.profile.refund_tokens(self.cost, self.name)
         return True
+
+
+@dataclass(frozen=True)
+class ItemGrantResult:
+    """What happened when a reward tried to give the player an item."""
+    success: bool           # True if at least one copy was granted
+    item_id: str
+    requested_quantity: int
+    granted_quantity: int
+    reason: str             # "ok", "partial", "unknown_item", "invalid_quantity",
+                            # "already_owned" or "stack_full"
+
+
+class RewardService:
+    """The safe way for rewards (prize counter, daily rewards, ...) to hand
+    out items. Inventory stays strict and raises on bad input; this checks
+    first, reports what happened and never raises, so a reward that names a
+    missing item cannot crash the game."""
+
+    @staticmethod
+    def grant_item(profile, item_id, quantity=1):
+        inventory = profile.inventory
+        definition = inventory.registry.get(item_id) if isinstance(item_id, str) else None
+        if definition is None:
+            print(f"[reward] unknown item {item_id!r}: nothing granted")
+            return ItemGrantResult(False, str(item_id), quantity, 0, "unknown_item")
+        if isinstance(quantity, bool) or not isinstance(quantity, int) or quantity < 1:
+            print(f"[reward] invalid quantity {quantity!r} for {item_id!r}: nothing granted")
+            return ItemGrantResult(False, item_id, quantity, 0, "invalid_quantity")
+        granted = inventory.add_item(item_id, quantity)
+        if granted == 0:
+            reason = "stack_full" if definition.stackable else "already_owned"
+        else:
+            reason = "ok" if granted == quantity else "partial"
+        return ItemGrantResult(granted > 0, item_id, quantity, granted, reason)

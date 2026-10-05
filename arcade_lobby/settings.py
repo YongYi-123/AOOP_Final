@@ -37,6 +37,7 @@ MOVE_KEYS = {
     pygame.K_d: (1, 0), pygame.K_RIGHT: (1, 0),
 }
 INTERACT_KEYS = (pygame.K_e,)
+INVENTORY_KEY = pygame.K_i
 CONFIRM_KEYS = (pygame.K_e, pygame.K_RETURN, pygame.K_KP_ENTER, pygame.K_SPACE)
 PREV_KEYS = (pygame.K_UP, pygame.K_w)
 NEXT_KEYS = (pygame.K_DOWN, pygame.K_s)
@@ -48,6 +49,8 @@ DEBUG_TOKEN_KEY = pygame.K_F5        # +DEBUG_TOKENS tokens
 DEBUG_NEXT_DAY_KEY = pygame.K_F6     # pretend it is the next calendar day
 DEBUG_RESET_TASKS_KEY = pygame.K_F7  # roll a fresh set of daily tasks
 DEBUG_TOKENS = 10
+DEBUG_STICKER_KEY = pygame.K_F8      # add a CAT STICKER
+DEBUG_COUPON_KEY = pygame.K_F9       # add a FREE PLAY COUPON
 
 # ------------------------------------------------------------ economy
 # Every number that shapes the token economy lives here. TOKENS are spent to
