@@ -1,2 +1,38 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Runtime save data (arcade_lobby/settings.py SAVE_FILE, plus its .tmp while saving)
 arcade_lobby/save_data.json
 arcade_lobby/save_data.json.*
+
+# Test/debug output
+.coverage
+.coverage.*
+htmlcov/
+
+# Tool caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# IDE/editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Build
+build/
+dist/
+*.egg-info/
