@@ -19,7 +19,6 @@ WALL_SIDE = 20          # thickness of the left/right walls
 FLOOR_BOTTOM = 282      # bottom wall starts here
 DOOR_X, DOOR_W = 180, 40
 PLAYER_START = (200, 262)
-CAT_HOME = (318, 226)
 
 # Room look: "lofi" (chill late-night arcade) or "neon" (the original bright
 # style). Override at launch with:  python main.py --style neon
@@ -163,5 +162,43 @@ MACHINES = [
         "accent": (255, 110, 210),
         "screen": "puzzle",
         "play_cost": 1,
+    },
+]
+
+
+# The arcade cats. Each entry is pure data for one cats.CatNPC: its look
+# (cat_sprites.CatLook fields), personality (friendly / shy / lazy / curious,
+# see cat.PERSONALITIES) and meow pitch. Where each cat lives is up to the
+# room style: Room.cat_spots maps the id to its spots (the first is home).
+CATS = [
+    {
+        "id": "miso", "name": "Miso", "personality": "friendly", "pitch": 1.0,
+        # orange tabby
+        "look": {"fur": (246, 164, 86), "shade": (208, 118, 60), "stripes": (208, 118, 60)},
+    },
+    {
+        "id": "pixel", "name": "Pixel", "personality": "curious", "pitch": 1.12,
+        # black cat with a white bib and socks, glowing green eyes
+        "look": {"fur": (62, 56, 84), "shade": (42, 38, 60), "belly": (232, 228, 248),
+                 "eye": (170, 255, 120), "lid": (140, 130, 176), "nose": (230, 130, 170)},
+    },
+    {
+        "id": "mochi", "name": "Mochi", "personality": "lazy", "pitch": 0.8,
+        # round cream cat with grey patches and a grey tail
+        "look": {"fur": (246, 240, 232), "shade": (196, 188, 192), "belly": (255, 252, 246),
+                 "patch": (150, 146, 164), "cap": (150, 146, 164), "tail": (150, 146, 164),
+                 "chonk": 1},
+    },
+    {
+        "id": "luna", "name": "Luna", "personality": "shy", "pitch": 1.22,
+        # blue-grey tabby with golden eyes
+        "look": {"fur": (150, 160, 198), "shade": (102, 110, 150), "stripes": (108, 116, 158),
+                 "belly": (222, 226, 244), "eye": (250, 210, 90), "lid": (70, 70, 104)},
+    },
+    {
+        "id": "bean", "name": "Bean", "personality": "friendly", "pitch": 1.38,
+        # tiny calico: white with orange and black patches
+        "look": {"fur": (250, 244, 234), "shade": (206, 196, 190), "patch": (240, 150, 70),
+                 "cap": (64, 54, 66), "tail": (240, 150, 70)},
     },
 ]

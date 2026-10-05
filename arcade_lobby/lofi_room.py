@@ -228,11 +228,12 @@ def build_lights():
 # --------------------------------------------------------------------- room
 class LofiRoom(Room):
     """Chill late-night arcade. Collision and drawable API match Room."""
-    # places the cat likes to wander to and nap at
-    cat_spots = ((318, 226),      # by the cafe stools (home)
-                 (148, 122),      # in the blue glow of the SPACE machine
-                 (112, 222),      # next to the beanbag
-                 (72, 234))       # on the lounge rug
+    # cat id -> places it likes to wander to and nap at (first = home)
+    cat_spots = {
+        **Room.cat_spots,
+        "miso": ((318, 226), (286, 236), (250, 200)),     # by the cafe stools
+        "mochi": ((60, 216), (112, 222)),                 # napping on the lounge rug
+    }
 
     def __init__(self, machines):
         self.machines = machines

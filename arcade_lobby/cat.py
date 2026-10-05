@@ -1,174 +1,157 @@
-"""The arcade cat: a tiny NPC that idles, sits, naps, wanders between a few
-cozy spots and sometimes trots after the player for a moment."""
+"""Arcade cats: one reusable CatNPC class driven by data.
+
+A cat's differences live in small configuration objects - a CatLook (fur
+and markings, cat_sprites.py), a Personality (how it behaves) and a
+CatProfile (name, voice pitch, look, personality) - never in subclasses.
+Cats get everything about the room (player, collision, the shared follow
+slot) through the CatColony that owns them (cat_colony.py)."""
 import math
 import random
+from dataclasses import dataclass
 from enum import Enum
 
 import pygame
 
 from animation import Animation, AnimatedSprite
+from cat_sprites import FRAME_TIMES, CatLook, cat_sheet, heart_sprite
+from cat_voice import CatVoice
 from font import get_font
-from gfx import outlined, soft_shadow
-
-CAT = (246, 164, 86)
-CAT_DARK = (208, 118, 60)
-CREAM = (255, 230, 190)
-PINK = (255, 150, 180)
-EYE = (34, 24, 50)
-
-# Tail pixel paths (relative to the left-facing sprite), per pose and wag frame
-_STAND_TAILS = (
-    ((14, 6), (15, 5), (16, 4), (16, 3), (16, 2)),
-    ((14, 6), (15, 5), (16, 5), (17, 4), (17, 3)),
-    ((14, 6), (15, 5), (15, 4), (15, 3), (14, 2)),
-)
-_SIT_TAILS = (
-    ((11, 13), (12, 13), (13, 13), (14, 12), (15, 11)),
-    ((11, 13), (12, 13), (13, 13), (14, 13), (15, 13)),
-    ((11, 13), (12, 13), (13, 12), (14, 11), (14, 10)),
-)
-_NAP_TAILS = (
-    ((16, 12), (16, 13), (15, 14), (14, 14), (13, 14), (12, 14), (11, 14), (10, 14)),
-    ((16, 12), (16, 13), (15, 14), (14, 14), (13, 14), (12, 14), (11, 13), (10, 12)),  # flick
-)
-_LEGS = ((5, 7, 11, 13), (4, 7, 10, 13), (6, 8, 11, 12))
-
-
-def _draw_cat(pose, tail=0, blink=False, legs=0, breathe=0):
-    """Paint an 18x15 left-facing cat frame. pose: stand, sit or nap."""
-    s = pygame.Surface((18, 15), pygame.SRCALPHA)
-
-    def px(color, x, y, w=1, h=1):
-        s.fill(color, (x, y, w, h))
-
-    if pose == "stand":
-        path = _STAND_TAILS[tail]
-        for x in _LEGS[legs]:
-            px(CAT_DARK, x, 10, 1, 3)
-            px(CREAM, x, 12)
-        pygame.draw.ellipse(s, CAT, (4, 5, 11, 6))
-        px(CREAM, 6, 9, 6, 1)
-        px(CAT_DARK, 9, 5, 1, 2)
-        px(CAT_DARK, 12, 5, 1, 2)
-        hy = 1
-    elif pose == "nap":
-        # curled-up loaf, head tucked low, gently breathing
-        path = _NAP_TAILS[tail]
-        pygame.draw.ellipse(s, CAT, (3, 7 - breathe, 14, 7 + breathe))
-        px(CAT_DARK, 9, 7 - breathe, 1, 2)
-        px(CAT_DARK, 12, 7 - breathe, 1, 2)
-        px(CREAM, 4, 12, 6, 1)
-        hy = 5
-        blink = True
-    else:
-        path = _SIT_TAILS[tail]
-        pygame.draw.ellipse(s, CAT, (4, 5, 9, 9))
-        px(CAT_DARK, 9, 7, 1, 2)
-        px(CAT_DARK, 11, 8, 1, 2)
-        px(CREAM, 4, 8, 3, 4)
-        px(CAT, 4, 11, 1, 3)
-        px(CAT, 6, 11, 1, 3)
-        px(CREAM, 4, 13)
-        px(CREAM, 6, 13)
-        hy = 2
-    for x, y in path:
-        px(CAT, x, y)
-    px(CAT_DARK, *path[-1])
-
-    # head
-    pygame.draw.ellipse(s, CAT, (0, hy + 1, 8, 6))
-    pygame.draw.polygon(s, CAT, [(1, hy + 2), (1, hy - 1), (4, hy + 1)])
-    pygame.draw.polygon(s, CAT, [(4, hy + 1), (7, hy - 1), (7, hy + 2)])
-    px(PINK, 2, hy + 1)
-    px(PINK, 6, hy + 1)
-    px(CAT_DARK, 3, hy + 1, 2, 1)
-    px(CREAM, 0, hy + 5, 3, 1)
-    px(PINK, 0, hy + 4)
-    if blink:
-        px(EYE, 1, hy + 3, 2, 1)
-        px(EYE, 5, hy + 3, 2, 1)
-    else:
-        px(EYE, 2, hy + 2, 1, 2)
-        px(EYE, 5, hy + 2, 1, 2)
-    return s
-
-
-_SHEET = None
-
-
-def cat_sheet():
-    """{(anim, side): [frames]} built once. side is 'left' or 'right'."""
-    global _SHEET
-    if _SHEET is None:
-        idle_tails = (0, 0, 0, 0, 1, 2, 1, 0, 0, 0, 0, 0)
-        sit_tails = (0, 0, 1, 2, 1, 0, 0, 0, 0, 0, 1, 2, 1, 0, 0, 0)
-        # slow breaths, with one lazy tail flick per cycle
-        nap = ((0, 0), (0, 0), (0, 1), (0, 1), (0, 0), (0, 0), (0, 1), (0, 1),
-               (0, 0), (1, 0), (0, 0), (0, 1), (0, 1), (0, 0), (0, 0), (0, 1))
-        raw = {
-            "idle": [_draw_cat("stand", t, blink=(i == 9)) for i, t in enumerate(idle_tails)],
-            "sit": [_draw_cat("sit", t, blink=(i in (7, 8))) for i, t in enumerate(sit_tails)],
-            "walk": [_draw_cat("stand", i % 2, legs=l) for i, l in enumerate((1, 0, 2, 0))],
-            "nap": [_draw_cat("nap", t, breathe=b) for t, b in nap],
-        }
-        _SHEET = {}
-        for name, frames in raw.items():
-            left = [outlined(f) for f in frames]
-            _SHEET[(name, "left")] = left
-            _SHEET[(name, "right")] = [pygame.transform.flip(f, True, False) for f in left]
-    return _SHEET
-
-
-def _heart():
-    s = pygame.Surface((5, 4), pygame.SRCALPHA)
-    for y, row in enumerate(("01010", "11111", "01110", "00100")):
-        for x, c in enumerate(row):
-            if c == "1":
-                s.set_at((x, y), (255, 110, 170))
-    return outlined(s)
-
-
-def _zzz():
-    return get_font().render("Z", (190, 176, 255))
+from gfx import soft_shadow
+from ui import SpeechBubble
 
 
 class CatState(Enum):
     IDLE = "idle"
     WALK = "walk"
     SIT = "sit"
-    NAP = "nap"
+    SLEEP = "sleep"
+    FOLLOW = "follow"
+    PET = "pet"         # short reaction after the player presses E
+
+
+# state -> animation in the sprite sheet
+STATE_ANIM = {CatState.IDLE: "idle", CatState.WALK: "walk", CatState.SIT: "sit",
+              CatState.SLEEP: "nap", CatState.FOLLOW: "walk", CatState.PET: "pet"}
+
+
+@dataclass(frozen=True)
+class Personality:
+    """Behaviour tuning shared by every cat of a type. `choices` weights what
+    an idle cat does next: sit, wander, visit (another of its spots), idle,
+    sleep or approach (walk up to a nearby player)."""
+    name: str
+    prompt: str = "PET"                         # label after [E]
+    choices: tuple = (("sit", 4), ("wander", 3), ("visit", 2), ("idle", 1))
+    sit_time: tuple = (3.0, 6.0)
+    sleep_time: tuple = (7.0, 12.0)
+    idle_time: tuple = (1.8, 3.5)
+    sleep_after_sit: float = 0.4                # chance a sitting cat dozes off
+    speed: float = 28
+    approach_range: float = 0                   # FRIENDLY: walks up to the player
+    flee_range: float = 0                       # SHY: steps away from a moving player
+    flee_chance: float = 0.0
+    auto_follow: bool = False                   # CURIOUS: trots after a passing player
+    follow_after_pet: float = 0.0               # chance of following after a pet
+    chatter: float = 0                          # seconds between unprompted meows (0 = never)
+    phrases: tuple = (("meow!", "meow"),)       # (bubble text, sound kind)
+    sleepy_phrases: tuple = (("prrr...", "prrr"),)
+
+
+FRIENDLY = Personality(
+    "friendly", choices=(("sit", 3), ("wander", 3), ("visit", 2), ("idle", 1), ("approach", 3)),
+    approach_range=90, follow_after_pet=0.6, chatter=11,
+    phrases=(("meow!", "meow"), ("mrrp!", "mrrp"), ("nya~", "nya"), ("mew!", "mew")))
+SHY = Personality(
+    "shy", prompt="SAY HI", choices=(("sit", 4), ("wander", 2), ("visit", 1), ("idle", 2)),
+    flee_range=34, flee_chance=0.6, follow_after_pet=0.1,
+    phrases=(("mew?", "mew"), ("...mrrp", "mrrp"), ("nya~", "nya")))
+LAZY = Personality(
+    "lazy", choices=(("sit", 3), ("wander", 1), ("idle", 1), ("sleep", 5)),
+    sit_time=(5.0, 9.0), sleep_time=(12.0, 20.0), idle_time=(1.5, 2.5),
+    sleep_after_sit=0.8, speed=18,
+    phrases=(("prrr...", "prrr"), ("mrrrow...", "meow"), ("meow.", "meow")))
+CURIOUS = Personality(
+    "curious", choices=(("sit", 2), ("wander", 4), ("visit", 4), ("idle", 2)),
+    sit_time=(2.0, 4.0), sleep_after_sit=0.2, speed=34, auto_follow=True,
+    follow_after_pet=0.4, chatter=20,
+    phrases=(("mrrp?", "mrrp"), ("nya~?", "nya"), ("meow!", "meow"), ("mew?", "mew")))
+
+PERSONALITIES = {p.name: p for p in (FRIENDLY, SHY, LAZY, CURIOUS)}
+
+
+@dataclass(frozen=True)
+class CatProfile:
+    """Who a cat is: built from an entry of settings.CATS."""
+    id: str
+    name: str
+    look: CatLook
+    personality: Personality
+    pitch: float = 1.0
+
+    @classmethod
+    def from_data(cls, data):
+        return cls(data["id"], data["name"], CatLook(**data["look"]),
+                   PERSONALITIES[data["personality"]], data.get("pitch", 1.0))
+
+
+_ZZZ = None
+
+
+def _zzz():
+    global _ZZZ
+    if _ZZZ is None:
+        _ZZZ = get_font().render("Z", (190, 176, 255))
+    return _ZZZ
 
 
 class CatNPC(AnimatedSprite):
-    SPEED = 28
     FOLLOW_SPEED = 46
-    FOLLOW_RANGE = 56
-    FOLLOW_TIME = 2.5
+    FLEE_SPEED = 52
+    FOLLOW_RANGE = 56       # curious cats notice a passing player this close
+    FOLLOW_TIME = 2.5       # auto-follow
+    PET_FOLLOW_TIME = 4.0   # follow after being petted
     FOLLOW_COOLDOWN = 8.0
-    WANDER = (40, 26)       # max wander offset from home
-    DURATIONS = {"idle": 0.18, "sit": 0.2, "walk": 0.12, "nap": 0.32}
+    FLEE_COOLDOWN = 5.0
+    REACH = 16              # stops this far from the player when walking up
+    PET_TIME = 1.1          # length of the petting reaction
+    PET_COOLDOWN = 0.4      # after the reaction, before it can be petted again
+    WANDER = (40, 26)       # max wander offset from the current spot
+    FEET_W, FEET_H = 10, 4
 
-    def __init__(self, home, rng=None, spots=()):
-        sheet = cat_sheet()
-        animations = {f"{name}_{side}": Animation(frames, self.DURATIONS[name])
-                      for (name, side), frames in sheet.items()}
-        super().__init__(animations, "sit_left")
+    def __init__(self, profile, spots, rng=None):
+        self.profile = profile
+        self.name = profile.name
+        self.personality = profile.personality
         self.rng = rng or random.Random()
-        self.home = home
-        self.spots = list(spots) or [home]   # cozy places to stroll to and nap at
-        self.anchor = home                   # the spot it is hanging around now
-        self.x, self.y = float(home[0]), float(home[1])
-        self.side = "left"
+        animations = {f"{name}_{side}": Animation(frames, FRAME_TIMES[name])
+                      for (name, side), frames in cat_sheet(profile.look).items()}
+        super().__init__(animations, "sit_left")
+        self.animation_controller = self.anim
+        self.spots = list(spots)
+        self.home = self.anchor = self.spots[0]
+        self.x, self.y = float(self.home[0]), float(self.home[1])
+        self.side = self.rng.choice(("left", "right"))
         self.state = CatState.SIT
-        self.timer = self.rng.uniform(2, 4)
+        self.timer = self.rng.uniform(1.0, 4.0)
         self.target = None
-        self.following = False
-        self.follow_cooldown = 3.0
+        self.speed = self.personality.speed
+        self.follow_cooldown = self.rng.uniform(3.0, 6.0)
+        self.flee_cooldown = 0.0
+        self.pet_cooldown = 0.0
+        self.chat_timer = self._next_chat()
         self.heart_time = 0.0
-        self.shadow = soft_shadow(14, 4)
-        self.heart = _heart()
-        self.zzz = _zzz()
         self.time = 0.0
+        self.voice = CatVoice(profile.pitch)
+        self.bubble = SpeechBubble()
+        self.shadow = soft_shadow(14, 4)
+        # Desync the cats so their tails don't all swish together.
+        self.anim.current.time = self.rng.uniform(0, self.anim.current.frame_duration)
+        self.anim.current.current_frame = self.rng.randrange(len(self.anim.current.frames))
+
+    # ------------------------------------------------------------ geometry
+    @property
+    def position(self):
+        return (self.x, self.y)
 
     @property
     def sort_y(self):
@@ -176,78 +159,229 @@ class CatNPC(AnimatedSprite):
 
     @property
     def feet(self):
-        return pygame.Rect(int(self.x) - 4, int(self.y) - 3, 8, 3)
+        return self.feet_at(self.x, self.y)
 
-    # ---------------------------------------------------------------- states
+    @classmethod
+    def feet_at(cls, x, y):
+        return pygame.Rect(int(x) - cls.FEET_W // 2, int(y) - cls.FEET_H, cls.FEET_W, cls.FEET_H)
+
+    def distance_to(self, thing):
+        return math.hypot(thing.x - self.x, thing.y - self.y)
+
+    def face(self, thing):
+        if abs(thing.x - self.x) > 0.5:
+            self.side = "left" if thing.x < self.x else "right"
+
+    # -------------------------------------------------------------- states
+    @property
+    def following(self):
+        return self.state == CatState.FOLLOW
+
+    @property
+    def can_pet(self):
+        return self.state != CatState.PET and self.pet_cooldown <= 0
+
     def set_state(self, state, duration=None):
+        p = self.personality
         self.state = state
-        self.timer = duration if duration is not None else {
-            CatState.IDLE: self.rng.uniform(1.8, 3.5),
-            CatState.SIT: self.rng.uniform(3.0, 6.0),
-            CatState.NAP: self.rng.uniform(7.0, 12.0),
-            CatState.WALK: 6.0,
-        }[state]
-        self.following = False
-        if state != CatState.WALK:
+        if duration is None:
+            duration = {
+                CatState.IDLE: self.rng.uniform(*p.idle_time),
+                CatState.SIT: self.rng.uniform(*p.sit_time),
+                CatState.SLEEP: self.rng.uniform(*p.sleep_time),
+                CatState.WALK: 6.0,         # walk_to() sets a distance-based one
+                CatState.FOLLOW: self.FOLLOW_TIME,
+                CatState.PET: self.PET_TIME,
+            }[state]
+        self.timer = duration
+        if state not in (CatState.WALK, CatState.FOLLOW):
             self.target = None
 
-    def _choose_next(self):
-        if self.state == CatState.NAP:
+    def walk_to(self, point, speed=None):
+        self.target = point
+        self.speed = speed or self.personality.speed
+        dist = math.hypot(point[0] - self.x, point[1] - self.y)
+        self.set_state(CatState.WALK, dist / self.speed + 2.0)
+
+    def start_follow(self, duration=None):
+        self.set_state(CatState.FOLLOW, duration or self.FOLLOW_TIME)
+        self.follow_cooldown = self.FOLLOW_COOLDOWN
+        self.heart_time = max(self.heart_time, 0.8)
+
+    def settle(self):
+        """Stop whatever it is doing and sit (used when the hub pauses)."""
+        if self.state in (CatState.FOLLOW, CatState.PET, CatState.WALK):
+            if self.state != CatState.WALK:
+                self.anchor = (self.x, self.y)
             self.set_state(CatState.SIT)
+        self.heart_time = 0.0
+        self.bubble.clear()
+        self.voice.stop()
+
+    def _choose_next(self, world):
+        p = self.personality
+        if self.state == CatState.SLEEP:
+            self.set_state(CatState.SIT)
+            return
+        if not world.is_free(self.position):
+            # ended up in front of a machine or in the doorway: go home-ish
+            self.anchor = min(self.spots, key=lambda s: math.dist(s, self.position))
+            self.walk_to(self.anchor)
             return
         if self.state == CatState.SIT:
-            self.set_state(CatState.NAP if self.rng.random() < 0.4 else CatState.IDLE)
+            self.set_state(CatState.SLEEP if self.rng.random() < p.sleep_after_sit else CatState.IDLE)
             return
-        roll = self.rng.random()
-        if roll < 0.4:
-            self.set_state(CatState.SIT)
-        elif roll < 0.7:
-            wx, wy = self.WANDER
-            ax, ay = self.anchor
-            self.target = (ax + self.rng.randint(-wx // 2, wx // 2),
-                           ay + self.rng.randint(-wy // 2, wy // 2))
-            self.set_state(CatState.WALK)
-        elif roll < 0.95 and len(self.spots) > 1:
-            # stroll over to another cozy spot
-            self.anchor = self.rng.choice([p for p in self.spots if p != self.anchor])
-            self.target = self.anchor
-            self.set_state(CatState.WALK)
-        else:
+        options = [(name, w) for name, w in p.choices
+                   if name != "visit" or len(self.spots) > 1]
+        player = world.player
+        near_player = player is not None and self.distance_to(player) < p.approach_range
+        if not near_player:
+            options = [(name, w) for name, w in options if name != "approach"]
+        names, weights = zip(*options)
+        choice = self.rng.choices(names, weights)[0]
+        if choice == "wander":
+            point = self._pick_point(world, self.anchor, self.WANDER)
+            if point:
+                self.walk_to(point)
+                return
+        elif choice == "visit":
+            self.anchor = self.rng.choice([s for s in self.spots if s != self.anchor])
+            self.walk_to(self.anchor)
+            return
+        elif choice == "approach":
+            # stop a little short of the player, on this cat's side
+            d = max(1.0, self.distance_to(player))
+            point = (player.x + (self.x - player.x) / d * self.REACH,
+                     player.y + (self.y - player.y) / d * self.REACH * 0.5)
+            if world.is_free(point):
+                self.walk_to(point)
+                return
+        elif choice == "sleep":
+            self.set_state(CatState.SLEEP)
+            return
+        elif choice == "idle":
             self.set_state(CatState.IDLE)
+            return
+        self.set_state(CatState.SIT)
 
-    def start_follow(self):
-        self.set_state(CatState.WALK, self.FOLLOW_TIME)
-        self.following = True
-        self.follow_cooldown = self.FOLLOW_COOLDOWN
+    def _pick_point(self, world, center, spread, tries=5):
+        wx, wy = spread
+        for _ in range(tries):
+            point = (center[0] + self.rng.randint(-wx // 2, wx // 2),
+                     center[1] + self.rng.randint(-wy // 2, wy // 2))
+            if world.is_free(point):
+                return point
+        return None
+
+    # ---------------------------------------------------------- interaction
+    def pet(self, world):
+        """The player pressed E next to this cat. Returns False (and does
+        nothing) while it is still reacting to the last pet."""
+        if not self.can_pet:
+            return False
+        sleepy = self.state == CatState.SLEEP
+        self.face(world.player)
+        self.set_state(CatState.PET)
         self.heart_time = 1.0
+        phrases = self.personality.sleepy_phrases if sleepy else self.personality.phrases
+        self.say(*self.rng.choice(phrases))
+        return True
 
-    # ---------------------------------------------------------------- update
-    def update(self, dt, player, solids):
+    def say(self, text, kind, loudness=1.0):
+        self.bubble.show(text)
+        self.voice.play(kind, self.time, loudness)
+
+    def make_way(self, world, player):
+        """Step aside when the player keeps bumping into this cat."""
+        if self.state in (CatState.PET, CatState.FOLLOW):
+            return False
+        horizontal = player.facing in ("left", "right")
+        sign = 1 if (self.y >= player.y if horizontal else self.x >= player.x) else -1
+        for s in (sign, -sign):
+            dx, dy = (0, 18 * s) if horizontal else (18 * s, 0)
+            point = (self.x + dx, self.y + dy)
+            if world.is_free(point, avoid=False):
+                self.anchor = point
+                self.walk_to(point, self.FLEE_SPEED)
+                return True
+        return False
+
+    def _react_to_player(self, world, dist):
+        """Personality reactions while sitting or idling. True if one fired."""
+        p, player = self.personality, world.player
+        if not player.moving:
+            return False
+        if p.flee_range and dist < p.flee_range and self.flee_cooldown <= 0:
+            self.flee_cooldown = self.FLEE_COOLDOWN
+            if self.rng.random() < p.flee_chance:
+                d = max(1.0, dist)
+                away = (self.x + (self.x - player.x) / d * 40, self.y + (self.y - player.y) / d * 30)
+                point = away if world.is_free(away) else self._pick_point(world, away, (30, 24))
+                if point:
+                    self.anchor = point
+                    self.walk_to(point, self.FLEE_SPEED)
+                    return True
+        if (p.auto_follow and dist < self.FOLLOW_RANGE and self.follow_cooldown <= 0
+                and world.request_follow(self)):
+            self.start_follow()
+            return True
+        return False
+
+    def _next_chat(self):
+        c = self.personality.chatter
+        return self.rng.uniform(c * 0.7, c * 1.3) if c else math.inf
+
+    # -------------------------------------------------------------- update
+    def update(self, dt, world):
         self.time += dt
         self.timer -= dt
         self.follow_cooldown -= dt
+        self.flee_cooldown -= dt
+        self.pet_cooldown -= dt
+        self.chat_timer -= dt
         self.heart_time = max(0.0, self.heart_time - dt)
-        dist = math.hypot(player.x - self.x, player.y - self.y)
+        self.bubble.update(dt)
+        player = world.player
+        dist = self.distance_to(player)
 
-        if (self.state not in (CatState.WALK, CatState.NAP) and player.moving and self.follow_cooldown <= 0
-                and dist < self.FOLLOW_RANGE):
-            self.start_follow()
-
-        if self.state == CatState.WALK:
-            if self.following:
-                self.target = (player.x, player.y)
-            arrived = self._walk(dt, solids)
-            if self.following and dist < 18:
+        if self.state == CatState.PET:
+            if self.timer <= 0:
+                self.pet_cooldown = self.PET_COOLDOWN
+                if (self.rng.random() < self.personality.follow_after_pet
+                        and world.request_follow(self)):
+                    self.start_follow(self.PET_FOLLOW_TIME)
+                else:
+                    self.anchor = (self.x, self.y)
+                    self.set_state(CatState.SIT)
+        elif self.state == CatState.FOLLOW:
+            self.target = (player.x, player.y)
+            self.speed = self.FOLLOW_SPEED
+            if dist > self.REACH:
+                self._walk(dt, world.cat_solids())
+            else:
+                self.face(player)
+            if self.timer <= 0:
                 self.anchor = (self.x, self.y)
-                self.side = "left" if player.x < self.x else "right"
-                self.set_state(CatState.SIT, self.rng.uniform(2.5, 4.0))
-            elif arrived or self.timer <= 0:
-                self._choose_next()
-        elif self.timer <= 0:
-            self._choose_next()
+                self.set_state(CatState.SIT)
+        elif self.state == CatState.WALK:
+            arrived = self._walk(dt, world.cat_solids())
+            if arrived or self.timer <= 0:
+                self._choose_next(world)
+        elif self.state == CatState.SLEEP:
+            if self.timer <= 0:
+                self._choose_next(world)
+        elif not self._react_to_player(world, dist) and self.timer <= 0:
+            self._choose_next(world)
 
-        same_state = self.anim.name.startswith(self.state.value)
-        self.anim.play(f"{self.state.value}_{self.side}", sync=same_state)
+        if (self.chat_timer <= 0 and self.state in (CatState.SIT, CatState.IDLE, CatState.WALK)
+                and dist < 110):
+            if world.claim_ambient_meow():
+                self.say(*self.rng.choice(self.personality.phrases), loudness=0.5)
+            self.chat_timer = self._next_chat()
+
+        anim = STATE_ANIM[self.state]
+        same = self.anim.name.startswith(anim + "_")
+        self.anim.play(f"{anim}_{self.side}", sync=same)
         self.anim.update(dt)
 
     def _walk(self, dt, solids):
@@ -257,8 +391,7 @@ class CatNPC(AnimatedSprite):
         dist = math.hypot(dx, dy)
         if dist < 2:
             return True
-        speed = self.FOLLOW_SPEED if self.following else self.SPEED
-        step = min(dist, speed * dt)
+        step = min(dist, self.speed * dt)
         if abs(dx) > 0.5:
             self.side = "left" if dx < 0 else "right"
         before = (self.x, self.y)
@@ -268,11 +401,17 @@ class CatNPC(AnimatedSprite):
         return moved < step * 0.3  # mostly blocked: give up
 
     def _move_axis(self, dx, dy, solids):
+        # Only new overlaps block, so a cat that ends up touching something
+        # (e.g. the player stepped onto it) can still walk free.
+        old = self.feet
         self.x += dx
         self.y += dy
-        if self.feet.collidelist(solids) != -1:
-            self.x -= dx
-            self.y -= dy
+        new = self.feet
+        for rect in solids:
+            if new.colliderect(rect) and not old.colliderect(rect):
+                self.x -= dx
+                self.y -= dy
+                return
 
     # ---------------------------------------------------------------- draw
     def draw_under(self, surf):
@@ -283,11 +422,17 @@ class CatNPC(AnimatedSprite):
         surf.blit(frame, (int(self.x) - frame.get_width() // 2,
                           int(self.y) - frame.get_height() + 1))
         if self.heart_time > 0:
+            # beside the head (the speech bubble sits right above it)
             rise = int((1.0 - self.heart_time) * 8)
-            surf.blit(self.heart, (int(self.x) - 3, int(self.y) - 22 - rise))
-        if self.state == CatState.NAP:
+            hx = 5 if self.side == "left" else -12
+            surf.blit(heart_sprite(), (int(self.x) + hx, int(self.y) - 16 - rise))
+        if self.state == CatState.SLEEP:
             # a little Z drifting up every couple of seconds
             k = (self.time % 2.4) / 2.4
             if k < 0.85:
                 dx = -5 if self.side == "left" else 3
-                surf.blit(self.zzz, (int(self.x) + dx + int(k * 4), int(self.y) - 16 - int(k * 8)))
+                surf.blit(_zzz(), (int(self.x) + dx + int(k * 4), int(self.y) - 16 - int(k * 8)))
+
+    def draw_bubble(self, surf):
+        """Speech bubble, drawn after the room lighting so it stays crisp."""
+        self.bubble.draw(surf, (int(self.x), int(self.y) - 17))

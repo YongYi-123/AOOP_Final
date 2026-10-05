@@ -15,7 +15,7 @@ import math
 import pygame
 
 from ambience import AmbienceManager
-from cat import CatNPC
+from cat_colony import CatColony
 from font import LINE_H, get_font
 from gfx import lerp_color, scale_color, shade
 from hud import CurrencyHUD
@@ -26,7 +26,7 @@ from player import Player
 from retro_racer_scene import RetroRacerScene
 from room import Room
 from scene_base import BaseScene
-from settings import (BACK_KEYS, BACKGROUND_STYLE, CAT_HOME, Col, DEBUG_REFILL_COINS,
+from settings import (BACK_KEYS, BACKGROUND_STYLE, CATS, Col, DEBUG_REFILL_COINS,
                       DEBUG_REFILL_KEY, INTERACT_FLASH, INTERACT_KEYS, MACHINES,
                       MOVE_KEYS, PLAYER_START, VIEW_H, VIEW_W)
 from ui import (DialogueBox, InstructionBox, Notice, PromptBubble, draw_text,
@@ -45,13 +45,14 @@ class ArcadeRoomScene(BaseScene):
         self.machines = [ArcadeMachine(data) for data in MACHINES]
         self.room = ROOM_STYLES[style](self.machines)
         self.player = Player(PLAYER_START)
-        self.cat = CatNPC(CAT_HOME, spots=self.room.cat_spots)
+        self.cats = CatColony(CATS, self.room)
         self.ambience = AmbienceManager()
         self.ambience.start()
         self.held = []          # movement keys currently held, in press order
         self.dialogue = None
         self.activating = None  # (machine, time left) while the E-flash plays
         self.nearby = None
+        self.nearby_cat = None
         self.prompt = PromptBubble()
         self.instructions = InstructionBox()
         self.hud = CurrencyHUD(game.profile)
@@ -70,6 +71,7 @@ class ArcadeRoomScene(BaseScene):
         self.dialogue = None
         self.player.stop()
         self.ambience.resume()
+        self.cats.resume()
         self.hud.clear_effects()
         self._end_play(ran=True)
 
@@ -118,6 +120,8 @@ class ArcadeRoomScene(BaseScene):
         elif event.key in INTERACT_KEYS and self.nearby:
             self.nearby.activate()
             self.activating = (self.nearby, INTERACT_FLASH)
+        elif event.key in INTERACT_KEYS and self.nearby_cat:
+            self.cats.interact(self.nearby_cat)
 
     def open_dialogue(self, machine):
         # Opening (and cancelling) the dialogue is free: coins are only taken
@@ -153,6 +157,7 @@ class ArcadeRoomScene(BaseScene):
         self.active_play = (session, scene)
         self.notice.clear()
         self.ambience.pause()
+        self.cats.pause()       # cats stay in the hub; they settle down until we're back
         self.game.scenes.push(scene)
 
     def _direction(self):
@@ -182,14 +187,19 @@ class ArcadeRoomScene(BaseScene):
             self.dialogue.update(dt)
         self.hud.update(dt)
         self.notice.update(dt)
-        self.player.update(dt, (0, 0) if busy else self._direction(), self.room.solids)
-        self.cat.update(dt, self.player, self.room.solids)
+        solids = self.room.solids + self.cats.blockers(self.player)
+        self.player.update(dt, (0, 0) if busy else self._direction(), solids)
+        self.cats.update(dt, self.player, busy)
 
+        # Machines win over cats when both are in reach.
         self.nearby = None if busy else self._find_nearby()
+        self.nearby_cat = None if busy or self.nearby else self.cats.find_nearby(self.player)
         for m in self.machines:
             m.highlight = m is self.nearby
-        anchor = (int(self.player.x), int(self.player.y) - 22) if self.nearby else None
-        self.prompt.update(dt, anchor)
+        target = self.nearby or self.nearby_cat
+        anchor = (int(self.player.x), int(self.player.y) - 22) if target else None
+        label = "PLAY" if self.nearby else self.nearby_cat and self.nearby_cat.personality.prompt
+        self.prompt.update(dt, anchor, label)
 
     def _find_nearby(self):
         feet = self.player.feet
@@ -199,7 +209,7 @@ class ArcadeRoomScene(BaseScene):
     # ------------------------------------------------------------ draw
     def draw(self, surf):
         self.room.draw_background(surf)
-        things = self.room.drawables() + [self.player, self.cat]
+        things = self.room.drawables() + [self.player] + self.cats.drawables()
         things.sort(key=lambda t: t.sort_y)
         for thing in things:
             thing.draw_under(surf)
@@ -208,6 +218,7 @@ class ArcadeRoomScene(BaseScene):
         self.room.draw_lighting(surf)
         for m in self.machines:
             m.draw_glow(surf)
+        self.cats.draw_overlay(surf)
 
         self.prompt.draw(surf, self.time)
         self.instructions.draw(surf)

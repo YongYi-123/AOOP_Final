@@ -212,7 +212,14 @@ def room_walls():
 class Room:
     """The original bright neon room ("neon" style)."""
     SIGN_POS = (112, 8)
-    cat_spots = ()          # extra cozy places the cat likes to visit
+    # cat id -> cozy spots it hangs around (first = home), clear of paths
+    cat_spots = {
+        "miso": ((318, 214), (286, 232), (250, 200)),     # by the prize counter
+        "pixel": ((148, 128), (118, 126), (178, 126), (240, 112)),  # near the machines
+        "mochi": ((68, 222), (115, 168)),                 # by the table and stools
+        "luna": ((44, 100), (340, 112), (370, 140)),      # quiet corners
+        "bean": ((264, 108), (262, 236), (150, 170)),     # by the vending machine
+    }
 
     def __init__(self, machines):
         self.machines = machines

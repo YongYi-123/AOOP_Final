@@ -68,18 +68,29 @@ def dim_screen(surf, alpha):
 
 
 class PromptBubble:
-    """Animated '[E] PLAY' prompt: fades in, bobs and pulses."""
+    """Animated '[E] PLAY' prompt: fades in, bobs and pulses. The label can
+    change per target ('PLAY', 'PET', ...); each label is rendered once."""
     FADE_SPEED = 6.0
 
-    def __init__(self):
-        self.frames = [self._build(Col.CYAN, Col.TEXT), self._build(shade(Col.CYAN, 0.5), Col.YELLOW)]
+    def __init__(self, label="PLAY"):
+        self._frames = {}
+        self.label = label
         self.alpha = 0.0
         self.anchor = None
 
-    def _build(self, border, key_color):
+    @property
+    def frames(self):
+        frames = self._frames.get(self.label)
+        if frames is None:
+            frames = self._frames[self.label] = [
+                self._build(Col.CYAN, Col.TEXT, self.label),
+                self._build(shade(Col.CYAN, 0.5), Col.YELLOW, self.label)]
+        return frames
+
+    def _build(self, border, key_color, text):
         font = get_font()
         key = font.render_glow("[E]", key_color, scale_color(key_color, 0.35))
-        label = font.render_glow("PLAY", Col.TEXT, scale_color(Col.MAGENTA, 0.6))
+        label = font.render_glow(text, Col.TEXT, scale_color(Col.MAGENTA, 0.6))
         w = key.get_width() + label.get_width() + 12
         h = 15
         s = pygame.Surface((w, h + 4), pygame.SRCALPHA)
@@ -90,8 +101,11 @@ class PromptBubble:
         pygame.draw.polygon(s, border, [(cx - 3, h - 1), (cx + 3, h - 1), (cx, h + 3)])
         return s
 
-    def update(self, dt, anchor):
-        """anchor: point above the nearby machine, or None to fade out."""
+    def update(self, dt, anchor, label=None):
+        """anchor: point above the nearby target, or None to fade out. A new
+        label only takes effect while shown, so a fading prompt keeps its text."""
+        if anchor and label:
+            self.label = label
         target = 1.0 if anchor else 0.0
         step = self.FADE_SPEED * dt
         if target > self.alpha:
@@ -111,6 +125,81 @@ class PromptBubble:
         rect.clamp_ip(pygame.Rect(2, 2, VIEW_W - 4, VIEW_H - 4))
         frame.set_alpha(int(255 * self.alpha))
         surf.blit(frame, rect)
+
+
+_bubbles = {}
+
+
+def speech_bubble_image(text):
+    """Small pixel-art speech bubble with a tail at the bottom (cached)."""
+    img = _bubbles.get(text)
+    if img is None:
+        label = get_font().render(text, (70, 44, 110))
+        w, h = label.get_width() + 8, 13
+        img = pygame.Surface((w, h + 3), pygame.SRCALPHA)
+        img.fill(Col.OUTLINE, (1, 0, w - 2, h))
+        img.fill(Col.OUTLINE, (0, 1, w, h - 2))
+        img.fill((246, 240, 255), (2, 1, w - 4, h - 2))
+        img.fill((246, 240, 255), (1, 2, w - 2, h - 4))
+        img.fill((214, 200, 240), (2, h - 2, w - 4, 1))         # soft bottom shade
+        cx = w // 2
+        img.fill(Col.OUTLINE, (cx - 2, h - 1, 5, 1))            # tail
+        img.fill((246, 240, 255), (cx - 1, h - 1, 3, 1))
+        img.fill(Col.OUTLINE, (cx - 1, h, 3, 1))
+        img.fill((246, 240, 255), (cx, h, 1, 1))
+        img.fill(Col.OUTLINE, (cx, h + 1, 1, 1))
+        img.blit(label, (4, 3))
+        _bubbles[text] = img
+    return img
+
+
+class SpeechBubble:
+    """A tiny bubble over an NPC: fades in, holds briefly, fades out."""
+    FADE_IN, HOLD, FADE_OUT = 0.12, 0.9, 0.35
+
+    def __init__(self):
+        self.text = None
+        self.age = 0.0
+
+    @property
+    def visible(self):
+        return self.text is not None
+
+    @property
+    def duration(self):
+        return self.FADE_IN + self.HOLD + self.FADE_OUT
+
+    def show(self, text):
+        self.text = text
+        self.age = 0.0
+
+    def clear(self):
+        self.text = None
+
+    def update(self, dt):
+        if self.text is not None:
+            self.age += dt
+            if self.age >= self.duration:
+                self.text = None
+
+    @property
+    def alpha(self):
+        if self.text is None:
+            return 0.0
+        if self.age < self.FADE_IN:
+            return self.age / self.FADE_IN
+        return min(1.0, (self.duration - self.age) / self.FADE_OUT)
+
+    def draw(self, surf, anchor):
+        """anchor: the point the bubble's tail points at."""
+        if self.text is None:
+            return
+        img = speech_bubble_image(self.text)
+        rise = int((1 - min(1.0, self.age / self.FADE_IN)) * 3)
+        rect = img.get_rect(midbottom=(anchor[0], anchor[1] + rise))
+        rect.clamp_ip(pygame.Rect(2, 2, VIEW_W - 4, VIEW_H - 4))
+        img.set_alpha(int(255 * self.alpha))
+        surf.blit(img, rect)
 
 
 class InstructionBox:
