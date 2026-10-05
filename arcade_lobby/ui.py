@@ -130,21 +130,27 @@ class DialogueBox:
     """Modal neon popup: glowing title, description and a vertical menu.
 
     `on_choice` is called with the chosen option label, or None when the
-    box is dismissed with ESC.
+    box is dismissed with ESC - at most once, so a burst of key presses
+    cannot confirm twice. `details` are extra (text, colour) lines shown
+    under the body; options whose index is in `locked` are drawn dimmed
+    (they can still be chosen, so the caller can explain why it failed).
     """
     W = 236
 
-    def __init__(self, title, body, options, on_choice, accent=Col.CYAN, glow=Col.MAGENTA):
+    def __init__(self, title, body, options, on_choice, accent=Col.CYAN, glow=Col.MAGENTA,
+                 details=(), locked=()):
         self.title = title
         self.options = options
         self.on_choice = on_choice
+        self.closed = False
         self.selected = 0
         self.anim = 0.0
         self.time = 0.0
 
         # Everything static is drawn once into self.image.
         lines = wrap_text(body, self.W - 24)
-        h = 36 + len(lines) * LINE_H + 8 + len(options) * 13 + 20
+        details_h = len(details) * LINE_H + 4 if details else 0
+        h = 36 + len(lines) * LINE_H + details_h + 8 + len(options) * 13 + 20
         self.image = neon_panel(self.W, h, accent, glow).copy()
         draw_text(self.image, title, (self.W // 2, 9), shade(accent, 0.55), 2,
                   anchor="midtop", glow=scale_color(glow, 0.8))
@@ -153,30 +159,42 @@ class DialogueBox:
         for line in lines:
             draw_text(self.image, line, (12, y), Col.TEXT_MUTED)
             y += LINE_H
+        if details:
+            y += 4
+            for text, color in details:
+                draw_text(self.image, text, (12, y), color)
+                y += LINE_H
         self.menu_y = y + 8
         draw_text(self.image, "UP/DOWN SELECT  E/ENTER OK  ESC BACK",
                   (self.W // 2, h - 13), scale_color(Col.TEXT_MUTED, 0.75), anchor="midtop")
 
         font = get_font()
-        self.option_imgs = [(font.render(o, scale_color(Col.TEXT_MUTED, 0.9)),
-                             font.render_glow(o, Col.TEXT, scale_color(accent, 0.7)))
-                            for o in options]
+        self.option_imgs = [
+            (font.render(o, scale_color(Col.TEXT_MUTED, 0.55)),
+             font.render_glow(o, Col.TEXT_MUTED, scale_color(Col.MAGENTA, 0.45))) if i in locked else
+            (font.render(o, scale_color(Col.TEXT_MUTED, 0.9)),
+             font.render_glow(o, Col.TEXT, scale_color(accent, 0.7)))
+            for i, o in enumerate(options)]
         self.cursor = font.render_glow(">", Col.YELLOW, scale_color(Col.YELLOW, 0.4))
         self.bar = pygame.Surface((self.W - 40, 11), pygame.SRCALPHA)
         self.bar.fill((*accent, 45))
         self.bar.fill((*accent, 170), (0, 0, 2, 11))
 
     def handle_event(self, event):
-        if event.type != pygame.KEYDOWN:
+        if event.type != pygame.KEYDOWN or self.closed:
             return
         if event.key in PREV_KEYS:
             self.selected = (self.selected - 1) % len(self.options)
         elif event.key in NEXT_KEYS:
             self.selected = (self.selected + 1) % len(self.options)
         elif event.key in CONFIRM_KEYS:
-            self.on_choice(self.options[self.selected])
+            self._close(self.options[self.selected])
         elif event.key in BACK_KEYS:
-            self.on_choice(None)
+            self._close(None)
+
+    def _close(self, choice):
+        self.closed = True
+        self.on_choice(choice)
 
     def update(self, dt):
         self.anim = min(1.0, self.anim + dt * 7)
@@ -199,3 +217,48 @@ class DialogueBox:
                     surf.blit(self.cursor, (rect.x + 24 + nudge, y - 1))
             else:
                 surf.blit(plain, (rect.x + 35, y))
+
+
+class Notice:
+    """Short non-blocking message card (e.g. GAME COMPLETE / NOT ENOUGH COINS)
+    that pops in near the top of the room and fades out by itself."""
+    DURATION = 2.2
+    FADE = 0.25
+
+    def __init__(self, center=(VIEW_W // 2, 140)):
+        self.center = center
+        self.image = None
+        self.left = 0.0
+
+    def show(self, title, lines=(), color=Col.CYAN):
+        """lines: (text, colour) pairs under the title."""
+        font = get_font()
+        head = font.render_glow(title, shade(color, 0.6), scale_color(color, 0.7), scale=2)
+        w = max([head.get_width()] + [font.size(t)[0] for t, _ in lines]) + 24
+        h = 12 + head.get_height() + len(lines) * LINE_H + 6
+        self.image = neon_panel(w, h, color, Col.PURPLE, 235).copy()
+        self.image.blit(head, head.get_rect(midtop=(w // 2, 7)))
+        y = 10 + head.get_height() + 2
+        for text, c in lines:
+            draw_text(self.image, text, (w // 2, y), c, anchor="midtop")
+            y += LINE_H
+        self.left = self.DURATION
+
+    def clear(self):
+        self.left = 0.0
+
+    @property
+    def visible(self):
+        return self.left > 0
+
+    def update(self, dt):
+        self.left = max(0.0, self.left - dt)
+
+    def draw(self, surf):
+        if not self.visible:
+            return
+        shown = self.DURATION - self.left
+        k = min(1.0, shown / self.FADE, self.left / self.FADE)
+        rect = self.image.get_rect(center=(self.center[0], self.center[1] + int((1 - k) * 6)))
+        self.image.set_alpha(int(255 * k))
+        surf.blit(self.image, rect)

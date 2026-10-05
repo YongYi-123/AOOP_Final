@@ -15,7 +15,7 @@ import pygame
 
 from font import get_font
 from gfx import scale_color, shade
-from scene_base import BaseScene
+from minigame import MinigameScene
 from settings import BACK_KEYS, Col
 
 RETRO_DIR = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)),
@@ -47,7 +47,7 @@ def load_retro_racer():
     return game_mod, race_mod
 
 
-class RetroRacerScene(BaseScene):
+class RetroRacerScene(MinigameScene):
     full_resolution = True
 
     # The embedded game takes ~2 s to build (sound synthesis, sprite caches),
@@ -56,8 +56,7 @@ class RetroRacerScene(BaseScene):
     _title_state = None
 
     def __init__(self, game, machine):
-        super().__init__(game)
-        self.machine = machine
+        super().__init__(game, machine)
         self.leaving = False
         self.loading_drawn = False
         self.error = None
@@ -68,6 +67,12 @@ class RetroRacerScene(BaseScene):
     @property
     def racer(self):
         return type(self)._racer
+
+    @property
+    def failed(self):
+        # No race scoring is wired up yet, so a successful run gets the base
+        # class's placeholder payout; a racer that failed to load is refunded.
+        return self.error is not None
 
     # ------------------------------------------------------------ lifecycle
     def on_enter(self):

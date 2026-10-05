@@ -26,6 +26,9 @@ class BaseScene:
     def on_resume(self):
         """Called when the scene above this one is popped."""
 
+    def on_quit(self):
+        """Called when the program closes while this scene is on the stack."""
+
     def handle_event(self, event):
         pass
 
@@ -76,6 +79,14 @@ class SceneManager:
         self.stack.pop().on_exit()
         if self.current:
             self.current.on_resume()
+
+    def quit(self):
+        """The program is closing: let every scene wrap up, top first. A
+        pending push/pop is dropped (the wipe never finishes)."""
+        self._pending = None
+        self.fade_dir = 0
+        for scene in reversed(self.stack):
+            scene.on_quit()
 
     def handle_event(self, event):
         if self.current and not self.transitioning:

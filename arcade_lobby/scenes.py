@@ -1,9 +1,14 @@
 """The arcade room scene, the placeholder minigame scene and the registry
 that maps machines to their minigame scenes.
 
-To plug in a real minigame, write a BaseScene subclass (scene_base.py) whose
+To plug in a real minigame, write a MinigameScene subclass (minigame.py) whose
 constructor takes (game, machine), register it in MINIGAME_SCENES under the
-machine id, and call `self.game.scenes.pop()` when the player quits.
+machine id, override get_reward() with its scoring, and call
+`self.game.scenes.pop()` when the player quits.
+
+Paying for a game: choosing PLAY charges the machine's play_cost through
+machine.start_play(), which returns a PlaySession. When the minigame is popped
+the room settles that session with the minigame's reward - once.
 """
 import math
 
@@ -13,20 +18,25 @@ from ambience import AmbienceManager
 from cat import CatNPC
 from font import LINE_H, get_font
 from gfx import lerp_color, scale_color, shade
+from hud import CurrencyHUD
 from lofi_room import LofiRoom
 from machine import ArcadeMachine
+from minigame import MinigameScene
 from player import Player
 from retro_racer_scene import RetroRacerScene
 from room import Room
 from scene_base import BaseScene
-from settings import (BACK_KEYS, BACKGROUND_STYLE, CAT_HOME, Col, INTERACT_FLASH, INTERACT_KEYS,
-                      MACHINES, MOVE_KEYS, PLAYER_START, VIEW_H, VIEW_W)
-from ui import (DialogueBox, InstructionBox, PromptBubble, draw_text,
+from settings import (BACK_KEYS, BACKGROUND_STYLE, CAT_HOME, Col, DEBUG_REFILL_COINS,
+                      DEBUG_REFILL_KEY, INTERACT_FLASH, INTERACT_KEYS, MACHINES,
+                      MOVE_KEYS, PLAYER_START, VIEW_H, VIEW_W)
+from ui import (DialogueBox, InstructionBox, Notice, PromptBubble, draw_text,
                 neon_panel, wrap_text)
 
 
 # Background style name -> room class (see settings.BACKGROUND_STYLES)
 ROOM_STYLES = {"lofi": LofiRoom, "neon": Room}
+
+PLAY, PLAY_LOCKED, CANCEL = "PLAY", "PLAY  [LOCKED]", "CANCEL"
 
 
 class ArcadeRoomScene(BaseScene):
@@ -44,7 +54,14 @@ class ArcadeRoomScene(BaseScene):
         self.nearby = None
         self.prompt = PromptBubble()
         self.instructions = InstructionBox()
+        self.hud = CurrencyHUD(game.profile)
+        self.notice = Notice()
+        self.active_play = None  # (PlaySession, minigame scene) while a paid game runs
         self.time = 0.0
+
+    @property
+    def profile(self):
+        return self.game.profile
 
     def on_resume(self):
         # Key-ups may have happened inside the minigame; start clean.
@@ -53,6 +70,34 @@ class ArcadeRoomScene(BaseScene):
         self.dialogue = None
         self.player.stop()
         self.ambience.resume()
+        self.hud.clear_effects()
+        self._end_play(ran=True)
+
+    def on_quit(self):
+        # Closing the window mid-game still pays out what was played; if the
+        # wipe into the game had not finished yet, the coins are refunded.
+        if self.active_play is not None:
+            _, scene = self.active_play
+            self._end_play(ran=scene in self.game.scenes.stack)
+
+    def _end_play(self, ran):
+        """Settle (or refund) the paid minigame that just closed. active_play
+        is cleared first and a PlaySession ends only once, so this can never
+        pay or refund twice for one coin."""
+        if self.active_play is None:
+            return
+        session, scene = self.active_play
+        self.active_play = None
+        if not ran or scene.failed:
+            if session.refund():
+                unit = "COIN" if session.cost == 1 else "COINS"
+                self.notice.show("GAME UNAVAILABLE", [(f"+{session.cost} {unit} REFUNDED", Col.YELLOW)],
+                                 Col.MAGENTA)
+            return
+        result = session.settle(scene.get_reward())
+        if result is not None:
+            self.notice.show("GAME COMPLETE", [(f"+{result.tickets_earned} TICKETS", Col.YELLOW)],
+                             Col.GREEN)
 
     # ------------------------------------------------------------ input
     def handle_event(self, event):
@@ -66,23 +111,49 @@ class ArcadeRoomScene(BaseScene):
             return
         if event.type != pygame.KEYDOWN or self.activating:
             return
-        if event.key in MOVE_KEYS and event.key not in self.held:
+        if event.key == DEBUG_REFILL_KEY and self.game.debug:
+            self.profile.add_coins(DEBUG_REFILL_COINS)
+        elif event.key in MOVE_KEYS and event.key not in self.held:
             self.held.append(event.key)
         elif event.key in INTERACT_KEYS and self.nearby:
             self.nearby.activate()
             self.activating = (self.nearby, INTERACT_FLASH)
 
     def open_dialogue(self, machine):
+        # Opening (and cancelling) the dialogue is free: coins are only taken
+        # in _start_game, after PLAY is confirmed.
+        affordable = machine.can_afford(self.profile)
+        details = [(f"COST: {machine.cost_label}", Col.YELLOW),
+                   (f"COINS: {self.profile.coins}", Col.TEXT_MUTED if affordable else Col.MAGENTA)]
         self.dialogue = DialogueBox(
-            machine.name, machine.description, ["Play", "Cancel"],
+            machine.name, machine.description, [PLAY if affordable else PLAY_LOCKED, CANCEL],
             on_choice=lambda choice: self._on_choice(machine, choice),
-            accent=machine.accent, glow=machine.neon)
+            accent=machine.accent, glow=machine.neon,
+            details=details, locked=() if affordable else (0,))
 
     def _on_choice(self, machine, choice):
         self.dialogue = None
-        if choice == "Play":
-            self.ambience.pause()
-            self.game.scenes.push(create_minigame_scene(self.game, machine))
+        if choice in (PLAY, PLAY_LOCKED):
+            self._start_game(machine)
+
+    def _start_game(self, machine):
+        # A paid game is already starting/running, or a wipe is in progress
+        # (SceneManager would drop the push): never charge in those states.
+        if self.active_play is not None or self.game.scenes.transitioning:
+            return
+        if not machine.can_afford(self.profile):
+            self.notice.show("NOT ENOUGH COINS", [
+                (f"NEED: {machine.play_cost}", Col.YELLOW),
+                (f"YOU HAVE: {self.profile.coins}", Col.TEXT_MUTED)], Col.MAGENTA)
+            return
+        scene = create_minigame_scene(self.game, machine)   # built before charging
+        session = machine.start_play(self.profile)
+        if session is None:
+            return
+        self.active_play = (session, scene)
+        self.notice.clear()
+        self.ambience.pause()
+        self.game.scenes.push(scene)
 
     def _direction(self):
         dx = dy = 0
@@ -109,6 +180,8 @@ class ArcadeRoomScene(BaseScene):
         busy = self.dialogue is not None or self.activating is not None
         if self.dialogue:
             self.dialogue.update(dt)
+        self.hud.update(dt)
+        self.notice.update(dt)
         self.player.update(dt, (0, 0) if busy else self._direction(), self.room.solids)
         self.cat.update(dt, self.player, self.room.solids)
 
@@ -138,18 +211,20 @@ class ArcadeRoomScene(BaseScene):
 
         self.prompt.draw(surf, self.time)
         self.instructions.draw(surf)
+        self.hud.draw(surf)
+        self.notice.draw(surf)
         if self.dialogue:
             self.dialogue.draw(surf)
 
 
-class MinigamePlaceholderScene(BaseScene):
+class MinigamePlaceholderScene(MinigameScene):
     """Stand-in for a machine's minigame: a synthwave-style title card in the
-    machine's own neon colours. ESC returns to the arcade."""
+    machine's own neon colours. ESC returns to the arcade (and pays the
+    temporary flat reward from MinigameScene.get_reward)."""
     HORIZON = 132
 
     def __init__(self, game, machine):
-        super().__init__(game)
-        self.machine = machine
+        super().__init__(game, machine)
         self.time = 0.0
         neon, accent = machine.neon, machine.accent
         self.grid_color = scale_color(neon, 0.8)
@@ -189,6 +264,7 @@ class MinigamePlaceholderScene(BaseScene):
         return bg
 
     def handle_event(self, event):
+        # SceneManager ignores input during the wipe, so ESC pops only once.
         if event.type == pygame.KEYDOWN and event.key in BACK_KEYS:
             self.game.scenes.pop()
 

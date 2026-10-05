@@ -9,7 +9,8 @@ from animation import Animation, AnimationController, AnimatedSprite
 from font import get_font
 from gfx import (flash_overlay, lerp_color, neon_rect_glow, outlined,
                  radial_glow, scale_color, shade)
-from settings import Col, FLOOR_TOP, INTERACT_FLASH
+from rewards import PlaySession
+from settings import Col, DEFAULT_PLAY_COST, FLOOR_TOP, INTERACT_FLASH
 
 W, H = 36, 62
 SCREEN = pygame.Rect(6, 15, 24, 16)          # relative to the cabinet
@@ -214,6 +215,7 @@ class ArcadeMachine(AnimatedSprite):
         self.neon = data["neon"]
         self.accent = data["accent"]
         self.style = data["screen"]
+        self.play_cost = data.get("play_cost", DEFAULT_PLAY_COST)
         self.art = art = _machine_art(data)
         info = STYLES[self.style]
 
@@ -239,6 +241,21 @@ class ArcadeMachine(AnimatedSprite):
     @property
     def screen_center(self):
         return (self.rect.x + SCREEN.centerx, self.rect.y + SCREEN.centery)
+
+    # ------------------------------------------------------------------ play
+    @property
+    def cost_label(self):
+        return f"{self.play_cost} COIN" + ("" if self.play_cost == 1 else "S")
+
+    def can_afford(self, profile):
+        return profile.can_afford_coins(self.play_cost)
+
+    def start_play(self, profile):
+        """Charge one play. Returns the PlaySession the minigame's reward is
+        settled against, or None (nothing charged) if the player is short."""
+        if not profile.spend_coins(self.play_cost):
+            return None
+        return PlaySession(profile, self.id, self.play_cost)
 
     def activate(self):
         """Brief brighten + ring when the player presses E."""

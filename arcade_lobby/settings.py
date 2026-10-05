@@ -3,6 +3,8 @@
 Everything is drawn onto a small low-resolution canvas (VIEW_W x VIEW_H) which
 is then scaled up by PIXEL_SCALE, giving crisp chunky pixels.
 """
+import os
+
 import pygame
 
 TITLE = "Neon Corner Arcade"
@@ -40,6 +42,19 @@ CONFIRM_KEYS = (pygame.K_e, pygame.K_RETURN, pygame.K_KP_ENTER, pygame.K_SPACE)
 PREV_KEYS = (pygame.K_UP, pygame.K_w)
 NEXT_KEYS = (pygame.K_DOWN, pygame.K_s)
 BACK_KEYS = (pygame.K_ESCAPE,)
+
+# Player profile / arcade economy
+SAVE_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "save_data.json")
+STARTING_COINS = 10
+STARTING_TICKETS = 0
+DEFAULT_PLAY_COST = 1           # coins per play, unless a machine sets play_cost
+# Temporary: tickets paid out by minigames that have no real scoring yet.
+PLACEHOLDER_REWARD_TICKETS = 5
+
+# Debug helpers (enable with:  python main.py --debug)
+DEBUG = False
+DEBUG_REFILL_KEY = pygame.K_F5
+DEBUG_REFILL_COINS = 10
 
 
 class Col:
@@ -110,7 +125,8 @@ class Lofi:
 
 
 # The three arcade machines. The id is what the minigame scene registry
-# (scenes.MINIGAME_SCENES) keys off.
+# (scenes.MINIGAME_SCENES) and the save file's high scores key off.
+# "play_cost" is optional and defaults to DEFAULT_PLAY_COST.
 MACHINES = [
     {
         "id": "retro_racer",
@@ -122,6 +138,7 @@ MACHINES = [
         "neon": (255, 72, 72),
         "accent": (255, 168, 60),
         "screen": "racer",
+        "play_cost": 1,
     },
     {
         "id": "space_blaster",
@@ -133,6 +150,7 @@ MACHINES = [
         "neon": (60, 130, 255),
         "accent": (90, 240, 255),
         "screen": "space",
+        "play_cost": 1,
     },
     {
         "id": "puzzle_drop",
@@ -144,5 +162,6 @@ MACHINES = [
         "neon": (170, 80, 255),
         "accent": (255, 110, 210),
         "screen": "puzzle",
+        "play_cost": 1,
     },
 ]
