@@ -1,6 +1,7 @@
 """Top-level Game object: window, main loop and pixel-perfect upscaling."""
 import pygame
 
+from game_clock import GameClock
 from player_profile import ProfileStore
 from scene_base import SceneManager
 from scenes import ArcadeRoomScene
@@ -9,11 +10,12 @@ from settings import (BACKGROUND_STYLE, DEBUG, FPS, SAVE_FILE, SCREEN_H,
 
 
 class Game:
-    def __init__(self, style=BACKGROUND_STYLE, save_path=SAVE_FILE, debug=DEBUG):
+    def __init__(self, style=BACKGROUND_STYLE, save_path=SAVE_FILE, debug=DEBUG, clock=None):
         # The profile is loaded before any scene exists and autosaves on
         # every change; scenes reach it through game.profile.
         self.debug = debug
-        self.store = ProfileStore(save_path)
+        self.clock = clock or GameClock()
+        self.store = ProfileStore(save_path, self.clock)
         self.profile = self.store.load()
         self.store.autosave(self.profile)
 
@@ -39,7 +41,7 @@ class Game:
 
     def quit(self):
         """Close the program; scenes settle anything still in progress (e.g.
-        a paid minigame) so its coins are not lost."""
+        a paid minigame) so its tokens are not lost."""
         if self.running:
             self.running = False
             self.scenes.quit()

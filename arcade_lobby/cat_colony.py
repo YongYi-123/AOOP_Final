@@ -24,6 +24,7 @@ class CatColony:
         self.room_solids = room.solids
         # Cats never pick a spot in front of a machine or in the doorway.
         self.keep_clear = [m.zone for m in room.machines]
+        self.keep_clear += [p.zone for p in room.props if hasattr(p, "zone")]   # stations
         self.keep_clear.append(pygame.Rect(DOOR_X - 6, FLOOR_BOTTOM - 36, DOOR_W + 12, 36))
         self.cats = [CatNPC(CatProfile.from_data(data), room.cat_spots[data["id"]],
                             random.Random(self.rng.random()))

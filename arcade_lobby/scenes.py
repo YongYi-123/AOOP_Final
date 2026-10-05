@@ -16,6 +16,8 @@ import pygame
 
 from ambience import AmbienceManager
 from cat_colony import CatColony
+from chance_scene import ChanceGameScene
+from daily_ui import DailyBonusPopup, TaskPanel
 from font import LINE_H, get_font
 from gfx import lerp_color, scale_color, shade
 from hud import CurrencyHUD
@@ -26,9 +28,11 @@ from player import Player
 from retro_racer_scene import RetroRacerScene
 from room import Room
 from scene_base import BaseScene
-from settings import (BACK_KEYS, BACKGROUND_STYLE, CATS, Col, DEBUG_REFILL_COINS,
-                      DEBUG_REFILL_KEY, INTERACT_FLASH, INTERACT_KEYS, MACHINES,
-                      MOVE_KEYS, PLAYER_START, VIEW_H, VIEW_W)
+from settings import (BACK_KEYS, BACKGROUND_STYLE, CATS, Col, DEBUG_NEXT_DAY_KEY,
+                      DEBUG_RESET_TASKS_KEY, DEBUG_TOKEN_KEY, DEBUG_TOKENS,
+                      INTERACT_FLASH, INTERACT_KEYS, MACHINES, MOVE_KEYS,
+                      PLAYER_START, VIEW_H, VIEW_W)
+from stations import Station, build_stations
 from ui import (DialogueBox, InstructionBox, Notice, PromptBubble, draw_text,
                 neon_panel, wrap_text)
 
@@ -43,14 +47,22 @@ class ArcadeRoomScene(BaseScene):
     def __init__(self, game, style=BACKGROUND_STYLE):
         super().__init__(game)
         self.machines = [ArcadeMachine(data) for data in MACHINES]
-        self.room = ROOM_STYLES[style](self.machines)
+        self.stations = build_stations(game.profile)
+        self.room = ROOM_STYLES[style](self.machines, self.stations)
+        # everything the player can walk up to and press E on
+        self.interactables = self.machines + [s for s in self.stations if isinstance(s, Station)]
         self.player = Player(PLAYER_START)
         self.cats = CatColony(CATS, self.room)
         self.ambience = AmbienceManager()
         self.ambience.start()
         self.held = []          # movement keys currently held, in press order
         self.dialogue = None
-        self.activating = None  # (machine, time left) while the E-flash plays
+        self.activating = None  # (target, time left) while the E-flash plays
+        self.popup = None       # DailyBonusPopup while the login bonus is offered
+        self.panel = None       # TaskPanel while the daily board is open
+        self._declined_day = None   # the day the player pressed ESC on the bonus
+        self._day_timer = 0.0
+        self._ready_tasks = 0
         self.nearby = None
         self.nearby_cat = None
         self.prompt = PromptBubble()
@@ -59,6 +71,9 @@ class ArcadeRoomScene(BaseScene):
         self.notice = Notice()
         self.active_play = None  # (PlaySession, minigame scene) while a paid game runs
         self.time = 0.0
+        self.profile.record_login()
+        self._ready_tasks = len(self.profile.claimable_tasks)
+        self._offer_daily_bonus()
 
     @property
     def profile(self):
@@ -69,15 +84,17 @@ class ArcadeRoomScene(BaseScene):
         self.held.clear()
         self.activating = None
         self.dialogue = None
+        self.panel = None
         self.player.stop()
         self.ambience.resume()
         self.cats.resume()
         self.hud.clear_effects()
         self._end_play(ran=True)
+        self._check_new_day()
 
     def on_quit(self):
         # Closing the window mid-game still pays out what was played; if the
-        # wipe into the game had not finished yet, the coins are refunded.
+        # wipe into the game had not finished yet, the tokens are refunded.
         if self.active_play is not None:
             _, scene = self.active_play
             self._end_play(ran=scene in self.game.scenes.stack)
@@ -85,14 +102,14 @@ class ArcadeRoomScene(BaseScene):
     def _end_play(self, ran):
         """Settle (or refund) the paid minigame that just closed. active_play
         is cleared first and a PlaySession ends only once, so this can never
-        pay or refund twice for one coin."""
+        pay or refund twice for one token."""
         if self.active_play is None:
             return
         session, scene = self.active_play
         self.active_play = None
         if not ran or scene.failed:
             if session.refund():
-                unit = "COIN" if session.cost == 1 else "COINS"
+                unit = "TOKEN" if session.cost == 1 else "TOKENS"
                 self.notice.show("GAME UNAVAILABLE", [(f"+{session.cost} {unit} REFUNDED", Col.YELLOW)],
                                  Col.MAGENTA)
             return
@@ -101,6 +118,35 @@ class ArcadeRoomScene(BaseScene):
             self.notice.show("GAME COMPLETE", [(f"+{result.tickets_earned} TICKETS", Col.YELLOW)],
                              Col.GREEN)
 
+    # ------------------------------------------------------------ daily bonus
+    def _offer_daily_bonus(self):
+        """Show the DAILY BONUS popup if today's reward is unclaimed. Not
+        again today once the player has put it off with ESC."""
+        today = self.profile.clock.today()
+        status = self.profile.daily_status(today)
+        if self.popup is None and status.can_claim and self._declined_day != today:
+            self.popup = DailyBonusPopup(status.day, status.tokens, self._claim_daily_bonus)
+
+    def _claim_daily_bonus(self):
+        self.profile.claim_daily_reward()      # the profile refuses a second claim
+
+    def _check_new_day(self):
+        """The calendar date may have changed while the arcade stayed open (or
+        while a minigame ran): roll the tasks and offer the new bonus."""
+        self.profile.sync_daily_tasks()
+        self._offer_daily_bonus()
+
+    def open_task_panel(self):
+        self.panel = TaskPanel(self.profile)
+
+    def _watch_tasks(self):
+        """A one-line, non-blocking hint when a challenge becomes claimable."""
+        ready = len(self.profile.claimable_tasks)
+        if ready > self._ready_tasks and not self.notice.visible:
+            self.notice.show("CHALLENGE COMPLETE", [("CLAIM IT AT THE DAILY BOARD", Col.YELLOW)],
+                             Col.CYAN)
+        self._ready_tasks = ready
+
     # ------------------------------------------------------------ input
     def handle_event(self, event):
         if event.type == pygame.WINDOWFOCUSLOST:
@@ -108,27 +154,44 @@ class ArcadeRoomScene(BaseScene):
         elif event.type == pygame.KEYUP and event.key in self.held:
             self.held.remove(event.key)
 
-        if self.dialogue:
-            self.dialogue.handle_event(event)
+        modal = self.popup or self.panel or self.dialogue
+        if modal:
+            modal.handle_event(event)
             return
         if event.type != pygame.KEYDOWN or self.activating:
             return
-        if event.key == DEBUG_REFILL_KEY and self.game.debug:
-            self.profile.add_coins(DEBUG_REFILL_COINS)
-        elif event.key in MOVE_KEYS and event.key not in self.held:
+        if self.game.debug and self._debug_key(event.key):
+            return
+        if event.key in MOVE_KEYS and event.key not in self.held:
             self.held.append(event.key)
         elif event.key in INTERACT_KEYS and self.nearby:
+            if isinstance(self.nearby, ArcadeMachine):
+                self.profile.record_machine_visit(self.nearby.id)
             self.nearby.activate()
             self.activating = (self.nearby, INTERACT_FLASH)
         elif event.key in INTERACT_KEYS and self.nearby_cat:
-            self.cats.interact(self.nearby_cat)
+            if self.cats.interact(self.nearby_cat):
+                self.profile.record_cat_petted()
+
+    def _debug_key(self, key):
+        """Debug-build helpers. Returns True if `key` was one of them."""
+        if key == DEBUG_TOKEN_KEY:
+            self.profile.add_tokens(DEBUG_TOKENS, "DEBUG")
+        elif key == DEBUG_NEXT_DAY_KEY:
+            self.profile.clock.advance_days(1)
+            self._check_new_day()
+        elif key == DEBUG_RESET_TASKS_KEY:
+            self.profile.reset_daily_tasks()
+        else:
+            return False
+        return True
 
     def open_dialogue(self, machine):
-        # Opening (and cancelling) the dialogue is free: coins are only taken
+        # Opening (and cancelling) the dialogue is free: tokens are only taken
         # in _start_game, after PLAY is confirmed.
         affordable = machine.can_afford(self.profile)
         details = [(f"COST: {machine.cost_label}", Col.YELLOW),
-                   (f"COINS: {self.profile.coins}", Col.TEXT_MUTED if affordable else Col.MAGENTA)]
+                   (f"TOKENS: {self.profile.tokens}", Col.TEXT_MUTED if affordable else Col.MAGENTA)]
         self.dialogue = DialogueBox(
             machine.name, machine.description, [PLAY if affordable else PLAY_LOCKED, CANCEL],
             on_choice=lambda choice: self._on_choice(machine, choice),
@@ -140,15 +203,32 @@ class ArcadeRoomScene(BaseScene):
         if choice in (PLAY, PLAY_LOCKED):
             self._start_game(machine)
 
+    def _open_target(self, target):
+        """The E-flash finished: open whatever the player used."""
+        if isinstance(target, ArcadeMachine):
+            self.open_dialogue(target)
+        else:
+            target.interact(self)
+
+    def open_chance_game(self, game_cls):
+        """Walk into a Lucky Corner game. Nothing is charged here: the game
+        itself charges when its round starts."""
+        if self.active_play is not None or self.game.scenes.transitioning:
+            return
+        self.notice.clear()
+        self.ambience.pause()
+        self.cats.pause()
+        self.game.scenes.push(ChanceGameScene(self.game, game_cls))
+
     def _start_game(self, machine):
         # A paid game is already starting/running, or a wipe is in progress
         # (SceneManager would drop the push): never charge in those states.
         if self.active_play is not None or self.game.scenes.transitioning:
             return
         if not machine.can_afford(self.profile):
-            self.notice.show("NOT ENOUGH COINS", [
+            self.notice.show("NOT ENOUGH TOKENS", [
                 (f"NEED: {machine.play_cost}", Col.YELLOW),
-                (f"YOU HAVE: {self.profile.coins}", Col.TEXT_MUTED)], Col.MAGENTA)
+                (f"YOU HAVE: {self.profile.tokens}", Col.TEXT_MUTED)], Col.MAGENTA)
             return
         scene = create_minigame_scene(self.game, machine)   # built before charging
         session = machine.start_play(self.profile)
@@ -175,16 +255,23 @@ class ArcadeRoomScene(BaseScene):
             m.update(dt)
 
         if self.activating:
-            machine, left = self.activating
+            target, left = self.activating
             left -= dt
-            self.activating = (machine, left)
+            self.activating = (target, left)
             if left <= 0:
                 self.activating = None
-                self.open_dialogue(machine)
+                self._open_target(target)
 
-        busy = self.dialogue is not None or self.activating is not None
+        busy = (self.dialogue is not None or self.activating is not None
+                or self.popup is not None or self.panel is not None)
         if self.dialogue:
             self.dialogue.update(dt)
+        self._update_modals(dt)
+        self._day_timer += dt
+        if self._day_timer >= 1.0:
+            self._day_timer = 0.0
+            self._check_new_day()
+        self._watch_tasks()
         self.hud.update(dt)
         self.notice.update(dt)
         solids = self.room.solids + self.cats.blockers(self.player)
@@ -194,16 +281,28 @@ class ArcadeRoomScene(BaseScene):
         # Machines win over cats when both are in reach.
         self.nearby = None if busy else self._find_nearby()
         self.nearby_cat = None if busy or self.nearby else self.cats.find_nearby(self.player)
-        for m in self.machines:
+        for m in self.interactables:
             m.highlight = m is self.nearby
         target = self.nearby or self.nearby_cat
         anchor = (int(self.player.x), int(self.player.y) - 22) if target else None
-        label = "PLAY" if self.nearby else self.nearby_cat and self.nearby_cat.personality.prompt
+        label = self.nearby.prompt_label if self.nearby else self.nearby_cat and self.nearby_cat.personality.prompt
         self.prompt.update(dt, anchor, label)
+
+    def _update_modals(self, dt):
+        if self.popup:
+            self.popup.update(dt)
+            if self.popup.done:
+                if self.popup.dismissed:
+                    self._declined_day = self.profile.clock.today()
+                self.popup = None
+        if self.panel:
+            self.panel.update(dt)
+            if self.panel.closed:
+                self.panel = None
 
     def _find_nearby(self):
         feet = self.player.feet
-        close = [m for m in self.machines if m.zone.colliderect(feet)]
+        close = [m for m in self.interactables if m.zone.colliderect(feet)]
         return min(close, key=lambda m: abs(m.rect.centerx - self.player.x), default=None)
 
     # ------------------------------------------------------------ draw
@@ -226,6 +325,10 @@ class ArcadeRoomScene(BaseScene):
         self.notice.draw(surf)
         if self.dialogue:
             self.dialogue.draw(surf)
+        if self.panel:
+            self.panel.draw(surf)
+        if self.popup:
+            self.popup.draw(surf)
 
 
 class MinigamePlaceholderScene(MinigameScene):

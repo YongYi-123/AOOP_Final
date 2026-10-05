@@ -42,18 +42,79 @@ PREV_KEYS = (pygame.K_UP, pygame.K_w)
 NEXT_KEYS = (pygame.K_DOWN, pygame.K_s)
 BACK_KEYS = (pygame.K_ESCAPE,)
 
-# Player profile / arcade economy
+# Debug build only (python main.py --debug)
+DEBUG = False
+DEBUG_TOKEN_KEY = pygame.K_F5        # +DEBUG_TOKENS tokens
+DEBUG_NEXT_DAY_KEY = pygame.K_F6     # pretend it is the next calendar day
+DEBUG_RESET_TASKS_KEY = pygame.K_F7  # roll a fresh set of daily tasks
+DEBUG_TOKENS = 10
+
+# ------------------------------------------------------------ economy
+# Every number that shapes the token economy lives here. TOKENS are spent to
+# play machines and chance games; TICKETS are a separate reward currency.
 SAVE_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "save_data.json")
-STARTING_COINS = 10
+STARTING_TOKENS = 10
 STARTING_TICKETS = 0
-DEFAULT_PLAY_COST = 1           # coins per play, unless a machine sets play_cost
+DEFAULT_PLAY_COST = 1           # tokens per play, unless a machine sets play_cost
 # Temporary: tickets paid out by minigames that have no real scoring yet.
 PLACEHOLDER_REWARD_TICKETS = 5
+TRANSACTION_HISTORY_SIZE = 30   # how many recent token changes are saved
 
-# Debug helpers (enable with:  python main.py --debug)
-DEBUG = False
-DEBUG_REFILL_KEY = pygame.K_F5
-DEBUG_REFILL_COINS = 10
+# Daily login: tokens for streak day 1, 2, 3, ...
+DAILY_REWARDS = (5, 6, 7, 8, 10, 12, 15)
+# After the last day of DAILY_REWARDS: "restart" begins again at day 1,
+# "hold" keeps paying the last day's reward.
+DAILY_AFTER_LAST = "restart"
+# Skipping a calendar day or more: "reset" drops back to day 1, "keep" carries on.
+DAILY_ON_MISS = "reset"
+
+# Daily tasks. One is picked at random for each of DAILY_TASK_COUNT slots.
+# "event" is what the profile reports (see PlayerProfile.record_*); "game_id"
+# narrows it to one machine; "distinct" counts different keys (machines) once.
+# "available": False keeps a task out of rotation until the game can report it.
+DAILY_TASK_COUNT = 3
+DAILY_TASK_POOL = (
+    {"id": "play_games", "description": "PLAY 3 ARCADE GAMES", "event": "game_played",
+     "target": 3, "reward": 5},
+    {"id": "earn_tickets", "description": "EARN 50 TICKETS", "event": "tickets_earned",
+     "target": 50, "reward": 8},
+    {"id": "play_racer", "description": "PLAY RETRO RACER", "event": "game_played",
+     "game_id": "retro_racer", "target": 1, "reward": 4},
+    {"id": "pet_cats", "description": "PET 3 CATS", "event": "cat_petted",
+     "target": 3, "reward": 3},
+    {"id": "visit_machines", "description": "VISIT 3 DIFFERENT MACHINES",
+     "event": "machine_visited", "distinct": True, "target": 3, "reward": 5},
+    # No minigame reports a score yet, so this one cannot be finished.
+    {"id": "beat_high_score", "description": "BEAT ONE HIGH SCORE", "event": "high_score",
+     "target": 1, "reward": 10, "available": False},
+)
+
+# Lucky Wheel: entry cost and the reward table. The chance of a reward is
+# weight / sum(weights); nothing about the player changes it. This table pays
+# back 0.95 tokens per token spent on average.
+LUCKY_WHEEL_COST = 1
+LUCKY_WHEEL_REWARDS = (
+    {"tokens": 0, "weight": 50, "rarity": "COMMON"},
+    {"tokens": 1, "weight": 28, "rarity": "COMMON"},
+    {"tokens": 2, "weight": 12, "rarity": "COMMON"},
+    {"tokens": 3, "weight": 6, "rarity": "UNCOMMON"},
+    {"tokens": 5, "weight": 3, "rarity": "RARE"},
+    {"tokens": 10, "weight": 1, "rarity": "VERY RARE"},
+)
+# The slices painted on the wheel, in order. Purely cosmetic: the result is
+# drawn from LUCKY_WHEEL_REWARDS first and the wheel then stops on a slice
+# showing that reward. Every reward above must appear at least once.
+LUCKY_WHEEL_SLICES = (0, 1, 0, 2, 0, 1, 3, 0, 5, 1, 2, 10)
+
+# High-Low: entry cost, and the tokens held after 1, 2, 3 ... correct guesses.
+# The streak ends (and pays out) after len(HIGH_LOW_PAYOUTS) wins. A tie loses.
+# The player sees the card before choosing, so a perfect player wins ~71% of
+# guesses; these numbers are set so even perfect play returns only ~0.87
+# tokens per token spent. (Entry 1 with payouts 2/4/8 would let a careful
+# player earn ~2.65 per token and farm tokens.)
+HIGH_LOW_COST = 2
+HIGH_LOW_PAYOUTS = (2, 3, 5)
+HIGH_LOW_RANKS = 13             # cards run from 1 (ace) to 13 (king)
 
 
 class Col:

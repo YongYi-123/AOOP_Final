@@ -1,5 +1,5 @@
-"""Compact COINS / TICKETS readout for the arcade room, in the bottom-right
-corner (mirroring the controls box on the left), plus little '-1 COIN' /
+"""Compact TOKENS / TICKETS readout for the arcade room, in the bottom-right
+corner (mirroring the controls box on the left), plus little '-1 TOKEN' /
 '+5 TICKETS' floaters that rise from it when the wallet changes."""
 import pygame
 
@@ -15,7 +15,7 @@ ROW_Y = (6, 17)
 MIN_DIGITS = "000"  # value column is at least this wide, so it rarely resizes
 
 
-def _coin_icon():
+def _token_icon():
     s = pygame.Surface((7, 7), pygame.SRCALPHA)
     pygame.draw.circle(s, shade(Col.YELLOW, -0.45), (3, 3), 3)
     pygame.draw.circle(s, Col.YELLOW, (3, 3), 2)
@@ -62,14 +62,14 @@ class CurrencyHUD:
     """Reads the profile every frame (so it is always current) and listens
     for changes to spawn floaters and briefly flash the changed value."""
     FLASH = 0.45
-    COLORS = {PlayerProfile.COIN: Col.YELLOW, PlayerProfile.TICKET: Col.MAGENTA}
+    COLORS = {PlayerProfile.TOKEN: Col.YELLOW, PlayerProfile.TICKET: Col.MAGENTA}
 
     def __init__(self, profile):
         self.profile = profile
-        self.coin_icon = _coin_icon()
+        self.token_icon = _token_icon()
         self.ticket_icon = _ticket_icon()
         self.floaters = []
-        self.flash = {PlayerProfile.COIN: 0.0, PlayerProfile.TICKET: 0.0}
+        self.flash = {PlayerProfile.TOKEN: 0.0, PlayerProfile.TICKET: 0.0}
         self.slots = {}         # field -> centre x of its value, for floaters
         self._key = None
         self.image = None
@@ -82,8 +82,8 @@ class CurrencyHUD:
         if change.field not in self.COLORS:
             return
         self._rebuild()
-        if change.field == PlayerProfile.COIN:
-            unit = "COIN" if abs(change.delta) == 1 else "COINS"
+        if change.field == PlayerProfile.TOKEN:
+            unit = "TOKEN" if abs(change.delta) == 1 else "TOKENS"
         else:
             unit = "TICKET" if abs(change.delta) == 1 else "TICKETS"
         color = self.COLORS[change.field] if change.delta > 0 else Col.TEXT_MUTED
@@ -100,13 +100,13 @@ class CurrencyHUD:
     def _rebuild(self):
         """Re-render the panel when either value (or a flash) changes."""
         flashing = tuple(self.flash[f] > 0 for f in self.flash)
-        key = (self.profile.coins, self.profile.tickets, flashing)
+        key = (self.profile.tokens, self.profile.tickets, flashing)
         if key == self._key:
             return
         self._key = key
         font = get_font()
         parts = [  # (field, icon, label, value)
-            (PlayerProfile.COIN, self.coin_icon, "COINS", f"{self.profile.coins:02d}"),
+            (PlayerProfile.TOKEN, self.token_icon, "TOKENS", f"{self.profile.tokens:02d}"),
             (PlayerProfile.TICKET, self.ticket_icon, "TICKETS", f"{self.profile.tickets:03d}"),
         ]
         rendered = []

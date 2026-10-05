@@ -36,6 +36,8 @@ class CatSceneTest(unittest.TestCase):
         self.game = Game(style=self.STYLE, save_path=os.path.join(self.dir, "save.json"))
         self.room = self.game.scenes.current
         self.cats = self.room.cats
+        self.run_frames(3, [key(pygame.K_ESCAPE)])   # put off the daily bonus popup
+        assert self.room.popup is None
 
     def tearDown(self):
         shutil.rmtree(self.dir, ignore_errors=True)

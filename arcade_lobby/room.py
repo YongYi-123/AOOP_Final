@@ -76,7 +76,7 @@ def make_vending():
     s.fill((50, 70, 150), (22, 6, 6, 14))                 # keypad
     for i in range(6):
         s.fill(Col.CYAN if i % 2 else (160, 190, 255), (23 + (i % 2) * 2, 8 + (i // 2) * 3, 1, 1))
-    s.fill(Col.YELLOW, (24, 24, 2, 4))                    # coin slot
+    s.fill(Col.YELLOW, (24, 24, 2, 4))                    # token slot
     s.fill((8, 8, 24), (4, 46, 22, 7))                    # pick-up bin
     s.fill(Col.CYAN, (0, 0, w, 1))
     s.fill(Col.CYAN, (0, h - 2, w, 1))
@@ -148,6 +148,8 @@ class Prop:
     """A piece of furniture that is depth-sorted with the player.
     `glow` is an optional pre-rendered additive halo drawn after lighting."""
 
+    solid = True            # False: decoration the player and cats walk through
+
     def __init__(self, sprite, pos, footprint, glow=None, glow_pos=None):
         self.sprite = sprite
         self.pos = pos
@@ -217,15 +219,15 @@ class Room:
         "miso": ((318, 214), (286, 232), (250, 200)),     # by the prize counter
         "pixel": ((148, 128), (118, 126), (178, 126), (240, 112)),  # near the machines
         "mochi": ((68, 222), (115, 168)),                 # by the table and stools
-        "luna": ((44, 100), (340, 112), (370, 140)),      # quiet corners
+        "luna": ((44, 100), (366, 170), (368, 236)),      # quiet corners
         "bean": ((264, 108), (262, 236), (150, 170)),     # by the vending machine
     }
 
-    def __init__(self, machines):
+    def __init__(self, machines, stations=()):
         self.machines = machines
-        self.props = self._build_props()
+        self.props = self._build_props() + list(stations)
         self.walls = room_walls()
-        self.solids = (self.walls + [p.footprint for p in self.props]
+        self.solids = (self.walls + [p.footprint for p in self.props if p.solid]
                        + [m.footprint for m in machines])
 
         # Neon floor strips: (rect, colour). Pulsed and chased every frame.

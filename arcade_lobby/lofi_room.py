@@ -235,13 +235,13 @@ class LofiRoom(Room):
         "mochi": ((60, 216), (112, 222)),                 # napping on the lounge rug
     }
 
-    def __init__(self, machines):
+    def __init__(self, machines, stations=()):
         self.machines = machines
         for m in machines:
             m.soft_glow = True
-        self.props = self._build_props()
+        self.props = self._build_props() + list(stations)
         self.walls = room_walls()
-        self.solids = (self.walls + [p.footprint for p in self.props]
+        self.solids = (self.walls + [p.footprint for p in self.props if p.solid]
                        + [m.footprint for m in machines])
 
         animator = AmbientAnimator()

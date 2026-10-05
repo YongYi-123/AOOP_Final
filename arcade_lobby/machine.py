@@ -163,7 +163,7 @@ def _build_cabinet(style, label, frame, neon, accent):
     for i, c in enumerate((Col.YELLOW, Col.CYAN, Col.MAGENTA)):
         pygame.draw.circle(s, c, (18 + i * 5, 37), 1)
 
-    s.fill((18, 12, 34), (5, 43, 26, 14))            # coin door
+    s.fill((18, 12, 34), (5, 43, 26, 14))            # token door
     s.fill((6, 4, 14), (15, 46, 6, 7))
     s.fill(accent, (17, 48, 2, 3))
     s.fill(neon, (0, H - 3, W, 1))                    # kick plate strip
@@ -207,6 +207,7 @@ def _scaled_copy(surf, k):
 # --------------------------------------------------------------------- machine
 class ArcadeMachine(AnimatedSprite):
     TOP_Y = 30
+    prompt_label = "PLAY"
 
     def __init__(self, data):
         self.id = data["id"]
@@ -245,17 +246,18 @@ class ArcadeMachine(AnimatedSprite):
     # ------------------------------------------------------------------ play
     @property
     def cost_label(self):
-        return f"{self.play_cost} COIN" + ("" if self.play_cost == 1 else "S")
+        return f"{self.play_cost} TOKEN" + ("" if self.play_cost == 1 else "S")
 
     def can_afford(self, profile):
-        return profile.can_afford_coins(self.play_cost)
+        return profile.can_afford_tokens(self.play_cost)
 
     def start_play(self, profile):
         """Charge one play. Returns the PlaySession the minigame's reward is
         settled against, or None (nothing charged) if the player is short."""
-        if not profile.spend_coins(self.play_cost):
+        name = self.name.upper()
+        if not profile.spend_tokens(self.play_cost, name):
             return None
-        return PlaySession(profile, self.id, self.play_cost)
+        return PlaySession(profile, self.id, self.play_cost, name)
 
     def activate(self):
         """Brief brighten + ring when the player presses E."""
