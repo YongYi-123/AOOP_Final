@@ -99,7 +99,7 @@ class PlayerProfileTests(unittest.TestCase):
         p.spend_tokens(1)
         p.add_tickets(5)
         p.spend_tokens(99)               # refused: no event
-        self.assertEqual([(c.field, c.delta, c.value) for c in seen],
+        self.assertEqual([(c.field, c.delta, c.value) for c in seen if c.field != "tasks"],
                          [("tokens", -1, 9), ("tickets", 5, 5)])
 
 

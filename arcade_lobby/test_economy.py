@@ -741,7 +741,7 @@ class ArcadeEconomyFlowTests(TempDirTest):
     def test_popup_appears_on_first_entry_and_claims_once(self):
         g, room = self.make_game(popup=True)
         self.assertIsNotNone(room.popup)
-        self.assertEqual((room.popup.day, room.popup.tokens), (1, 5))
+        self.assertEqual((room.popup.day, room.popup.reward_lines), (1, ["+5 TOKENS"]))
         self.run_frames(g, 5, [key(pygame.K_RETURN)] * 6 + [key(pygame.K_e)] * 6)   # mash
         self.run_frames(g, 60)
         self.assertEqual(g.profile.tokens, 15)
@@ -763,7 +763,7 @@ class ArcadeEconomyFlowTests(TempDirTest):
         g, room = self.make_game(popup=True)
         self.claim_bonus(g, room)
         g2, room2 = self.make_game(DAY1 + timedelta(days=1), popup=True)
-        self.assertEqual((room2.popup.day, room2.popup.tokens), (2, 6))
+        self.assertEqual((room2.popup.day, room2.popup.reward_lines), (2, ["+6 TOKENS"]))
         self.claim_bonus(g2, room2)
         self.assertEqual(g2.profile.tokens, 21)
 

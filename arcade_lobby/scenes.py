@@ -132,7 +132,7 @@ class ArcadeRoomScene(BaseScene):
         today = self.profile.clock.today()
         status = self.profile.daily_status(today)
         if self.popup is None and status.can_claim and self._declined_day != today:
-            self.popup = DailyBonusPopup(status.day, status.tokens, self._claim_daily_bonus)
+            self.popup = DailyBonusPopup(status.day, status.bundle.lines(), self._claim_daily_bonus)
 
     def _claim_daily_bonus(self):
         self.profile.claim_daily_reward()      # the profile refuses a second claim

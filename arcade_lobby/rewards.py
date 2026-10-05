@@ -18,7 +18,7 @@ PlayerProfile's own methods.
 from dataclasses import dataclass, field
 from types import MappingProxyType
 
-from item_registry import FREE_PLAY_COUPON
+from item_registry import FREE_PLAY_COUPON, ITEM_REGISTRY
 
 
 @dataclass(frozen=True)
@@ -56,6 +56,8 @@ class PlaySession:
         self._settled = True
         with self.profile.batch():                      # one save for the whole payout
             self.profile.record_game_played(self.game_id)
+            if self.coupon:
+                self.profile.record_coupon_used()
             if result is None:
                 return None
             if result.score is not None:
@@ -157,6 +159,29 @@ class RewardBundle:
     @property
     def is_empty(self):
         return not (self.tokens or self.tickets or self.items)
+
+    @classmethod
+    def from_config(cls, value, reason="REWARD"):
+        """A bundle from settings data: a RewardBundle, a plain token amount
+        (5), or a dict like {"tokens": 15, "items": {"free_play_coupon": 1}}."""
+        if isinstance(value, cls):
+            return value
+        if isinstance(value, dict):
+            return cls(reason=reason, **value)
+        return cls(tokens=value, reason=reason)
+
+    def lines(self, registry=ITEM_REGISTRY):
+        """Readable lines for the UI, e.g. ['+5 TOKENS', '+1 FREE PLAY COUPON'].
+        Unknown item ids are shown by id rather than hidden."""
+        out = []
+        if self.tokens:
+            out.append(f"+{self.tokens} TOKEN" + ("" if self.tokens == 1 else "S"))
+        if self.tickets:
+            out.append(f"+{self.tickets} TICKET" + ("" if self.tickets == 1 else "S"))
+        for item_id, quantity in self.items.items():
+            definition = registry.get(item_id)
+            out.append(f"+{quantity} {definition.name if definition else str(item_id).upper()}")
+        return out
 
 
 @dataclass(frozen=True)

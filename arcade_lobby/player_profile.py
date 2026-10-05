@@ -15,11 +15,13 @@ import os
 import random
 from collections import deque, namedtuple
 from contextlib import contextmanager
+from dataclasses import replace
 
 from daily_rewards import DailyRewardManager
 from daily_tasks import DailyTaskManager
 from game_clock import GameClock
 from inventory import Inventory
+from rewards import RewardService
 from settings import (STARTING_TICKETS, STARTING_TOKENS,
                       TRANSACTION_HISTORY_SIZE)
 
@@ -69,7 +71,7 @@ class PlayerProfile:
         self._dirty = False
         self._inventory = inventory or Inventory()
         self._inventory.on_change = lambda: self._notify("inventory", 0, 0)
-        self._tasks.ensure_current(self.clock.today())
+        self._tasks.ensure_current(self.clock.today(), eligible=self._task_eligible)
 
     # ------------------------------------------------------------ read-only
     @property
@@ -221,35 +223,50 @@ class PlayerProfile:
     def claim_daily_reward(self):
         """Claim today's login bonus. Returns the DailyClaim, or None if it
         was already claimed today. The tokens are paid exactly once."""
-        claim = self._daily.claim(self.clock.today())
-        if claim is None:
+        today = self.clock.today()
+        if not self._daily.can_claim(today):
             return None
-        self.add_tokens(claim.tokens, "DAILY LOGIN")
-        self._notify("daily", claim.tokens, claim.streak)   # saves even for a 0 reward
+        with self.batch():                                   # one save for state + payout
+            claim = self._daily.claim(today)                 # marks today used first
+            claim = replace(claim, grant=RewardService.grant(self, claim.bundle))
+            self._notify("daily", claim.tokens, claim.streak)
         return claim
 
     # ------------------------------------------------------------ daily tasks
     def sync_daily_tasks(self):
         """Roll new tasks if the calendar date changed. Returns True if it did."""
-        changed = self._tasks.ensure_current(self.clock.today())
+        changed = self._tasks.ensure_current(self.clock.today(), eligible=self._task_eligible)
         if changed:
             self._notify("tasks", 0, 0)
         return changed
 
     def reset_daily_tasks(self):
         """Debug: replace today's tasks with a fresh random set."""
-        self._tasks.reset(self.clock.today(), random.Random())
+        self._tasks.reset(self.clock.today(), random.Random(), self._task_eligible)
         self._notify("tasks", 0, 0)
 
-    def claim_task(self, task_id):
-        """Claim a finished task. Returns the tokens paid (0 if the task is
-        unknown, unfinished or already claimed)."""
+    def _task_eligible(self, spec):
+        """Can this task be offered? (Not if it needs an item the player lacks.)"""
+        return not spec.requires_item or self._inventory.has_item(spec.requires_item)
+
+    def claim_task_reward(self, task_id):
+        """Claim a finished task and deliver its RewardBundle through
+        RewardService. Returns the RewardGrantResult, or None if the task is
+        unknown, unfinished or already claimed (so it can never pay twice)."""
         self.sync_daily_tasks()
-        reward = self._tasks.claim(task_id)
-        if reward:
-            self.add_tokens(reward, "DAILY TASK")
-            self._notify("tasks", reward, len(self._tasks.claimable))
-        return reward
+        with self.batch():
+            bundle = self._tasks.claim(task_id)              # marks it claimed first
+            if bundle is None:
+                return None
+            result = RewardService.grant(self, bundle)
+            self._notify("tasks", bundle.tokens, len(self._tasks.claimable))
+        return result
+
+    def claim_task(self, task_id):
+        """Like claim_task_reward() but returns just the tokens paid (0 if
+        nothing was claimed)."""
+        result = self.claim_task_reward(task_id)
+        return result.tokens_granted if result else 0
 
     def _task_event(self, event, amount=1, key=None, game_id=None):
         self.sync_daily_tasks()
@@ -265,6 +282,10 @@ class PlayerProfile:
     def record_chance_game_played(self):
         self._chance_games_played += 1
         self._notify("chance_games", 1, self._chance_games_played)
+
+    def record_coupon_used(self):
+        """A Free Play Coupon paid for a game that was played."""
+        self._task_event("coupon_used")
 
     def record_cat_petted(self):
         self._cats_petted += 1

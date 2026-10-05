@@ -63,7 +63,8 @@ DEFAULT_PLAY_COST = 1           # tokens per play, unless a machine sets play_co
 PLACEHOLDER_REWARD_TICKETS = 5
 TRANSACTION_HISTORY_SIZE = 30   # how many recent token changes are saved
 
-# Daily login: tokens for streak day 1, 2, 3, ...
+# Daily login: the reward for streak day 1, 2, 3, ... Each entry is a token
+# amount, or a dict such as {"tokens": 15, "items": {"free_play_coupon": 1}}.
 DAILY_REWARDS = (5, 6, 7, 8, 10, 12, 15)
 # After the last day of DAILY_REWARDS: "restart" begins again at day 1,
 # "hold" keeps paying the last day's reward.
@@ -75,6 +76,9 @@ DAILY_ON_MISS = "reset"
 # "event" is what the profile reports (see PlayerProfile.record_*); "game_id"
 # narrows it to one machine; "distinct" counts different keys (machines) once.
 # "available": False keeps a task out of rotation until the game can report it.
+# "reward" is tokens; "reward_tickets" and "reward_items" ({item_id: quantity})
+# are optional extras. "requires_item" offers the task only to owners of that item.
+# Every payout is a RewardBundle delivered by RewardService.
 DAILY_TASK_COUNT = 3
 DAILY_TASK_POOL = (
     {"id": "play_games", "description": "PLAY 3 ARCADE GAMES", "event": "game_played",
@@ -87,6 +91,9 @@ DAILY_TASK_POOL = (
      "target": 3, "reward": 3},
     {"id": "visit_machines", "description": "VISIT 3 DIFFERENT MACHINES",
      "event": "machine_visited", "distinct": True, "target": 3, "reward": 5},
+    # Only offered while the player owns a coupon to use.
+    {"id": "use_coupon", "description": "USE A FREE PLAY COUPON", "event": "coupon_used",
+     "target": 1, "reward": 4, "requires_item": "free_play_coupon"},
     # No minigame reports a score yet, so this one cannot be finished.
     {"id": "beat_high_score", "description": "BEAT ONE HIGH SCORE", "event": "high_score",
      "target": 1, "reward": 10, "available": False},

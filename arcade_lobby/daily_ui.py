@@ -31,8 +31,11 @@ class DailyBonusPopup:
     W, H = 172, 124
     CLAIM_TIME = 0.55
 
-    def __init__(self, day, tokens, on_claim):
-        self.day, self.tokens, self.on_claim = day, tokens, on_claim
+    def __init__(self, day, reward_lines, on_claim):
+        """reward_lines: RewardBundle.lines(); the first is the headline."""
+        self.day, self.on_claim = day, on_claim
+        reward_lines = list(reward_lines) or ["+0 TOKENS"]
+        self.reward_lines = reward_lines
         self.claimed = False
         self.dismissed = False
         self.anim = 0.0
@@ -47,8 +50,8 @@ class DailyBonusPopup:
             img = font.render_glow(text, color, glow, scale)
             self.image.blit(img, img.get_rect(midtop=(cx, y)))
         self.image.fill(scale_color(Col.YELLOW, 0.5), (12, 26, self.W - 24, 1))
-        self.reward = font.render_glow(f"+{tokens} TOKEN" + ("" if tokens == 1 else "S"),
-                                       Col.YELLOW, scale_color(Col.YELLOW, 0.45), 2)
+        self.reward = font.render_glow(reward_lines[0], Col.YELLOW, scale_color(Col.YELLOW, 0.45), 2)
+        self.extras = [font.render_glow(t, Col.GREEN, scale_color(Col.GREEN, 0.4)) for t in reward_lines[1:]]
         self.button = font.render_glow("CLAIM", Col.TEXT, scale_color(Col.GREEN, 0.7), 1)
         self.coin = token_icon(2)
 
@@ -82,6 +85,8 @@ class DailyBonusPopup:
         surf.blit(self.coin, self.coin.get_rect(midright=(rect.centerx - self.reward.get_width() // 2 - 4,
                                                             rect.y + 58 + bob)))
         surf.blit(self.reward, self.reward.get_rect(center=(rect.centerx + 8, rect.y + 58)))
+        for i, line in enumerate(self.extras[:2]):
+            surf.blit(line, line.get_rect(midtop=(rect.centerx, rect.y + 70 + i * LINE_H)))
         if not self.claimed:
             pulse = 0.55 + 0.45 * math.sin(self.time * 6)
             btn = pygame.Rect(0, 0, 64, 16)
@@ -183,7 +188,7 @@ class TaskPanel:
         fill = int(bar.w * task.progress / task.target)
         img.fill(Col.GREEN if task.completed else Col.CYAN, (bar.x, bar.y, fill, bar.h))
         draw_text(img, f"{task.progress} / {task.target}", (bar.right + 6, y + 13), Col.TEXT_MUTED)
-        reward = f"+{task.reward_tokens} TOKENS"
+        reward = "  ".join(task.reward_bundle.lines())
         draw_text(img, reward, (row.x + 18, y + 22), shade(Col.YELLOW, -0.2) if dim else Col.YELLOW)
         if task.claimed:
             draw_text(img, "CLAIMED", (row.right - 6, y + 22), Col.TEXT_MUTED, anchor="topright")

@@ -1,9 +1,9 @@
 """DailyRewardManager: the once-per-calendar-day login bonus and its streak.
 
 The manager holds the saved state (last login, streak, last claim) and the
-rules; it never touches tokens. PlayerProfile.claim_daily_reward() asks it
-whether a claim is allowed and pays the result, so the payout stays inside
-the profile's token transactions.
+rules; it never pays anything. Each day's reward is a RewardBundle (tokens,
+tickets, items). PlayerProfile.claim_daily_reward() asks the manager whether
+a claim is allowed, then delivers the bundle through RewardService.
 
 Rules (all by calendar date, never by elapsed time):
   * one claim per calendar day;
@@ -16,36 +16,49 @@ from dataclasses import dataclass
 from datetime import date, timedelta
 
 from game_clock import parse_date
+from rewards import RewardBundle
 from settings import DAILY_AFTER_LAST, DAILY_ON_MISS, DAILY_REWARDS
 
 
 @dataclass(frozen=True)
 class DailyStatus:
     can_claim: bool
-    day: int        # streak day today's claim is (or, if claimed, was) worth
-    tokens: int     # that day's reward
-    streak: int     # claims in the current streak so far
+    day: int                # streak day today's claim is (or, if claimed, was) worth
+    bundle: RewardBundle    # that day's reward
+    streak: int             # claims in the current streak so far
+
+    @property
+    def tokens(self):
+        return self.bundle.tokens
 
 
 @dataclass(frozen=True)
 class DailyClaim:
     day: int
-    tokens: int
+    bundle: RewardBundle
     streak: int
     claimed_on: date
+    grant: object = None    # the RewardGrantResult, filled in by the profile
+
+    @property
+    def tokens(self):
+        return self.bundle.tokens
 
 
 class DailyRewardManager:
     def __init__(self, rewards=DAILY_REWARDS, on_miss=DAILY_ON_MISS,
                  after_last=DAILY_AFTER_LAST, last_login_date=None, streak=0,
                  last_claimed=None):
-        if not rewards or any(r < 0 for r in rewards):
-            raise ValueError("rewards must be a non-empty list of non-negative amounts")
+        # each entry: a token amount, a {"tokens":..,"items":{..}} dict or a RewardBundle
+        rewards = tuple(RewardBundle.from_config(r, "DAILY LOGIN") for r in rewards or ())
+        if not rewards or any(not all(isinstance(v, int) and not isinstance(v, bool) and v >= 0
+                                      for v in (r.tokens, r.tickets)) for r in rewards):
+            raise ValueError("rewards must be a non-empty list of non-negative rewards")
         if on_miss not in ("reset", "keep"):
             raise ValueError(f"on_miss must be 'reset' or 'keep', got {on_miss!r}")
         if after_last not in ("restart", "hold"):
             raise ValueError(f"after_last must be 'restart' or 'hold', got {after_last!r}")
-        self.rewards = tuple(rewards)
+        self.rewards = rewards
         self.on_miss = on_miss
         self.after_last = after_last
         self.last_login_date = last_login_date

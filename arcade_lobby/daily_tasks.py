@@ -7,12 +7,14 @@ task means adding a pool entry, not a class.
 
 The manager picks DAILY_TASK_COUNT specs when the calendar date changes,
 feeds events to the tasks, and hands out each reward once. Like
-DailyRewardManager it never touches tokens: PlayerProfile.claim_task() pays.
+DailyRewardManager it never pays anything: a task's reward is a RewardBundle,
+and PlayerProfile.claim_task_reward() delivers it through RewardService.
 """
 import random
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from game_clock import parse_date
+from rewards import RewardBundle
 from settings import DAILY_TASK_COUNT, DAILY_TASK_POOL
 
 
@@ -22,14 +24,21 @@ class TaskSpec:
     description: str
     event: str
     target: int
-    reward: int
+    reward: int                     # tokens
     game_id: str | None = None      # only events from this machine count
     distinct: bool = False          # count different keys instead of events
     available: bool = True
+    reward_tickets: int = 0
+    reward_items: dict = field(default_factory=dict, hash=False)    # item id -> quantity
+    requires_item: str | None = None    # only offered while the player owns this item
 
     @classmethod
     def from_dict(cls, data):
         return cls(**data)
+
+    @property
+    def bundle(self):
+        return RewardBundle(self.reward, self.reward_tickets, self.reward_items, reason="DAILY TASK")
 
 
 class DailyTask:
@@ -54,6 +63,10 @@ class DailyTask:
     @property
     def reward_tokens(self):
         return self.spec.reward
+
+    @property
+    def reward_bundle(self):
+        return self.spec.bundle
 
     @property
     def progress(self):
@@ -86,12 +99,12 @@ class DailyTask:
         return self._progress != before
 
     def claim(self):
-        """Returns the reward tokens the first time a finished task is claimed,
-        else 0."""
+        """Returns the task's RewardBundle the first time a finished task is
+        claimed, else None. Marks it claimed; paying is the caller's job."""
         if not self.claimable:
-            return 0
+            return None
         self._claimed = True
-        return self.spec.reward
+        return self.spec.bundle
 
     def to_dict(self):
         data = {"id": self.id, "progress": self._progress,
@@ -117,19 +130,22 @@ class DailyTaskManager:
         return entry if isinstance(entry, TaskSpec) else TaskSpec.from_dict(entry)
 
     # ------------------------------------------------------------ generation
-    def ensure_current(self, today, rng=None):
+    def ensure_current(self, today, rng=None, eligible=None):
         """Roll a new set of tasks if `today` is a later date than the current
         set (or there is none). Returns True if new tasks were generated."""
         if self.date is not None and self.tasks and today <= self.date:
             return False
-        self.reset(today, rng)
+        self.reset(today, rng, eligible)
         return True
 
-    def reset(self, today, rng=None):
+    def reset(self, today, rng=None, eligible=None):
         """Replace the tasks with a fresh random set for `today`. Without an
-        rng the picks depend only on the date, so they are repeatable."""
+        rng the picks depend only on the date, so they are repeatable.
+        `eligible(spec)` can rule tasks out (e.g. one that needs an item the
+        player does not own)."""
         rng = rng or random.Random(today.toordinal())
-        offered = [s for s in self.pool.values() if s.available]
+        offered = [s for s in self.pool.values()
+                   if s.available and (eligible is None or eligible(s))]
         self.tasks = [DailyTask(s) for s in rng.sample(offered, min(self.count, len(offered)))]
         self.date = today
 
@@ -142,9 +158,10 @@ class DailyTaskManager:
         return next((t for t in self.tasks if t.id == task_id), None)
 
     def claim(self, task_id):
-        """Reward tokens for the task (0 if unknown, unfinished or claimed)."""
+        """The task's RewardBundle, or None if the task is unknown, unfinished
+        or already claimed."""
         task = self.get(task_id)
-        return task.claim() if task else 0
+        return task.claim() if task else None
 
     @property
     def claimable(self):
