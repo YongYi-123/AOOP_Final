@@ -11,6 +11,7 @@ env/
 # Runtime save data (arcade_lobby/settings.py SAVE_FILE, plus its .tmp while saving)
 arcade_lobby/save_data.json
 arcade_lobby/save_data.json.*
+arcade_lobby/saves/
 
 # Test/debug output
 .coverage

@@ -7,6 +7,10 @@ PlayerProfile's methods - nothing else writes its fields. Every change is
 announced to subscribers as a ProfileChange, which is how the HUD animates and
 how ProfileStore autosaves.
 
+A profile saved by a ProfileManager also carries its profile_id and
+display_name (profile_manager.py); the ProfileStore here is the writer for one
+profile file.
+
 The profile also owns the daily login state (DailyRewardManager) and today's
 daily tasks (DailyTaskManager), so one save file holds everything.
 """
@@ -52,7 +56,11 @@ class PlayerProfile:
                  total_games_played=0, lifetime_tickets_earned=0, lifetime_tokens_earned=0,
                  lifetime_tokens_spent=0, chance_games_played=0, cats_petted=0,
                  daily=None, daily_tasks=None, history=(), clock=None, inventory=None,
-                 home_decorations=None):
+                 home_decorations=None, profile_id=None, display_name=None):
+        # Who this profile is. The id is the save identity (never the name);
+        # both are None for a bare profile that is not managed by a ProfileManager.
+        self.profile_id = profile_id
+        self.display_name = display_name
         self._tokens = tokens
         self._tickets = tickets
         self._high_scores = dict(high_scores or {})
@@ -369,8 +377,12 @@ class PlayerProfile:
 
     # ------------------------------------------------------------ (de)serialise
     def to_dict(self):
+        identity = {}
+        if self.profile_id is not None:
+            identity = {"profile_id": self.profile_id, "display_name": self.display_name}
         return {
             "version": SAVE_VERSION,
+            **identity,
             "tokens": self._tokens,
             "tickets": self._tickets,
             "total_games_played": self._total_games_played,
@@ -424,6 +436,8 @@ class PlayerProfile:
             clock=clock,
             inventory=Inventory.from_dict(data.get("inventory")),
             home_decorations=decorations,
+            profile_id=data["profile_id"] if isinstance(data.get("profile_id"), str) else None,
+            display_name=data["display_name"] if isinstance(data.get("display_name"), str) else None,
         )
 
 

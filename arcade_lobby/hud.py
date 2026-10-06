@@ -12,6 +12,8 @@ from ui import neon_panel
 H = 30          # same height as the controls box
 PAD = 7
 ROW_Y = (6, 17)
+TAG_H = 9           # the owner header row of a two-player panel
+TAG_W = 104         # two-player panels have a fixed width, so they never jostle each other
 MIN_DIGITS = "000"  # value column is at least this wide, so it rarely resizes
 
 
@@ -64,8 +66,11 @@ class CurrencyHUD:
     FLASH = 0.45
     COLORS = {PlayerProfile.TOKEN: Col.YELLOW, PlayerProfile.TICKET: Col.MAGENTA}
 
-    def __init__(self, profile):
+    def __init__(self, profile, tag=None, accent=Col.CYAN, slot=0):
+        """tag: the owner label ('P1 YONGYI') for a two-player session, which
+        adds a header row; slot: 0 is the bottom-right corner, 1 sits left of it."""
         self.profile = profile
+        self.tag, self.accent, self.slot = tag, accent, slot
         self.token_icon = _token_icon()
         self.ticket_icon = _ticket_icon()
         self.floaters = []
@@ -119,9 +124,15 @@ class CurrencyHUD:
         label_w = max(l.get_width() for _, _, l, _ in rendered)
         value_w = max([v.get_width() for _, _, _, v in rendered] + [font.size(MIN_DIGITS)[0] + 2])
         w = PAD * 2 + icon_w + 3 + label_w + 5 + value_w
-        self.image = neon_panel(w, H, Col.CYAN, None, 235).copy()
-        self.rect = self.image.get_rect(bottomright=(VIEW_W - 4, VIEW_H - 4))
-        for (field, icon, label, value), y in zip(rendered, ROW_Y):
+        top = 0
+        if self.tag:
+            w, top = max(w, TAG_W), TAG_H
+        self.image = neon_panel(w, H + top, self.accent if self.tag else Col.CYAN, None, 235).copy()
+        self.rect = self.image.get_rect(bottomright=(VIEW_W - 4 - self.slot * (TAG_W + 4), VIEW_H - 4))
+        if self.tag:
+            header = font.render_glow(self.tag, self.accent, scale_color(self.accent, 0.4))
+            self.image.blit(header, (PAD, 4))
+        for (field, icon, label, value), y in zip(rendered, [y + top for y in ROW_Y]):
             self.image.blit(icon, (PAD + (icon_w - icon.get_width()) // 2, y))
             self.image.blit(label, (PAD + icon_w + 3, y))
             self.image.blit(value, value.get_rect(topright=(w - PAD + 1, y - 1)))

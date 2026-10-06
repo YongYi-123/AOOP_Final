@@ -15,8 +15,11 @@ from settings import BACK_KEYS, CONFIRM_KEYS, VIEW_W, Col
 class ChanceGameScene(BaseScene):
     AGAIN_DELAY = 0.7       # after a result, before E can deal the next (charged) round
 
-    def __init__(self, game, game_cls):
+    def __init__(self, game, game_cls, player=None):
+        """player: the LocalPlayer who walked up to the machine. Their profile
+        pays and wins; the other player (if any) only watches."""
         super().__init__(game)
+        self.player = player
         self.game_cls = game_cls
         self.round = game_cls()
         self.time = 0.0
@@ -25,7 +28,7 @@ class ChanceGameScene(BaseScene):
 
     @property
     def profile(self):
-        return self.game.profile
+        return self.player.profile if self.player else self.game.profile
 
     def on_exit(self):
         self.round.finish()      # leaving mid-round settles it, once
@@ -36,6 +39,8 @@ class ChanceGameScene(BaseScene):
     def handle_event(self, event):
         if event.type != pygame.KEYDOWN:
             return
+        if self.player and not self.game.session.allows(self.player, event.key):
+            return                      # the other player's keys do nothing here
         if event.key in BACK_KEYS:
             self.game.scenes.pop()
         elif event.key in CONFIRM_KEYS and self.round.phase == self.round.IDLE:
@@ -59,7 +64,8 @@ class ChanceGameScene(BaseScene):
 
     def _draw_balance(self, surf):
         font = get_font()
-        text = font.render_glow(f"TOKENS {self.profile.tokens:02d}", Col.YELLOW,
+        who = f"{self.player.tag}  " if self.player and self.player.label else ""
+        text = font.render_glow(f"{who}TOKENS {self.profile.tokens:02d}", Col.YELLOW,
                                 (90, 70, 20))
         rect = text.get_rect(topright=(VIEW_W - 8, 12))
         surf.blit(text, rect)

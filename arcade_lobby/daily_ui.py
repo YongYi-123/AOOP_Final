@@ -31,9 +31,10 @@ class DailyBonusPopup:
     W, H = 172, 124
     CLAIM_TIME = 0.55
 
-    def __init__(self, day, reward_lines, on_claim):
-        """reward_lines: RewardBundle.lines(); the first is the headline."""
-        self.day, self.on_claim = day, on_claim
+    def __init__(self, day, reward_lines, on_claim, owner=None):
+        """reward_lines: RewardBundle.lines(); the first is the headline.
+        owner: whose bonus it is, shown beside the day in a two-player session."""
+        self.day, self.on_claim, self.owner = day, on_claim, owner
         reward_lines = list(reward_lines) or ["+0 TOKENS"]
         self.reward_lines = reward_lines
         self.claimed = False
@@ -46,7 +47,7 @@ class DailyBonusPopup:
         cx = self.W // 2
         for text, y, color, scale, glow in (
                 ("DAILY BONUS!", 8, shade(Col.YELLOW, 0.5), 2, scale_color(Col.MAGENTA, 0.8)),
-                (f"DAY {day}", 30, Col.CYAN, 1, scale_color(Col.CYAN, 0.4))):
+                (f"{owner} - DAY {day}" if owner else f"DAY {day}", 30, Col.CYAN, 1, scale_color(Col.CYAN, 0.4))):
             img = font.render_glow(text, color, glow, scale)
             self.image.blit(img, img.get_rect(midtop=(cx, y)))
         self.image.fill(scale_color(Col.YELLOW, 0.5), (12, 26, self.W - 24, 1))
@@ -120,8 +121,9 @@ class TaskPanel:
     W = 270
     ROW_H = 36
 
-    def __init__(self, profile):
+    def __init__(self, profile, owner=None, accent=Col.CYAN):
         self.profile = profile
+        self.owner, self.accent = owner, accent
         self.selected = 0
         self.closed = False
         self.anim = 0.0
@@ -157,15 +159,19 @@ class TaskPanel:
     def _rebuild(self):
         font = get_font()
         tasks = self.tasks
-        h = 56 + max(1, len(tasks)) * self.ROW_H + 8
+        top = 9 if self.owner else 0        # room for the owner line under the title
+        h = 56 + max(1, len(tasks)) * self.ROW_H + 8 + top
         img = neon_panel(self.W, h, Col.CYAN, Col.PURPLE).copy()
         title = font.render_glow("DAILY CHALLENGES", shade(Col.CYAN, 0.55), scale_color(Col.MAGENTA, 0.8), 2)
         img.blit(title, title.get_rect(midtop=(self.W // 2, 8)))
         img.fill(scale_color(Col.CYAN, 0.6), (12, 27, self.W - 24, 1))
+        if self.owner:
+            draw_text(img, self.owner, (self.W // 2, 30), self.accent, anchor="midtop",
+                      glow=scale_color(self.accent, 0.4))
         for i, task in enumerate(tasks):
-            self._draw_task(img, font, task, 34 + i * self.ROW_H, i == self.selected)
+            self._draw_task(img, font, task, 34 + top + i * self.ROW_H, i == self.selected)
         if not tasks:
-            draw_text(img, "NO CHALLENGES TODAY", (self.W // 2, 40), Col.TEXT_MUTED, anchor="midtop")
+            draw_text(img, "NO CHALLENGES TODAY", (self.W // 2, 40 + top), Col.TEXT_MUTED, anchor="midtop")
         draw_text(img, "UP/DOWN SELECT  E CLAIM  ESC BACK", (self.W // 2, h - 13),
                   scale_color(Col.TEXT_MUTED, 0.75), anchor="midtop")
         self.image = img

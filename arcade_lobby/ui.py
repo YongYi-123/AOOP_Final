@@ -72,8 +72,9 @@ class PromptBubble:
     change per target ('PLAY', 'PET', ...); each label is rendered once."""
     FADE_SPEED = 6.0
 
-    def __init__(self, label="PLAY"):
+    def __init__(self, label="PLAY", key="E"):
         self._frames = {}
+        self.key = key              # what the bracketed key says: [E], [ENTER]
         self.label = label
         self.alpha = 0.0
         self.anchor = None
@@ -89,7 +90,7 @@ class PromptBubble:
 
     def _build(self, border, key_color, text):
         font = get_font()
-        key = font.render_glow("[E]", key_color, scale_color(key_color, 0.35))
+        key = font.render_glow(f"[{self.key}]", key_color, scale_color(key_color, 0.35))
         label = font.render_glow(text, Col.TEXT, scale_color(Col.MAGENTA, 0.6))
         w = key.get_width() + label.get_width() + 12
         h = 15

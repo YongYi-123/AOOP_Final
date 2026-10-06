@@ -151,6 +151,7 @@ class PrizePlazaScene(BaseRoomScene):
     # ------------------------------------------------------------ prize counter
     def open_prize_counter(self):
         """Placeholder until the shop exists: say so, and show the tickets."""
+        player = self._actor()
         self.notice.show("PRIZE COUNTER", [
             ("PRIZES COMING SOON", Col.YELLOW),
-            (f"YOUR TICKETS: {self.profile.tickets}", Col.MAGENTA)], Col.YELLOW)
+            (f"YOUR TICKETS: {player.profile.tickets}", Col.MAGENTA)], Col.YELLOW)

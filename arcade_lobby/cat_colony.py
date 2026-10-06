@@ -27,12 +27,13 @@ class CatColony:
         self.cats = [CatNPC(CatProfile.from_data(data), room.cat_spots[data["id"]],
                             random.Random(self.rng.random()))
                      for data in roster]
-        self.player = None
+        self.players = []        # everyone in the room (one or two)
+        self.player = None       # the player this cat is dealing with right now (set per cat)
         self.follower = None
         self.paused = False
         self.ambient_cooldown = self.AMBIENT_GAP
         self.push_time = 0.0
-        self._last_player_pos = None
+        self._last_pos = {}      # player -> where it was last frame
 
     def __iter__(self):
         return iter(self.cats)
@@ -54,7 +55,7 @@ class CatColony:
 
     def cat_solids(self):
         """What a walking cat collides with: furniture and the player."""
-        return self.room_solids + [self.player.feet]
+        return self.room_solids + [p.feet for p in self.players]
 
     def request_follow(self, cat):
         """Only one cat follows the player at a time."""
@@ -93,17 +94,24 @@ class CatColony:
                 best, best_d = cat, d
         return best
 
-    def interact(self, cat):
-        """Pet a cat (E). Returns True only if it actually reacted."""
+    def interact(self, cat, player=None):
+        """Pet a cat (E) for `player`. Returns True only if it actually
+        reacted: a cat still reacting to someone refuses a second pet, so
+        two simultaneous presses count once."""
         if self.paused or cat is None:
             return False
+        if player is not None:
+            self.player = player
         if self.follower is cat:
             self.follower = None
         return cat.pet(self)
 
     # ------------------------------------------------------ per frame
-    def update(self, dt, player, busy=False):
-        self.player = player
+    def update(self, dt, players, busy=False):
+        """`players`: a player or a list of them. Each cat reacts to the
+        player nearest to it."""
+        self.players = list(players) if isinstance(players, (list, tuple)) else [players]
+        self.player = self.players[0]
         if self.paused:
             return
         self.ambient_cooldown -= dt
@@ -111,24 +119,28 @@ class CatColony:
             self.stop_following()
         if self.follower is not None and self.follower.state != CatState.FOLLOW:
             self.follower = None
-        self._check_push(dt, player)
+        self._check_push(dt)
         for cat in self.cats:
+            self.player = min(self.players, key=cat.distance_to)
             cat.update(dt, self)
 
-    def _check_push(self, dt, player):
-        """If the player keeps walking into a cat without getting anywhere,
-        the cat steps aside so it can never trap them (e.g. in a doorway)."""
-        pos = (player.x, player.y)
-        stuck = (player.moving and self._last_player_pos is not None
-                 and math.dist(pos, self._last_player_pos) < 0.2)
-        self._last_player_pos = pos
-        touching = None
-        if stuck:
-            reach = player.feet.inflate(4, 4)
-            touching = next((c for c in self.cats if c.feet.colliderect(reach)), None)
+    def _check_push(self, dt):
+        """If a player keeps walking into a cat without getting anywhere, the
+        cat steps aside so it can never trap them (e.g. in a doorway)."""
+        pusher = touching = None
+        for player in self.players:
+            pos = (player.x, player.y)
+            last = self._last_pos.get(player)
+            self._last_pos[player] = pos
+            if player.moving and last is not None and math.dist(pos, last) < 0.2:
+                reach = player.feet.inflate(4, 4)
+                touching = next((c for c in self.cats if c.feet.colliderect(reach)), None)
+                if touching:
+                    pusher = player
+                    break
         self.push_time = self.push_time + dt if touching else 0.0
         if touching and self.push_time >= self.PUSH_TIME:
-            touching.make_way(self, player)
+            touching.make_way(self, pusher)
             self.push_time = 0.0
 
     def pause(self):
@@ -141,7 +153,7 @@ class CatColony:
     def resume(self):
         self.paused = False
         self.push_time = 0.0
-        self._last_player_pos = None
+        self._last_pos = {}
 
     # ------------------------------------------------------ draw
     def drawables(self):

@@ -102,10 +102,11 @@ class HomeRoomScene(BaseRoomScene):
     )
 
     def __init__(self, game, hub):
-        self._declined_day = None   # the day the player pressed ESC on the bonus
+        self._declined = {}         # player -> the day they pressed ESC on their bonus
         super().__init__(game, hub)
-        self.profile.record_login()
-        self._ready_tasks = len(self.profile.claimable_tasks)
+        for profile in self.session.profiles:       # each profile's own login, separately
+            profile.record_login()
+        self._ready = {id(p): len(p.profile.claimable_tasks) for p in self.players}
 
     # ------------------------------------------------------------ building
     def build_props(self):
@@ -175,17 +176,26 @@ class HomeRoomScene(BaseRoomScene):
         self._offer_daily_bonus()
 
     def _offer_daily_bonus(self):
-        """Show the DAILY BONUS popup if today's reward is unclaimed. Not
-        again today once the player has put it off with ESC. The profile
-        refuses a second claim, so re-offering can never pay twice."""
-        today = self.profile.clock.today()
-        status = self.profile.daily_status(today)
-        if self.popup is None and status.can_claim and self._declined_day != today:
-            self.popup = DailyBonusPopup(status.day, status.bundle.lines(), self._claim_daily_bonus)
-
-    def _claim_daily_bonus(self):
-        self.profile.claim_daily_reward()
+        """Show the DAILY BONUS popup of the first player whose reward is
+        unclaimed (the next player's follows once it closes). Not again today
+        once a player has put theirs off with ESC. A profile refuses a second
+        claim, so re-offering can never pay twice - and a bonus is only ever
+        claimed into the profile it was offered to."""
+        if self.popup is not None:
+            return
+        for player in self.players:
+            profile = player.profile
+            today = profile.clock.today()
+            status = profile.daily_status(today)
+            if status.can_claim and self._declined.get(player) != today:
+                self.popup = DailyBonusPopup(status.day, status.bundle.lines(),
+                                             profile.claim_daily_reward, owner=self._owner_tag(player))
+                self.popup.player = player
+                self._own_modal(player)
+                return
 
     def on_popup_closed(self, popup):
+        player = getattr(popup, "player", self.player)
         if popup.dismissed:
-            self._declined_day = self.profile.clock.today()
+            self._declined[player] = player.profile.clock.today()
+        self._offer_daily_bonus()

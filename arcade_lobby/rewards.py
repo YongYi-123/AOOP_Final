@@ -65,6 +65,21 @@ class PlaySession:
             self.profile.add_tickets(result.tickets_earned)
         return result
 
+    def settle_result(self, player_result):
+        """Settle with one player's PlayerResult (their score and their own
+        RewardBundle, delivered by RewardService). Like settle(), pays once."""
+        if self._settled:
+            return None
+        self._settled = True
+        with self.profile.batch():
+            self.profile.record_game_played(self.game_id)
+            if self.coupon:
+                self.profile.record_coupon_used()
+            if player_result.score is not None:
+                self.profile.record_score(self.game_id, player_result.score)
+            RewardService.grant(self.profile, player_result.reward)
+        return player_result
+
     def refund(self):
         """The game never ran (failed to start, or the app closed before it
         opened): give back the tokens, or the coupon. Returns False if already

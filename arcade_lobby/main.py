@@ -1,5 +1,6 @@
 """Neon Corner Arcade - a small top-down arcade hub of three connected rooms
-(ARCADE FLOOR <-> HOME <-> PRIZE PLAZA).
+(ARCADE FLOOR <-> HOME <-> PRIZE PLAZA) for one or two local players, each with
+their own saved profile.
 
 Run with:  python main.py [--style neon_lofi|lofi|neon] [--debug]
 """
@@ -7,7 +8,8 @@ import argparse
 
 from arcade_style import DEFAULT_STYLE, STYLE_NAMES
 from game import Game
-from settings import DEBUG
+from profile_manager import ProfileManager
+from settings import DEBUG, SAVE_FILE, SAVES_DIR
 
 
 def build_parser():
@@ -21,4 +23,6 @@ def build_parser():
 
 if __name__ == "__main__":
     args = build_parser().parse_args()
-    Game(style=args.style, debug=args.debug).run()
+    # The old single save (save_data.json) is carried into the profile system once.
+    profiles = ProfileManager(SAVES_DIR, legacy_path=SAVE_FILE)
+    Game(style=args.style, debug=args.debug, profiles=profiles).run()

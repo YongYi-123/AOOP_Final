@@ -13,7 +13,7 @@ import pygame
 
 from font import LINE_H, get_font
 from gfx import lerp_color, scale_color, shade
-from minigame import MinigameScene
+from minigame import MiniGameDefinition, MinigameScene
 from retro_racer_scene import RetroRacerScene
 from settings import BACK_KEYS, Col, VIEW_H, VIEW_W
 from ui import draw_text, neon_panel, wrap_text
@@ -108,6 +108,24 @@ class MinigamePlaceholderScene(MinigameScene):
 MINIGAME_SCENES = {"retro_racer": RetroRacerScene}
 
 
-def create_minigame_scene(game, machine):
+# How many local players each minigame supports (anything not listed: 1). The
+# Retro Racer scene embeds a single-player game, so it declares 1 until it
+# really has a two-player mode; the placeholder screens only stand in.
+MINIGAME_DEFINITIONS = {d.game_id: d for d in (
+    MiniGameDefinition("retro_racer", 1, 1),
+    MiniGameDefinition("space_blaster", 1, 2),
+    MiniGameDefinition("puzzle_drop", 1, 1),
+)}
+
+
+def minigame_definition(game_id):
+    return MINIGAME_DEFINITIONS.get(game_id) or MiniGameDefinition(game_id)
+
+
+def create_minigame_scene(game, machine, participants=None):
+    """Build the scene for `machine`. `participants` are the PlayerProfiles
+    playing (default: the primary player's)."""
     scene_cls = MINIGAME_SCENES.get(machine.game_id, MinigamePlaceholderScene)
-    return scene_cls(game, machine)
+    scene = scene_cls(game, machine)
+    scene.participants = list(participants) if participants else [game.profile]
+    return scene

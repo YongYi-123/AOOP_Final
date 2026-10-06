@@ -29,8 +29,11 @@ DETAIL = pygame.Rect(GRID_X + COLS * (SLOT + GAP) + 8, GRID_Y - 2, W - 12 - (GRI
 
 
 class InventoryUI:
-    def __init__(self, inventory):
+    def __init__(self, inventory, owner=None, accent=Col.CYAN):
+        """owner: whose bag this is ('P1 YONGYI'), shown in the header; None
+        in a one-player session."""
         self.inventory = inventory
+        self.owner, self.accent = owner, accent
         self.tab = 0
         self.selected = 0           # slot index within the current tab
         self.inspecting = False
@@ -105,6 +108,9 @@ class InventoryUI:
         title = font.render_glow("INVENTORY", shade(Col.CYAN, 0.55), scale_color(Col.MAGENTA, 0.8), 2)
         img.blit(title, title.get_rect(midtop=(W // 2, 7)))
         img.fill(scale_color(Col.CYAN, 0.6), (12, 25, W - 24, 1))
+        if self.owner:
+            draw_text(img, self.owner, (W - 12, 10), self.accent, anchor="topright",
+                      glow=scale_color(self.accent, 0.4))
         self._draw_tabs(img, font)
         self._draw_grid(img, font)
         self._draw_detail(img, font)

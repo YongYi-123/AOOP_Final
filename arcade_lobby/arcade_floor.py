@@ -50,8 +50,10 @@ class HighScorePlates:
     PLATE = (34, 10)
 
     def __init__(self, machines, profile):
+        """profile: a PlayerProfile, or a list of them (two players: the plate
+        shows the best of both)."""
         self.machines = machines
-        self.profile = profile
+        self.profiles = list(profile) if isinstance(profile, (list, tuple)) else [profile]
         self._cache = {}
 
     def _plate(self, machine, score):
@@ -72,7 +74,7 @@ class HighScorePlates:
 
     def draw(self, surf):
         for m in self.machines:
-            plate = self._plate(m, self.profile.high_score(m.game_id))
+            plate = self._plate(m, max(p.high_score(m.game_id) for p in self.profiles))
             surf.blit(plate, (m.rect.centerx - plate.get_width() // 2, m.rect.y - 14))
 
 
@@ -83,6 +85,7 @@ class ArcadeFloorScene(BaseRoomScene):
     cat_spots = {
         "pixel": ((120, 124), (250, 124), (324, 196), (330, 244)),   # curious: patrols the corridor
     }
+    action_hint = "PLAY"
     hint_rows = (
         [("MOVE: WASD", Col.TEXT)],
         [("E :", Col.TEXT), ("PLAY", Col.YELLOW)],
@@ -92,7 +95,7 @@ class ArcadeFloorScene(BaseRoomScene):
     def __init__(self, game, hub):
         self.layout = ArcadeLayout.from_settings()
         super().__init__(game, hub)
-        self.plates = HighScorePlates(self.machines, self.profile)
+        self.plates = HighScorePlates(self.machines, self.session.profiles)
 
     # ------------------------------------------------------------ building
     def build_machines(self):
