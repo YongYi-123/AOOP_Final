@@ -17,6 +17,7 @@ GameEvent / LocalSession.dispatch give every personal event an owner, so
 from dataclasses import dataclass
 
 from controls import schemes_for
+from input_router import InputRouter
 from player import LOOKS, HubPlayer
 from settings import MAX_LOCAL_PLAYERS, PLAYER_START
 
@@ -84,6 +85,7 @@ class LocalSession:
         schemes, looks = schemes_for(count), LOOKS[count]
         self.players = [LocalPlayer(i, p, schemes[i], looks[i], f"P{i + 1}" if count > 1 else "")
                         for i, p in enumerate(profiles)]
+        self.input = InputRouter(self)
 
     @property
     def player_count(self):

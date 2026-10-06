@@ -168,6 +168,7 @@ class HubPlayer(AnimatedSprite):
         self.look = look
         self.label = label              # "P1" / "P2"; empty in a one-player session
         self.tag_left = 0.0
+        self.tag_note = ""              # e.g. "GUEST" while visiting P1's home
         # per-player interaction state, used by the room the player stands in
         self.held = []                  # movement keys currently held, in press order
         self.nearby = None              # machine / station in reach
@@ -248,7 +249,7 @@ class HubPlayer(AnimatedSprite):
         if self.tag_left <= 0 or not self.label:
             return
         font = get_font()
-        text = font.render_glow(self.label, Col.TEXT, self.look.accent)
+        text = font.render_glow(f"{self.label} {self.tag_note}".strip(), Col.TEXT, self.look.accent)
         k = min(1.0, self.tag_left / 0.5)
         text.set_alpha(int(255 * k))
         top = int(self.y) - self.image.get_height() - 3

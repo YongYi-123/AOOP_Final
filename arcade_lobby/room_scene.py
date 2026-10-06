@@ -16,6 +16,17 @@ bag; the room holds a single modal (dialogue / panel / bag / popup) at a time,
 owned by the player who opened it, and only that player's keys drive it. A room
 change needs everybody at the same exit.
 
+World state vs player-specific state (what a room may show):
+
+  GLOBAL WORLD STATE - neutral, never one profile's data
+    daily board sprite (generic terminal), machine score plates (best of the
+    players present, with the owner's name), HOME's decorations (P1 owns HOME,
+    P2 is the guest - intentional), cats, props.
+  PLAYER-SPECIFIC INTERACTION STATE - always the profile of whoever acted
+    wallet HUDs, bags, daily panel, machine dialogue / coupon / join prompts,
+    prize counter text, Lucky Corner rounds, daily bonus popups, rewards.
+    These take the acting HubPlayer (`_actor`), never `players[0]`.
+
 Paying for a game: choosing PLAY charges the machine's play_cost through
 machine.start_play(), which returns a PlaySession. When the minigame is popped
 the room settles that session with the minigame's reward - once. (To plug in a
@@ -43,7 +54,8 @@ from settings import (ARRIVAL_GRACE, CATS, Col, DEBUG_COUPON_KEY, DEBUG_NEXT_DAY
                       PLAYER_START, ROOM_IDS, SIDE_DOOR_H, SIDE_DOOR_Y, START_ROOM,
                       TRANSITION_TIME, VIEW_W)
 from stations import Station
-from ui import (DialogueBox, InstructionBox, Notice, RoomTitle, draw_text, neon_panel)
+from ui import (DialogueBox, InstructionBox, JoinPrompt, Notice, RoomTitle, draw_text,
+                neon_panel)
 
 PLAY, PLAY_LOCKED, CANCEL = "PLAY", "PLAY  [LOCKED]", "CANCEL"
 ONE_PLAYER, TWO_PLAYERS, TWO_PLAYERS_LOCKED = "1 PLAYER", "2 PLAYERS", "2 PLAYERS  [P2 NEEDS TOKENS]"
@@ -129,7 +141,8 @@ class BaseRoomScene(BaseScene):
         self._labels = {}
         self.instructions = InstructionBox(self.build_hint_rows())
         self.notice = Notice()
-        self.title = RoomTitle(self.theme.name, self.theme.title, self.theme.title_glow)
+        self.title = RoomTitle(self.theme.name, self.theme.title, self.theme.title_glow,
+                               subtitle=self.title_subtitle())
         self.active_play = None  # (PlaySession, minigame scene) while a paid game runs
         self.active_plays = []   # [(HubPlayer, PlaySession)]: one per participant of that game
         self.interaction = None  # the MachineInteraction last started (who initiated it)
@@ -165,6 +178,14 @@ class BaseRoomScene(BaseScene):
 
     action_hint = "INTERACT"        # what the use key does in this room
 
+    def title_subtitle(self):
+        """Hook: a quiet line under the room name (HOME names its owner)."""
+        return None
+
+    def guest_note(self, player):
+        """Hook: a word shown after a player's P1 / P2 tag in this room."""
+        return ""
+
     def build_hint_rows(self):
         """The controls box: the room's own rows for one player, a compact
         P1 / P2 key list for two."""
@@ -173,8 +194,8 @@ class BaseRoomScene(BaseScene):
         rows = []
         for p in self.session:
             c = p.controls
-            rows.append([(f"{p.label}:", p.avatar.look.accent),
-                         (f"{c.move_hint} {c.interact_hint} {c.inventory_hint}", Col.TEXT)])
+            rows.append([(p.label, p.avatar.look.accent),
+                         (f"{c.move_hint} / {c.interact_hint} / {c.inventory_hint}", Col.TEXT)])
         rows.append([("USE KEY:", Col.TEXT), (self.action_hint, Col.YELLOW)])
         return rows
 
@@ -245,6 +266,7 @@ class BaseRoomScene(BaseScene):
             p.x, p.y = float(pos[0] + dx), float(pos[1] + dy)
             p.facing = facing
             p.stop()
+            p.tag_note = self.guest_note(p)
             p.show_tag()
         self.leaving = False
         self.arrival_grace = ARRIVAL_GRACE
@@ -333,12 +355,17 @@ class BaseRoomScene(BaseScene):
             pr = (results.for_profile(profile.profile_id) if profile.profile_id is not None
                   else next(iter(results.player_results[index:index + 1]), None))
             paid = sess.settle_result(pr) if pr is not None else sess.settle(None)
-            if paid is not None:
-                tickets = paid.reward.tickets
-                lines.append((f"{player.label} +{tickets} TICKETS" if player.label
-                              else f"+{tickets} TICKETS", Col.YELLOW))
+            if paid is None:
+                continue
+            tickets = paid.reward.tickets
+            if not player.label:                    # one-player session: as it always was
+                lines.append((f"+{tickets} TICKETS", Col.YELLOW))
+                continue
+            score = f"SCORE {paid.score}  " if paid.score is not None else ""
+            lines.append((self.session.player_for_avatar(player).tag, player.look.accent))
+            lines.append((f"{score}+{tickets} TICKETS", Col.YELLOW))
         if lines:
-            self.notice.show("GAME COMPLETE", lines, Col.GREEN)
+            self.notice.show("GAME COMPLETE", lines, Col.GREEN, duration=3.6 if len(lines) > 1 else None)
 
     # ------------------------------------------------------------ daily clock
     def _check_new_day(self):
@@ -374,7 +401,9 @@ class BaseRoomScene(BaseScene):
         if modal:
             if event.type == pygame.KEYDOWN:
                 owner = self.session.player_for_avatar(self.modal_owner)
-                if self.session.allows(owner, event.key):
+                joiners = getattr(modal, "extra_players", ())     # e.g. P2 on the join prompt
+                if (self.session.allows(owner, event.key)
+                        or any(p.controls.owns(event.key) for p in joiners)):
                     modal.handle_event(event)
                 else:
                     self._key_during_modal(event.key)
@@ -385,25 +414,25 @@ class BaseRoomScene(BaseScene):
             return
         if self.game.debug and self._debug_key(event.key):
             return
-        local = self.session.player_for_key(event.key)
+        local, action = self.session.input.route(event)
         if local is None:
             return
-        player, key, controls = local.avatar, event.key, local.controls
+        player, key = local.avatar, event.key
         if player.activating:
             return
-        if key in controls.inventory:
+        if action == "menu":
             self.inventory_ui = InventoryUI(local.profile.inventory, self._owner_tag(player),
                                             player.look.accent)
             self._own_modal(player)
             player.held.clear()
-        elif key in controls.move and key not in player.held:
+        elif action in ("up", "down", "left", "right") and key not in player.held:
             player.held.append(key)
-        elif key in controls.interact and player.nearby:
+        elif action == "interact" and player.nearby:
             if isinstance(player.nearby, ArcadeMachine):
                 self._emit("machine_visited", player, key=player.nearby.id)
             player.nearby.activate()
             player.activating = (player.nearby, INTERACT_FLASH)
-        elif key in controls.interact and player.nearby_cat:
+        elif action == "interact" and player.nearby_cat:
             if self.cats.interact(player.nearby_cat, player):
                 self._emit("cat_petted", player)
 
@@ -456,6 +485,11 @@ class BaseRoomScene(BaseScene):
             details.append((f"FREE PLAY COUPONS: {coupons}", Col.GREEN))
         if self.two_player:
             details.insert(0, (local.tag, player.look.accent))
+            if minigame_definition(machine.game_id).multiplayer:
+                details.insert(1, ("1-2 PLAYERS", Col.TEXT_MUTED))
+            else:
+                other = self._other_players(player)[0]
+                details.insert(1, (f"1 PLAYER ONLY - {other.label} SPECTATES", Col.TEXT_MUTED))
         self.dialogue = DialogueBox(
             machine.name, machine.description, [PLAY if affordable else PLAY_LOCKED, CANCEL],
             on_choice=lambda choice: self._on_choice(machine, choice, player),
@@ -526,11 +560,27 @@ class BaseRoomScene(BaseScene):
         if choice == ONE_PLAYER:
             self._start_game(machine, use_coupon, player)
         elif choice == TWO_PLAYERS:
-            self._start_game(machine, use_coupon, player, participants=self.players)
+            self._ask_join(machine, player, use_coupon)
         elif choice == TWO_PLAYERS_LOCKED:
             other = self._other_players(player)[0]
             self.notice.show("NOT ENOUGH TOKENS", [(f"{other.label} NEEDS {machine.play_cost}", Col.YELLOW),
                                                    ("NOTHING WAS CHARGED", Col.TEXT_MUTED)], Col.MAGENTA)
+
+    def _ask_join(self, machine, player, use_coupon):
+        """P1 READY / P2 PRESS [KEY] TO JOIN. Nobody is charged until the
+        second player has joined."""
+        starter = self.session.player_for_avatar(player)
+        other = self.session.player_for_avatar(self._other_players(player)[0])
+        self.dialogue = JoinPrompt(
+            machine.name.upper(), starter, other,
+            on_result=lambda joined: self._on_join(machine, player, use_coupon, joined),
+            accent=machine.accent, glow=machine.neon)
+        self._own_modal(player)
+
+    def _on_join(self, machine, player, use_coupon, joined):
+        self.dialogue = None
+        if joined:
+            self._start_game(machine, use_coupon, player, participants=self.players)
 
     def _open_target(self, target, player=None):
         """The E-flash finished: open whatever `player` used. If somebody
@@ -585,7 +635,11 @@ class BaseRoomScene(BaseScene):
                     ("NOTHING WAS CHARGED", Col.TEXT_MUTED)], Col.MAGENTA)
                 return
         scene = create_minigame_scene(self.game, machine)   # built before charging
-        scene.participants = [p.profile for p in group]
+        locals_ = [self.session.player_for_avatar(p) for p in group]
+        if hasattr(scene, "attach_players"):
+            scene.attach_players(locals_, [lp for lp in self.session if lp not in locals_])
+        else:
+            scene.participants = [p.profile for p in group]
         session = machine.start_play(profile, use_coupon)
         if session is None:
             return

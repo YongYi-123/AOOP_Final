@@ -45,37 +45,44 @@ class ArcadeBackdropArt(HubBackdrop):
 
 
 class HighScorePlates:
-    """A small LED plate above each machine showing its best score. Plates are
-    re-rendered only when a score changes."""
-    PLATE = (34, 10)
+    """A small LED plate above each machine: best score of the players here (LOCAL BEST),
+    with whose score it is (name over score). Re-rendered only when it changes.
+    With nobody having scored, it shows dashes and no name."""
+    W, H = 52, 18
 
     def __init__(self, machines, profile):
-        """profile: a PlayerProfile, or a list of them (two players: the plate
-        shows the best of both)."""
+        """profile: a PlayerProfile, or a list of them (two players)."""
         self.machines = machines
         self.profiles = list(profile) if isinstance(profile, (list, tuple)) else [profile]
         self._cache = {}
 
-    def _plate(self, machine, score):
-        key = (machine.game_id, score)
+    def best(self, game_id):
+        """(score, owner display name) of the best score among the profiles present."""
+        top = max(self.profiles, key=lambda p: p.high_score(game_id))
+        score = top.high_score(game_id)
+        return score, (top.display_name or "PLAYER").upper() if score else ""
+
+    def _plate(self, machine, score, owner):
+        key = (machine.game_id, score, owner)
         plate = self._cache.get(key)
         if plate is None:
-            w, h = self.PLATE
-            plate = pygame.Surface(self.PLATE)
+            plate = pygame.Surface((self.W, self.H))
             plate.fill((8, 4, 18))
             pygame.draw.rect(plate, scale_color(machine.neon, 0.8), plate.get_rect(), 1)
-            text = f"{score:05d}" if score else "-----"
             font = get_font()
-            plate.blit(font.render(text, shade(machine.accent, 0.2) if score else
-                                   scale_color(machine.accent, 0.45)),
-                       ((w - font.size(text)[0]) // 2 + 1, 2))
+            name = font.render(owner[:8] if owner else "LOCAL", scale_color(machine.accent, 0.7))
+            text = f"{score:05d}" if score else "-----"
+            digits = font.render(text, shade(machine.accent, 0.2) if score else
+                                 scale_color(machine.accent, 0.45))
+            plate.blit(name, ((self.W - name.get_width()) // 2, 2))
+            plate.blit(digits, ((self.W - digits.get_width()) // 2, 10))
             self._cache[key] = plate
         return plate
 
     def draw(self, surf):
         for m in self.machines:
-            plate = self._plate(m, max(p.high_score(m.game_id) for p in self.profiles))
-            surf.blit(plate, (m.rect.centerx - plate.get_width() // 2, m.rect.y - 14))
+            plate = self._plate(m, *self.best(m.game_id))
+            surf.blit(plate, (m.rect.centerx - plate.get_width() // 2, m.rect.y - self.H - 4))
 
 
 class ArcadeFloorScene(BaseRoomScene):

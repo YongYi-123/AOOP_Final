@@ -5,7 +5,8 @@ import math
 
 import pygame
 
-from settings import Col, TRANSITION_TIME, VIEW_H
+from font import get_font
+from settings import Col, TRANSITION_TIME, VIEW_H, VIEW_W
 
 
 class BaseScene:
@@ -16,6 +17,7 @@ class BaseScene:
 
     def __init__(self, game):
         self.game = game
+        self.spectators = []    # LocalPlayers watching this scene without playing it
 
     def on_enter(self):
         """Called when the scene is pushed onto the stack."""
@@ -37,6 +39,15 @@ class BaseScene:
 
     def draw(self, surf):
         pass
+
+    def draw_overlay(self, surf, px=1):
+        """Drawn over the scene by the SceneManager (px: pixels per canvas
+        pixel): the quiet 'P2 ALICE - SPECTATING' tag when somebody watches."""
+        if not self.spectators:
+            return
+        text = "  ".join(f"{p.tag} - SPECTATING" for p in self.spectators)
+        img = get_font().render_glow(text, Col.TEXT_MUTED, (40, 30, 70), scale=px)
+        surf.blit(img, img.get_rect(bottomright=(surf.get_width() - 4 * px, surf.get_height() - 3 * px)))
 
 
 class SceneManager:
@@ -127,9 +138,11 @@ class SceneManager:
         scene = self.current
         if scene and scene.full_resolution:
             scene.draw(screen)
+            scene.draw_overlay(screen, max(1, screen.get_height() // VIEW_H))
         else:
             if scene:
                 scene.draw(canvas)
+                scene.draw_overlay(canvas)
             pygame.transform.scale(canvas, screen.get_size(), screen)
         if self.fade > 0:
             self._draw_wipe(screen)

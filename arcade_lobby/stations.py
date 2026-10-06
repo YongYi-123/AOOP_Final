@@ -77,14 +77,15 @@ def _board_sprite():
 
 
 class DailyBoard(Station):
-    """The notice-board terminal: shows each task as a tick box and flags a
-    finished-but-unclaimed task with a blinking '!'."""
+    """The notice-board terminal. It is world furniture shared by everyone in
+    the room, so it shows nothing about any one profile: a generic checklist
+    that ticks itself in a loop. Whoever uses it sees their own progress in
+    the panel that opens (scene.open_task_panel)."""
     prompt_label = "DAILY CHALLENGES"
 
-    def __init__(self, pos, profile):
+    def __init__(self, pos, profile=None):      # `profile` is accepted for old callers and ignored
         x, y = pos
         super().__init__(_board_sprite(), pos, (x + 1, y + 32, 28, 8), Col.CYAN, Col.YELLOW, 0.3)
-        self.profile = profile
 
     def interact(self, scene):
         scene.open_task_panel()
@@ -92,14 +93,12 @@ class DailyBoard(Station):
     def draw(self, surf):
         super().draw(surf)
         x, y = self.rect.topleft
-        for i, task in enumerate(self.profile.daily_tasks[:3]):
+        step = int(self.time * 1.2) % 4                # 0..3: how many rows are ticked right now
+        for i in range(3):
             row = y + 12 + i * 6
-            box = Col.GREEN if task.completed else Col.TEXT_MUTED
-            surf.fill(box, (x + 6, row, 3, 3))
-            surf.fill(Col.GREEN if task.claimed else scale_color(Col.CYAN, 0.7), (x + 12, row + 1, 13, 1))
-        if any(t.claimable for t in self.profile.daily_tasks) and int(self.time * 3) % 2 == 0:
-            surf.blit(get_font().render_glow("!", Col.YELLOW, scale_color(Col.YELLOW, 0.4)),
-                      (x + self.rect.w // 2 - 3, y - 11 + int(math.sin(self.time * 6) * 1.5)))
+            ticked = i < step
+            surf.fill(Col.GREEN if ticked else Col.TEXT_MUTED, (x + 6, row, 3, 3))
+            surf.fill(scale_color(Col.CYAN, 0.7), (x + 12, row + 1, 13, 1))
 
 
 # ---------------------------------------------------------------- lucky corner

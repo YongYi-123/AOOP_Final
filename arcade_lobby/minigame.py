@@ -59,6 +59,28 @@ class MinigameScene(BaseScene):
         super().__init__(game)
         self.machine = machine
         self.participants = []      # the PlayerProfiles playing; set by the room before it starts
+        self.players = []           # the LocalPlayers playing (the rest are spectators)
+        self._inputs = {}
+
+    def attach_players(self, players, spectators=()):
+        """Say who plays and who only watches. Only the players' keys reach the game."""
+        self.players = list(players)
+        self.spectators = list(spectators)
+        self.participants = [p.profile for p in self.players]
+        self._inputs = {p: self.game.session.input.input_for(p) for p in self.players}
+
+    def input_for(self, player):
+        """The PlayerInput of one participant (the starter by default)."""
+        if not self._inputs:
+            from controls import SOLO_CONTROLS
+            from input_router import PlayerInput
+            self._inputs = {None: PlayerInput(SOLO_CONTROLS)}
+        return self._inputs.get(player) or next(iter(self._inputs.values()))
+
+    @property
+    def input(self):
+        """The starter's PlayerInput. Games read actions from here, never keys."""
+        return self.input_for(self.players[0] if self.players else None)
 
     @property
     def failed(self):

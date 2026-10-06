@@ -236,8 +236,15 @@ class RoomTitle:
     walk in and fades away again. Pre-rendered; only the alpha changes."""
     FADE_IN, FADE_OUT = 0.3, 0.7
 
-    def __init__(self, text, color, glow, hold=ROOM_TITLE_TIME, y=34):
+    def __init__(self, text, color, glow, hold=ROOM_TITLE_TIME, y=34, subtitle=None):
         img = get_font().render_glow(text, color, glow, scale=3)
+        if subtitle:                    # a quiet line under the name ("YONGYI'S HOME")
+            sub = get_font().render_glow(subtitle, scale_color(color, 0.8), scale_color(glow, 0.6))
+            full = pygame.Surface((max(img.get_width(), sub.get_width()), img.get_height() + 3 + sub.get_height()),
+                                  pygame.SRCALPHA)
+            full.blit(img, img.get_rect(midtop=(full.get_width() // 2, 0)))
+            full.blit(sub, sub.get_rect(midbottom=(full.get_width() // 2, full.get_height())))
+            img = full
         self.image = img.copy()
         self.y = y
         self.hold = hold
@@ -291,6 +298,7 @@ class DialogueBox:
                  details=(), locked=(), input_delay=0.0):
         self.title = title
         self.body = body
+        self.details = list(details)
         self.options = options
         self.on_choice = on_choice
         self.closed = False
@@ -379,10 +387,11 @@ class Notice:
 
     def __init__(self, center=(VIEW_W // 2, 140)):
         self.center = center
+        self.duration = self.DURATION
         self.image = None
         self.left = 0.0
 
-    def show(self, title, lines=(), color=Col.CYAN):
+    def show(self, title, lines=(), color=Col.CYAN, duration=None):
         """lines: (text, colour) pairs under the title."""
         font = get_font()
         head = font.render_glow(title, shade(color, 0.6), scale_color(color, 0.7), scale=2)
@@ -394,7 +403,8 @@ class Notice:
         for text, c in lines:
             draw_text(self.image, text, (w // 2, y), c, anchor="midtop")
             y += LINE_H
-        self.left = self.DURATION
+        self.duration = duration or self.DURATION
+        self.left = self.duration
 
     def clear(self):
         self.left = 0.0
@@ -409,8 +419,55 @@ class Notice:
     def draw(self, surf):
         if not self.visible:
             return
-        shown = self.DURATION - self.left
+        shown = self.duration - self.left
         k = min(1.0, shown / self.FADE, self.left / self.FADE)
         rect = self.image.get_rect(center=(self.center[0], self.center[1] + int((1 - k) * 6)))
         self.image.set_alpha(int(255 * k))
         surf.blit(self.image, rect)
+
+
+class JoinPrompt:
+    """'P1 READY / P2 PRESS [ENTER] TO JOIN': the second player confirms with
+    their own interact key (nobody is charged before that); ESC cancels.
+    `on_result(True | False)` runs once. The room accepts the joiner's keys
+    for this modal (see `extra_players`)."""
+
+    def __init__(self, title, starter, joiner, on_result, accent=Col.CYAN, glow=Col.MAGENTA):
+        self.starter, self.joiner = starter, joiner
+        self.extra_players = [joiner]          # whose keys may operate it besides the owner's
+        self.on_result = on_result
+        self.closed = False
+        self.time = 0.0
+        self.anim = 0.0
+        font = get_font()
+        self.image = neon_panel(216, 82, accent, glow).copy()
+        draw_text(self.image, title, (108, 8), shade(accent, 0.55), 2, anchor="midtop",
+                  glow=scale_color(glow, 0.8))
+        self.image.fill(scale_color(accent, 0.6), (12, 27, 192, 1))
+        draw_text(self.image, f"{starter.label} READY - {starter.name}", (108, 34), Col.GREEN, anchor="midtop")
+        self.prompt = font.render_glow(f"{joiner.label} PRESS [{joiner.controls.interact_hint}] TO JOIN",
+                                       Col.YELLOW, scale_color(Col.YELLOW, 0.4))
+        draw_text(self.image, "ESC CANCEL", (108, 68), scale_color(Col.TEXT_MUTED, 0.75), anchor="midtop")
+
+    def handle_event(self, event):
+        if event.type != pygame.KEYDOWN or self.closed:
+            return
+        if event.key in self.joiner.controls.interact:
+            self._close(True)
+        elif event.key in BACK_KEYS:
+            self._close(False)
+
+    def _close(self, joined):
+        self.closed = True
+        self.on_result(joined)
+
+    def update(self, dt):
+        self.time += dt
+        self.anim = min(1.0, self.anim + dt * 7)
+
+    def draw(self, surf):
+        dim_screen(surf, int(140 * self.anim))
+        rect = self.image.get_rect(center=(VIEW_W // 2, VIEW_H // 2))
+        surf.blit(self.image, rect)
+        if int(self.time * 2.5) % 2 == 0:
+            surf.blit(self.prompt, self.prompt.get_rect(midtop=(rect.centerx, rect.y + 50)))

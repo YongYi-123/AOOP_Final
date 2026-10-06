@@ -108,6 +108,13 @@ class HomeRoomScene(BaseRoomScene):
             profile.record_login()
         self._ready = {id(p): len(p.profile.claimable_tasks) for p in self.players}
 
+    def title_subtitle(self):
+        """P1 owns HOME; with two players the room says whose it is."""
+        return f"{self.session.primary.name}'S HOME" if len(self.session) > 1 else None
+
+    def guest_note(self, player):
+        return "GUEST" if len(self.session) > 1 and player is not self.player else ""
+
     # ------------------------------------------------------------ building
     def build_props(self):
         self.decorations = HomeDecorationManager(self.profile, HOME_SLOTS, default_catalog())

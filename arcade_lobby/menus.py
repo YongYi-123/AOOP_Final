@@ -191,7 +191,10 @@ class ProfileSelectScene(MenuScene):
 
     @property
     def infos(self):
-        return self.manager.list_profiles()
+        """Recently used profiles first (most recent on top), then the rest in creation order."""
+        infos = self.manager.list_profiles()
+        rank = {pid: i for i, pid in enumerate(self.manager.recent_ids)}
+        return sorted(infos, key=lambda i: rank.get(i.profile_id, len(rank)))
 
     @property
     def total(self):
@@ -222,6 +225,14 @@ class ProfileSelectScene(MenuScene):
         self.selected = (self.selected + step) % self.total
         self.top = scroll_window(self.selected, self.top, self.total, VISIBLE_ROWS)
 
+    def jump(self, key):
+        """HOME / END (first profile / + NEW PROFILE), PAGE UP / DOWN (a screenful)."""
+        target = {pygame.K_HOME: 0, pygame.K_END: self.total - 1,
+                  pygame.K_PAGEUP: self.selected - VISIBLE_ROWS,
+                  pygame.K_PAGEDOWN: self.selected + VISIBLE_ROWS}[key]
+        self.selected = max(0, min(self.total - 1, target))
+        self.top = scroll_window(self.selected, self.top, self.total, VISIBLE_ROWS)
+
     def say(self, text):
         self.message, self.message_time = text, 2.0
 
@@ -239,6 +250,8 @@ class ProfileSelectScene(MenuScene):
         step = self.move_of(key)
         if step:
             self.move(step)
+        elif key in (pygame.K_HOME, pygame.K_END, pygame.K_PAGEUP, pygame.K_PAGEDOWN):
+            self.jump(key)
         elif key in CONFIRM_KEYS:
             self._confirm()
         elif key in DELETE_KEYS:
@@ -347,7 +360,7 @@ class ProfileSelectScene(MenuScene):
             pygame.draw.polygon(surf, Col.YELLOW, [(cx, by + 3), (cx - 3, by), (cx + 3, by)])
         draw_text(surf, f"{min(self.selected + 1, len(infos))}/{len(infos)}", (rect.x + 12, rect.bottom - 27),
                   scale_color(Col.TEXT_MUTED, 0.75))
-        draw_text(surf, "UP/DOWN  E OK  DEL DELETE  ESC BACK", (rect.centerx, rect.bottom - 12),
+        draw_text(surf, "UP/DOWN  E OK  END NEW  DEL DELETE", (rect.centerx, rect.bottom - 12),
                   scale_color(Col.TEXT_MUTED, 0.75), anchor="midtop")
         if self.message_time > 0:
             draw_centered(surf, self.message, rect.bottom + 6, Col.YELLOW, 1, scale_color(Col.YELLOW, 0.35))

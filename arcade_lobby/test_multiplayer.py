@@ -203,8 +203,10 @@ class SessionTests(unittest.TestCase):
         self.assertFalse(s.allows(p2, pygame.K_s))           # P1's key
         self.assertFalse(s.allows(p2, pygame.K_e))
         self.assertTrue(s.allows(p2, pygame.K_RETURN))
-        for shared in (pygame.K_ESCAPE, pygame.K_TAB, pygame.K_SPACE):
+        for shared in (pygame.K_ESCAPE, pygame.K_TAB):
             self.assertTrue(s.allows(p1, shared) and s.allows(p2, shared))
+        self.assertTrue(s.allows(p1, pygame.K_SPACE))        # P1's item key
+        self.assertFalse(s.allows(p2, pygame.K_SPACE))
         solo = LocalSession(self.profiles(1))
         for k in (pygame.K_UP, pygame.K_w, pygame.K_e, pygame.K_i):
             self.assertTrue(solo.allows(solo.primary, k))
@@ -791,6 +793,10 @@ class MiniGameTests(TwoPlayerTest):
         self.assertEqual(room.dialogue.title, "PLAYERS")
         self.frames(1, [key(pygame.K_DOWN)])
         self.frames(1, [key(pygame.K_RETURN)])                   # 2 PLAYERS
+        self.assertEqual((self.a.tokens, self.b.tokens), (self.P1_TOKENS, self.P2_TOKENS))   # not yet
+        self.frames(1, [key(pygame.K_RETURN)])                   # the starter's own key cannot join
+        self.assertIsNone(room.active_play)
+        self.frames(1, [key(pygame.K_e)])                        # P2 started, so P1 joins
         self.play_through_wipe()
         self.assertEqual((self.a.tokens, self.b.tokens), (self.P1_TOKENS - 1, self.P2_TOKENS - 1))
         scene = self.game.scenes.current

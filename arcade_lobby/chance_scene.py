@@ -20,6 +20,8 @@ class ChanceGameScene(BaseScene):
         pays and wins; the other player (if any) only watches."""
         super().__init__(game)
         self.player = player
+        if player is not None:
+            self.spectators = [p for p in game.session if p is not player]
         self.game_cls = game_cls
         self.round = game_cls()
         self.time = 0.0
@@ -40,7 +42,7 @@ class ChanceGameScene(BaseScene):
         if event.type != pygame.KEYDOWN:
             return
         if self.player and not self.game.session.allows(self.player, event.key):
-            return                      # the other player's keys do nothing here
+            return                      # the other player's keys do nothing here (they only watch)
         if event.key in BACK_KEYS:
             self.game.scenes.pop()
         elif event.key in CONFIRM_KEYS and self.round.phase == self.round.IDLE:

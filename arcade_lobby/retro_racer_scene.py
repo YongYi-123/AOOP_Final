@@ -47,6 +47,16 @@ def load_retro_racer():
     return game_mod, race_mod
 
 
+# The embedded racer only knows its own keys. This adapter turns the playing
+# player's actions into those keys, so the racer never reads the keyboard
+# itself and never sees anybody else's keys.
+RACER_KEYS = {
+    "up": pygame.K_UP, "down": pygame.K_DOWN, "left": pygame.K_LEFT, "right": pygame.K_RIGHT,
+    "interact": pygame.K_RETURN, "item": pygame.K_SPACE, "menu": pygame.K_p,
+    "pause": pygame.K_p, "back": pygame.K_ESCAPE,
+}
+
+
 class RetroRacerScene(MinigameScene):
     full_resolution = True
 
@@ -103,13 +113,37 @@ class RetroRacerScene(MinigameScene):
         r.state = self._title_state
         r.running = True
 
+    # ------------------------------------------------------------ input
+    def racer_event(self, event):
+        """The racer-side key event for `event`, or None if it is not the
+        playing player's (the other player's keys vanish here)."""
+        inp = self.input
+        action = inp.feed(event)
+        if event.type != pygame.KEYDOWN:
+            return None
+        if action:
+            key = RACER_KEYS.get(action)
+        elif inp.is_shared(event):
+            key = event.key
+        else:
+            return None
+        return pygame.event.Event(pygame.KEYDOWN, key=key, mod=0, unicode="") if key else None
+
+    def racer_controls(self):
+        """The racer's steering input, from the playing player's held actions."""
+        inp = self.input
+        return {"accelerate": inp.held("up"), "brake": inp.held("down"),
+                "steer": inp.axis("left", "right")}
+
     # ------------------------------------------------------------ frame
     def handle_event(self, event):
         if self.error:
             if event.type == pygame.KEYDOWN and event.key in BACK_KEYS:
                 self._leave()
         elif self.racer and not self.leaving:
-            self.racer.handle_event(event)
+            translated = self.racer_event(event)
+            if translated is not None:
+                self.racer.handle_event(translated)
 
     def update(self, dt):
         if self.racer is None:
@@ -123,7 +157,7 @@ class RetroRacerScene(MinigameScene):
             self.racer.audio.stop_engine()
             self._leave()
             return
-        self.racer.update(dt, self.racer.read_controls())
+        self.racer.update(dt, self.racer_controls())
 
     def _leave(self):
         self.leaving = True
