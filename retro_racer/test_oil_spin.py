@@ -81,3 +81,28 @@ class OilSpinTests(unittest.TestCase):
         with patch('car.draw_car_rear') as draw:
             car.draw(surface)
             self.assertEqual(draw.call_args.kwargs['yaw'], 0)
+
+    def test_real_game_pause_restart_and_render(self):
+        import os
+        os.environ.setdefault('SDL_VIDEODRIVER', 'dummy')
+        os.environ.setdefault('SDL_AUDIODRIVER', 'dummy')
+        import pygame
+        pygame.init()
+        pygame.display.set_mode((800, 600))
+        from game import Game
+        game = Game()
+        self.addCleanup(game.audio.stop_engine)
+        game.start_race()
+        game.begin_playing()
+        game.player.add_effect(OilSpinEffect())
+        controls = {'accelerate': False, 'brake': False, 'steer': 0}
+        game.update(0.1, controls)
+        effect = game.player.effects[0]
+        elapsed = effect.elapsed
+        game.render()
+        game.set_paused(True)
+        game.update(0.1, controls)
+        self.assertEqual(effect.elapsed, elapsed)
+        game.start_race()
+        self.assertEqual(game.player.effects, [])
+        game.render()
