@@ -50,6 +50,14 @@ class DriftStateTests(unittest.TestCase):
         DriftEffects().update(0.1, player, road, controls)
         self.assertEqual(vars(player), before)
 
+    def test_inactive_menus_and_end_screens_emit_nothing(self):
+        effects = DriftEffects()
+        player, road, controls = inputs(brake=True)
+        player.collisions = 1
+        effects.update(0.1, player, road, controls, active=False)
+        self.assertEqual(effects.state, DriftState())
+        self.assertEqual((effects.smoke, effects.skids, effects.sparks), ([], [], []))
+
 
 class SmokeTests(unittest.TestCase):
     def test_smoke_emits_expires_and_stays_bounded(self):
@@ -80,6 +88,14 @@ class SmokeTests(unittest.TestCase):
 
 
 class SkidTests(unittest.TestCase):
+    def test_acceleration_takes_priority_over_brake_as_in_physics(self):
+        effects = DriftEffects()
+        player, road, controls = inputs(steer=0, curve=0, brake=True)
+        controls["accelerate"] = True
+        effects.update(0.1, player, road, controls)
+        self.assertFalse(effects.state.braking)
+        self.assertEqual((effects.skids, effects.smoke), ([], []))
+
     def test_only_high_speed_braking_emits_world_marks(self):
         effects = DriftEffects()
         effects.update(0.1, *inputs(brake=False))

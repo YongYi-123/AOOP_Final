@@ -134,8 +134,9 @@ class DriftEffects:
         self.sparks = [spark for spark in self.sparks if spark.age < spark.lifetime]
         crashed = player.collisions > self._collisions
         self._collisions = player.collisions
+        braking = controls["brake"] and not controls.get("accelerate", False)
         self.state = (DriftState.detect(player.speed_percent, controls["steer"],
-                                        road.segment_at(player.front_z).curve, controls["brake"])
+                                        road.segment_at(player.front_z).curve, braking)
                       if active else DriftState())
         target = self.state.amount if self.intensity else 0.0
         self.offset += (target - self.offset) * (1 - math.exp(-10 * max(0.0, dt)))
