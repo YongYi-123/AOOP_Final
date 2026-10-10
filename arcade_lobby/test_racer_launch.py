@@ -153,3 +153,13 @@ class RacerLaunchTests(unittest.TestCase):
         self.assertIs(self.game.scenes.current, self.room)
         self.assertEqual(self.game.profile.tickets, expected.tickets)
         self.assertEqual(self.game.profile.high_score("retro_racer"), expected.score)
+
+    def test_embedded_v_key_reaches_visual_setting(self):
+        scene = self.launch()
+        r = scene.racer
+        settings = r.update.__globals__["S"]
+        original = settings.DRIVING_FX_INTENSITY
+        self.addCleanup(setattr, settings, "DRIVING_FX_INTENSITY", original)
+        self.frames(1, pygame.K_v)
+        self.assertNotEqual(settings.DRIVING_FX_INTENSITY, original)
+        self.assertEqual(r.drift.intensity, settings.DRIVING_FX_INTENSITY)
