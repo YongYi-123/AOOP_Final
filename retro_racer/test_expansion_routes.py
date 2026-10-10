@@ -12,7 +12,7 @@ import settings as S
 
 class ExpansionRouteTests(unittest.TestCase):
     def test_new_routes_have_continuous_geometry_and_distinct_elevation(self):
-        street, mountain = TRACKS[-2:]
+        street, mountain = [next(t for t in TRACKS if t.key == k) for k in ("starlight","cloudpass")]
         self.assertEqual((street.key,mountain.key),('starlight','cloudpass'))
         routes = [track.build() for track in (street,mountain)]
         for route in routes:
@@ -29,7 +29,7 @@ class ExpansionRouteTests(unittest.TestCase):
     def test_oil_is_visible_and_triggers_live_spin_on_both_new_tracks(self):
         game = Game()
         self.addCleanup(game.audio.stop_engine)
-        for track in TRACKS[-2:]:
+        for track in TRACKS[3:]:
             game.track = track
             game.apply_look()
             game.start_race()
