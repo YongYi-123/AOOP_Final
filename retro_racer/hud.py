@@ -104,22 +104,22 @@ class Hud:
         self.text(surf, f"{kmh:3d} KM/H", (20, 38), RED if player.speed_percent > 0.9 else YELLOW, self.big)
         self.text(surf, "SCORE", (20, 84), CYAN)
         self.text(surf, f"{int(player.score):07d}", (20, 110), YELLOW, self.big)
-        self.text(surf, "DISTANCE", (S.WIDTH - 20, 84), CYAN, align="right")
-        self.text(surf, f"{km:5.2f} KM", (S.WIDTH - 20, 110), YELLOW, self.big, align="right")
+        self.text(surf, "DISTANCE", (S.WIDTH - 230, 84), CYAN, align="right")
+        self.text(surf, f"{km:5.2f} KM", (S.WIDTH - 230, 110), YELLOW, self.big, align="right")
         hot = player.hit_cooldown > 0
         if manager.mode is GameMode.ENDLESS:
             self.text(surf, "SURVIVAL TIME", (S.WIDTH // 2, 8), CYAN, align="center")
             self.text(surf, fmt_time(manager.elapsed), (S.WIDTH // 2, 30), YELLOW, self.huge, align="center")
-            self.text(surf, "LEVEL", (S.WIDTH - 20, 12), CYAN, align="right")
-            self.text(surf, f"{manager.level}", (S.WIDTH - 20, 38), YELLOW, self.big, align="right")
+            self.text(surf, "LEVEL", (S.WIDTH - 230, 12), CYAN, align="right")
+            self.text(surf, f"{manager.level}", (S.WIDTH - 230, 38), YELLOW, self.big, align="right")
             crashes = f"{player.collisions}/{manager.max_crashes}"
         else:
             blink = manager.time_left <= 10 and int(manager.time_left * 3) % 2 == 0
             self.text(surf, "TIME", (S.WIDTH // 2, 8), CYAN, align="center")
             self.text(surf, f"{math.ceil(manager.time_left):02d}", (S.WIDTH // 2, 30),
                       RED if blink or manager.time_left <= 5 else YELLOW, self.huge, align="center")
-            self.text(surf, "LAP", (S.WIDTH - 20, 12), CYAN, align="right")
-            self.text(surf, f"{manager.lap}/{manager.laps}", (S.WIDTH - 20, 38), YELLOW, self.big, align="right")
+            self.text(surf, "LAP", (S.WIDTH - 230, 12), CYAN, align="right")
+            self.text(surf, f"{manager.lap}/{manager.laps}", (S.WIDTH - 230, 38), YELLOW, self.big, align="right")
             crashes = f"{player.collisions:02d}"
             self._draw_race_extras(surf, player, manager)
         self.text(surf, "COLLISIONS", (20, S.HEIGHT - 66), CYAN)
@@ -206,7 +206,7 @@ class Hud:
         for i, (key, action) in enumerate(rows):
             self.text(surf, key, (cx - 20, 262 + i * 36), YELLOW, self.font, "right")
             self.text(surf, action, (cx + 20, 262 + i * 36), WHITE, self.font)
-        self.text(surf, "M = MUTE     [ ] = VOLUME", (cx, 424), CYAN, self.small, "center")
+        self.text(surf, "M = MAP    N = MUTE    [ ] = VOLUME", (cx, 424), CYAN, self.small, "center")
         self._prompt(surf, t, "PRESS ENTER TO START", 480)
 
     def menu_frame(self, surf, title, footer):
@@ -278,7 +278,7 @@ class Hud:
                 shade = pygame.Surface(preview.get_size(), pygame.SRCALPHA)
                 shade.fill((0, 0, 20, 120))
                 surf.blit(shade, (x, y))
-            self.text(surf, name, (x + w // 2, y + preview.get_height() + 22), YELLOW if on else DIM, self.big, "center")
+            self.text(surf, name, (x + w // 2, y + preview.get_height() + 22), YELLOW if on else DIM, self.font, "center")
         self.text(surf, cards[index][2], (S.WIDTH // 2, 420), CYAN, self.font, "center")
 
     def draw_end(self, surf, manager, state, t, end_t):

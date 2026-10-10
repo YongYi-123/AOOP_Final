@@ -22,6 +22,7 @@ from audio import Audio
 from difficulty import DIFFICULTIES, DEFAULT_DIFFICULTY
 from drift_effects import DriftEffects
 from tracks import TRACKS
+from minimap import MiniMap
 
 IDLE = {"accelerate": False, "brake": False, "steer": 0}
 COAST = {"accelerate": False, "brake": True, "steer": 0}    # slow to a stop after the race ends
@@ -60,6 +61,8 @@ class Game:
         self.track = self.selected_track = self.tracks[0]
         self.mode = GameMode.COMPETITIVE
         self.road = Road(self.theme, markers=True, route=self.track.build(S.SEGMENT_LENGTH))
+        self.minimap = MiniMap(self.road.route, (S.WIDTH - 200, 12, 188, 140))
+        self.track_previews = {}
         self.traffic = TrafficManager(self.road)
         self.managers = {GameMode.COMPETITIVE: RaceManager(self.road, self.traffic), GameMode.ENDLESS: EndlessManager()}
         self.scene = pygame.Surface((S.WIDTH, S.HEIGHT))
@@ -91,6 +94,7 @@ class Game:
         if self.road.route.key != self.track.key:
             self.road = Road(self.theme, markers=self.manager.uses_markers,
                              route=self.track.build(S.SEGMENT_LENGTH))
+            self.minimap.set_route(self.road.route)
             self.traffic = TrafficManager(self.road)
             self.managers = {GameMode.COMPETITIVE: RaceManager(self.road, self.traffic),
                              GameMode.ENDLESS: EndlessManager()}
@@ -163,6 +167,9 @@ class Game:
                 self.tuner.toggle()
             elif self.tuner.enabled and self.tuner.handle_key(e):
                 pass
+            elif e.key == pygame.K_m:
+                self.minimap.toggle()
+                self._say("MAP ON" if self.minimap.visible else "MAP OFF")
             elif self.paused:
                 self._paused_key(e.key)
             elif e.key == pygame.K_p and self.state in RACE_STATES:
@@ -183,7 +190,7 @@ class Game:
                 S.DRIVING_FX_INTENSITY = levels[(current + 1) % len(levels)]
                 self.drift.intensity = S.DRIVING_FX_INTENSITY
                 self._say(f"DRIVING FX {int(S.DRIVING_FX_INTENSITY * 100)}%")
-            elif e.key == pygame.K_m:
+            elif e.key == pygame.K_n:
                 self.audio.toggle_mute()
                 self._say("MUTED" if self.audio.muted else f"VOLUME {int(self.audio.volume * 100)}%")
             elif e.key in (pygame.K_LEFTBRACKET, pygame.K_RIGHTBRACKET):
@@ -427,6 +434,8 @@ class Game:
         hud, scr, state = self.hud, self.screen, self.state
         if state in (State.PLAYING, State.COUNTDOWN):
             hud.draw_hud(scr, self.player, self.manager)
+            opponents = self.manager.field.racers if self.mode is GameMode.COMPETITIVE else ()
+            self.minimap.draw(scr, self.player, opponents)
             hud.draw_track_name(scr, self.track.name, self.manager.mode_note())
             if state is State.PLAYING:
                 hud.draw_banner(scr, self.manager)
@@ -443,8 +452,11 @@ class Game:
             self.car_menu.draw(hud, scr, self.time)
         elif state is State.TRACK_SELECT:
             size = hud.card_size(len(self.tracks))
-            cards = [(track.name, self.themes.preview(self.theme, *size), track.tagline)
-                     for track in self.tracks]
+            if size not in self.track_previews:
+                self.track_previews[size] = tuple(MiniMap.preview(track.build(S.SEGMENT_LENGTH), size)
+                                                   for track in self.tracks)
+            cards = [(track.name, preview, track.tagline)
+                     for track, preview in zip(self.tracks, self.track_previews[size])]
             hud.draw_track_select(scr, cards, self.track_index, self.time, self.theme.name)
         else:
             hud.draw_end(scr, self.manager, state, self.time, self.end_time)
