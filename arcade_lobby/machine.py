@@ -9,6 +9,7 @@ from animation import Animation, AnimationController, AnimatedSprite
 from font import get_font
 from gfx import (flash_overlay, lerp_color, neon_rect_glow, outlined,
                  radial_glow, scale_color, shade)
+import machine_themes as themes
 from item_registry import FREE_PLAY_COUPON
 from rewards import PlaySession
 from room import Prop
@@ -28,6 +29,8 @@ STYLES = {
     "racer": dict(frames=24, fps=12, marquee=0.12, pulse=0.14),
     "space": dict(frames=24, fps=12, marquee=0.28, pulse=0.22),
     "puzzle": dict(frames=32, fps=10, marquee=0.18, pulse=0.18),
+    "cat": dict(frames=32, fps=8, marquee=0.4, pulse=0.2),
+    "volley": dict(frames=32, fps=12, marquee=0.07, pulse=0.12),
 }
 
 
@@ -94,7 +97,8 @@ def _screen_puzzle(s, p, accent, neon):
     s.fill(shade(accent, -0.35), (10, y + 2, 6, 1))
 
 
-_SCREEN_PAINTERS = {"racer": _screen_racer, "space": _screen_space, "puzzle": _screen_puzzle}
+_SCREEN_PAINTERS = {"racer": _screen_racer, "space": _screen_space, "puzzle": _screen_puzzle,
+                    **themes.SCREEN_PAINTERS}
 
 
 def _build_screen_frames(style, accent, neon):
@@ -121,6 +125,9 @@ def _build_screen_frames(style, accent, neon):
 # --------------------------------------------------------------------- cabinet
 def _paint_marquee(s, style, label, frame, neon, accent):
     r = MARQUEE
+    if style in themes.MARQUEES:
+        themes.MARQUEES[style](s, r, label, frame, neon, accent)
+        return
     s.fill((12, 8, 26), r)
     font = get_font()
     tw, th = font.size(label)
@@ -143,7 +150,7 @@ def _paint_marquee(s, style, label, frame, neon, accent):
             x += glyph.get_width() + 1
 
 
-def _build_cabinet(style, label, frame, neon, accent):
+def _build_cabinet(style, label, frame, neon, accent, frames=4):
     s = pygame.Surface((W, H), pygame.SRCALPHA)
     s.fill(Col.CABINET_SIDE, (0, 12, W, H - 12))
     s.fill(Col.CABINET, (3, 12, W - 6, H - 12))
@@ -171,6 +178,8 @@ def _build_cabinet(style, label, frame, neon, accent):
     s.fill(accent, (17, 48, 2, 3))
     s.fill(neon, (0, H - 3, W, 1))                    # kick plate strip
     s.fill((10, 6, 20), (0, H - 2, W, 2))
+    if style in themes.BODY_DECORATORS:
+        themes.BODY_DECORATORS[style](s, frame, frames, neon, accent)
     return s
 
 
@@ -182,10 +191,23 @@ def _machine_art(data):
     art = _CACHE.get(data["id"])
     if art is None:
         neon, accent, style = data["neon"], data["accent"], data["screen"]
-        bases = [_build_cabinet(style, data["marquee"], f, neon, accent) for f in range(4)]
+        frames = themes.marquee_frames(style, data["marquee"])
+        bases = [_build_cabinet(style, data["marquee"], f, neon, accent, frames) for f in range(frames)]
+        pad = 0
+        if style in themes.HEADROOM:          # e.g. cat ears standing above the marquee
+            pad, painter = themes.HEADROOM[style]
+            tall = []
+            for f, base in enumerate(bases):
+                s = pygame.Surface((W, H + pad), pygame.SRCALPHA)
+                painter(s, pad, f, neon, accent)
+                s.blit(base, (0, pad))
+                tall.append(s)
+            bases = tall
         halo = neon_rect_glow(W, H, neon, GLOW_SPREAD, 0.55)
         reflection = radial_glow(W // 2 + 14, scale_color(neon, 0.5), bands=5, squash=0.45)
         art = {
+            "pad": pad,
+            "marquee_frames": frames,
             "cabinet": [outlined(b) for b in bases],
             "cabinet_hi": [outlined(b, shade(accent, 0.5)) for b in bases],
             "flash": flash_overlay(outlined(bases[0])),
@@ -234,7 +256,7 @@ class ArcadeMachine(AnimatedSprite):
         # Main animation = attract-mode screen; two extra channels for the
         # marquee and the glow pulse (their frames are just indices).
         super().__init__({"attract": Animation(art["screen"], 1 / info["fps"])}, "attract")
-        self.marquee = AnimationController({"loop": Animation(range(4), info["marquee"])}, "loop")
+        self.marquee = AnimationController({"loop": Animation(range(art["marquee_frames"]), info["marquee"])}, "loop")
         self.pulse = AnimationController(
             {"loop": Animation((0, 1, 2, 3, 3, 2, 1, 0), info["pulse"])}, "loop")
 
@@ -302,7 +324,7 @@ class ArcadeMachine(AnimatedSprite):
         self.draw_at(surf, self.rect.topleft, self.highlight)
         if self.flash_time > 0:
             k = self.flash_time / INTERACT_FLASH
-            surf.blit(self.art["flash"], (self.rect.x - 1, self.rect.y - 1),
+            surf.blit(self.art["flash"], (self.rect.x - 1, self.rect.y - 1 - self.art["pad"]),
                       special_flags=pygame.BLEND_RGB_ADD)
             radius = int(8 + (1 - k) * 34)
             pygame.draw.circle(surf, shade(self.accent, 0.4), self.screen_center, radius, 1)
@@ -311,7 +333,7 @@ class ArcadeMachine(AnimatedSprite):
     def draw_at(self, surf, pos, highlight=False):
         x, y = pos
         sprites = self.art["cabinet_hi"] if highlight else self.art["cabinet"]
-        surf.blit(sprites[self.marquee.image], (x - 1, y - 1))
+        surf.blit(sprites[self.marquee.image], (x - 1, y - 1 - self.art["pad"]))
         surf.blit(self.image, (x + SCREEN.x, y + SCREEN.y))
 
     def draw_glow(self, surf):

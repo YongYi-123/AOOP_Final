@@ -18,7 +18,7 @@ from room_art import FloorStrips, HubBackdrop
 from room_scene import BaseRoomScene, RoomExit
 from settings import FLOOR_TOP, Col, VIEW_H, VIEW_W
 
-SIGN_POS = (300, 8)
+SIGN_POS = (308, 8)             # clear of the high-score plate above the fifth cabinet
 
 
 def _poster(size, border, fill, title, accent):
@@ -40,7 +40,7 @@ class ArcadeBackdropArt(HubBackdrop):
     def paint_room(self, surf):
         surf.blit(_poster((26, 30), (255, 70, 200), (28, 16, 60), "GO!", (255, 214, 90)), (212, 8))
         surf.blit(_poster((26, 30), (80, 240, 255), (16, 20, 60), "1UP", (90, 255, 150)), (262, 8))
-        for x in (300, 322, 344, 366):                         # chase-light bulbs under the sign
+        for x in (308, 330, 352, 374):                         # chase-light bulbs under the sign
             surf.fill((120, 60, 110), (x, 25, 2, 1))
 
 
@@ -82,7 +82,8 @@ class HighScorePlates:
     def draw(self, surf):
         for m in self.machines:
             plate = self._plate(m, *self.best(m.game_id))
-            surf.blit(plate, (m.rect.centerx - plate.get_width() // 2, m.rect.y - self.H - 4))
+            surf.blit(plate, (m.rect.centerx - plate.get_width() // 2,
+                              m.rect.y - self.H - 4 - m.art["pad"]))     # above any ears on top of the cabinet
 
 
 class ArcadeFloorScene(BaseRoomScene):

@@ -70,3 +70,5 @@ tmp/
 *.bak
 *.orig
 *.rej
+
+review_screenshots/

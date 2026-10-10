@@ -248,18 +248,18 @@ MACHINES = [
         "play_cost": 1,
     },
     {
-        "id": "pixel_volleyball", "name": "Cat Volleyball", "marquee": "BALL",
+        "id": "pixel_volleyball", "name": "Cat Volleyball", "marquee": "CAT VOLLEYBALL",
         "description": "Jump, receive and spike a yarn ball with pixel cats. "
                        "First to five points wins. Play solo or challenge a friend!",
-        "slot": "wall_3", "neon": (90, 240, 255), "accent": (255, 110, 210),
-        "screen": "puzzle", "play_cost": 1,
+        "slot": "wall_3", "neon": (50, 140, 255), "accent": (255, 150, 40),
+        "screen": "volley", "play_cost": 1,
     },
     {
         "id": "cat_minesweeper", "name": "Cat Territory", "marquee": "CATS",
         "description": "One cat per color, row and column. Cats cannot touch. "
                        "Click to mark X, double click to place a cat. Three hearts!",
-        "slot": "wall_4", "neon": (255, 110, 210), "accent": (255, 224, 90),
-        "screen": "puzzle", "play_cost": 1,
+        "slot": "wall_4", "neon": (176, 96, 255), "accent": (90, 240, 255),
+        "screen": "cat", "play_cost": 1,
     },
 ]
 

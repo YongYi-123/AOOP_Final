@@ -14,6 +14,8 @@ class BaseScene:
     # True:  draw() gets the full-size window surface (e.g. an embedded game
     #        that renders at 800x600 itself).
     full_resolution = False
+    spectator_corner = "bottomright"     # where the SPECTATING tag sits; scenes with a busy footer move it
+    spectator_offset = (4, 3)            # canvas pixels in from that corner (x, y)
 
     def __init__(self, game):
         self.game = game
@@ -47,7 +49,10 @@ class BaseScene:
             return
         text = "  ".join(f"{p.tag} - SPECTATING" for p in self.spectators)
         img = get_font().render_glow(text, Col.TEXT_MUTED, (40, 30, 70), scale=px)
-        surf.blit(img, img.get_rect(bottomright=(surf.get_width() - 4 * px, surf.get_height() - 3 * px)))
+        if self.spectator_corner == "topleft":
+            surf.blit(img, img.get_rect(topleft=(self.spectator_offset[0] * px, self.spectator_offset[1] * px)))
+        else:
+            surf.blit(img, img.get_rect(bottomright=(surf.get_width() - 4 * px, surf.get_height() - 3 * px)))
 
 
 class SceneManager:
