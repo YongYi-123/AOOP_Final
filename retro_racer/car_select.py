@@ -28,7 +28,7 @@ class CarSelectMenu:
     # ---- drawing ----------------------------------------------------------------------------------
     def draw(self, hud, surf, t):
         spec = self.selected
-        hud.menu_frame(surf, "SELECT CAR", "LEFT/RIGHT SELECT     ENTER OK     ESC BACK")
+        hud.menu_frame(surf, "SELECT CAR", hud.select_footer())
         self._draw_stage(hud, surf, spec, t)
         self._draw_stats(hud, surf, spec)
 

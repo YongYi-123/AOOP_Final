@@ -9,6 +9,14 @@ from assets import PixelFont, BLACK, WHITE, YELLOW, ORANGE, RED, CYAN, GREEN
 
 DIM = (140, 140, 170)
 
+# The key names printed on the screens. An embedding program (the arcade) swaps in
+# the playing player's real keys through Hud.keys; standalone they are the defaults.
+DEFAULT_KEYS = {
+    "accelerate": "UP", "brake": "DOWN", "steer": "LEFT/RIGHT", "confirm": "ENTER",
+    "back": "ESC", "item": "SPACE / SHIFT", "item_long": "SPACE  (OR SHIFT / Z / X / CTRL)",
+    "resume": "P / ENTER / ESC", "menu": "BACKSPACE", "quit": "Q",
+}
+
 
 class Hud:
     def __init__(self):
@@ -21,6 +29,7 @@ class Hud:
         self.giant = PixelFont(24, 10)
         self._outlined = {}
         self.time = 0.0          # animation clock, set by Game each frame
+        self.keys = dict(DEFAULT_KEYS)
         # Every other scanline darkened: the classic arcade-monitor look, used behind full-screen screens.
         self.scanlines = pygame.Surface((S.WIDTH, S.HEIGHT), pygame.SRCALPHA)
         for y in range(0, S.HEIGHT, 2):
@@ -136,7 +145,7 @@ class Hud:
             player.item.draw_icon(surf, pygame.Rect(20, 182, 44, 44))
             self.text(surf, player.item.name, (74, 186), YELLOW, self.font)
             if int(self.time * 3) % 2 == 0:
-                self.text(surf, "SPACE / SHIFT", (74, 214), WHITE, self.small)
+                self.text(surf, self.keys["item"], (74, 214), WHITE, self.small)
         else:
             self.text(surf, "NONE", (20, 184), DIM, self.font)
 
@@ -150,19 +159,22 @@ class Hud:
         if note:
             self.text(surf, note, (S.WIDTH - 20, S.HEIGHT - 58), DIM, self.small, "right")
 
+    BANNER_Y = 112      # between the two HUD columns, under the TIME readout: never over the stat blocks
+
     def draw_banner(self, surf, manager):
-        """CHECKPOINT! / LEVEL n message; fades out over the last part of its lifetime."""
+        """CHECKPOINT! / LEVEL n message; fades out over the last part of its lifetime. Kept to the
+        centre strip (smaller than the title screens) so the road and the HUD stay readable."""
         if manager.banner_time <= 0:
             return
         a = int(255 * min(1.0, manager.banner_alpha * 2))
-        cx = S.WIDTH // 2
+        cx, y = S.WIDTH // 2, self.BANNER_Y
         for i, line in enumerate(manager.banner):
             if i == 0 and a == 255:
-                self.extruded(surf, line, (cx, 150), YELLOW, (150, 60, 0), self.title, 4)
+                self.extruded(surf, line, (cx, y), YELLOW, (150, 60, 0), self.huge, 4)
             elif i == 0:            # fading out: plain text (alpha can't be applied to the stacked copies)
-                self.text(surf, line, (cx, 150), YELLOW, self.title, "center", a)
+                self.text(surf, line, (cx, y), YELLOW, self.huge, "center", a)
             else:
-                self.text(surf, line, (cx, 150 + 100 + (i - 1) * 60), WHITE, self.huge, "center", a)
+                self.text(surf, line, (cx, y + 52 + (i - 1) * 40), WHITE, self.big, "center", a)
 
     def draw_countdown(self, surf, label):
         """Giant 3 / 2 / 1."""
@@ -177,10 +189,10 @@ class Hud:
         surf.blit(self.scanlines, (0, 0))
         cx = S.WIDTH // 2
         self.extruded(surf, "PAUSED", (cx, 140), YELLOW, (150, 60, 0), self.title, 8)
-        for i, (key, action) in enumerate((("P / ENTER / ESC", "RESUME"), ("BACKSPACE", "QUIT TO MENU"), ("Q", "QUIT GAME"))):
+        for i, (key, action) in enumerate(((self.keys["resume"], "RESUME"), (self.keys["menu"], "QUIT TO MENU"), (self.keys["quit"], "QUIT GAME"))):
             self.text(surf, key, (cx - 20, 290 + i * 40), YELLOW, self.font, "right")
             self.text(surf, action, (cx + 20, 290 + i * 40), WHITE, self.font)
-        self.text(surf, "ITEM: SPACE  (OR SHIFT / Z / X / CTRL)", (cx, 440), CYAN, self.small, "center")
+        self.text(surf, f"ITEM: {self.keys['item_long']}", (cx, 440), CYAN, self.small, "center")
 
     def draw_toast(self, surf, msg):
         self.text(surf, msg, (S.WIDTH // 2, S.HEIGHT - 110), WHITE, self.font, "center")
@@ -192,9 +204,13 @@ class Hud:
             pygame.draw.rect(surf, WHITE if i % 2 else BLACK, (i * cell, y, cell, cell // 2))
             pygame.draw.rect(surf, BLACK if i % 2 else WHITE, (i * cell, y + cell // 2, cell, cell // 2))
 
+    def select_footer(self):
+        k = self.keys
+        return f"{k['steer']} SELECT     {k['confirm']} OK     {k['back']} BACK"
+
     def _prompt(self, surf, t, msg, y):
-        if int(t * 2.5) % 2 == 0:
-            self.text(surf, msg, (S.WIDTH // 2, y), WHITE, self.big, "center")
+        if int(t * 2.5) % 2 == 0:       # (the modes' texts say ENTER; show the player's key instead)
+            self.text(surf, msg.replace("ENTER", self.keys["confirm"]), (S.WIDTH // 2, y), WHITE, self.big, "center")
 
     def draw_start(self, surf, t):
         surf.blit(self.scanlines, (0, 0))
@@ -202,12 +218,13 @@ class Hud:
         self.extruded(surf, "RETRO", (cx, 36), RED, (110, 0, 20), self.title, 8)
         self.extruded(surf, "GRAND PRIX", (cx, 118), YELLOW, (150, 60, 0), self.title, 8)
         self._checker(surf, 210)
-        rows = [("UP", "ACCELERATE"), ("DOWN", "BRAKE"), ("LEFT/RIGHT", "STEER"), ("ESC", "QUIT")]
+        k = self.keys
+        rows = [(k["accelerate"], "ACCELERATE"), (k["brake"], "BRAKE"), (k["steer"], "STEER"), (k["back"], "QUIT")]
         for i, (key, action) in enumerate(rows):
             self.text(surf, key, (cx - 20, 262 + i * 36), YELLOW, self.font, "right")
             self.text(surf, action, (cx + 20, 262 + i * 36), WHITE, self.font)
         self.text(surf, "M = MUTE     [ ] = VOLUME", (cx, 424), CYAN, self.small, "center")
-        self._prompt(surf, t, "PRESS ENTER TO START", 480)
+        self._prompt(surf, t, f"PRESS {self.keys['confirm']} TO START", 480)
 
     def menu_frame(self, surf, title, footer):
         surf.blit(self.scanlines, (0, 0))
@@ -247,7 +264,7 @@ class Hud:
         while a mode that has AI opponents is highlighted."""
         self.menu_frame(surf, "SELECT MODE", "")
         has_ai = options[index][2] is not None
-        hints = [("ud", "MODE")] + ([("lr", "AI LEVEL")] if has_ai else []) + [(None, "ENTER SELECT"), (None, "ESC BACK")]
+        hints = [("ud", "MODE")] + ([("lr", "AI LEVEL")] if has_ai else []) + [(None, f"{self.keys['confirm']} SELECT"), (None, f"{self.keys['back']} BACK")]
         self.hint_row(surf, S.HEIGHT - 60, hints)
         cx = S.WIDTH // 2
         for i, (name, desc, ai) in enumerate(options):
@@ -263,7 +280,7 @@ class Hud:
 
     def draw_track_select(self, surf, cards, index, t):
         """cards: [(name, preview_surface, tagline)]."""
-        self.menu_frame(surf, "SELECT TRACK", "LEFT/RIGHT SELECT     ENTER OK     ESC BACK")
+        self.menu_frame(surf, "SELECT TRACK", self.select_footer())
         n, gap = len(cards), 16
         w = cards[0][1].get_width()
         x0 = (S.WIDTH - (n * w + (n - 1) * gap)) // 2
@@ -295,7 +312,7 @@ class Hud:
                 y = 190 + i * 50
                 self.text(surf, label, (40, y), CYAN, self.font)
                 self.text(surf, value, (400, y), YELLOW, self.font, "right")
-            self.text(surf, "FINAL ORDER", (450, 158), CYAN, self.small)
+            self.text(surf, "FINAL ORDER", (450, 166), CYAN, self.small)
             swatches = manager.standings_colors(state)
             for i, line in enumerate(order):
                 y, mine = 190 + i * 36, line.endswith("PLAYER")
@@ -314,4 +331,4 @@ class Hud:
                 self.text(surf, label, (150, y), CYAN, self.big)
                 self.text(surf, value, (S.WIDTH - 150, y), YELLOW, self.big, "right")
         self._prompt(surf, t, manager.again_text, 432)
-        self.text(surf, "BACKSPACE = MENU", (cx, 470), DIM, self.small, "center")
+        self.text(surf, f"{self.keys['menu']} = MENU", (cx, 470), DIM, self.small, "center")

@@ -11,6 +11,15 @@ from dataclasses import dataclass, field
 import pygame
 
 
+_KEY_NAMES = {pygame.K_RETURN: "ENTER", pygame.K_KP_ENTER: "ENTER", pygame.K_RCTRL: "R-CTRL",
+              pygame.K_LSHIFT: "SHIFT", pygame.K_RSHIFT: "R-SHIFT", pygame.K_KP0: "KP0",
+              pygame.K_ESCAPE: "ESC"}
+
+
+def key_label(key):
+    return _KEY_NAMES.get(key) or pygame.key.name(key).upper()
+
+
 DIRECTION_ACTIONS = {(0, -1): "up", (0, 1): "down", (-1, 0): "left", (1, 0): "right"}
 
 
@@ -25,11 +34,24 @@ class ControlScheme:
     inventory_hint: str = ""
     item: tuple = ()                # "use item" in minigames
     pause: tuple = ()               # extra pause keys in minigames
+    confirm: tuple = ()             # extra "OK" keys for menus / minigames (not used in the hub)
     keys: frozenset = field(init=False)
 
     def __post_init__(self):
         object.__setattr__(self, "keys", frozenset(self.move) | frozenset(self.interact)
-                           | frozenset(self.inventory) | frozenset(self.item) | frozenset(self.pause))
+                           | frozenset(self.inventory) | frozenset(self.item) | frozenset(self.pause)
+                           | frozenset(self.confirm))
+
+    def label(self, *actions, limit=2):
+        """Short readable names of this player's keys for `actions` ('W/UP'),
+        for on-screen hints, so a screen can tell each player their own keys."""
+        names = []
+        for key in (*self.move, *self.interact, *self.inventory, *self.item, *self.pause, *self.confirm):
+            if self.action_for(key) in actions:
+                name = key_label(key)
+                if name not in names:
+                    names.append(name)
+        return "/".join(names[:limit])
 
     def action_for(self, key):
         """The logical action `key` triggers for this player, or None:
@@ -38,7 +60,7 @@ class ControlScheme:
         if key in self.move:
             return DIRECTION_ACTIONS[self.move[key]]
         for action, keys in (("interact", self.interact), ("menu", self.inventory),
-                             ("item", self.item), ("pause", self.pause)):
+                             ("item", self.item), ("pause", self.pause), ("confirm", self.confirm)):
             if key in keys:
                 return action
         return None
@@ -70,7 +92,7 @@ ARROWS = {pygame.K_UP: (0, -1), pygame.K_DOWN: (0, 1), pygame.K_LEFT: (-1, 0), p
 SOLO_CONTROLS = ControlScheme("SOLO", {**WASD, **ARROWS}, (pygame.K_e,), (pygame.K_i,),
                               "WASD", "E", "I",
                               item=(pygame.K_SPACE, pygame.K_LSHIFT, pygame.K_z, pygame.K_x),
-                              pause=(pygame.K_p,))
+                              pause=(pygame.K_p,), confirm=(pygame.K_RETURN, pygame.K_KP_ENTER))
 P1_CONTROLS = ControlScheme("P1", dict(WASD), (pygame.K_e,), (pygame.K_i,), "WASD", "E", "I",
                             item=(pygame.K_SPACE, pygame.K_LSHIFT))
 P2_CONTROLS = ControlScheme("P2", dict(ARROWS), (pygame.K_RETURN, pygame.K_RCTRL, pygame.K_KP_ENTER),
