@@ -14,7 +14,7 @@ from settings import BACK_KEYS
 
 # Keys no player owns that every scene may still use (ESC is the explicit,
 # global "back": the one rule that any player can leave a screen with).
-SHARED_KEYS = frozenset(BACK_KEYS) | {pygame.K_BACKSPACE, pygame.K_q, pygame.K_m,
+SHARED_KEYS = frozenset(BACK_KEYS) | {pygame.K_BACKSPACE, pygame.K_q, pygame.K_m, pygame.K_n,
                                       pygame.K_LEFTBRACKET, pygame.K_RIGHTBRACKET, pygame.K_v}
 
 
@@ -36,7 +36,7 @@ class PlayerInput:
         return "back" if event.key in BACK_KEYS else None
 
     def is_shared(self, event):
-        """Is this one of the shared keys (ESC, BACKSPACE, Q, M, brackets)?"""
+        """Is this one of the shared keys (back, map, mute, volume, effects)?"""
         return event.type == pygame.KEYDOWN and event.key in SHARED_KEYS \
             and not self.scheme.owns(event.key)
 

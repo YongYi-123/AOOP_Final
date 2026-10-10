@@ -14,6 +14,7 @@ from game import Game
 from item_registry import FREE_PLAY_COUPON
 from retro_racer_scene import RetroRacerScene
 from room_testing import goto_room
+from daily_tasks import DailyTask, TaskSpec
 
 
 class RacerLaunchTests(unittest.TestCase):
@@ -163,3 +164,53 @@ class RacerLaunchTests(unittest.TestCase):
         self.frames(1, pygame.K_v)
         self.assertNotEqual(settings.DRIVING_FX_INTENSITY, original)
         self.assertEqual(r.drift.intensity, settings.DRIVING_FX_INTENSITY)
+
+    def test_embedded_map_and_mute_keys_remain_independent(self):
+        scene = self.launch()
+        racer = scene.racer
+        muted = racer.audio.muted
+        self.frames(1, pygame.K_m)
+        self.assertFalse(racer.minimap.visible)
+        self.assertEqual(racer.audio.muted, muted)
+        self.frames(1, pygame.K_n)
+        self.assertNotEqual(racer.audio.muted, muted)
+        self.assertFalse(racer.minimap.visible)
+        self.frames(1, pygame.K_m)
+        self.assertTrue(racer.minimap.visible)
+
+    def test_all_original_tracks_settle_once_and_record_daily_score(self):
+        task = DailyTask(TaskSpec("racer_best", "Racer best", "high_score", 1, 1,
+                                  game_id="retro_racer"))
+        self.game.profile._tasks.tasks = [task]
+        scene = self.launch()
+        racer = scene.racer
+        for _ in range(2):
+            self.frames(1, pygame.K_RETURN)
+        for index, track in enumerate(racer.tracks):
+            if index:
+                self.frames(1, pygame.K_BACKSPACE)
+                self.frames(1, pygame.K_RETURN)
+            self.assertEqual(racer.state.value, "TRACK_SELECT")
+            if index:
+                self.frames(1, pygame.K_DOWN)
+            self.assertIs(racer.track, track)
+            self.frames(1, pygame.K_RETURN)
+            self.frames(1, pygame.K_RETURN)
+            self.assertEqual(racer.state.value, "COUNTDOWN")
+            racer.begin_playing()
+            racer.player.score = 3000 + index * 1000
+            racer.player.distance = racer.road.length * racer.manager.laps
+            self.frames()
+            self.assertEqual(scene.results.outcome.status, "completed")
+            self.assertIs(racer.minimap.route, racer.road.route)
+        expected = scene.results.outcome
+        self.frames(1, pygame.K_BACKSPACE)
+        self.frames(1, pygame.K_ESCAPE)
+        self.frames(40, pygame.K_ESCAPE)
+        self.assertIs(self.game.scenes.current, self.room)
+        tickets = self.game.profile.tickets
+        self.assertEqual(tickets, expected.tickets)
+        self.assertEqual(self.game.profile.high_score("retro_racer"), expected.score)
+        self.assertEqual(task.progress, 1)
+        self.frames(10)
+        self.assertEqual(self.game.profile.tickets, tickets)
