@@ -508,7 +508,7 @@ class GameplayInRoomsTests(HubTest):
         self.frames(1, [key(pygame.K_e)])
         self.assertEqual(self.game.profile.tokens, 9)
 
-    def test_prize_counter_is_a_placeholder_that_shows_tickets(self):
+    def test_prize_counter_opens_personal_shop_without_charging_entry(self):
         self.dismiss_popup()
         plaza = self.walk_through(pygame.K_d, "prize_plaza")
         self.game.profile.add_tickets(12)
@@ -518,7 +518,8 @@ class GameplayInRoomsTests(HubTest):
         self.assertIs(plaza.nearby, counter)
         tickets, tokens = self.game.profile.tickets, self.game.profile.tokens
         self.frames(30, [key(pygame.K_e)])
-        self.assertTrue(plaza.notice.visible)
+        from racing_progression.ui import PrizeCounterScene
+        self.assertIsInstance(self.game.scenes.current,PrizeCounterScene)
         self.assertEqual((self.game.profile.tickets, self.game.profile.tokens), (tickets, tokens))
 
     def test_daily_board_and_tasks_work_in_home_after_travelling(self):

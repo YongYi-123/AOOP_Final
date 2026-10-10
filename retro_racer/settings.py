@@ -64,7 +64,8 @@ TIME_BONUS_SCORE = 50                 # score per second left on the clock when 
 CHECKPOINT_COLOR = (255, 190, 0)
 
 # Presentation
-VOLUME = 0.6                 # global volume, 0.0 - 1.0 (M mutes, [ and ] change it in-game)
+DRIVING_FX_INTENSITY = 1.0    # 0 disables driving visuals; V cycles 0..2
+VOLUME = 0.6                 # global volume, 0.0 - 1.0 (N mutes, [ and ] change it in-game)
 COUNTDOWN_SECONDS = 3        # 3-2-1 before the race; the clock and car are frozen during it
 GO_TIME = 0.9                # how long "GO!" stays on screen
 

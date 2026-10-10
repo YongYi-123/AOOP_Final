@@ -1,9 +1,9 @@
 """PRIZE PLAZA: the flashy room right of HOME, for TICKET rewards.
 
-A prize counter (a placeholder until the shop exists), shelves of prizes,
+A working prize counter, personal garage terminal, shelves of prizes,
 glass display cases for cosmetics and decorations, ticket signage and the
-Lucky Corner with a free bay for the next chance game. Tickets are earned in
-the arcade and will be spent here; nothing is sold yet.
+Lucky Corner with a free bay for the next chance game. Tickets earned in
+the arcade unlock personal racing content here.
 """
 import pygame
 
@@ -16,6 +16,8 @@ from room_art import HubBackdrop, Twinkles
 from room_scene import BaseRoomScene, RoomExit
 from settings import Col, Lofi, VIEW_H, VIEW_W
 from stations import PrizeCounter, SoonStation, build_lucky_corner
+from racing_progression.station import GarageStation
+from racing_progression.ui import PrizeCounterScene, GarageScene
 
 # three zones, left to right: PRIZE COUNTER, DISPLAY SHELVES, LUCKY CORNER
 COUNTER_POS = (36, 104)
@@ -123,7 +125,7 @@ class PrizePlazaScene(BaseRoomScene):
         lucky = build_lucky_corner(*LUCKY_POS)
         spare_bays = [SoonStation((LUCKY_POS[0] + 40 * i, LUCKY_POS[1] + 70)) for i in range(2)]
         plant = make_plant(Lofi.TERRACOTTA, Lofi.TERRACOTTA_HI)
-        return ([counter] + cases + lucky + spare_bays + [
+        return ([counter, GarageStation((146,186))] + cases + lucky + spare_bays + [
             Prop(plant, (24, 76), (27, 92, 13, 10)),
             Prop(plant, (358, 244), (361, 260, 13, 10)),
             Prop(make_gumball(), (176, 252), (177, 268, 12, 6)),
@@ -150,8 +152,9 @@ class PrizePlazaScene(BaseRoomScene):
 
     # ------------------------------------------------------------ prize counter
     def open_prize_counter(self):
-        """Placeholder until the shop exists: say so, and show the tickets."""
-        player = self._actor()
-        self.notice.show("PRIZE COUNTER", [
-            ("PRIZES COMING SOON", Col.YELLOW),
-            (f"YOUR TICKETS: {player.profile.tickets}", Col.MAGENTA)], Col.YELLOW)
+        owner = self.session.player_for_avatar(self._actor())
+        self.game.scenes.push(PrizeCounterScene(self.game,owner))
+
+    def open_garage(self):
+        owner = self.session.player_for_avatar(self._actor())
+        self.game.scenes.push(GarageScene(self.game,owner))

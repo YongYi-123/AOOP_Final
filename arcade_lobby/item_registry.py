@@ -89,4 +89,9 @@ _ITEMS = (
         stackable=False, icon={"shape": "badge", "color": (255, 168, 60), "accent": (255, 72, 72)}),
 )
 
-ITEM_REGISTRY = ItemRegistry(_ITEMS)
+from racing_progression.catalog import PRIZES
+
+_RACING_ITEMS = tuple(ItemDefinition(p.item_id, p.name, f"Permanent {p.kind} unlock.",
+    COSMETIC if p.kind in ('paint','decoration') else ARCADE, UNCOMMON,
+    stackable=False, icon={"shape":"badge", "color":p.color, "accent":(255,224,90)}) for p in PRIZES)
+ITEM_REGISTRY = ItemRegistry(_ITEMS + _RACING_ITEMS)

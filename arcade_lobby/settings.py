@@ -102,9 +102,9 @@ DAILY_TASK_POOL = (
     # Only offered while the player owns a coupon to use.
     {"id": "use_coupon", "description": "USE A FREE PLAY COUPON", "event": "coupon_used",
      "target": 1, "reward": 4, "requires_item": "free_play_coupon"},
-    # No minigame reports a score yet, so this one cannot be finished.
+    # Retro Racer reports real scores through MiniGameResult.
     {"id": "beat_high_score", "description": "BEAT ONE HIGH SCORE", "event": "high_score",
-     "target": 1, "reward": 10, "available": False},
+     "target": 1, "reward": 10},
 )
 
 # Lucky Wheel: entry cost and the reward table. The chance of a reward is
@@ -246,6 +246,20 @@ MACHINES = [
         "accent": (255, 110, 210),
         "screen": "puzzle",
         "play_cost": 1,
+    },
+    {
+        "id": "pixel_volleyball", "name": "Cat Volleyball", "marquee": "BALL",
+        "description": "Jump, receive and spike a yarn ball with pixel cats. "
+                       "First to five points wins. Play solo or challenge a friend!",
+        "slot": "wall_3", "neon": (90, 240, 255), "accent": (255, 110, 210),
+        "screen": "puzzle", "play_cost": 1,
+    },
+    {
+        "id": "cat_minesweeper", "name": "Cat Territory", "marquee": "CATS",
+        "description": "One cat per color, row and column. Cats cannot touch. "
+                       "Click to mark X, double click to place a cat. Three hearts!",
+        "slot": "wall_4", "neon": (255, 110, 210), "accent": (255, 224, 90),
+        "screen": "puzzle", "play_cost": 1,
     },
 ]
 

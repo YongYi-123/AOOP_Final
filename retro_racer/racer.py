@@ -11,6 +11,7 @@ from car import DrivenCar, draw_car_rear
 from car_specs import CAR_CATALOG, pick_liveries
 from ai import AIDriver, LANES
 from difficulty import DEFAULT_DIFFICULTY
+from vehicle_identity import RivalBadge
 from items import ItemManager, SeekerShot, OilSlick, wrap
 
 
@@ -21,6 +22,7 @@ class RacerCar(DrivenCar):
         super().__init__(spec)
         self.driver, self.name, self.livery = driver, name, livery
         self.start_progress = start_progress
+        self.race_number = 1
         self.x = lane
         self.z = start_progress % length
 
@@ -31,7 +33,10 @@ class RacerCar(DrivenCar):
 
     def draw(self, surf, sx, sy, sw):
         width = sw * self.WIDTH
-        draw_car_rear(surf, sx, sy, width, self.spec.style.key, lean=int(self.steer_visual * 8), livery=self.livery)
+        draw_car_rear(surf, sx, sy, width, self.spec.style.key, lean=int(self.steer_visual * 8), livery=self.livery,
+                      yaw=sum(getattr(e, "visual_yaw", 0.0) for e in self.effects)
+                      if S.DRIVING_FX_INTENSITY > 0 else 0.0)
+        RivalBadge.draw(surf,sx,sy,width,self.race_number)
         self.decorate(surf, sx, sy, width)
 
 
@@ -95,6 +100,8 @@ class RaceField:
                               reaction=self.rng.uniform(0.25, 0.5), rng=random.Random(self.rng.random()),
                               difficulty=level)
             self.racers.append(RacerCar(spec, driver, name, player.start_progress + offset, lane, self.length, liveries[k]))
+        for number, racer in enumerate(self.racers, 1):
+            racer.race_number = number
         self.entities = [player] + self.racers
         grid = [player.start_progress + grid_slot(k)[0] for k in range(S.RACE_OPPONENTS)] + [player.start_progress]
         self.items.deploy(avoid=grid)          # no pickups sitting on the starting grid
@@ -124,6 +131,8 @@ class RaceField:
                     front.nudge(1.0 if front.x >= rear.x else -1.0)
                     if rear is self.player:
                         self.events.append("crash" if landed else "shield")
+                    elif front is self.player and landed:
+                        self.events.append("bump")
 
     def _collide_traffic(self):
         if self.traffic is None:
@@ -215,7 +224,7 @@ class RaceField:
     def hostile(self, target, effect):
         """Apply a hostile effect to `target` (a shield may swallow it). Player gets a sound event either way."""
         landed = target.receive_hostile(effect)
-        self.emit(target, "hit" if landed else "shield")
+        self.emit(target, getattr(effect, "sound", "hit") if landed else "shield")
         return landed
 
     REMOTE_EVENTS = ("item", "hit", "shield")      # AI item use is heard, quietly, only when it is close

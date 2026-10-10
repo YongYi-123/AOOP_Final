@@ -1,9 +1,11 @@
 """Pseudo-3D road: segments, track layout, projection and rendering."""
-import math
 import random
 import pygame
 import settings as S
 import assets
+from tracks import TRACKS
+from track_scenery import CircuitLandmarks
+from street_details import StreetDistricts
 
 
 class RoadSegment:
@@ -22,42 +24,20 @@ class RoadSegment:
         self.behind = False
 
 
-def ease(t):
-    return (1 - math.cos(t * math.pi)) / 2
-
-
 class Road:
-    def __init__(self, theme, markers=True):
+    def __init__(self, theme, markers=True, route=None):
+        self.route = route or TRACKS[0].build(S.SEGMENT_LENGTH)
+        if self.route.segment_length != S.SEGMENT_LENGTH:
+            raise ValueError("route and road segment lengths must match")
         self.segments = []
         self._build()
-        self.length = len(self.segments) * S.SEGMENT_LENGTH
+        self.length = self.route.length
+        self.landmarks = CircuitLandmarks.for_route(self.route)
         self.apply(theme, markers)
 
     # ---- track construction -------------------------------------------------
-    def _add_section(self, enter, hold, leave, curve):
-        start = self.segments[-1].curve if self.segments else 0.0
-        for n in range(enter + hold + leave):
-            if n < enter:
-                c = start + (curve - start) * ease(n / enter)
-            elif n < enter + hold:
-                c = curve
-            else:
-                c = curve * (1 - ease((n - enter - hold) / leave))
-            self.segments.append(RoadSegment(len(self.segments), c))
-
     def _build(self):
-        add = self._add_section
-        add(25, 25, 25, 0)      # straight
-        add(40, 60, 40, 3.0)    # right
-        add(25, 40, 25, 0)
-        add(40, 60, 40, -4.0)   # left
-        add(20, 30, 20, 0)
-        add(30, 40, 30, 2.0)    # S-bend
-        add(30, 40, 30, -2.5)
-        add(40, 80, 40, 5.0)    # sharp right
-        add(25, 30, 25, 0)
-        add(40, 60, 40, -3.5)
-        add(30, 40, 30, 0)      # ends at curve 0 so the loop is seamless
+        self.segments = [RoadSegment(i, curve) for i, curve in enumerate(self.route.curves)]
         self._find_markers()
 
     def _find_markers(self):
@@ -73,6 +53,7 @@ class Road:
 
         Cheap enough to call whenever the theme or game mode changes (~1200 segments).
         """
+        self.districts = StreetDistricts.for_road(self.route,theme)
         self.theme = theme
         light, dark = theme.colors
         for seg in self.segments:
@@ -132,6 +113,7 @@ class Road:
         base_idx = int(cam_z // S.SEGMENT_LENGTH)
         base_pct = (cam_z % S.SEGMENT_LENGTH) / S.SEGMENT_LENGTH
         cam_x = player_x * S.ROAD_WIDTH
+        elevation = self.route.elevation_at(cam_z+S.CAMERA_HEIGHT*S.CAMERA_DEPTH)
         x = 0.0                                   # accumulated horizontal curve offset
         dx = -self.segments[base_idx % n].curve * base_pct
         visible = []
@@ -142,8 +124,8 @@ class Road:
             z2 = z1 + S.SEGMENT_LENGTH
             seg.behind = (z1 - cam_z) <= S.CAMERA_DEPTH
             if not seg.behind:
-                seg.sx1, seg.sy1, seg.sw1 = self._project(0, 0, z1, cam_x - x, cam_z)
-                seg.sx2, seg.sy2, seg.sw2 = self._project(0, 0, z2, cam_x - x - dx, cam_z)
+                seg.sx1, seg.sy1, seg.sw1 = self._project(0, self.route.elevation_at(z1)-elevation, z1, cam_x - x, cam_z)
+                seg.sx2, seg.sy2, seg.sw2 = self._project(0, self.route.elevation_at(z2)-elevation, z2, cam_x - x - dx, cam_z)
             x += dx
             dx += seg.curve
             visible.append(seg)
@@ -155,7 +137,7 @@ class Road:
         after it, so nearer road/cars always cover farther ones."""
         visible = self.project(cam_z, player_x)
         by_segment = {}
-        for car in cars:
+        for car in tuple(cars)+self.landmarks+self.districts:
             by_segment.setdefault(int(car.z // S.SEGMENT_LENGTH) % len(self.segments), []).append(car)
         drawable = [s for s in visible if not s.behind and s.sy2 < s.sy1 and s.sy1 <= S.HEIGHT + 1]
         for seg in reversed(drawable):

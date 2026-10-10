@@ -56,7 +56,7 @@ class PlayerProfile:
                  total_games_played=0, lifetime_tickets_earned=0, lifetime_tokens_earned=0,
                  lifetime_tokens_spent=0, chance_games_played=0, cats_petted=0,
                  daily=None, daily_tasks=None, history=(), clock=None, inventory=None,
-                 home_decorations=None, profile_id=None, display_name=None):
+                 home_decorations=None, profile_id=None, display_name=None, racing_selection=None):
         # Who this profile is. The id is the save identity (never the name);
         # both are None for a bare profile that is not managed by a ProfileManager.
         self.profile_id = profile_id
@@ -83,6 +83,8 @@ class PlayerProfile:
         # HOME decoration slot id -> the decoration the player put there. Slots
         # not listed show their default (see decorations.HomeDecorationManager).
         self._home_decorations = dict(home_decorations or {})
+        self._racing_selection = {k:v for k,v in (racing_selection or {}).items()
+                                  if k in ("car","track","scenery","paint") and isinstance(v,str)}
         self._tasks.ensure_current(self.clock.today(), eligible=self._task_eligible)
 
     # ------------------------------------------------------------ read-only
@@ -138,6 +140,17 @@ class PlayerProfile:
         if changed:
             self._notify("decorations", 0, len(self._home_decorations))
         return changed
+
+    @property
+    def racing_selection(self):
+        return dict(self._racing_selection)
+
+    def set_racing_selection(self, kind, key):
+        if kind not in ("car", "track", "scenery", "paint") or not isinstance(key, str):
+            raise ValueError("invalid racing selection")
+        if self._racing_selection.get(kind) != key:
+            self._racing_selection[kind] = key
+            self._notify("racing", 0, 0)
 
     @property
     def high_scores(self):
@@ -235,6 +248,22 @@ class PlayerProfile:
             self._lifetime_tickets_earned += amount
             self._notify(self.TICKET, amount, self._tickets)
             self._task_event("tickets_earned", amount)
+
+    def spend_tickets(self, amount):
+        _check_amount(amount)
+        if self._tickets < amount:
+            return False
+        if amount:
+            self._tickets -= amount
+            self._notify(self.TICKET, -amount, self._tickets)
+        return True
+
+    def refund_tickets(self, amount):
+        """Undo a failed purchase without counting a refund as earned rewards."""
+        _check_amount(amount)
+        if amount:
+            self._tickets += amount
+            self._notify(self.TICKET, amount, self._tickets)
 
     # ------------------------------------------------------------ daily login
     def daily_status(self, today=None):
@@ -397,6 +426,7 @@ class PlayerProfile:
             "transaction_history": list(self._history),
             "inventory": self._inventory.to_dict(),
             "home_decorations": dict(self._home_decorations),
+            "racing_selection": dict(self._racing_selection),
         }
 
     @classmethod
@@ -436,6 +466,7 @@ class PlayerProfile:
             clock=clock,
             inventory=Inventory.from_dict(data.get("inventory")),
             home_decorations=decorations,
+            racing_selection=data.get("racing_selection") if isinstance(data.get("racing_selection"),dict) else {},
             profile_id=data["profile_id"] if isinstance(data.get("profile_id"), str) else None,
             display_name=data["display_name"] if isinstance(data.get("display_name"), str) else None,
         )

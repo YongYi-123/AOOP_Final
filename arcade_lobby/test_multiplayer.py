@@ -226,9 +226,9 @@ class ControlsTests(unittest.TestCase):
         self.assertIn(pygame.K_RCTRL, P2_CONTROLS.interact)
         self.assertEqual(P2_CONTROLS.inventory, (pygame.K_o,))
 
-    def test_solo_keeps_the_original_bindings(self):
+    def test_solo_keeps_original_bindings_and_adds_enter(self):
         self.assertTrue(set(P1_CONTROLS.move) | set(P2_CONTROLS.move) <= set(SOLO_CONTROLS.move))
-        self.assertEqual(SOLO_CONTROLS.interact, (pygame.K_e,))
+        self.assertEqual(SOLO_CONTROLS.interact, (pygame.K_e, pygame.K_RETURN, pygame.K_KP_ENTER))
         self.assertEqual(SOLO_CONTROLS.inventory, (pygame.K_i,))
 
     def test_schemes_per_player_count_and_custom_schemes(self):
@@ -474,7 +474,14 @@ class OwnershipTests(TwoPlayerTest):
         self.p1.avatar.y = float(wheel.zone.bottom - 2)
         self.frames(5)
         self.use(self.p2)
-        self.assertTrue(plaza.notice.visible)
+        from racing_progression.ui import PrizeCounterScene
+        shop = self.game.scenes.current
+        self.assertIsInstance(shop,PrizeCounterScene)
+        self.assertIs(shop.owner,self.p2)
+        self.assertIs(shop.shop.profile,self.b)
+        self.frames(20)  # Finish the station flash and scene-entry wipe.
+        self.frames(40,[key(pygame.K_ESCAPE)])
+        self.assertIs(self.game.scenes.current,plaza)
         self.use(self.p1, frames=30)                             # P1 opens the wheel
         for _ in range(50):
             self.frames(1)

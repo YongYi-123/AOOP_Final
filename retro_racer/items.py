@@ -11,6 +11,7 @@ import math
 import random
 import pygame
 import settings as S
+from oil_spin import OilSpinEffect
 from effects import SpeedBoostEffect, SlowEffect, ShieldEffect, SpinEffect
 from assets import BLACK, WHITE, YELLOW, ORANGE, RED, CYAN, GREEN, GREY, NAVY
 
@@ -213,22 +214,36 @@ class OilSlick(Hazard):
 
     def __init__(self, owner, z, x):
         super().__init__(owner, z, x)
-        self.touched = {}                      # car id -> time it last triggered, so one pass = one hit
+        self.touched = set()                   # cars currently inside: one trigger per entry
+        self.previous = {}
 
     def update(self, dt, world):
         alive = super().update(dt, world)
         for car in world.entities:
             if car is self.owner and self.age < 1.0:
                 continue                         # the dropper isn't hit by its own oil straight away
-            if abs(wrap(car.front_z - self.z, world.length)) < self.DEPTH and abs(car.x - self.x) < self.HALF + car.WIDTH / 2:
-                if self.age - self.touched.get(id(car), -9.0) > 1.5:
-                    self.touched[id(car)] = self.age
-                    world.hostile(car, SlowEffect(1.8, speed=0.55, grip=0.5))
+            previous_z, previous_x = self.previous.get(id(car), (car.front_z-car.speed*dt, car.x))
+            travel = wrap(car.front_z-previous_z, world.length)
+            gap = wrap(self.z-previous_z, world.length)
+            crossing = travel > 0 and -self.DEPTH <= gap <= travel+self.DEPTH
+            near = abs(wrap(car.front_z-self.z, world.length)) < self.DEPTH
+            fraction = max(0.0, min(1.0, gap/travel)) if travel > 0 else 1.0
+            lane = previous_x + (car.x-previous_x)*fraction
+            self.previous[id(car)] = (car.front_z, car.x)
+            if (near or crossing) and abs(lane-self.x) < self.HALF + car.WIDTH / 2:
+                if id(car) not in self.touched:
+                    self.touched.add(id(car))
+                    if not any(isinstance(e, OilSpinEffect) for e in car.effects):
+                        world.hostile(car, OilSpinEffect())
+            else:
+                self.touched.discard(id(car))
         return alive
 
     def draw(self, surf, sx, sy, sw):
         w, h = max(3, sw * 0.5), max(2, sw * 0.09)
         pygame.draw.ellipse(surf, (14, 10, 24), (sx - w / 2, sy - h / 2, w, h))
+        pygame.draw.ellipse(surf, (75, 75, 100), (sx - w / 2, sy - h / 2, w, h), max(1, int(h*0.15)))
+        pygame.draw.ellipse(surf, (45, 125, 155), (sx-w*0.1, sy-h*0.15, w*0.3, max(1,h*0.2)))
         pygame.draw.ellipse(surf, (110, 80, 170), (sx - w * 0.25, sy - h * 0.35, w * 0.3, h * 0.35))
 
 

@@ -5,9 +5,9 @@ and `self.theme` the look, so nothing in update()/draw() branches on the mode or
 """
 import gc
 import math
-import random
 import pygame
 import settings as S
+from road_hazards import RoadHazards
 from road import Road
 from car import PlayerCar
 from traffic import TrafficManager
@@ -21,6 +21,13 @@ from hud import Hud
 from tuning import Tuner
 from audio import Audio
 from difficulty import DIFFICULTIES, DEFAULT_DIFFICULTY
+from drift_effects import DriftEffects
+from tracks import TRACKS
+from minimap import MiniMap
+from scenery import SCENERY_THEMES
+from scenery_select import SceneryGallery
+from progression import RacerProgression
+from garage_art import GaragePreview
 
 IDLE = {"accelerate": False, "brake": False, "steer": 0}
 COAST = {"accelerate": False, "brake": True, "steer": 0}    # slow to a stop after the race ends
@@ -51,11 +58,17 @@ class Game:
         self.hud.prewarm()
         self.audio = Audio()
         self.tuner = Tuner(on_change=self._on_tune)
-        self.themes = TrackThemeManager()
+        self.themes = TrackThemeManager(SCENERY_THEMES)
+        self.scenery_gallery = SceneryGallery(self.themes)
         self.theme = self.themes.themes[0]
-        self.selected_theme = self.theme            # confirmed track; browsing in TRACK_SELECT doesn't change it
+        self.selected_theme = self.theme            # confirmed scenery
+        self.theme_index = 0
+        self.tracks = TRACKS
+        self.track = self.selected_track = self.tracks[0]
         self.mode = GameMode.COMPETITIVE
-        self.road = Road(self.theme, markers=True)
+        self.road = Road(self.theme, markers=True, route=self.track.build(S.SEGMENT_LENGTH))
+        self.minimap = MiniMap(self.road.route, (S.WIDTH - 200, 12, 188, 140))
+        self.track_previews = {}
         self.traffic = TrafficManager(self.road)
         self.managers = {GameMode.COMPETITIVE: RaceManager(self.road, self.traffic), GameMode.ENDLESS: EndlessManager()}
         self.scene = pygame.Surface((S.WIDTH, S.HEIGHT))
@@ -67,13 +80,27 @@ class Game:
         self.paused = False
         self.mode_index = 0
         self.track_index = 0
+        self.progression = RacerProgression()
         self.car_menu = CarSelectMenu(CAR_CATALOG)
         self.ai_level = DEFAULT_DIFFICULTY               # AI difficulty for competitive races; persists across restarts
         self.selected_car_spec = CAR_CATALOG.default     # confirmed choice; survives countdown, restarts, end screens
+        self.drift = DriftEffects(S.DRIVING_FX_INTENSITY)
         self.reset()
         self.apply_look()
         self.state = State.TITLE
         self._settle_memory()
+
+    def configure_progression(self, garage):
+        """Apply one visitor's saved garage choices to the reused embedded game."""
+        self.progression = RacerProgression(garage)
+        self.selected_car_spec = next(spec for spec in CAR_CATALOG if spec.key == garage.selected('car'))
+        self.car_menu.select(self.selected_car_spec)
+        self.track = self.selected_track = next(t for t in self.tracks if t.key == garage.selected('track'))
+        self.theme = self.selected_theme = next(t for t in self.themes.themes if t.key == garage.selected('scenery'))
+        self.track_index = self.tracks.index(self.track)
+        self.theme_index = self.themes.themes.index(self.theme)
+        self.apply_look()
+        self.reset()
 
     @property
     def manager(self):
@@ -82,17 +109,28 @@ class Game:
 
     # ---- setup / reset ------------------------------------------------------
     def apply_look(self):
-        """Re-skin the road and pick the backdrop for the current theme + mode (geometry never changes)."""
+        """Apply circuit + scenery; rebuild geometry-dependent managers on route changes."""
+        if self.road.route.key != self.track.key:
+            self.road = Road(self.theme, markers=self.manager.uses_markers,
+                             route=self.track.build(S.SEGMENT_LENGTH))
+            self.minimap.set_route(self.road.route)
+            self.traffic = TrafficManager(self.road)
+            self.managers = {GameMode.COMPETITIVE: RaceManager(self.road, self.traffic),
+                             GameMode.ENDLESS: EndlessManager()}
+            self.reset()
         self.road.apply(self.theme, markers=self.manager.uses_markers)
         self.backdrop = self.themes.backdrop(self.theme, S.WIDTH, S.HEIGHT // 2)
 
     def reset(self):
         """Put every piece of race state back to a fresh start (no process restart needed)."""
+        self.hazards = RoadHazards(self.road)
         self.player = PlayerCar(self.selected_car_spec)       # position, speed, score, distance, collisions, cooldown, push
+        self.player.livery = self.progression.livery(self.selected_car_spec)
         self.traffic.reset(self.player, self.manager.traffic_count)     # also restores speed scale
         for manager in self.managers.values():
             manager.reset()             # timers, laps, checkpoints, endless level, banners, results
         self.shake = 0.0
+        self.drift.reset()
         self.bg_scroll = 0.0
         self.flash_time = 0.0
         self.countdown = 0.0
@@ -115,6 +153,10 @@ class Game:
 
     def start_race(self):
         """Reset and begin the 3-2-1 countdown (the race itself starts at GO)."""
+        for kind, key in (('track',self.track.key),('scenery',self.theme.key),('car',self.selected_car_spec.key)):
+            if not self.progression.owns(kind,key):
+                self._say(self.progression.lock_message(kind,key))
+                return
         self.reset()
         self.apply_look()
         self.manager.set_ai_level(self.ai_level)
@@ -150,6 +192,9 @@ class Game:
                 self.tuner.toggle()
             elif self.tuner.enabled and self.tuner.handle_key(e):
                 pass
+            elif e.key == pygame.K_m:
+                self.minimap.toggle()
+                self._say("MAP ON" if self.minimap.visible else "MAP OFF")
             elif self.paused:
                 self._paused_key(e.key)
             elif e.key == pygame.K_p and self.state in RACE_STATES:
@@ -164,7 +209,13 @@ class Game:
                 self.menu_move(-1 if e.key in (pygame.K_LEFT, pygame.K_UP) else 1, horizontal=e.key in (pygame.K_LEFT, pygame.K_RIGHT))
             elif e.key in ITEM_KEYS:
                 self.use_item()
-            elif e.key == pygame.K_m:
+            elif e.key == pygame.K_v:
+                levels = (0.0, 0.5, 1.0, 1.5, 2.0)
+                current = min(range(len(levels)), key=lambda i: abs(levels[i] - S.DRIVING_FX_INTENSITY))
+                S.DRIVING_FX_INTENSITY = levels[(current + 1) % len(levels)]
+                self.drift.intensity = S.DRIVING_FX_INTENSITY
+                self._say(f"DRIVING FX {int(S.DRIVING_FX_INTENSITY * 100)}%")
+            elif e.key == pygame.K_n:
                 self.audio.toggle_mute()
                 self._say("MUTED" if self.audio.muted else f"VOLUME {int(self.audio.volume * 100)}%")
             elif e.key in (pygame.K_LEFTBRACKET, pygame.K_RIGHTBRACKET):
@@ -205,17 +256,29 @@ class Game:
             self.audio.play("select")
         elif self.state is State.MODE_SELECT:
             self.mode = MODE_MENU[self.mode_index][0]
-            self.track_index = self.themes.themes.index(self.theme)
+            self.track_index = self.tracks.index(self.track)
+            self.theme_index = self.themes.themes.index(self.theme)
             self.apply_look()               # markers depend on the mode
             self.state = State.TRACK_SELECT
             self.audio.play("select")
         elif self.state is State.TRACK_SELECT:
-            self.theme = self.selected_theme = self.themes.themes[self.track_index]
+            for kind, key in (('track',self.track.key),('scenery',self.theme.key)):
+                if not self.progression.owns(kind,key):
+                    self._say(self.progression.lock_message(kind,key))
+                    return
+            self.progression.select('track',self.track.key)
+            self.progression.select('scenery',self.theme.key)
+            self.selected_track = self.track
+            self.selected_theme = self.theme
             self.car_menu.select(self.selected_car_spec)
             self.player.spec = self.car_menu.selected       # the road behind the menu shows the highlighted car
             self.state = State.CAR_SELECT
             self.audio.play("select")
         elif self.state is State.CAR_SELECT:
+            if not self.progression.owns('car',self.car_menu.selected.key):
+                self._say(self.progression.lock_message('car',self.car_menu.selected.key))
+                return
+            self.progression.select('car',self.car_menu.selected.key)
             self.selected_car_spec = self.car_menu.selected
             self.audio.play("select")
             self.start_race()
@@ -228,10 +291,12 @@ class Game:
             self.state = State.TITLE
         elif self.state is State.CAR_SELECT:
             self.player.spec = self.selected_car_spec       # cancelled: forget the previewed car
-            self.track_index = self.themes.themes.index(self.selected_theme)
+            self.track_index = self.tracks.index(self.selected_track)
+            self.theme_index = self.themes.themes.index(self.selected_theme)
             self.state = State.TRACK_SELECT
         elif self.state is State.TRACK_SELECT:
-            self.theme = self.selected_theme                # cancelled: forget the track we were only browsing
+            self.theme = self.selected_theme
+            self.track = self.selected_track                # discard an unconfirmed circuit preview
             self.apply_look()
             self.state = State.MODE_SELECT
         elif self.state in (State.FINISHED, State.GAME_OVER):
@@ -259,8 +324,12 @@ class Game:
             else:
                 self.mode_index = (self.mode_index + step) % len(MODE_MENU)
         elif self.state is State.TRACK_SELECT:
-            self.track_index = (self.track_index + step) % len(self.themes)
-            self.theme = self.themes.themes[self.track_index]      # background previews the highlighted track
+            if horizontal:
+                self.theme_index = (self.theme_index + step) % len(self.themes)
+                self.theme = self.themes.themes[self.theme_index]
+            else:
+                self.track_index = (self.track_index + step) % len(self.tracks)
+                self.track = self.tracks[self.track_index]
             self.apply_look()
         elif self.state is State.CAR_SELECT:
             self.car_menu.move(step)
@@ -287,6 +356,7 @@ class Game:
         self.time += dt
         self.hud.time = self.time
         self.audio.tick(dt)
+        self.drift.intensity = S.DRIVING_FX_INTENSITY
         if self.paused:                         # frozen: no world, race clock, AI, effects or engine
             return
         self.last_dt = dt
@@ -294,7 +364,9 @@ class Game:
         handler = self._update_attract if self.state in ATTRACT_STATES else {
             State.COUNTDOWN: self._update_countdown, State.PLAYING: self._update_playing,
             State.FINISHED: self._update_ended, State.GAME_OVER: self._update_ended}[self.state]
+        playing = self.state is State.PLAYING
         handler(dt, controls)
+        self.drift.update(dt, self.player, self.road, controls, active=playing)
         self.flash_time = max(0.0, self.flash_time - dt)
         self._update_engine_sound()
 
@@ -338,8 +410,15 @@ class Game:
                 self.audio.play("shield")           # a shield swallowed the crash
         checkpoints = self.manager.next_checkpoint
         self.state = self.manager.update(dt, self.player)
+        opponents = self.manager.field.racers if self.mode is GameMode.COMPETITIVE else ()
+        self.hazards.update(dt, self.player, opponents)
         self.manager.apply_difficulty(self.traffic, self.player)
-        for event in self.manager.pop_events():     # racer collisions, item pickups / hits
+        for event in self.manager.pop_events() + self.hazards.pop_events():     # racer collisions, item pickups / hits
+            if event == "bump":
+                self.drift.trigger_impact(self.player)
+                self.shake = S.SHAKE_TIME
+                self.audio.play("crash")
+                continue
             if event == "crash":
                 self.shake = S.SHAKE_TIME
             self.audio.play(event)
@@ -366,11 +445,14 @@ class Game:
         scene.fill(self.theme.ground[1])
         self.backdrop.draw(scene, self.bg_scroll)
         # Camera sits behind the car; the car itself is drawn at a fixed spot.
-        self.road.draw(scene, self.player.z, self.player.x, self.traffic.cars + self.manager.drawables())
-        self.player.draw(scene)
+        self.road.draw(scene, self.player.z, self.player.x,
+                       self.drift.road_drawables() + self.traffic.cars + self.manager.drawables() + self.hazards.drawables())
+        self.drift.draw_smoke(scene)
+        self.player.draw(scene, visual_offset=self.drift.rear_offset, visual_yaw=self.drift.yaw)
+        self.drift.draw_sparks(scene)
         # Collision feedback: shake the scene and tint it red, both fading out.
         t = self.shake / S.SHAKE_TIME
-        offset = (random.randint(-1, 1) * int(12 * t), random.randint(-1, 1) * int(8 * t)) if t else (0, 0)
+        offset = self.drift.shake_offset(t)
         self.screen.fill((0, 0, 0))
         self.screen.blit(scene, offset)
         if t:
@@ -389,7 +471,9 @@ class Game:
         hud, scr, state = self.hud, self.screen, self.state
         if state in (State.PLAYING, State.COUNTDOWN):
             hud.draw_hud(scr, self.player, self.manager)
-            hud.draw_track_name(scr, self.theme.name, self.manager.mode_note())
+            opponents = self.manager.field.racers if self.mode is GameMode.COMPETITIVE else ()
+            self.minimap.draw(scr, self.player, opponents)
+            hud.draw_track_name(scr, self.track.name, self.manager.mode_note())
             if state is State.PLAYING:
                 hud.draw_banner(scr, self.manager)
                 if self.go_time > 0:
@@ -403,10 +487,23 @@ class Game:
             hud.draw_mode_select(scr, options, self.mode_index, self.time)
         elif state is State.CAR_SELECT:
             self.car_menu.draw(hud, scr, self.time)
+            lock = self.progression.lock_message('car',self.car_menu.selected.key)
+            if lock:
+                hud.text(scr, lock, (S.WIDTH // 2, 130), (255,110,150), hud.small, "center")
         elif state is State.TRACK_SELECT:
-            size = hud.card_size(len(self.themes))
-            cards = [(th.name, self.themes.preview(th, *size), th.tagline) for th in self.themes.themes]
-            hud.draw_track_select(scr, cards, self.track_index, self.time)
+            size = hud.card_size(min(3, len(self.tracks)))
+            if size not in self.track_previews:
+                self.track_previews[size] = tuple(MiniMap.preview(track.build(S.SEGMENT_LENGTH), size)
+                                                   for track in self.tracks)
+            cards = [(track.name, preview, track.tagline)
+                     for track, preview in zip(self.tracks, self.track_previews[size])]
+            hud.draw_track_select(scr, cards, self.track_index, self.time, self.theme.name)
+            self.scenery_gallery.draw(scr, hud, self.road.route, self.theme_index,
+                                      self.manager.uses_markers, self.progression)
+            locks = [self.progression.lock_message(kind,key) for kind,key in
+                     (('track',self.track.key),('scenery',self.theme.key)) if not self.progression.owns(kind,key)]
+            if locks:
+                hud.text(scr, " / ".join(locks), (S.WIDTH // 2, 140), (255,110,150), hud.small, "center")
         else:
             hud.draw_end(scr, self.manager, state, self.time, self.end_time)
 

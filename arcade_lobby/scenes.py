@@ -8,6 +8,13 @@ machine's game id, override get_reward() with its scoring, and call
 `self.game.scenes.pop()` when the player quits.
 """
 import math
+import os
+import sys
+
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if PROJECT_ROOT not in sys.path:
+    sys.path.insert(0, PROJECT_ROOT)
+
 
 import pygame
 
@@ -15,6 +22,8 @@ from font import LINE_H, get_font
 from gfx import lerp_color, scale_color, shade
 from minigame import MiniGameDefinition, MinigameScene
 from retro_racer_scene import RetroRacerScene
+from pixel_volleyball_scene import PixelVolleyballScene
+from cat_territory_scene import CatTerritoryScene
 from settings import BACK_KEYS, Col, VIEW_H, VIEW_W
 from ui import draw_text, neon_panel, wrap_text
 
@@ -105,7 +114,9 @@ class MinigamePlaceholderScene(MinigameScene):
 
 # Game id (a machine's "game_id", by default its id) -> scene class. Anything not listed uses the placeholder, so real
 # minigames can be dropped in one at a time.
-MINIGAME_SCENES = {"retro_racer": RetroRacerScene}
+MINIGAME_SCENES = {"retro_racer": RetroRacerScene,
+                   "pixel_volleyball": PixelVolleyballScene,
+                   "cat_minesweeper": CatTerritoryScene}
 
 
 # How many local players each minigame supports (anything not listed: 1). The
@@ -115,6 +126,8 @@ MINIGAME_DEFINITIONS = {d.game_id: d for d in (
     MiniGameDefinition("retro_racer", 1, 1),
     MiniGameDefinition("space_blaster", 1, 2),
     MiniGameDefinition("puzzle_drop", 1, 1),
+    MiniGameDefinition("pixel_volleyball", 1, 2),
+    MiniGameDefinition("cat_minesweeper", 1, 1),
 )}
 
 
