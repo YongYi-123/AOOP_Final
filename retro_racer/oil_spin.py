@@ -14,7 +14,7 @@ class OilSpinEffect(SlowEffect):
         super().update(dt, car)
         progress = min(1.0, self.elapsed / self.duration)
         recovery = max(0.0, (progress - 0.35) / 0.65)
-        self.multipliers['steering'] = 0.5 * recovery * recovery * (3 - 2 * recovery)
+        self.multipliers['steering'] = recovery * recovery * (3 - 2 * recovery)
 
     @property
     def visual_yaw(self):

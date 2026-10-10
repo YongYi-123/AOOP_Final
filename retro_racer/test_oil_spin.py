@@ -20,7 +20,7 @@ class OilSpinTests(unittest.TestCase):
         self.assertEqual(angles, sorted(angles))
         self.assertEqual(grips, sorted(grips))
         self.assertAlmostEqual(angles[-1], 360)
-        self.assertAlmostEqual(grips[-1], 0.5)
+        self.assertAlmostEqual(grips[-1], 1.0)
         self.assertTrue(effect.expired)
 
     def world(self, car):
