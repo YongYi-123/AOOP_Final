@@ -3,9 +3,15 @@
 
 class TerritorySolver:
     @staticmethod
-    def solutions(regions, limit=2):
+    def solutions(regions, limit=2, cats=(), marks=()):
         size = len(regions)
         found = []
+        fixed = {}
+        blocked = set(marks)
+        for x,y in cats:
+            if not (0 <= x < size and 0 <= y < size) or y in fixed or (x,y) in blocked:
+                return []
+            fixed[y] = x
 
         def visit(row, columns, colors, chosen):
             if len(found) >= limit:
@@ -13,7 +19,9 @@ class TerritorySolver:
             if row == size:
                 found.append(tuple(chosen))
                 return
-            for column in range(size):
+            for column in ([fixed[row]] if row in fixed else range(size)):
+                if (column,row) in blocked:
+                    continue
                 color = regions[row][column]
                 if column in columns or color in colors:
                     continue

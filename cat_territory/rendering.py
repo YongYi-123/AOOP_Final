@@ -59,7 +59,8 @@ class TerritoryRenderer:
                                               (x+6,27),(x+11,29),(x+11,34),(x+3,42)])
         self.text(surface,f'{board.difficulty.name}  {len(board.cats)}/{board.size}',(200,36))
         self.text(surface,f'TIME {int(board.elapsed)}',(350,36))
-        self.text(surface,f'SCORE {board.score}',(200,51),(255,224,90))
+        self.text(surface,f'SCORE {board.score}' if board.completion_status == 'OK'
+                  else board.completion_status,(200,51),(255,224,90))
         for y,row in enumerate(board.regions):
             for x,color in enumerate(row):
                 rect=game.layout.cell_rect(x,y).inflate(-1,-1)
@@ -84,7 +85,7 @@ class TerritoryRenderer:
                 if game.error_left>0 and (x,y)==board.error_cell:
                     pygame.draw.rect(surface,(255,60,90),rect,3)
         self.text(surface,'CLICK X / DOUBLE CAT   ARROWS MOVE   E CAT',(200,282))
-        self.text(surface,'SPACE X   MENU PAUSE   BACKSPACE RESTART   ESC LOBBY',(200,295))
+        self.text(surface,'U UNDO  C CLEAR X  BACKSPACE RESTART  ESC LOBBY',(200,295))
         if game.paused or board.outcome:
             pygame.draw.rect(surface,(15,10,35),(30,110,340,75))
             pygame.draw.rect(surface,(255,110,210),(30,110,340,75),2)

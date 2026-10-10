@@ -31,6 +31,10 @@ class CatTerritoryScene(MinigameScene):
             if action == "back":
                 self.leaving = True
                 self.game.scenes.pop()
+            elif event.key == pygame.K_u:
+                self.territory.undo()
+            elif event.key == pygame.K_c:
+                self.territory.clear_marks()
             elif event.key == pygame.K_BACKSPACE:
                 self.territory.restart()
             elif action == "interact" or (event.key in (pygame.K_RETURN, pygame.K_KP_ENTER)

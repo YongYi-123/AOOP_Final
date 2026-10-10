@@ -49,6 +49,18 @@ class TerritoryGame:
             x,y = self.cursor
             self.cursor = (max(0,min(self.board.size-1,x+dx)),max(0,min(self.board.size-1,y+dy)))
 
+    def undo(self):
+        if self.active:
+            self.clicks.clear()
+            return self.board.undo()
+        return False
+
+    def clear_marks(self):
+        if self.active:
+            self.clicks.clear()
+            return self.board.clear_marks()
+        return False
+
     def mark(self,x,y):
         if self.active and self.board.toggle_mark(x,y):
             self.audio.play('flag',self.time)

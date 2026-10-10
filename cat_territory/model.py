@@ -2,6 +2,7 @@
 from dataclasses import dataclass
 from enum import Enum
 from .generator import TerritoryGenerator
+from .solver import TerritorySolver
 
 
 @dataclass(frozen=True)
@@ -55,6 +56,36 @@ class TerritoryBoard:
         self.elapsed = 0.0
         self.outcome = None
         self.error_cell = None
+        self.history = []
+        self.completion_status = "OK"
+
+    def _remember(self):
+        self.history.append((self.cats.copy(),self.marks.copy()))
+        self.history = self.history[-64:]
+
+    def _check_completion(self):
+        if not TerritorySolver.solutions(self.regions,limit=1,cats=self.cats):
+            self.completion_status = "CATS BLOCK COMPLETION - U UNDO"
+        elif not TerritorySolver.solutions(self.regions,limit=1,cats=self.cats,marks=self.marks):
+            self.completion_status = "MARKS BLOCK COMPLETION - C CLEAR X"
+        else:
+            self.completion_status = "OK"
+
+    def undo(self):
+        if self.outcome is not None or not self.history:
+            return False
+        self.cats,self.marks = self.history.pop()
+        self.error_cell = None
+        self._check_completion()
+        return True
+
+    def clear_marks(self):
+        if self.outcome is not None or not self.marks:
+            return False
+        self._remember()
+        self.marks.clear()
+        self._check_completion()
+        return True
 
     def contains(self,x,y):
         return 0 <= x < self.size and 0 <= y < self.size
@@ -69,11 +100,13 @@ class TerritoryBoard:
         if not self._active(x,y):
             return False
         point = (x,y)
+        self._remember()
         self.cats.discard(point)
         if point in self.marks:
             self.marks.remove(point)
         else:
             self.marks.add(point)
+        self._check_completion()
         return True
 
     def toggle_cat(self,x,y):
@@ -82,7 +115,9 @@ class TerritoryBoard:
         point = (x,y)
         self.error_cell = None
         if point in self.cats:
+            self._remember()
             self.cats.remove(point)
+            self._check_completion()
             return True
         if TerritoryRules.conflicts(self.regions,self.cats,point):
             self.hearts -= 1
@@ -91,8 +126,10 @@ class TerritoryBoard:
             if self.hearts == 0:
                 self._finish(False)
             return False
+        self._remember()
         self.marks.discard(point)
         self.cats.add(point)
+        self._check_completion()
         if TerritoryRules.solved(self.regions,self.cats):
             self._finish(True)
         return True

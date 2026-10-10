@@ -26,6 +26,8 @@ def main():
                     if event.key==pygame.K_ESCAPE: running=False
                     elif event.key in (pygame.K_RETURN,pygame.K_e): game.confirm()
                     elif event.key==pygame.K_BACKSPACE: game.restart()
+                    elif event.key==pygame.K_u: game.undo()
+                    elif event.key==pygame.K_c: game.clear_marks()
                     elif event.key==pygame.K_p: game.toggle_pause()
                     elif event.key in (pygame.K_SPACE,pygame.K_x): game.mark(*game.cursor)
                     elif event.key in (pygame.K_UP,pygame.K_DOWN,pygame.K_LEFT,pygame.K_RIGHT):
