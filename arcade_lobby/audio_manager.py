@@ -10,7 +10,7 @@ class AudioManager:
               'pixel_volleyball': (330, 392, 440, 523, 440, 392, 330, 294),
               'cat_minesweeper': (262, 392, 330, 440, 349, 330, 294, 392)}
     EFFECTS = {'machine': (440, 660), 'confirm': (660, 880), 'cancel': (440, 220),
-               'hit': (560,), 'spike': (880,), 'bounce': (240,), 'point': (660, 880),
+               'hit': (560,), 'spike': (1480, 880, 440), 'bounce': (240,), 'point': (660, 880),
                'win': (523, 659, 784), 'loss': (440, 330, 220),
                'reveal': (700,), 'flag': (420, 560), 'skid': (480, 320, 160)}
 

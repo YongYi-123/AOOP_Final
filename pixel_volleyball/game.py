@@ -3,6 +3,7 @@ from .model import MatchState, VolleyMatch
 from .settlement import VolleyReward
 from .rendering import VolleyRenderer
 from .audio import VolleySounds
+from .effects import SmashTrail
 
 
 class VolleyGame:
@@ -10,6 +11,7 @@ class VolleyGame:
         self.local_players = local_players
         self.match = VolleyMatch(local_players)
         self.renderer = VolleyRenderer()
+        self.effects = SmashTrail()
         self.audio = VolleySounds()
         self.best = [VolleyReward() for _ in range(local_players)]
         self._observed = None
@@ -22,6 +24,7 @@ class VolleyGame:
         self.observe_result()
         self.match = VolleyMatch(self.local_players)
         self.match.start()
+        self.effects = SmashTrail()
 
     def confirm(self):
         if self.match.state is MatchState.FINISHED:
@@ -42,9 +45,11 @@ class VolleyGame:
                 self.best[side] = result
 
     def update(self, dt, controls=()):
+        before = self.match.elapsed
         self.match.update(dt, controls)
+        self.effects.update(self.match.elapsed - before, self.match.ball)
         self.audio.play(self.match.events)
         self.observe_result()
 
     def draw(self, surface):
-        self.renderer.draw(surface, self.match)
+        self.renderer.draw(surface, self.match, self.effects)

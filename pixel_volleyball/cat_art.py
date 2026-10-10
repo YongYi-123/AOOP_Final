@@ -10,6 +10,7 @@ class CatAnimation(Enum):
     MOVE = 'move'
     JUMP = 'jump'
     HIT = 'hit'
+    SMASH = 'smash'
     VICTORY = 'victory'
 
 
@@ -18,6 +19,8 @@ class CatAthleteRenderer:
     def state(player, match):
         if match.state is MatchState.FINISHED and match.outcome.winner == player.side:
             return CatAnimation.VICTORY
+        if player.attack.animating:
+            return CatAnimation.SMASH
         if player.hit_flash > 0:
             return CatAnimation.HIT
         if player.y < FLOOR-player.radius-.5:
@@ -57,6 +60,16 @@ class CatAthleteRenderer:
         pygame.draw.line(surface, scarf, (x-10,y+1),(x+10,y+1),3)
         for direction in (-1, 1):
             arm_y = y-9 if state in (CatAnimation.HIT,CatAnimation.VICTORY) else y+5
+            if state is CatAnimation.SMASH:
+                # Lift the striking paw, then sweep forward through follow-through.
+                facing = 1 if player.side == 0 else -1
+                progress = min(1, player.attack.age / .19)
+                arm_y = y - 18 + round(progress * 20) if direction == facing else y-6
+                if direction == facing:
+                    start = (x + direction*10, y-8)
+                    end = (x + direction*(16+round(progress*5)), arm_y+2)
+                    pygame.draw.line(surface, scarf, start, end, 2)
+                    pygame.draw.rect(surface, fur, (end[0]-2,end[1]-2,5,5))
             pygame.draw.rect(surface, fur, (x+direction*12-2,arm_y,4,5))
             foot_y = y+11 + (int(wave*2)*direction if state is CatAnimation.MOVE else 0)
             pygame.draw.rect(surface, fur, (x+direction*6-2,foot_y,5,3))

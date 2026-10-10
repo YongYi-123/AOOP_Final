@@ -14,9 +14,10 @@ class VolleySounds:
         for name, pitch in (("hit", 560), ("spike", 880), ("bounce", 240),
                             ("point", 660), ("win", 1040)):
             samples = array("h")
-            length = int(rate * .07)
+            length = int(rate * (.15 if name == "spike" else .07))
             for i in range(length):
-                value = int(2500 * math.sin(2 * math.pi * pitch * i / rate) * (1 - i / length))
+                frequency = pitch + (900 * (1 - i / length) if name == "spike" else 0)
+                value = int(2500 * math.sin(2 * math.pi * frequency * i / rate) * (1 - i / length))
                 samples.extend([value] * channels)
             self.sounds[name] = pygame.mixer.Sound(buffer=samples)
 
