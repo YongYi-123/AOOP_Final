@@ -23,7 +23,7 @@ from gfx import lerp_color, scale_color, shade
 from minigame import MiniGameDefinition, MinigameScene
 from retro_racer_scene import RetroRacerScene
 from pixel_volleyball_scene import PixelVolleyballScene
-from cat_minesweeper_scene import CatMinesweeperScene
+from cat_territory_scene import CatTerritoryScene
 from settings import BACK_KEYS, Col, VIEW_H, VIEW_W
 from ui import draw_text, neon_panel, wrap_text
 
@@ -116,7 +116,7 @@ class MinigamePlaceholderScene(MinigameScene):
 # minigames can be dropped in one at a time.
 MINIGAME_SCENES = {"retro_racer": RetroRacerScene,
                    "pixel_volleyball": PixelVolleyballScene,
-                   "cat_minesweeper": CatMinesweeperScene}
+                   "cat_minesweeper": CatTerritoryScene}
 
 
 # How many local players each minigame supports (anything not listed: 1). The

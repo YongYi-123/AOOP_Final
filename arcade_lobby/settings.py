@@ -255,9 +255,9 @@ MACHINES = [
         "screen": "puzzle", "play_cost": 1,
     },
     {
-        "id": "cat_minesweeper", "name": "Cat Minesweeper", "marquee": "CATS",
-        "description": "Find the sleepy hidden cats without waking one. "
-                       "Left click reveals, right click flags. Your first click is safe!",
+        "id": "cat_minesweeper", "name": "Cat Territory", "marquee": "CATS",
+        "description": "One cat per color, row and column. Cats cannot touch. "
+                       "Click to mark X, double click to place a cat. Three hearts!",
         "slot": "wall_4", "neon": (255, 110, 210), "accent": (255, 224, 90),
         "screen": "puzzle", "play_cost": 1,
     },
