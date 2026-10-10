@@ -95,7 +95,7 @@ class ArcadeFloorScene(BaseRoomScene):
     action_hint = "PLAY"
     hint_rows = (
         [("MOVE: WASD", Col.TEXT)],
-        [("E :", Col.TEXT), ("PLAY", Col.YELLOW)],
+        [("E/ENTER :", Col.TEXT), ("PLAY", Col.YELLOW)],
         [("I :", Col.TEXT), ("BAG", Col.YELLOW)],
     )
 

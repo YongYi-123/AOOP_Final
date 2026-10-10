@@ -67,8 +67,9 @@ class ControlScheme:
 WASD = {pygame.K_w: (0, -1), pygame.K_s: (0, 1), pygame.K_a: (-1, 0), pygame.K_d: (1, 0)}
 ARROWS = {pygame.K_UP: (0, -1), pygame.K_DOWN: (0, 1), pygame.K_LEFT: (-1, 0), pygame.K_RIGHT: (1, 0)}
 
-SOLO_CONTROLS = ControlScheme("SOLO", {**WASD, **ARROWS}, (pygame.K_e,), (pygame.K_i,),
-                              "WASD", "E", "I",
+SOLO_CONTROLS = ControlScheme("SOLO", {**WASD, **ARROWS},
+                              (pygame.K_e, pygame.K_RETURN, pygame.K_KP_ENTER), (pygame.K_i,),
+                              "WASD", "E/ENTER", "I",
                               item=(pygame.K_SPACE, pygame.K_LSHIFT, pygame.K_z, pygame.K_x),
                               pause=(pygame.K_p,))
 P1_CONTROLS = ControlScheme("P1", dict(WASD), (pygame.K_e,), (pygame.K_i,), "WASD", "E", "I",
