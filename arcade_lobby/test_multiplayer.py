@@ -29,7 +29,7 @@ from hud import CurrencyHUD  # noqa: E402
 from inventory_ui import InventoryUI  # noqa: E402
 from item_registry import FREE_PLAY_COUPON  # noqa: E402
 from local_session import GameEvent, LocalPlayer, LocalSession, MachineInteraction  # noqa: E402
-from minigame import MiniGameDefinition, MiniGameResult, MinigameScene, PlayerResult  # noqa: E402
+from minigame import MiniGameDefinition, MiniGameResult, PlayerResult  # noqa: E402
 from player import DEFAULT_LOOK, P1_LOOK, P2_LOOK, HubPlayer, Player  # noqa: E402
 from player_profile import PlayerProfile  # noqa: E402
 from profile_manager import ProfileManager  # noqa: E402

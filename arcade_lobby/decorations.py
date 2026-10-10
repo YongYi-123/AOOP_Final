@@ -92,9 +92,6 @@ class DecorationCatalog:
     def get(self, decoration_id):
         return self._items.get(decoration_id)
 
-    def for_slot_type(self, slot_type):
-        return [d for d in self._items.values() if d.slot_type == slot_type]
-
     def __contains__(self, decoration_id):
         return decoration_id in self._items
 

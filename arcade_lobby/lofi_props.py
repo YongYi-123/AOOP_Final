@@ -5,9 +5,8 @@ import math
 
 import pygame
 
-from backdrop import BlinkLED, level_copies, mask_glow
-from font import get_font
-from gfx import outlined, radial_glow, scale_color, shade
+from backdrop import BlinkLED, level_copies
+from gfx import outlined, radial_glow, shade
 from room import Prop
 from settings import Lofi
 
@@ -95,40 +94,6 @@ def make_speaker(bump=False):
     pygame.draw.circle(s, (20, 18, 32), (8, 17), ring - 1)
     pygame.draw.circle(s, (72, 64, 104) if bump else (56, 50, 84), (8, 17), 2 if not bump else 3)
     s.fill((130, 120, 170), (7, 16, 1, 1))
-    return outlined(s)
-
-
-def make_counter():
-    w, h = 80, 38
-    s = pygame.Surface((w, h), pygame.SRCALPHA)
-    s.fill(Lofi.WOOD, (0, 10, w, 6))                   # counter top
-    s.fill(Lofi.WOOD_HI, (0, 10, w, 1))
-    s.fill((40, 32, 70), (0, 16, w, h - 16))           # front
-    for x in range(4, w, 8):
-        s.fill((46, 38, 80), (x, 18, 4, h - 22))
-    s.fill(scale_color(Lofi.CYAN, 0.55), (0, h - 3, w, 1))
-    s.fill(Lofi.WOOD_DARK, (0, 16, w, 1))
-    label = get_font().render_glow("CAFE", (255, 214, 160), (150, 80, 40))
-    s.blit(label, (w // 2 - label.get_width() // 2, 21))
-    # things on the counter
-    pygame.draw.polygon(s, (240, 176, 110), [(2, 5), (10, 5), (8, 1), (4, 1)])   # lamp
-    s.fill((255, 226, 170), (3, 4, 6, 1))
-    s.fill((82, 74, 104), (5, 6, 2, 4))
-    s.fill((226, 140, 180), (22, 5, 4, 5))             # iced drink + straw
-    s.fill((250, 240, 250), (22, 5, 4, 1))
-    s.fill(Lofi.CYAN, (24, 1, 1, 4))
-    s.fill(Lofi.TERRACOTTA, (36, 7, 6, 3))             # tiny succulent
-    s.fill(Lofi.LEAF, (36, 4, 2, 3))
-    s.fill(Lofi.LEAF_LIGHT, (38, 3, 2, 4))
-    s.fill(Lofi.LEAF, (40, 5, 2, 2))
-    s.fill((150, 170, 210), (46, 4, 5, 6))             # tip jar
-    s.fill((200, 220, 250), (46, 4, 5, 1))
-    s.fill(Lofi.WARM, (48, 8, 2, 1))
-    s.fill((70, 66, 100), (58, 3, 16, 7))              # register
-    s.fill((24, 22, 40), (60, 4, 8, 3))
-    s.fill(scale_color(Lofi.CYAN, 0.7), (61, 5, 5, 1))
-    for i in range(3):
-        s.fill((120, 112, 150), (60 + i * 3, 8, 2, 1))
     return outlined(s)
 
 
@@ -256,27 +221,3 @@ class CoffeeTable(Prop):
             surf.fill((196, 186, 226) if i < 2 else (140, 132, 176), (x + dx, y + dy, 1, 1))
 
 
-class CafeCounter(Prop):
-    """The cafe counter: warm lamp glow and a blinking register light."""
-
-    def __init__(self, pos):
-        x, y = pos
-        sprite = make_counter()
-        glow = mask_glow(sprite, scale_color(Lofi.WARM, 0.5), spread=5, strength=0.3)
-        super().__init__(sprite, pos, (x + 1, y + 14, 80, 24), glow, (x - 5, y - 5))
-        self.lamp = radial_glow(16, (60, 38, 14), bands=5)
-        self.led = BlinkLED((72, 5), (150, 255, 180), period=2.4, duty=0.7)
-        self.time = 0.0
-
-    def update(self, dt):
-        self.time += dt
-
-    def draw(self, surf):
-        super().draw(surf)
-        self.led.draw(surf, self.pos, self.time)
-
-    def draw_glow(self, surf):
-        super().draw_glow(surf)
-        x, y = self.pos
-        surf.blit(self.lamp, (x + 7 - 16, y + 5 - 16), special_flags=pygame.BLEND_RGB_ADD)
-        self.led.draw_glow(surf, self.pos, self.time)

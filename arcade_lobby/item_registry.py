@@ -68,10 +68,6 @@ class ItemRegistry:
     def __len__(self):
         return len(self._items)
 
-    def in_category(self, category):
-        return [d for d in self if d.category == category]
-
-
 # Harmless test items for the inventory screen. They have no gameplay effect.
 _ITEMS = (
     ItemDefinition(

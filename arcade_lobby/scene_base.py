@@ -6,7 +6,7 @@ import math
 import pygame
 
 from font import get_font
-from settings import Col, TRANSITION_TIME, VIEW_H, VIEW_W
+from settings import Col, TRANSITION_TIME, VIEW_H
 
 
 class BaseScene:

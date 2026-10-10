@@ -10,7 +10,6 @@ import math
 
 import pygame
 
-from font import LINE_H, get_font
 from gfx import lerp_color, scale_color, shade
 from local_session import LocalSession
 from profile_manager import ProfileError, normalize_name

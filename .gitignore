@@ -1,39 +1,72 @@
-# Python
+# ---- Python ----
 __pycache__/
 *.py[cod]
 *$py.class
+*.so
 
-# Virtual environments
+# Virtual environments (each collaborator creates their own)
 .venv/
 venv/
 env/
+ENV/
 
-# Runtime save data (arcade_lobby/settings.py SAVE_FILE, plus its .tmp while saving)
+# ---- Runtime save data (per-player, never share) ----
+# arcade_lobby/settings.py SAVE_FILE, its .tmp/.migrated siblings, and per-profile saves
 arcade_lobby/save_data.json
 arcade_lobby/save_data.json.*
 arcade_lobby/saves/
 
-# Test/debug output
+# ---- Test / coverage / debug output ----
 .coverage
 .coverage.*
 htmlcov/
-
-# Tool caches
 .pytest_cache/
+.tox/
+.hypothesis/
+*.log
+*.prof
+
+# ---- Type checker / linter caches ----
 .mypy_cache/
 .ruff_cache/
+.pytype/
 
-# IDE/editor
-.vscode/
+# ---- Local secrets and config (personal, never commit) ----
+.env
+.env.*
+!.env.example
+*.local
+.claude/settings.local.json
+
+# ---- Editors / IDEs ----
+# Personal editor state is ignored; shared project settings may still be committed.
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+!.vscode/launch.json
 .idea/
 *.swp
 *.swo
+*~
+.vim/
+*.sublime-workspace
 
-# OS
+# ---- OS ----
 .DS_Store
 Thumbs.db
+desktop.ini
+*:Zone.Identifier
 
-# Build
+# ---- Build / packaging ----
 build/
 dist/
 *.egg-info/
+*.egg
+pip-wheel-metadata/
+
+# ---- Scratch files ----
+tmp/
+*.tmp
+*.bak
+*.orig
+*.rej

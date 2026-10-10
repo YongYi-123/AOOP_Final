@@ -1,5 +1,4 @@
 """Original neon court and original cat athletes using the lobby bitmap font."""
-import math
 import pygame
 from arcade_lobby.font import get_font
 from .model import FLOOR, NET_TOP, NET_X, MatchState

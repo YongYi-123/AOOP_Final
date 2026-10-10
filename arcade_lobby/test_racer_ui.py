@@ -268,7 +268,7 @@ class OverlayPlacementTests(RacerUITest):
         scene.racer.screen = tagged
         scene.racer.render()
         scene._draw_spectators(tagged)
-        changed = [(x, y) for y in range(0, 140) for x in range(0, 800, 2)
+        changed = [(x, y) for y in range(0, 200) for x in range(0, 800, 2)
                    if tagged.get_at((x, y)) != plain.get_at((x, y))]
         self.assertTrue(changed)
         xs, ys = [p[0] for p in changed], [p[1] for p in changed]

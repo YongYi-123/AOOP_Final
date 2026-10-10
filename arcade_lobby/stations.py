@@ -2,7 +2,6 @@
 board and the Lucky Corner machines. A Station is a Prop (so rooms depth-sort,
 collide with and light it like any furniture) that the player can walk up to
 and press E on; the scene calls `interact(scene)` once the flash has played."""
-import math
 
 import pygame
 

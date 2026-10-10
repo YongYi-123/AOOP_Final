@@ -17,7 +17,6 @@ bought and tokens cannot be cashed out.
 import random
 from dataclasses import dataclass
 
-import pygame
 
 from font import get_font
 from gfx import lerp_color, scale_color

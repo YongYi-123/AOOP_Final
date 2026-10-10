@@ -6,7 +6,6 @@ import math
 import random
 from dataclasses import dataclass, field
 import pygame
-import settings as S
 
 # ---- limited palette (roughly an 80s arcade set) --------------------------------------------------
 BLACK = (0, 0, 0)
@@ -399,7 +398,6 @@ SCENERY = {"tree": pine, "palm": palm, "bush": bush, "sign_l": sign_l, "sign_r":
 
 
 # ---- backdrop (built once per theme, blitted with parallax each frame) ---------------------------
-from dataclasses import dataclass, field
 
 
 @dataclass

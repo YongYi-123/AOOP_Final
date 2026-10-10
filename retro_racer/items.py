@@ -8,12 +8,11 @@ Every item implements the same interface, so nothing in Game / RaceField switche
     base_weight / rank_bias   how likely it is to be handed out, and how much that leans toward trailing racers
 """
 import math
-import random
 import pygame
 import settings as S
 from oil_spin import OilSpinEffect
 from effects import SpeedBoostEffect, SlowEffect, ShieldEffect, SpinEffect
-from assets import BLACK, WHITE, YELLOW, ORANGE, RED, CYAN, GREEN, GREY, NAVY
+from assets import WHITE, YELLOW, ORANGE, RED, CYAN, GREEN
 
 
 def wrap(d, length):

@@ -1,6 +1,6 @@
 import unittest
 import math
-from pixel_volleyball.model import VolleyMatch, VolleyBall, VolleyInput, FLOOR, NET_X
+from pixel_volleyball.model import VolleyMatch, VolleyBall, VolleyInput, NET_X
 
 
 class ContactTests(unittest.TestCase):

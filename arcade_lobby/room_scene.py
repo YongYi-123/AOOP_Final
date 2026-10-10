@@ -323,13 +323,6 @@ class BaseRoomScene(BaseScene):
             thing.highlight = False
             thing.flash_time = 0.0
 
-    @staticmethod
-    def _keys_down(controls=None):
-        """Movement keys physically held right now, so walking carries on
-        through a doorway instead of stopping dead."""
-        from controls import SOLO_CONTROLS
-        return (controls or SOLO_CONTROLS).held_now()
-
     def _end_play(self, ran):
         """Settle (or refund) the paid minigame that just closed. active_play
         is cleared first and a PlaySession ends only once, so this can never
@@ -688,9 +681,6 @@ class BaseRoomScene(BaseScene):
         return "WAITING FOR " + " AND ".join(f"PLAYER {p.number}" for p in self.waiting[1])
 
     # ------------------------------------------------------------ update
-    def _direction(self):
-        return self.player.direction
-
     def _is_busy(self, player):
         """Is this player held still by a window of theirs, the E-flash or a room change?"""
         return self.leaving or player.activating is not None or self.modal_owner is player

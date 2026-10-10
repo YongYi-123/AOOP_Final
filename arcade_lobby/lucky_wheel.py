@@ -117,7 +117,7 @@ class LuckyWheelGame(ChanceGame):
         self._draw_result(surf, font)
 
     def _draw_wheel(self, surf):
-        n, step = len(self.slices), self.slice_angle
+        step = self.slice_angle
         spinning = self.phase == self.PLAYING and self.spin_time < SPIN_TIME
         pygame.draw.circle(surf, scale_color(Col.MAGENTA, 0.35), CENTER, RADIUS + 7)
         for i, tokens in enumerate(self.slices):

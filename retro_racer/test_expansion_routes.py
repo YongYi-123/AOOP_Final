@@ -2,7 +2,6 @@ import os
 os.environ.setdefault('SDL_VIDEODRIVER','dummy')
 os.environ.setdefault('SDL_AUDIODRIVER','dummy')
 import unittest
-import math
 import pygame
 from tracks import TRACKS
 from game import Game

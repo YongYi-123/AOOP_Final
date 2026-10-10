@@ -1,6 +1,5 @@
 """Timed swings shared by human players and Sandra, independent of rendering."""
 from dataclasses import dataclass
-import math
 
 
 @dataclass

@@ -1,0 +1,12 @@
+# Let git normalise line endings for new files so Windows/WSL collaborators don't create
+# whitespace-only diffs. (Many existing files were committed with CRLF; they are left as-is.
+# To convert everything to LF in one dedicated commit: git add --renormalize . with eol=lf set.)
+* text=auto
+
+*.png binary
+*.jpg binary
+*.gif binary
+*.wav binary
+*.ogg binary
+*.mp3 binary
+*.ttf binary

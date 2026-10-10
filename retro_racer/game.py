@@ -27,7 +27,7 @@ from minimap import MiniMap
 from scenery import SCENERY_THEMES
 from scenery_select import SceneryGallery
 from progression import RacerProgression
-from garage_art import GaragePreview
+from garage_art import GaragePreview  # noqa: F401  (re-exported: arcade_lobby reads game.GaragePreview)
 
 IDLE = {"accelerate": False, "brake": False, "steer": 0}
 COAST = {"accelerate": False, "brake": True, "steer": 0}    # slow to a stop after the race ends

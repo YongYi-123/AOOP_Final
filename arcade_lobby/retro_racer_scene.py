@@ -58,6 +58,33 @@ RACER_KEYS = {
     "pause": pygame.K_p, "back": pygame.K_ESCAPE,
 }
 
+# The racer is laid out for this logical size (retro_racer/settings.py WIDTH x HEIGHT). It always
+# renders into its own surface of exactly this size, which is then scaled uniformly into whatever
+# the window offers, so the window size can never crop or stretch the game.
+RACER_SIZE = (800, 600)
+SPECTATOR_Y = 148           # logical y of the spectator tag: under the DISTANCE readout, clear of the HUD
+
+
+def fit_rect(source, target):
+    """The largest rect of `source`'s aspect ratio that fits in `target` (both (w, h)),
+    centred: uniform scale, letterboxed - never stretched."""
+    sw, sh = source
+    tw, th = target
+    scale = min(tw / sw, th / sh)
+    w, h = max(1, round(sw * scale)), max(1, round(sh * scale))
+    return pygame.Rect((tw - w) // 2, (th - h) // 2, w, h)
+
+
+def racer_key_labels(scheme):
+    """What the racer's screens should call this player's keys."""
+    return {
+        "accelerate": scheme.label("up"), "brake": scheme.label("down"),
+        "steer": f"{scheme.label('left')}  {scheme.label('right')}",
+        "confirm": scheme.label("interact", "confirm"), "back": "ESC",
+        "item": scheme.label("item"), "item_long": scheme.label("item", limit=3),
+        "resume": f"{scheme.label('menu', 'pause')}/ESC", "menu": "BACKSPACE", "quit": "Q",
+    }
+
 
 class RetroRacerScene(MinigameScene):
     full_resolution = True
@@ -70,6 +97,7 @@ class RetroRacerScene(MinigameScene):
     def __init__(self, game, machine):
         super().__init__(game, machine)
         self.leaving = False
+        self.surface = pygame.Surface(RACER_SIZE)       # the racer's own logical screen
         self.loading_drawn = False
         self.error = None
         self.results = RacerVisitResults()
@@ -117,7 +145,7 @@ class RetroRacerScene(MinigameScene):
         cls = type(self)
         try:
             game_mod, race_mod = load_retro_racer()
-            cls._racer = game_mod.Game(screen=self.game.screen)
+            cls._racer = game_mod.Game(screen=self.surface)
             cls._title_state = race_mod.State.TITLE
             self._restart()
         except Exception as exc:
@@ -137,7 +165,8 @@ class RetroRacerScene(MinigameScene):
 
     def _restart(self):
         r = self.racer
-        r.screen = self.game.screen
+        r.screen = self.surface
+        r.hud.keys.update(racer_key_labels(self.input.scheme))     # print the player's own keys
         from racing_progression.service import RacingGarage
         profile = self.participants[0] if self.participants else self.game.session.primary.profile
         r.configure_progression(RacingGarage(profile))
@@ -205,8 +234,35 @@ class RetroRacerScene(MinigameScene):
             self._draw_card(surf)
             self.loading_drawn = True
         else:
-            self.racer.screen = surf
+            self.racer.screen = self.surface
             self.racer.render()
+            self._draw_spectators(self.surface)
+            self._present(surf)
+
+    def _present(self, surf):
+        """Scale the racer's logical screen uniformly into `surf`, centred (letterboxed)."""
+        rect = fit_rect(RACER_SIZE, surf.get_size())
+        if rect.size == RACER_SIZE and rect.topleft == (0, 0):
+            surf.blit(self.surface, (0, 0))
+            return
+        surf.fill((0, 0, 0))
+        pygame.transform.smoothscale(self.surface, rect.size, surf.subsurface(rect))
+
+    def _draw_spectators(self, surf):
+        """A small 'P2 ALICE - SPECTATING' tag, always in free space: while racing, just under the DISTANCE
+        readout between the two HUD columns (clear of the stat blocks and the minimap); on the menu and
+        result screens, the bottom-right corner."""
+        if not self.spectators or self.racer.paused:      # (the pause card owns the centre)
+            return
+        text = "  ".join(f"{p.tag} - SPECTATING" for p in self.spectators)
+        img = get_font().render_glow(text, Col.TEXT_MUTED, (30, 24, 60), scale=2)
+        if self.racer.state.name in ("PLAYING", "COUNTDOWN"):
+            surf.blit(img, img.get_rect(midtop=(RACER_SIZE[0] // 2, SPECTATOR_Y)))
+        else:           # menus and result screens have no HUD: the bottom-right corner is free there
+            surf.blit(img, img.get_rect(bottomright=(RACER_SIZE[0] - 10, RACER_SIZE[1] - 6)))
+
+    def draw_overlay(self, surf, px=1):
+        pass            # the spectator tag is part of the racer's own screen (see _draw_spectators)
 
     def _draw_card(self, surf):
         surf.fill(Col.FADE)

@@ -1,6 +1,6 @@
 """Sparse original track hazards, generated independently of item/AI RNG."""
 import random
-from items import OilSlick, wrap
+from items import OilSlick
 
 
 class TrackOilSlick(OilSlick):

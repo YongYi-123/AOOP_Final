@@ -1,7 +1,7 @@
 """One profile owns each shop and garage. Inventory is the unlock ledger."""
 from dataclasses import dataclass
 from rewards import RewardService
-from .catalog import PRIZES, DEFAULTS, prize_for
+from .catalog import DEFAULTS, prize_for
 
 
 @dataclass(frozen=True)
@@ -36,10 +36,6 @@ class RacingGarage:
     def paint_color(self):
         prize = prize_for('paint',self.selected('paint'))
         return None if prize.free else prize.color
-
-    def owned_cars(self):
-        return tuple(p for p in PRIZES if p.kind == 'car' and self.owns('car',p.key))
-
 
 class PrizeService:
     def __init__(self,profile):

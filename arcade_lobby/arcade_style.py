@@ -16,7 +16,7 @@ import sys
 from dataclasses import dataclass, replace
 
 from gfx import lerp_color, scale_color
-from room_art import ROOM_THEMES, RoomTheme
+from room_art import ROOM_THEMES
 
 DEFAULT_STYLE = "neon_lofi"
 

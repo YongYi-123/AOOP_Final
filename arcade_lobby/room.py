@@ -1,11 +1,10 @@
 """Shared room furniture: the Prop base class (depth-sorted, collidable,
 glowing furniture), a few prop sprites and the wall collision rects."""
-import math
 
 import pygame
 
 from font import get_font
-from gfx import neon_rect_glow, outlined, shade, soft_shadow
+from gfx import outlined, shade, soft_shadow
 from settings import (Col, FLOOR_BOTTOM, FLOOR_TOP, SIDE_DOOR_H, SIDE_DOOR_Y,
                       VIEW_H, VIEW_W, WALL_SIDE)
 
@@ -41,22 +40,6 @@ def make_stool():
     return outlined(s)
 
 
-def make_table():
-    s = pygame.Surface((22, 24), pygame.SRCALPHA)
-    s.fill((70, 64, 100), (10, 8, 2, 14))
-    s.fill((90, 84, 124), (5, 21, 12, 3))
-    pygame.draw.ellipse(s, (30, 22, 56), (0, 5, 22, 10))
-    pygame.draw.ellipse(s, (60, 42, 108), (0, 4, 22, 9))
-    pygame.draw.ellipse(s, Col.MAGENTA, (0, 4, 22, 9), 1)
-    # a glowing soda and a slice of pizza
-    s.fill((120, 240, 255), (6, 0, 4, 7))
-    s.fill((255, 255, 255), (6, 0, 4, 1))
-    s.fill(Col.MAGENTA, (8, 0, 1, 1))
-    pygame.draw.polygon(s, Col.YELLOW, [(12, 6), (18, 6), (15, 10)])
-    s.fill((230, 70, 70), (14, 7, 1, 1))
-    return outlined(s)
-
-
 def make_vending():
     w, h = 30, 58
     s = pygame.Surface((w, h), pygame.SRCALPHA)
@@ -79,33 +62,6 @@ def make_vending():
     s.fill(Col.CYAN, (0, 0, w, 1))
     s.fill(Col.CYAN, (0, h - 2, w, 1))
     return outlined(s)
-
-
-def make_claw_base():
-    w, h = 36, 60
-    s = pygame.Surface((w, h), pygame.SRCALPHA)
-    s.fill((70, 20, 80), (0, 34, w, h - 34))               # base cabinet
-    s.fill((50, 14, 60), (3, 38, w - 6, h - 42))
-    s.fill((16, 10, 36), (1, 4, w - 2, 30))                # glass box
-    s.fill((60, 40, 110), (1, 0, w - 2, 5))                # roof
-    s.fill(Col.MAGENTA, (0, 0, w, 1))
-    s.fill(Col.MAGENTA, (0, 34, w, 1))
-    for x in (0, w - 1):
-        s.fill(Col.MAGENTA, (x, 0, 1, h))
-    # plushies in the pile (one is a tiny cat!)
-    for x, c in ((4, (255, 140, 190)), (11, (120, 220, 255)), (18, (255, 214, 90)),
-                 (25, (160, 240, 150)), (8, (190, 150, 255)), (21, (255, 120, 120))):
-        y = 26 if x in (8, 21) else 29
-        pygame.draw.circle(s, c, (x + 3, y), 3)
-        s.fill(Col.OUTLINE, (x + 2, y - 1, 1, 1))
-        s.fill(Col.OUTLINE, (x + 4, y - 1, 1, 1))
-    pygame.draw.circle(s, (246, 164, 86), (29, 25), 3)
-    pygame.draw.polygon(s, (246, 164, 86), [(26, 23), (27, 20), (29, 23)])
-    pygame.draw.polygon(s, (246, 164, 86), [(29, 23), (31, 20), (32, 23)])
-    s.fill((200, 240, 255), (3, 6, 1, 18))                 # glass shine
-    s.fill(Col.YELLOW, (8, 40, 20, 5))                     # prize chute sign
-    s.fill((16, 10, 36), (12, 49, 12, 8))
-    return s
 
 
 def make_prize_counter():
@@ -172,30 +128,6 @@ class Prop:
     def draw_glow(self, surf):
         if self.glow:
             surf.blit(self.glow, self.glow_pos, special_flags=pygame.BLEND_RGB_ADD)
-
-
-class ClawMachine(Prop):
-    """Prize grabber whose claw lazily swings back and forth."""
-
-    def __init__(self, pos, glow_strength=0.45):
-        x, y = pos
-        glow = neon_rect_glow(36, 60, Col.MAGENTA, 8, glow_strength)
-        super().__init__(outlined(make_claw_base()), (x - 1, y - 1),
-                         (x, FLOOR_TOP, 36, y + 60 - FLOOR_TOP), glow, (x - 8, y - 8))
-        self.time = 0.0
-
-    def update(self, dt):
-        self.time += dt
-
-    def draw(self, surf):
-        super().draw(surf)
-        x, y = self.pos[0] + 1, self.pos[1] + 1
-        cx = x + 18 + int(math.sin(self.time * 0.9) * 11)
-        drop = int(max(0.0, math.sin(self.time * 0.45)) * 6)
-        surf.fill((170, 170, 200), (cx, y + 5, 1, 6 + drop))
-        surf.fill((220, 220, 240), (cx - 2, y + 11 + drop, 5, 1))
-        surf.fill((220, 220, 240), (cx - 2, y + 12 + drop, 1, 2))
-        surf.fill((220, 220, 240), (cx + 2, y + 12 + drop, 1, 2))
 
 
 # ------------------------------------------------------------------------ walls

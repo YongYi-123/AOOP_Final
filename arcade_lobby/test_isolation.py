@@ -22,7 +22,7 @@ from local_session import LocalSession  # noqa: E402
 from minigame import PlayerResult  # noqa: E402
 from player_profile import PlayerProfile  # noqa: E402
 from rewards import PlaySession, RewardBundle, RewardService  # noqa: E402
-from retro_racer_scene import RACER_KEYS, RetroRacerScene  # noqa: E402
+from retro_racer_scene import RetroRacerScene  # noqa: E402
 from room_testing import goto_room  # noqa: E402
 from scenes import MinigamePlaceholderScene, minigame_definition  # noqa: E402
 from stations import ChanceStation, DailyBoard  # noqa: E402

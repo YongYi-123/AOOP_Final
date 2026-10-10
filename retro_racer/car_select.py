@@ -1,7 +1,7 @@
 """CarSelectMenu: cursor state and drawing for the CAR SELECT screen (no physics in here)."""
 import pygame
 import assets
-from assets import YELLOW, WHITE, CYAN, RED
+from assets import YELLOW, CYAN, RED
 from car_specs import BAR_SEGMENTS, player_livery
 
 STAGE = pygame.Rect(30, 150, 400, 260)

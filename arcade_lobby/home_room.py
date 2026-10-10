@@ -42,7 +42,6 @@ class HomeBackdrop(HubBackdrop):
     SCONCES = (100, 214)
 
     def paint_room(self, surf):
-        t = self.theme
         # window sill with a tiny cactus (the window itself is animated)
         surf.fill((70, 56, 108), (WINDOW.x - 2, WINDOW.bottom, WINDOW.w + 4, 2))
         surf.fill((40, 32, 70), (WINDOW.x - 1, WINDOW.bottom + 2, WINDOW.w + 2, 1))

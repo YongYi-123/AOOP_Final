@@ -1,0 +1,5 @@
+# Runtime dependencies for the arcade lobby and all integrated minigames
+# (arcade_lobby, retro_racer, pixel_volleyball, cat_territory, cat_minesweeper).
+# Everything else used is the Python standard library; tests use unittest, so no test tools needed.
+# Note: pygame-ce is the community fork and must not be installed alongside the original "pygame".
+pygame-ce>=2.5

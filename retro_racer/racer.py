@@ -5,7 +5,6 @@
                 the ItemManager. It is the "world" that items and AI drivers query.
 """
 import random
-import pygame
 import settings as S
 from car import DrivenCar, draw_car_rear
 from car_specs import CAR_CATALOG, pick_liveries

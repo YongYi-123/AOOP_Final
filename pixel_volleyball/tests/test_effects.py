@@ -4,7 +4,7 @@ import unittest
 from unittest.mock import patch
 import pygame
 from pixel_volleyball.effects import SmashTrail
-from pixel_volleyball.model import VolleyBall, VolleyInput
+from pixel_volleyball.model import VolleyBall
 from pixel_volleyball.game import VolleyGame
 from pixel_volleyball.cat_art import CatAnimation, CatAthleteRenderer
 from pixel_volleyball.audio import VolleySounds
