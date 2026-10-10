@@ -28,7 +28,7 @@ class CatAthleteRenderer:
 
     def draw(self, surface, player, match):
         state = self.state(player, match)
-        fur = (245, 180, 105) if player.side == 0 else (155, 175, 225)
+        fur = (235, 235, 242) if player.side == 0 else (38, 38, 48)
         scarf = (90, 240, 255) if player.side == 0 else (255, 110, 210)
         x, y = round(player.x), round(player.y)
         wave = math.sin(match.elapsed * (18 if state is CatAnimation.MOVE else 5))
@@ -40,13 +40,19 @@ class CatAthleteRenderer:
                           [(x+tail*10,y+7),(x+tail*18,y+3),(x+tail*18,y-2+int(wave*3))], 3)
         pygame.draw.rect(surface, (30, 20, 40), (x-12,y-12,24,23))
         pygame.draw.rect(surface, fur, (x-10,y-11,20,21))
+        patch = (38,38,48) if player.side == 0 else (235,235,242)
+        pygame.draw.rect(surface,patch,(x-10,y-11,9,8))
+        pygame.draw.rect(surface,(245,245,250),(x-2,y-4,5,13))
         for dx in (-10, 5):
             pygame.draw.polygon(surface, fur, [(x+dx,y-9),(x+dx,y-19),(x+dx+6,y-10)])
             pygame.draw.line(surface, (255, 135, 170), (x+dx+2,y-15),(x+dx+3,y-11),2)
-        pygame.draw.rect(surface, (255, 230, 195), (x-6,y+1,12,8))
+        pygame.draw.rect(surface, (235, 235, 242), (x-6,y+1,12,8))
         blink = int(match.elapsed*2)%11 == 10 and state is CatAnimation.IDLE
         for dx in (-5, 4):
             pygame.draw.rect(surface, (25, 20, 45), (x+dx,y-6,2,1 if blink else 3))
+        for direction in (-1,1):
+            pygame.draw.line(surface,(190,190,210),(x+direction*5,y-1),(x+direction*13,y-3),1)
+            pygame.draw.line(surface,(190,190,210),(x+direction*5,y+1),(x+direction*13,y+2),1)
         pygame.draw.rect(surface, (230, 100, 140), (x-1,y-1,3,2))
         pygame.draw.line(surface, scarf, (x-10,y+1),(x+10,y+1),3)
         for direction in (-1, 1):

@@ -24,6 +24,7 @@ class VolleyAI:
         self.wait = 0
         self.decisions = 0
         self.target = 290
+        self.jump_wait = 0.0
 
     @staticmethod
     def predict(ball):
@@ -46,6 +47,7 @@ class VolleyAI:
     def controls(self, player, ball, dt=1/120):
         from .model import VolleyInput
         self.wait -= dt
+        self.jump_wait = max(0, self.jump_wait - dt)
         if self.wait <= 0:
             self.decisions += 1
             error = self.difficulty.error * math.sin(self.decisions * 1.7)
@@ -56,7 +58,11 @@ class VolleyAI:
         move = 0 if abs(delta) < 4 else (1 if delta > 0 else -1)
         near = abs(ball.x - player.x) < 28 and ball.x > 207
         # A jump takes ~0.2 seconds to meet a descending ball above the net.
-        jump = near and 125 < ball.y < 205 and -100 < ball.vy < 220
+        jump = (near and 125 < ball.y < 205 and 0 < ball.vy < 220
+                and player.y >= 258-player.radius and player.hit_cooldown == 0
+                and self.jump_wait == 0)
+        if jump:
+            self.jump_wait = 1.1
         spike = (self.difficulty.attack and near and player.y < 190
                  and ball.y < 156 and ball.vy > -100)
         return VolleyInput(move, jump, spike)

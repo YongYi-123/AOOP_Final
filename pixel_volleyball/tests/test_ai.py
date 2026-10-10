@@ -63,3 +63,17 @@ class AITests(unittest.TestCase):
         self.assertIn('hit', results['NORMAL'])
         self.assertIn('hit', results['HARD'])
         self.assertIn('point', results['EASY'])
+
+    def test_sandra_does_not_rejump_while_airborne_or_after_hit(self):
+        match = VolleyMatch()
+        player = match.players[1]
+        ai = VolleyAI()
+        ball = VolleyBall(player.x,180,0,80)
+        self.assertTrue(ai.controls(player,ball).jump)
+        self.assertFalse(ai.controls(player,ball).jump)
+        player.y = 180
+        ai.jump_wait = 0
+        self.assertFalse(ai.controls(player,ball).jump)
+        player.y = 244
+        player.hit_cooldown = .1
+        self.assertFalse(ai.controls(player,ball).jump)
