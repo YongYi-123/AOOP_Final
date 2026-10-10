@@ -1,7 +1,8 @@
-"""Connected colored regions grown around a guaranteed legal cat placement."""
+"""Connected 8x8 puzzles verified by independent search and logical deduction."""
 from dataclasses import dataclass
 import random
 from .solver import TerritorySolver
+from .logic import TerritoryLogic
 
 
 @dataclass(frozen=True)
@@ -20,7 +21,7 @@ class TerritoryGenerator:
         def search(chosen):
             if len(chosen) == size:
                 return chosen
-            candidates = list(set(range(size))-set(chosen))
+            candidates = sorted(set(range(size)) - set(chosen))
             self.rng.shuffle(candidates)
             for column in candidates:
                 if chosen and abs(column-chosen[-1]) <= 1:
@@ -30,72 +31,47 @@ class TerritoryGenerator:
                     return result
         return search([])
 
-    def _refine(self, grid, placement):
-        """Remove alternate solutions by legal boundary transfers of non-seed cells."""
-        size = len(grid)
-        seeds = {(x,y) for y,x in enumerate(placement)}
-        seen = set()
-        for _ in range(size*size):
-            regions = tuple(tuple(row) for row in grid)
-            if regions in seen:
-                break
-            seen.add(regions)
-            solutions = TerritorySolver.solutions(regions)
-            if len(solutions) == 1:
-                return regions, True
-            alternate = next(solution for solution in solutions if solution != tuple(placement))
-            candidates = [(x,y) for y,x in enumerate(alternate) if (x,y) not in seeds]
-            self.rng.shuffle(candidates)
-            changed = False
-            for x,y in candidates:
-                old = grid[y][x]
-                cells = {(cx,cy) for cy,row in enumerate(grid) for cx,color in enumerate(row)
-                         if color == old and (cx,cy) != (x,y)}
-                reached = set()
-                pending = [next(iter(cells))]
-                while pending:
-                    cx,cy = pending.pop()
-                    if (cx,cy) in reached:
-                        continue
-                    reached.add((cx,cy))
-                    pending.extend(p for p in ((cx-1,cy),(cx+1,cy),(cx,cy-1),(cx,cy+1))
-                                   if p in cells and p not in reached)
-                if reached != cells:
-                    continue
-                colors = [grid[ny][nx] for nx,ny in ((x-1,y),(x+1,y),(x,y-1),(x,y+1))
-                          if 0 <= nx < size and 0 <= ny < size and grid[ny][nx] != old]
-                if colors:
-                    grid[y][x] = self.rng.choice(colors)
-                    changed = True
-                    break
-            if not changed:
-                break
-        return tuple(tuple(row) for row in grid), False
+    @staticmethod
+    def connected(grid, color):
+        cells = {(x,y) for y,row in enumerate(grid) for x,c in enumerate(row) if c == color}
+        if not cells:
+            return False
+        pending, reached = [next(iter(cells))], set()
+        while pending:
+            x,y = pending.pop()
+            if (x,y) in reached:
+                continue
+            reached.add((x,y))
+            pending.extend(p for p in ((x-1,y),(x+1,y),(x,y-1),(x,y+1))
+                           if p in cells and p not in reached)
+        return reached == cells
 
-    def generate(self, size):
-        if size not in (6,8,10):
-            raise ValueError('territory sizes are 6, 8 or 10')
-        best = None
-        for _ in range(self.attempts):
-            placement = self._placement(size)
-            grid = [[-1]*size for _ in range(size)]
-            frontier = []
-            for row, column in enumerate(placement):
-                grid[row][column] = row
-                frontier.append((column,row))
-            while frontier:
-                x,y = frontier.pop(self.rng.randrange(len(frontier)))
-                for nx,ny in ((x-1,y),(x+1,y),(x,y-1),(x,y+1)):
-                    if 0 <= nx < size and 0 <= ny < size and grid[ny][nx] == -1:
-                        grid[ny][nx] = grid[y][x]
-                        frontier.append((nx,ny))
-            regions, unique = self._refine(grid, placement)
-            solutions = TerritorySolver.solutions(regions)
-            if not solutions:
-                raise RuntimeError('generator lost its planted legal solution')
-            best = TerritoryPuzzle(regions,tuple(placement),len(solutions)==1)
-            if best.unique:
-                return best
-        # A bounded generator always returns a solvable board. Alternate legal
-        # solutions are intentionally accepted when uniqueness was not found.
-        return best
+    def generate(self, size=8):
+        if size != 8:
+            raise ValueError('Cat Territory uses a single 8x8 board')
+        placement = self._placement(size)
+        seeds = {(x,y) for y,x in enumerate(placement)}
+        # Seven isolated clues and one connected background provide a guaranteed
+        # logical starting puzzle. Grow boundaries only when deduction survives.
+        grid = [[7]*8 for _ in range(8)]
+        for y,x in enumerate(placement[:-1]):
+            grid[y][x] = y
+        for _ in range(self.attempts * 2):
+            x,y = self.rng.randrange(8), self.rng.randrange(8)
+            if (x,y) in seeds:
+                continue
+            old = grid[y][x]
+            colors = sorted({grid[ny][nx] for nx,ny in ((x-1,y),(x+1,y),(x,y-1),(x,y+1))
+                             if 0 <= nx < 8 and 0 <= ny < 8 and grid[ny][nx] != old})
+            if not colors:
+                continue
+            new = self.rng.choice(colors)
+            grid[y][x] = new
+            if not self.connected(grid, old) or not TerritoryLogic.solve(grid).solved:
+                grid[y][x] = old
+        regions = tuple(tuple(row) for row in grid)
+        solutions = TerritorySolver.solutions(regions, limit=2)
+        logical = TerritoryLogic.solve(regions)
+        if len(solutions) != 1 or not logical.solved or any(not self.connected(grid,c) for c in range(8)):
+            raise RuntimeError('generated puzzle failed independent validation')
+        return TerritoryPuzzle(regions, solutions[0], True)

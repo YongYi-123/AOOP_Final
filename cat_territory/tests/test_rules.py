@@ -7,7 +7,7 @@ from cat_territory.solver import TerritorySolver
 
 class TerritoryTests(unittest.TestCase):
     def test_generated_boards_are_solvable_connected_and_have_n_regions(self):
-        for size in (6,8,10):
+        for size in (8,):
             for seed in range(4):
                 puzzle = TerritoryGenerator(random.Random(seed)).generate(size)
                 self.assertTrue(TerritorySolver.solutions(puzzle.regions))
@@ -27,14 +27,14 @@ class TerritoryTests(unittest.TestCase):
         x = board.puzzle.solution[0]
         self.assertTrue(board.toggle_cat(x,0))
         for hearts in (2,1,0):
-            self.assertFalse(board.toggle_cat((x+1)%6,0))
+            self.assertFalse(board.toggle_cat((x+1)%8,0))
             self.assertEqual(board.hearts,hearts)
         self.assertIs(board.state,BoardState.LOST)
         self.assertEqual(board.outcome.tickets,0)
         self.assertFalse(board.toggle_cat(x,0))
 
     def test_alternate_legal_solution_is_accepted(self):
-        regions=tuple(tuple([y]*6) for y in range(6))
+        regions=tuple(tuple([y]*8) for y in range(8))
         solutions=TerritorySolver.solutions(regions)
         self.assertEqual(len(solutions),2)
         puzzle=TerritoryPuzzle(regions,solutions[0],False)
@@ -43,18 +43,18 @@ class TerritoryTests(unittest.TestCase):
             self.assertTrue(board.toggle_cat(x,y))
         self.assertIs(board.state,BoardState.WON)
         self.assertEqual(board.hearts,3)
-        self.assertEqual(board.outcome.tickets,10)
+        self.assertEqual(board.outcome.tickets,20)
 
     def test_adjacency_row_column_and_region_constraints(self):
-        regions=tuple(tuple([y]*6) for y in range(6))
+        regions=tuple(tuple([y]*8) for y in range(8))
         cats={(2,2)}
         for point in ((0,2),(2,5),(3,3),(1,1)):
             self.assertTrue(TerritoryRules.conflicts(regions,cats,point))
         self.assertFalse(TerritoryRules.conflicts(regions,cats,(4,3)))
 
     def test_unique_flag_matches_solver_and_generation_is_deterministic(self):
-        a=TerritoryGenerator(random.Random(5)).generate(6)
-        b=TerritoryGenerator(random.Random(5)).generate(6)
+        a=TerritoryGenerator(random.Random(5)).generate(8)
+        b=TerritoryGenerator(random.Random(5)).generate(8)
         self.assertEqual(a,b)
         self.assertEqual(a.unique,len(TerritorySolver.solutions(a.regions))==1)
 

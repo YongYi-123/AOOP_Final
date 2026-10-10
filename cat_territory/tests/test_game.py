@@ -41,10 +41,10 @@ class TerritoryGameTests(unittest.TestCase):
         game=self.game()
         for y,x in enumerate(game.board.puzzle.solution): game.place_cat(x,y)
         self.assertIs(game.board.state,BoardState.WON)
-        self.assertEqual(game.outcome().tickets,10)
+        self.assertEqual(game.outcome().tickets,20)
         game.confirm()
         for y,x in enumerate(game.board.puzzle.solution): game.place_cat(x,y)
-        self.assertEqual(game.outcome().tickets,10)
+        self.assertEqual(game.outcome().tickets,20)
         game.draw(pygame.Surface((400,300)))
 
     def test_mark_and_cat_cancel_without_losing_hearts(self):

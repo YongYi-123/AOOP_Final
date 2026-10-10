@@ -11,7 +11,7 @@ class Difficulty:
     win_tickets: int
 
 
-DIFFICULTIES = (Difficulty(6,'EASY 6X6',10),Difficulty(8,'NORMAL 8X8',20),Difficulty(10,'HARD 10X10',35))
+DIFFICULTIES = (Difficulty(8,'8X8 TERRITORY',20),)
 
 
 class BoardState(Enum):
