@@ -108,7 +108,7 @@ class Hud:
         self.text(surf, f"{km:5.2f} KM", (S.WIDTH - 230, 110), YELLOW, self.big, align="right")
         hot = player.hit_cooldown > 0
         if manager.mode is GameMode.ENDLESS:
-            self.text(surf, "SURVIVAL TIME", (S.WIDTH // 2, 8), CYAN, align="center")
+            self.text(surf, "SURVIVAL TIME", (S.WIDTH // 2, 8), CYAN, self.small, align="center")
             self.text(surf, fmt_time(manager.elapsed), (S.WIDTH // 2, 30), YELLOW, self.huge, align="center")
             self.text(surf, "LEVEL", (S.WIDTH - 230, 12), CYAN, align="right")
             self.text(surf, f"{manager.level}", (S.WIDTH - 230, 38), YELLOW, self.big, align="right")
