@@ -57,3 +57,11 @@ class TerritoryTests(unittest.TestCase):
         b=TerritoryGenerator(random.Random(5)).generate(6)
         self.assertEqual(a,b)
         self.assertEqual(a.unique,len(TerritorySolver.solutions(a.regions))==1)
+
+    def test_region_rule_and_diagonals_are_independent_of_rows_columns(self):
+        regions=[[y]*6 for y in range(6)]
+        regions[3][2]=regions[0][0]
+        self.assertTrue(TerritoryRules.conflicts(regions,{(0,0)},(2,3)))
+        self.assertTrue(TerritoryRules.conflicts(regions,{(0,0)},(1,1)))
+        # Far diagonals are legal: this is adjacent-cat logic, not chess queens.
+        self.assertFalse(TerritoryRules.conflicts(regions,{(0,0)},(3,3)))
