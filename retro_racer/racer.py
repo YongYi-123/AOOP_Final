@@ -217,7 +217,7 @@ class RaceField:
     def hostile(self, target, effect):
         """Apply a hostile effect to `target` (a shield may swallow it). Player gets a sound event either way."""
         landed = target.receive_hostile(effect)
-        self.emit(target, "hit" if landed else "shield")
+        self.emit(target, getattr(effect, "sound", "hit") if landed else "shield")
         return landed
 
     REMOTE_EVENTS = ("item", "hit", "shield")      # AI item use is heard, quietly, only when it is close

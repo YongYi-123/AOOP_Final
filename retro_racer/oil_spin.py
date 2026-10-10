@@ -5,6 +5,8 @@ from effects import SlowEffect
 class OilSpinEffect(SlowEffect):
     """Reuse oil's speed penalty and restore steering after one smooth revolution."""
 
+    sound = "skid"
+
     def __init__(self):
         super().__init__(1.8, speed=0.55, grip=0.0)
 

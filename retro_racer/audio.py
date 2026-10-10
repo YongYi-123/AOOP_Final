@@ -72,6 +72,7 @@ class Audio:
         "gameover": (lambda: _seq((392, 330, 262, 196), 0.2, wave=_saw, vol=1.0), 1.0, "race"),
         "pickup": (lambda: _seq((1047, 1319, 1568), 0.05, vol=0.7), 0.9, "item"),      # item box collected
         "item": (lambda: [v * (1 - i / 6000) for i, v in enumerate(_tone(300, 0.27, wave=_saw, vol=0.9, fade=False))], 0.9, "item"),
+        "skid": (lambda: _seq((480, 320, 160), 0.08, wave=_saw), 0.8, "item"),
         "hit": (lambda: _seq((520, 380, 240, 160), 0.05, wave=_saw, vol=1.0), 1.0, "item"),   # hostile item landed on you
         "shield": (lambda: _seq((880, 1320), 0.06, vol=0.8), 0.9, "item"),                   # shield swallowed a hit
         "tick": (lambda: _tone(660, 0.04, vol=0.7), 0.8, "ui"),          # menu cursor
@@ -86,6 +87,7 @@ class Audio:
     def __init__(self, volume=None):
         self.enabled = False
         self.muted = False
+        self.external_gain = 1.0
         self.volume = S.VOLUME if volume is None else volume
         self.sounds, self.loops, self.channels = {}, [], []
         self.channel_loop = [None, None]
@@ -93,11 +95,13 @@ class Audio:
         self.last_played = {}
         self.duck_left = 0.0
         try:
-            pygame.mixer.quit()
-            pygame.mixer.init(RATE, -16, 1, 512, allowedchanges=0)
+            if not pygame.mixer.get_init():
+                pygame.mixer.init(RATE, -16, 1, 512, allowedchanges=0)
+            if pygame.mixer.get_init()[1] != -16:
+                raise pygame.error("unsupported sample format")
             self.stereo = pygame.mixer.get_init()[2] == 2
-            pygame.mixer.set_num_channels(8)
-            pygame.mixer.set_reserved(2)                       # channels 0-1 belong to the engine
+            pygame.mixer.set_num_channels(max(16, pygame.mixer.get_num_channels()))
+            pygame.mixer.set_reserved(4)                       # channels 0-1 belong to the engine
             self.channels = [pygame.mixer.Channel(0), pygame.mixer.Channel(1)]
             self.sounds = {name: (self._make(fn()), base) for name, (fn, base, _) in self.SFX.items()}
             self.loops = [self._make(_engine_loop(c)) for c in ENGINE_CYCLES]
@@ -107,6 +111,10 @@ class Audio:
             self.enabled = False
 
     def _make(self, samples):
+        rate = pygame.mixer.get_init()[0]
+        if rate != RATE:
+            samples = [samples[min(len(samples) - 1, int(i * RATE / rate))]
+                       for i in range(int(len(samples) * rate / RATE))]
         data = array.array("h", (int(max(-1.0, min(1.0, v)) * 32000) for v in samples))
         if self.stereo:
             data = array.array("h", (v for v in data for _ in (0, 1)))
@@ -115,7 +123,7 @@ class Audio:
     # ---- volume -----------------------------------------------------------------------------------
     @property
     def master(self):
-        return 0.0 if self.muted else self.volume
+        return 0.0 if self.muted else self.volume * self.external_gain
 
     def change_volume(self, delta):
         self.volume = round(max(0.0, min(1.0, self.volume + delta)), 2)
