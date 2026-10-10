@@ -2,6 +2,7 @@
 from dataclasses import dataclass
 from enum import Enum
 import math
+from .ai import VolleyAI
 
 WIDTH, HEIGHT, FLOOR, NET_X, NET_TOP = 400, 300, 258, 200, 162
 GRAVITY = 620.0
@@ -50,19 +51,8 @@ class MatchOutcome:
     elapsed: float
 
 
-class VolleyAI:
-    """Track a projected landing point and jump for nearby descending balls."""
-    def controls(self, player, ball):
-        target = ball.x + ball.vx * 0.18 if ball.x > NET_X else 290
-        target = max(222, min(366, target))
-        move = 0 if abs(target - player.x) < 7 else (1 if target > player.x else -1)
-        near = abs(ball.x - player.x) < 40 and ball.x > NET_X
-        return VolleyInput(move, near and ball.y < 205 and ball.vy > -60,
-                           near and player.y < FLOOR - 30)
-
-
 class VolleyMatch:
-    def __init__(self, local_players=1, target=5):
+    def __init__(self, local_players=1, target=5, difficulty="NORMAL"):
         if local_players not in (1, 2) or target < 1:
             raise ValueError("volleyball needs 1-2 players and a positive target")
         self.local_players, self.target = local_players, target
@@ -72,7 +62,7 @@ class VolleyMatch:
         self.elapsed = 0.0
         self.outcome = None
         self.events = []
-        self.ai = VolleyAI()
+        self.ai = VolleyAI(difficulty)
         self._serve(0)
 
     def _serve(self, side):
@@ -106,7 +96,7 @@ class VolleyMatch:
             inputs = list(controls[:self.local_players])
             inputs.extend([VolleyInput()] * (self.local_players - len(inputs)))
             if self.local_players == 1:
-                inputs.append(self.ai.controls(self.players[1], self.ball))
+                inputs.append(self.ai.controls(self.players[1], self.ball, step))
             self._step(step, inputs)
             remaining -= step
 
@@ -188,6 +178,8 @@ class VolleyMatch:
         spike = player.spike_time > 0 and player.y < FLOOR - player.radius - 8
         if spike:
             ball.vx, ball.vy = direction * 285, 90
+            if player.side == 1 and self.local_players == 1:
+                ball.vx, ball.vy = self.ai.attack_velocity(ball, self.players[0])
         player.hit_flash = .2
         player.hit_cooldown = 0.18
         self.events.append("spike" if spike else "hit")
