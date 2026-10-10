@@ -30,6 +30,8 @@ class VolleyPlayer:
     radius: int = 14
     hit_cooldown: float = 0
     spike_time: float = 0
+    moving: float = 0
+    hit_flash: float = 0
 
 
 @dataclass
@@ -97,7 +99,10 @@ class VolleyMatch:
             return
         remaining = min(dt, 0.1)
         while remaining > 1e-8 and self.state is MatchState.PLAYING:
-            step = min(remaining, 1 / 120)
+            # Relative travel stays below half the yarn radius, including
+            # unusually fast shots; both net and player tests see contact.
+            speed = math.hypot(self.ball.vx, self.ball.vy) + 500
+            step = min(remaining, 1 / 120, self.ball.radius * .5 / speed)
             inputs = list(controls[:self.local_players])
             inputs.extend([VolleyInput()] * (self.local_players - len(inputs)))
             if self.local_players == 1:
@@ -110,9 +115,11 @@ class VolleyMatch:
         for player, control in zip(self.players, inputs):
             lo, hi = ((20 + player.radius, NET_X - 4 - player.radius) if player.side == 0
                       else (NET_X + 4 + player.radius, WIDTH - 20 - player.radius))
+            player.moving = max(-1, min(1, control.move))
+            player.hit_flash = max(0, player.hit_flash - dt)
             player.x = max(lo, min(hi, player.x + max(-1, min(1, control.move)) * 155 * dt))
             if control.jump and player.y >= FLOOR - player.radius:
-                player.vy = -270
+                player.vy = -330
             player.vy += GRAVITY * dt
             player.y = min(FLOOR - player.radius, player.y + player.vy * dt)
             if player.y == FLOOR - player.radius:
@@ -162,7 +169,17 @@ class VolleyMatch:
         dx, dy = ball.x - player.x, ball.y - player.y
         distance = math.hypot(dx, dy)
         radius = ball.radius + player.radius
-        if distance >= radius or player.hit_cooldown > 0:
+        if distance >= radius:
+            return
+        if player.hit_cooldown > 0:
+            # Suppress repeated hits, never let a cooldown erase the body.
+            ux, uy = (dx / distance, dy / distance) if distance > 1e-8 else (0, -1)
+            ball.x = player.x + ux * (radius + .1)
+            ball.y = player.y + uy * (radius + .1)
+            inward = ball.vx * ux + (ball.vy - player.vy) * uy
+            if inward < 0:
+                ball.vx -= inward * ux
+                ball.vy -= inward * uy
             return
         direction = 1 if player.side == 0 else -1
         ball.y = player.y - radius - 0.1
@@ -171,6 +188,7 @@ class VolleyMatch:
         spike = player.spike_time > 0 and player.y < FLOOR - player.radius - 8
         if spike:
             ball.vx, ball.vy = direction * 285, 90
+        player.hit_flash = .2
         player.hit_cooldown = 0.18
         self.events.append("spike" if spike else "hit")
 
