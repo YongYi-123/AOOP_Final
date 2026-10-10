@@ -66,6 +66,7 @@ class TerritoryGame:
     def place_cat(self,x,y):
         if not self.active:
             return False
+        self.clicks.clear()
         placed = self.board.toggle_cat(x,y)
         if not placed:
             self.error_left = .6

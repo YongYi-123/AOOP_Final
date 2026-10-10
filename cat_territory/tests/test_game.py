@@ -54,3 +54,12 @@ class TerritoryGameTests(unittest.TestCase):
         game.place_cat(0,0); game.place_cat(0,0)
         self.assertEqual(game.board.cats,set())
         self.assertEqual(game.board.hearts,3)
+
+    def test_keyboard_placement_cancels_pending_mouse_mark(self):
+        game=self.game()
+        game.click(game.layout.cell_rect(0,0).center,1)
+        game.confirm()
+        game.update(.4)
+        self.assertIn((0,0),game.board.cats)
+        self.assertNotIn((0,0),game.board.marks)
+        self.assertEqual(game.board.hearts,3)

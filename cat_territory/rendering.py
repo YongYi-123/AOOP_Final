@@ -50,7 +50,7 @@ class TerritoryRenderer:
             return
         board=game.board
         for i in range(3):
-            x=21+i*15
+            x=21+i*18
             color=(255,110,155) if i<board.hearts else (60,40,65)
             pygame.draw.polygon(surface,color,[(x,39),(x-5,34),(x-5,29),(x,27),(x+3,30),
                                               (x+6,27),(x+11,29),(x+11,34),(x+3,42)])
