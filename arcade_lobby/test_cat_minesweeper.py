@@ -63,22 +63,22 @@ class CatTerritoryLobbyTests(unittest.TestCase):
         self.assertNotIn((0,0),self.scene.territory.board.marks)
         self.assertEqual(self.scene.territory.board.hearts,3)
 
-    def test_every_difficulty_launches_and_records_win_score(self):
+    def test_fixed_board_replays_and_records_best_score(self):
         self.start()
         for index in range(3):
             if index:
                 self.key(pygame.K_BACKSPACE)
-                self.key(pygame.K_DOWN)
-            self.key(pygame.K_RETURN)
-            self.assertEqual(self.scene.territory.board.size, (6, 8, 10)[index])
+            else:
+                self.key(pygame.K_RETURN)
+            self.assertEqual(self.scene.territory.board.size, 8)
             self.win()
         result = self.scene.get_result().player_results[0]
-        self.assertEqual(result.reward.tickets, 35)
+        self.assertEqual(result.reward.tickets, 20)
         self.leave()
-        self.assertEqual(self.profiles[0].tickets, 35)
+        self.assertEqual(self.profiles[0].tickets, 20)
         self.assertEqual(self.profiles[0].high_score("cat_minesweeper"), result.score)
         self.frames(10)
-        self.assertEqual(self.profiles[0].tickets, 35)
+        self.assertEqual(self.profiles[0].tickets, 20)
 
     def test_second_player_can_play_and_spectator_is_not_rewarded(self):
         self.start(True, starter=1)
@@ -90,7 +90,7 @@ class CatTerritoryLobbyTests(unittest.TestCase):
         self.assertIsNone(result.for_profile(self.profiles[0].profile_id))
         self.leave()
         self.assertEqual(self.profiles[0].tickets, 0)
-        self.assertEqual(self.profiles[1].tickets, 10)
+        self.assertEqual(self.profiles[1].tickets, 20)
 
     def test_abandonment_and_loss_return_without_tickets(self):
         self.start()

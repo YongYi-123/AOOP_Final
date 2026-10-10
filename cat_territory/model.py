@@ -11,7 +11,7 @@ class Difficulty:
     win_tickets: int
 
 
-DIFFICULTIES = (Difficulty(8,'8X8 TERRITORY',20),)
+BOARD_RULES = Difficulty(8,'8X8 TERRITORY',20)
 
 
 class BoardState(Enum):
@@ -45,7 +45,7 @@ class TerritoryRules:
 
 
 class TerritoryBoard:
-    def __init__(self, difficulty=DIFFICULTIES[0], rng=None, puzzle=None):
+    def __init__(self, difficulty=BOARD_RULES, rng=None, puzzle=None):
         self.difficulty, self.size = difficulty, difficulty.size
         self.puzzle = puzzle or TerritoryGenerator(rng).generate(self.size)
         self.regions = self.puzzle.regions

@@ -32,19 +32,15 @@ class CatTerritoryScene(MinigameScene):
                 self.leaving = True
                 self.game.scenes.pop()
             elif event.key == pygame.K_BACKSPACE:
-                self.territory.select_difficulty()
+                self.territory.restart()
             elif action == "interact" or (event.key in (pygame.K_RETURN, pygame.K_KP_ENTER)
                                           and not self.game.session.player_for_key(event.key)):
                 self.territory.confirm()
             elif action in ("menu", "pause"):
                 self.territory.toggle_pause()
             elif action in ("up", "down", "left", "right"):
-                if self.territory.selecting:
-                    if action in ("up", "down"):
-                        self.territory.move_selection(-1 if action == "up" else 1)
-                else:
-                    dx,dy = {"up":(0,-1),"down":(0,1),"left":(-1,0),"right":(1,0)}[action]
-                    self.territory.move_cursor(dx,dy)
+                dx,dy = {"up":(0,-1),"down":(0,1),"left":(-1,0),"right":(1,0)}[action]
+                self.territory.move_cursor(dx,dy)
             elif action == "item":
                 self.territory.clicks.clear()
                 self.territory.mark(*self.territory.cursor)

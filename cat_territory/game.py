@@ -1,5 +1,5 @@
 """Puzzle lifecycle, deferred mouse input and best-result settlement."""
-from .model import TerritoryBoard, TerritoryOutcome, BoardState, DIFFICULTIES
+from .model import TerritoryBoard, TerritoryOutcome, BoardState, BOARD_RULES
 from .input import TerritoryClickRouter
 from .rendering import TerritoryGridLayout, TerritoryRenderer
 from cat_minesweeper.audio import MineSounds
@@ -8,7 +8,6 @@ from cat_minesweeper.audio import MineSounds
 class TerritoryGame:
     def __init__(self,rng=None):
         self.rng = rng
-        self.difficulty_index = 0
         self.board = TerritoryBoard(rng=rng)
         self.layout = TerritoryGridLayout(self.board.size)
         self.renderer = TerritoryRenderer()
@@ -19,14 +18,10 @@ class TerritoryGame:
         self.best = None
         self.cursor = (0,0)
 
-    def move_selection(self,step):
-        if self.selecting:
-            self.difficulty_index = (self.difficulty_index+step)%len(DIFFICULTIES)
-
     def restart(self):
         self.observe_result()
         self.clicks.clear()
-        self.board = TerritoryBoard(DIFFICULTIES[self.difficulty_index],self.rng)
+        self.board = TerritoryBoard(BOARD_RULES,self.rng)
         self.layout = TerritoryGridLayout(self.board.size)
         self.selecting, self.paused = False,False
         self.cursor = (0,0)
@@ -44,11 +39,6 @@ class TerritoryGame:
         self.clicks.clear()
         if not self.selecting and self.board.outcome is None:
             self.paused = not self.paused
-
-    def select_difficulty(self):
-        self.observe_result()
-        self.clicks.clear()
-        self.selecting,self.paused = True,False
 
     @property
     def active(self):

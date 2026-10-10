@@ -2,7 +2,7 @@
 import pygame
 from arcade_lobby.font import get_font
 from cat_minesweeper.rendering import MineGridLayout
-from .model import DIFFICULTIES,BoardState
+from .model import BoardState
 
 PALETTE=((68,133,163),(156,73,117),(88,148,98),(141,100,174),(169,126,63),
          (67,143,142),(155,82,67),(104,109,177),(145,139,70),(135,83,142))
@@ -32,6 +32,13 @@ class TerritoryRenderer:
         for dx in (-3,3):
             pygame.draw.rect(surface,(100,210,175),(x+dx,y-1,2,1 if blink else 2))
         surface.fill((255,135,170),(x,y+2,2,2))
+        for dx in (-4,4):
+            pygame.draw.line(surface,(190,190,210),(x+dx,y+3),(x+dx*2,y+2))
+        pygame.draw.lines(surface,(240,240,245),False,[(x+5,y+5),(x+9,y+4),(x+9,y)],2)
+        pygame.draw.rect(surface,(30,30,40),(x-4,y+5,3,3))
+        pygame.draw.rect(surface,(30,30,40),(x+2,y+5,3,3))
+        for direction in (-1,1):
+            pygame.draw.line(surface,(255,135,170),(x+direction*4,y-5),(x+direction*4,y-3))
 
     def draw(self,surface,game):
         surface.fill((12,7,30))
@@ -39,14 +46,10 @@ class TerritoryRenderer:
             surface.fill((20+y//30,10,40+y//20),(0,y,400,3))
         self.text(surface,'CAT TERRITORY',(200,16),(255,110,210),2)
         if game.selecting:
-            for i,difficulty in enumerate(DIFFICULTIES):
-                rect=pygame.Rect(65,55+i*44,270,36)
-                pygame.draw.rect(surface,(35,25,60),rect)
-                pygame.draw.rect(surface,(255,224,90) if i==game.difficulty_index else (100,70,135),rect,2)
-                self.text(surface,difficulty.name,rect.center,scale=2)
+            self.text(surface,'ONE 8X8 PUZZLE',(200,80),(255,224,90),2)
             for i,line in enumerate(('ONE CAT PER COLOR, ROW AND COLUMN','CATS CANNOT TOUCH, EVEN DIAGONALLY',
-                                     'CLICK: X   DOUBLE CLICK: CAT','UP/DOWN SELECT  E/ENTER PLAY')):
-                self.text(surface,line,(200,201+i*22))
+                                     'CLICK: X   DOUBLE CLICK: CAT','E/ENTER PLAY')):
+                self.text(surface,line,(200,135+i*28))
             return
         board=game.board
         for i in range(3):
@@ -61,7 +64,7 @@ class TerritoryRenderer:
             for x,color in enumerate(row):
                 rect=game.layout.cell_rect(x,y).inflate(-1,-1)
                 pygame.draw.rect(surface,PALETTE[color],rect)
-                # Region borders and numeric tags supplement the color palette.
+                # Color and boundaries identify territories; no numbered cells.
                 for dx,dy,edge in ((-1,0,'left'),(1,0,'right'),(0,-1,'top'),(0,1,'bottom')):
                     nx,ny=x+dx,y+dy
                     if not board.contains(nx,ny) or board.regions[ny][nx]!=color:
@@ -76,17 +79,15 @@ class TerritoryRenderer:
                 elif (x,y) in board.marks:
                     pygame.draw.line(surface,(230,220,240),rect.topleft,rect.bottomright,2)
                     pygame.draw.line(surface,(230,220,240),rect.topright,rect.bottomleft,2)
-                else:
-                    self.text(surface,str(color+1),rect.center,(185,185,210))
                 if (x,y)==game.cursor:
                     pygame.draw.rect(surface,(255,224,90),rect,1)
                 if game.error_left>0 and (x,y)==board.error_cell:
                     pygame.draw.rect(surface,(255,60,90),rect,3)
         self.text(surface,'CLICK X / DOUBLE CAT   ARROWS MOVE   E CAT',(200,282))
-        self.text(surface,'SPACE X   MENU PAUSE   BACKSPACE LEVEL   ESC LOBBY',(200,295))
+        self.text(surface,'SPACE X   MENU PAUSE   BACKSPACE RESTART   ESC LOBBY',(200,295))
         if game.paused or board.outcome:
             pygame.draw.rect(surface,(15,10,35),(30,110,340,75))
             pygame.draw.rect(surface,(255,110,210),(30,110,340,75),2)
             title='CAT NAP - PAUSED' if game.paused else 'PURRFECT TERRITORY!' if board.state is BoardState.WON else 'NO HEARTS LEFT!'
             self.text(surface,title,(200,130),(255,224,90),2)
-            self.text(surface,'E/ENTER RESUME' if game.paused else 'E/ENTER REPLAY  BACKSPACE LEVEL',(200,162))
+            self.text(surface,'E/ENTER RESUME' if game.paused else 'E/ENTER REPLAY  BACKSPACE RESTART',(200,162))
