@@ -23,6 +23,8 @@ from difficulty import DIFFICULTIES, DEFAULT_DIFFICULTY
 from drift_effects import DriftEffects
 from tracks import TRACKS
 from minimap import MiniMap
+from scenery import SCENERY_THEMES
+from scenery_select import SceneryGallery
 
 IDLE = {"accelerate": False, "brake": False, "steer": 0}
 COAST = {"accelerate": False, "brake": True, "steer": 0}    # slow to a stop after the race ends
@@ -53,7 +55,8 @@ class Game:
         self.hud.prewarm()
         self.audio = Audio()
         self.tuner = Tuner(on_change=self._on_tune)
-        self.themes = TrackThemeManager()
+        self.themes = TrackThemeManager(SCENERY_THEMES)
+        self.scenery_gallery = SceneryGallery(self.themes)
         self.theme = self.themes.themes[0]
         self.selected_theme = self.theme            # confirmed scenery
         self.theme_index = 0
@@ -458,6 +461,8 @@ class Game:
             cards = [(track.name, preview, track.tagline)
                      for track, preview in zip(self.tracks, self.track_previews[size])]
             hud.draw_track_select(scr, cards, self.track_index, self.time, self.theme.name)
+            self.scenery_gallery.draw(scr, hud, self.road.route, self.theme_index,
+                                      self.manager.uses_markers)
         else:
             hud.draw_end(scr, self.manager, state, self.time, self.end_time)
 
