@@ -7,7 +7,7 @@ from types import SimpleNamespace as NS
 os.environ.setdefault("SDL_VIDEODRIVER", "dummy")
 os.environ.setdefault("SDL_AUDIODRIVER", "dummy")
 
-from drift_effects import DriftEffects, DriftState
+from drift_effects import DriftEffects, DriftState, SkidMark
 import pygame
 
 
@@ -77,3 +77,29 @@ class SmokeTests(unittest.TestCase):
         surface.fill((0, 0, 0))
         effects.draw_smoke(surface)
         self.assertFalse(any(pygame.image.tobytes(surface, "RGB")))
+
+
+class SkidTests(unittest.TestCase):
+    def test_only_high_speed_braking_emits_world_marks(self):
+        effects = DriftEffects()
+        effects.update(0.1, *inputs(brake=False))
+        self.assertEqual(effects.road_drawables(), [])
+        effects.update(0.1, *inputs(speed=0.3, brake=True))
+        self.assertEqual(effects.road_drawables(), [])
+        player, road, controls = inputs(brake=True)
+        player.front_z = road.length - 20
+        effects.update(0.1, player, road, controls)
+        self.assertEqual(effects.road_drawables()[0].z, 50)
+        for _ in range(20):
+            effects.update(0.1, *inputs(speed=0))
+        self.assertEqual(effects.road_drawables(), [])
+
+    def test_projected_marks_scale_with_road_and_reset_clears(self):
+        surface = pygame.Surface((800, 600))
+        mark = SkidMark(0, 1000, 1, 1)
+        mark.draw(surface, 400, 570, 750)
+        self.assertTrue(any(pygame.image.tobytes(surface, "RGB")))
+        effects = DriftEffects()
+        effects.update(0.1, *inputs(brake=True))
+        effects.reset()
+        self.assertEqual((effects.skids, effects.smoke), ([], []))

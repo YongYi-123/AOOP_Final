@@ -7,6 +7,27 @@ import pygame
 
 
 @dataclass
+class SkidMark:
+    """Road drawable with the same x/z projection contract as traffic cars."""
+    x: float
+    z: float
+    width: float
+    strength: float
+    age: float = 0.0
+    lifetime: float = 1.2
+
+    def draw(self, surf, cx, bottom, road_width):
+        width = road_width * 0.2 * self.width
+        shade = int(35 + 55 * min(1, self.age / self.lifetime))
+        thickness = max(1, int(width * 0.065 * min(1, self.strength)))
+        length = max(2, int(width * 0.22))
+        for side in (-1, 1):
+            x = int(cx + side * width * 0.35)
+            pygame.draw.line(surf, (shade, shade, shade), (x, int(bottom) - length),
+                             (x, int(bottom)), thickness)
+
+
+@dataclass
 class TireSmoke:
     x: float
     y: float
@@ -63,6 +84,8 @@ class DriftEffects:
         self.offset = 0.0
         self.smoke = []
         self._smoke_time = 0.0
+        self.skids = []
+        self._skid_time = 0.0
 
     @property
     def rear_offset(self):
@@ -77,6 +100,9 @@ class DriftEffects:
         for puff in self.smoke:
             puff.update(dt)
         self.smoke = [p for p in self.smoke if p.age < p.lifetime]
+        for mark in self.skids:
+            mark.age += dt
+        self.skids = [mark for mark in self.skids if mark.age < mark.lifetime]
         self.state = DriftState.detect(player.speed_percent, controls["steer"],
                                        road.segment_at(player.front_z).curve, controls["brake"])
         target = self.state.amount if self.intensity else 0.0
@@ -84,7 +110,18 @@ class DriftEffects:
         if not self.intensity:
             self.smoke.clear()
             self._smoke_time = 0
+            self.skids.clear()
+            self._skid_time = 0
             return
+        if self.state.braking:
+            self._skid_time += dt
+            if self._skid_time >= 0.035:
+                self._skid_time %= 0.035
+                self.skids.append(SkidMark(player.x, (player.front_z + 70) % road.length,
+                                           player.spec.width, self.intensity))
+                self.skids = self.skids[-64:]
+        else:
+            self._skid_time = 0
         if abs(self.state.amount) > 0.15 or self.state.braking:
             self._smoke_time += dt
             while self._smoke_time >= 0.04:
@@ -100,3 +137,6 @@ class DriftEffects:
         if self.intensity:
             for puff in self.smoke:
                 puff.draw(surf, (surf.get_width() / 2, surf.get_height() - 30), self.intensity)
+
+    def road_drawables(self):
+        return list(self.skids) if self.intensity else []
