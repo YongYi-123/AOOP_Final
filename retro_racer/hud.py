@@ -261,9 +261,10 @@ class Hud:
                 self.text(surf, ">", (cx - 250, y), RED, self.huge, "center")
                 self.text(surf, "<", (cx + 250, y), RED, self.huge, "center")
 
-    def draw_track_select(self, surf, cards, index, t):
+    def draw_track_select(self, surf, cards, index, t, scenery=""):
         """cards: [(name, preview_surface, tagline)]."""
-        self.menu_frame(surf, "SELECT TRACK", "LEFT/RIGHT SELECT     ENTER OK     ESC BACK")
+        self.menu_frame(surf, "SELECT TRACK", "UP/DOWN TRACK  LEFT/RIGHT SCENERY  ENTER OK  ESC BACK")
+        self.text(surf, f"SCENERY: {scenery}", (S.WIDTH // 2, 160), CYAN, self.small, "center")
         n, gap = len(cards), 16
         w = cards[0][1].get_width()
         x0 = (S.WIDTH - (n * w + (n - 1) * gap)) // 2

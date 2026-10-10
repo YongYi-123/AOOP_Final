@@ -1,5 +1,9 @@
 import math
 import unittest
+import os
+
+os.environ.setdefault("SDL_VIDEODRIVER", "dummy")
+os.environ.setdefault("SDL_AUDIODRIVER", "dummy")
 
 from tracks import TRACKS, CURVE_GAIN
 
@@ -44,3 +48,28 @@ class RouteTests(unittest.TestCase):
         self.assertIs(TRACKS[0].build(), TRACKS[0].build())
         with self.assertRaises(ValueError):
             TRACKS[0].build(0)
+
+
+class RoadRouteTests(unittest.TestCase):
+    def test_road_uses_exact_route_curves_and_updates_markers(self):
+        from road import Road
+        from theme import SUBURBS
+        import settings as S
+        for track in TRACKS:
+            route = track.build(S.SEGMENT_LENGTH)
+            road = Road(SUBURBS, route=route)
+            self.assertIs(road.route, route)
+            self.assertEqual(tuple(s.curve for s in road.segments), route.curves)
+            self.assertEqual(road.length, route.length)
+            self.assertEqual(road.checkpoint_z, [int(f * len(route.curves)) * S.SEGMENT_LENGTH
+                                                for f in S.CHECKPOINT_FRACTIONS])
+            self.assertEqual(road.segment_at(road.length).index, 0)
+
+    def test_scenery_and_marker_switch_preserve_geometry(self):
+        from road import Road
+        from theme import SUBURBS, BEACH
+        road = Road(SUBURBS)
+        before = [(s.z, s.curve) for s in road.segments]
+        road.apply(BEACH, markers=False)
+        self.assertEqual([(s.z, s.curve) for s in road.segments], before)
+        self.assertFalse(any(s.checkpoint or s.start_line for s in road.segments))

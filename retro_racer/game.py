@@ -21,6 +21,7 @@ from tuning import Tuner
 from audio import Audio
 from difficulty import DIFFICULTIES, DEFAULT_DIFFICULTY
 from drift_effects import DriftEffects
+from tracks import TRACKS
 
 IDLE = {"accelerate": False, "brake": False, "steer": 0}
 COAST = {"accelerate": False, "brake": True, "steer": 0}    # slow to a stop after the race ends
@@ -53,9 +54,12 @@ class Game:
         self.tuner = Tuner(on_change=self._on_tune)
         self.themes = TrackThemeManager()
         self.theme = self.themes.themes[0]
-        self.selected_theme = self.theme            # confirmed track; browsing in TRACK_SELECT doesn't change it
+        self.selected_theme = self.theme            # confirmed scenery
+        self.theme_index = 0
+        self.tracks = TRACKS
+        self.track = self.selected_track = self.tracks[0]
         self.mode = GameMode.COMPETITIVE
-        self.road = Road(self.theme, markers=True)
+        self.road = Road(self.theme, markers=True, route=self.track.build(S.SEGMENT_LENGTH))
         self.traffic = TrafficManager(self.road)
         self.managers = {GameMode.COMPETITIVE: RaceManager(self.road, self.traffic), GameMode.ENDLESS: EndlessManager()}
         self.scene = pygame.Surface((S.WIDTH, S.HEIGHT))
@@ -83,7 +87,14 @@ class Game:
 
     # ---- setup / reset ------------------------------------------------------
     def apply_look(self):
-        """Re-skin the road and pick the backdrop for the current theme + mode (geometry never changes)."""
+        """Apply circuit + scenery; rebuild geometry-dependent managers on route changes."""
+        if self.road.route.key != self.track.key:
+            self.road = Road(self.theme, markers=self.manager.uses_markers,
+                             route=self.track.build(S.SEGMENT_LENGTH))
+            self.traffic = TrafficManager(self.road)
+            self.managers = {GameMode.COMPETITIVE: RaceManager(self.road, self.traffic),
+                             GameMode.ENDLESS: EndlessManager()}
+            self.reset()
         self.road.apply(self.theme, markers=self.manager.uses_markers)
         self.backdrop = self.themes.backdrop(self.theme, S.WIDTH, S.HEIGHT // 2)
 
@@ -213,12 +224,14 @@ class Game:
             self.audio.play("select")
         elif self.state is State.MODE_SELECT:
             self.mode = MODE_MENU[self.mode_index][0]
-            self.track_index = self.themes.themes.index(self.theme)
+            self.track_index = self.tracks.index(self.track)
+            self.theme_index = self.themes.themes.index(self.theme)
             self.apply_look()               # markers depend on the mode
             self.state = State.TRACK_SELECT
             self.audio.play("select")
         elif self.state is State.TRACK_SELECT:
-            self.theme = self.selected_theme = self.themes.themes[self.track_index]
+            self.selected_track = self.track
+            self.selected_theme = self.theme
             self.car_menu.select(self.selected_car_spec)
             self.player.spec = self.car_menu.selected       # the road behind the menu shows the highlighted car
             self.state = State.CAR_SELECT
@@ -236,10 +249,12 @@ class Game:
             self.state = State.TITLE
         elif self.state is State.CAR_SELECT:
             self.player.spec = self.selected_car_spec       # cancelled: forget the previewed car
-            self.track_index = self.themes.themes.index(self.selected_theme)
+            self.track_index = self.tracks.index(self.selected_track)
+            self.theme_index = self.themes.themes.index(self.selected_theme)
             self.state = State.TRACK_SELECT
         elif self.state is State.TRACK_SELECT:
-            self.theme = self.selected_theme                # cancelled: forget the track we were only browsing
+            self.theme = self.selected_theme
+            self.track = self.selected_track                # discard an unconfirmed circuit preview
             self.apply_look()
             self.state = State.MODE_SELECT
         elif self.state in (State.FINISHED, State.GAME_OVER):
@@ -267,8 +282,12 @@ class Game:
             else:
                 self.mode_index = (self.mode_index + step) % len(MODE_MENU)
         elif self.state is State.TRACK_SELECT:
-            self.track_index = (self.track_index + step) % len(self.themes)
-            self.theme = self.themes.themes[self.track_index]      # background previews the highlighted track
+            if horizontal:
+                self.theme_index = (self.theme_index + step) % len(self.themes)
+                self.theme = self.themes.themes[self.theme_index]
+            else:
+                self.track_index = (self.track_index + step) % len(self.tracks)
+                self.track = self.tracks[self.track_index]
             self.apply_look()
         elif self.state is State.CAR_SELECT:
             self.car_menu.move(step)
@@ -408,7 +427,7 @@ class Game:
         hud, scr, state = self.hud, self.screen, self.state
         if state in (State.PLAYING, State.COUNTDOWN):
             hud.draw_hud(scr, self.player, self.manager)
-            hud.draw_track_name(scr, self.theme.name, self.manager.mode_note())
+            hud.draw_track_name(scr, self.track.name, self.manager.mode_note())
             if state is State.PLAYING:
                 hud.draw_banner(scr, self.manager)
                 if self.go_time > 0:
@@ -423,9 +442,10 @@ class Game:
         elif state is State.CAR_SELECT:
             self.car_menu.draw(hud, scr, self.time)
         elif state is State.TRACK_SELECT:
-            size = hud.card_size(len(self.themes))
-            cards = [(th.name, self.themes.preview(th, *size), th.tagline) for th in self.themes.themes]
-            hud.draw_track_select(scr, cards, self.track_index, self.time)
+            size = hud.card_size(len(self.tracks))
+            cards = [(track.name, self.themes.preview(self.theme, *size), track.tagline)
+                     for track in self.tracks]
+            hud.draw_track_select(scr, cards, self.track_index, self.time, self.theme.name)
         else:
             hud.draw_end(scr, self.manager, state, self.time, self.end_time)
 
