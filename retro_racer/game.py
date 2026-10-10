@@ -351,6 +351,11 @@ class Game:
         self.state = self.manager.update(dt, self.player)
         self.manager.apply_difficulty(self.traffic, self.player)
         for event in self.manager.pop_events():     # racer collisions, item pickups / hits
+            if event == "bump":
+                self.drift.trigger_impact(self.player)
+                self.shake = S.SHAKE_TIME
+                self.audio.play("crash")
+                continue
             if event == "crash":
                 self.shake = S.SHAKE_TIME
             self.audio.play(event)

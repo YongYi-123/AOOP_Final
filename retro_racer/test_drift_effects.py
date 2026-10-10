@@ -18,23 +18,28 @@ def inputs(speed=1.0, steer=1, curve=3, brake=False):
 
 
 class DriftStateTests(unittest.TestCase):
-    def test_only_high_speed_turns_drift(self):
-        self.assertEqual(DriftState.detect(0.4, 1, 4, True), DriftState())
-        self.assertEqual(DriftState.detect(1, 0, 0, False).amount, 0)
-        self.assertGreater(DriftState.detect(1, 1, 3, False).amount, 0)
-        self.assertLess(DriftState.detect(1, -1, -3, False).amount, 0)
+    def test_normal_high_speed_turns_never_trigger_drift(self):
+        effects = DriftEffects()
+        for _ in range(120):
+            effects.update(1 / 60, *inputs())
+        self.assertEqual((effects.rear_offset, effects.yaw, effects.smoke), (0, 0, []))
 
     def test_hard_braking_is_separate_from_drift(self):
-        state = DriftState.detect(1, 0, 0, True)
+        state = DriftState.detect(1, True)
         self.assertTrue(state.braking)
         self.assertEqual(state.amount, 0)
+        effects = DriftEffects()
+        effects.update(0.1, *inputs(steer=0, curve=0, brake=True))
+        self.assertEqual(effects.smoke, [])
 
     def test_smoothing_does_not_snap_and_recovers(self):
         effects = DriftEffects()
-        effects.update(1 / 60, *inputs())
+        player, road, controls = inputs()
+        player.collisions = 1
+        effects.update(1 / 60, player, road, controls)
         self.assertTrue(0 < effects.rear_offset < 16)
         for _ in range(120):
-            effects.update(1 / 60, *inputs(speed=0))
+            effects.update(1 / 60, player, road, controls)
         self.assertAlmostEqual(effects.rear_offset, 0, places=5)
 
     def test_intensity_zero_disables_offset(self):
@@ -62,22 +67,29 @@ class DriftStateTests(unittest.TestCase):
 class SmokeTests(unittest.TestCase):
     def test_smoke_emits_expires_and_stays_bounded(self):
         effects = DriftEffects()
-        for _ in range(600):
-            effects.update(1 / 60, *inputs())
+        player, road, controls = inputs()
+        for frame in range(600):
+            if frame % 30 == 0:
+                player.collisions += 1
+            effects.update(1 / 60, player, road, controls)
         self.assertTrue(0 < len(effects.smoke) <= 80)
         for _ in range(60):
-            effects.update(1 / 60, *inputs(speed=0))
+            effects.update(1 / 60, player, road, controls)
         self.assertEqual(effects.smoke, [])
 
     def test_visual_rng_does_not_change_gameplay_rng(self):
         before = random.getstate()
         effects = DriftEffects()
-        effects.update(0.1, *inputs())
+        player, road, controls = inputs()
+        player.collisions = 1
+        effects.update(0.1, player, road, controls)
         self.assertEqual(random.getstate(), before)
 
     def test_draw_is_visible_and_disabled_is_empty(self):
         effects = DriftEffects()
-        effects.update(0.1, *inputs())
+        player, road, controls = inputs()
+        player.collisions = 1
+        effects.update(0.1, player, road, controls)
         surface = pygame.Surface((800, 600))
         effects.draw_smoke(surface)
         self.assertTrue(any(pygame.image.tobytes(surface, "RGB")))
@@ -122,6 +134,14 @@ class SkidTests(unittest.TestCase):
 
 
 class CollisionTests(unittest.TestCase):
+    def test_collision_triggers_even_at_low_speed_and_follows_push(self):
+        effects = DriftEffects()
+        player, road, controls = inputs(speed=0.1)
+        player.collisions, player.push = 1, -1
+        effects.update(0.1, player, road, controls)
+        self.assertLess(effects.rear_offset, 0)
+        self.assertGreater(len(effects.smoke), 0)
+
     def test_one_burst_per_collision_and_expiry(self):
         effects = DriftEffects()
         player, road, controls = inputs(speed=0)

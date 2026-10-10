@@ -25,11 +25,11 @@ class DriftIntegrationTests(unittest.TestCase):
         self.game.player.speed = self.game.player.max_speed
         self.controls = {"accelerate": False, "brake": False, "steer": 1}
 
-    def test_game_loop_draws_drift_and_braking_marks(self):
+    def test_game_loop_keeps_normal_turn_and_braking_marks(self):
         for _ in range(10):
             self.game.update(1 / 60, self.controls)
-        self.assertNotEqual(self.game.drift.rear_offset, 0)
-        self.assertGreater(len(self.game.drift.smoke), 0)
+        self.assertEqual(self.game.drift.rear_offset, 0)
+        self.assertEqual(self.game.drift.smoke, [])
         self.controls["brake"] = True
         for _ in range(3):
             self.game.update(1 / 60, self.controls)
@@ -51,7 +51,20 @@ class DriftIntegrationTests(unittest.TestCase):
         self.game.update(1 / 60, self.controls)
         self.assertEqual(self.game.drift.sparks, [])
 
+    def test_ai_rear_end_nudge_triggers_visuals_without_new_crash_count(self):
+        field = self.game.manager.field
+        ai = field.racers[0]
+        ai.z, ai.x = self.game.player.front_z - 100, self.game.player.x
+        field.entities = [self.game.player, ai]
+        field._collide_entities()
+        self.assertIn("bump", field.events)
+        self.assertEqual(self.game.player.collisions, 0)
+        self.game.update(1 / 60, self.controls)
+        self.assertGreater(len(self.game.drift.sparks), 0)
+        self.assertNotEqual(self.game.drift.rear_offset, 0)
+
     def test_pause_freezes_visuals_and_restart_clears(self):
+        self.game.player.collide(PlayerCar())
         for _ in range(10):
             self.game.update(1 / 60, self.controls)
         ages = [p.age for p in self.game.drift.smoke]

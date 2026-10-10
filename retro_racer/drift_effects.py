@@ -78,13 +78,9 @@ class DriftState:
     braking: bool = False
 
     @classmethod
-    def detect(cls, speed, steer, curve, brake):
+    def detect(cls, speed, brake, impact=0.0):
         speed = max(0.0, min(1.0, speed))
-        if speed <= 0.55:
-            return cls()
-        turn = max(-1.0, min(1.0, steer * 0.75 + curve * 0.18))
-        amount = turn * (speed - 0.55) / 0.45 if abs(turn) > 0.2 else 0.0
-        return cls(amount, bool(brake))
+        return cls(max(-1.0, min(1.0, impact)), bool(brake) and speed > 0.55)
 
 
 class DriftEffects:
@@ -112,6 +108,20 @@ class DriftEffects:
         self._skid_time = 0.0
         self.sparks = []
         self._collisions = 0
+        self._impact_left = 0.0
+        self._impact_direction = 1.0
+
+    def trigger_impact(self, player):
+        """Visual notification for a physical collision, including a rear-end nudge."""
+        if not self.intensity:
+            return
+        self._impact_left = 0.65
+        self._impact_direction = -1.0 if getattr(player, "push", 0) < 0 else 1.0
+        for _ in range(max(1, int(18 * self.intensity))):
+            self.sparks.append(CollisionSpark(self.rear_offset, -40,
+                                              self.rng.uniform(-180, 180),
+                                              self.rng.uniform(-130, 70)))
+        self.sparks = self.sparks[-72:]
 
     @property
     def rear_offset(self):
@@ -134,9 +144,12 @@ class DriftEffects:
         self.sparks = [spark for spark in self.sparks if spark.age < spark.lifetime]
         crashed = player.collisions > self._collisions
         self._collisions = player.collisions
+        self._impact_left = max(0.0, self._impact_left - dt)
+        if crashed and active:
+            self.trigger_impact(player)
         braking = controls["brake"] and not controls.get("accelerate", False)
-        self.state = (DriftState.detect(player.speed_percent, controls["steer"],
-                                        road.segment_at(player.front_z).curve, braking)
+        self.state = (DriftState.detect(player.speed_percent, braking,
+                                        self._impact_direction * self._impact_left / 0.65)
                       if active else DriftState())
         target = self.state.amount if self.intensity else 0.0
         self.offset += (target - self.offset) * (1 - math.exp(-10 * max(0.0, dt)))
@@ -146,13 +159,8 @@ class DriftEffects:
             self.skids.clear()
             self._skid_time = 0
             self.sparks.clear()
+            self._impact_left = 0.0
             return
-        if crashed and active:
-            for _ in range(max(1, int(18 * self.intensity))):
-                self.sparks.append(CollisionSpark(self.rear_offset, -40,
-                                                  self.rng.uniform(-180, 180),
-                                                  self.rng.uniform(-130, 70)))
-            self.sparks = self.sparks[-72:]
         if self.state.braking:
             self._skid_time += dt
             if self._skid_time >= 0.035:
@@ -162,7 +170,7 @@ class DriftEffects:
                 self.skids = self.skids[-64:]
         else:
             self._skid_time = 0
-        if abs(self.state.amount) > 0.15 or self.state.braking:
+        if abs(self.state.amount) > 0.15:
             self._smoke_time += dt
             while self._smoke_time >= 0.04:
                 self._smoke_time -= 0.04
