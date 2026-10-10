@@ -8,67 +8,67 @@ class AITests(unittest.TestCase):
         self.assertAlmostEqual(VolleyAI.predict(VolleyBall(300, 180, 0, 50)), 300)
         self.assertLess(VolleyAI.predict(VolleyBall(350, 170, 250, 100)), 350)
 
-    def test_reaction_intervals_and_accuracy(self):
+    def test_reaction_is_limited_with_bounded_prediction_error(self):
         player = VolleyMatch().players[1]
         ball = VolleyBall(250, 180, 0, 80)
-        brains = [VolleyAI(name) for name in ('EASY', 'NORMAL', 'HARD')]
-        for ai in brains:
-            for _ in range(120):
-                ai.controls(player, ball, 1/120)
-        self.assertLess(brains[0].decisions, brains[1].decisions)
-        self.assertLess(brains[1].decisions, brains[2].decisions)
-        self.assertEqual(brains[2].target, 250)
-        self.assertGreater(abs(brains[0].target-250), 5)
+        ai = VolleyAI()
+        for _ in range(120):
+            ai.controls(player, ball, 1/120)
+        self.assertTrue(8 <= ai.decisions <= 12)
+        self.assertLessEqual(abs(ai.target - 250), 4)
+        self.assertGreater(abs(ai.target - 250), .1)
 
-    def test_easy_never_spikes_hard_aims_away_from_opponent(self):
+    def test_sandra_times_swing_before_head_contact(self):
         match = VolleyMatch()
         player = match.players[1]
-        player.y = 170
-        ball = VolleyBall(player.x, 145, 0, 0)
-        self.assertFalse(VolleyAI('EASY').controls(player, ball).spike)
-        self.assertTrue(VolleyAI('HARD').controls(player, ball).spike)
-        ai = VolleyAI('HARD')
-        match.players[0].x = 50
-        near = ai.attack_velocity(ball, match.players[0])[0]
-        match.players[0].x = 170
-        far = ai.attack_velocity(ball, match.players[0])[0]
-        self.assertLess(far, near)
-        self.assertTrue(-300 <= far <= -125)
+        player.y, player.vy = 170, -40
+        ball = VolleyBall(player.x, 145, 0, 100)
+        ai = VolleyAI()
+        self.assertTrue(ai.controls(player, ball).spike)
+        player.attack.update(.01, True, True)
+        self.assertFalse(ai.controls(player, ball).spike)
+        player.attack.age = 1
+        player.attack.held = False
+        ball.y = 200
+        self.assertFalse(ai.controls(player, ball).spike)
 
     def test_ai_movement_has_no_speed_or_position_cheat(self):
-        match = VolleyMatch(difficulty='HARD')
+        match = VolleyMatch()
         match.start()
         before = match.players[1].x
         match.ball = VolleyBall(230, 180, 0, 50)
         match.update(.1)
         self.assertLessEqual(abs(match.players[1].x-before), 155*.1+.001)
-        match = VolleyMatch(2, difficulty='HARD')
+        match = VolleyMatch(2)
         match.start()
         before = match.players[1].x
         match.update(.1, [VolleyInput(), VolleyInput()])
         self.assertEqual(match.players[1].x, before)
 
-    def test_normal_and_hard_receive_a_ball_easy_can_miss(self):
-        results = {}
-        for difficulty in ('EASY', 'NORMAL', 'HARD'):
-            match = VolleyMatch(difficulty=difficulty)
-            match.start()
-            match.serve_delay = 0
-            match.ball = VolleyBall(280,180,0,100)
-            events = []
-            for _ in range(90):
-                match.update(1/120)
-                events.extend(match.events)
-            results[difficulty] = events
-        self.assertIn('hit', results['NORMAL'])
-        self.assertIn('hit', results['HARD'])
-        self.assertIn('point', results['EASY'])
+    def test_sandra_receives_descending_ball(self):
+        match = VolleyMatch()
+        match.start()
+        match.serve_delay = 0
+        match.ball = VolleyBall(280,180,0,100)
+        events = []
+        for _ in range(90):
+            match.update(1/120)
+            events.extend(match.events)
+        self.assertIn('hit', events)
+
+    def test_unreachable_fast_shot_can_beat_sandra(self):
+        match = VolleyMatch()
+        match.start()
+        match.serve_delay = 0
+        match.ball = VolleyBall(365,230,0,300)
+        match.update(.1)
+        self.assertEqual(match.points, [1,0])
 
     def test_sandra_does_not_rejump_while_airborne_or_after_hit(self):
         match = VolleyMatch()
         player = match.players[1]
         ai = VolleyAI()
-        ball = VolleyBall(player.x,180,0,80)
+        ball = VolleyBall(player.x,120,0,80)
         self.assertTrue(ai.controls(player,ball).jump)
         self.assertFalse(ai.controls(player,ball).jump)
         player.y = 180
@@ -77,3 +77,14 @@ class AITests(unittest.TestCase):
         player.y = 244
         player.hit_cooldown = .1
         self.assertFalse(ai.controls(player,ball).jump)
+
+    def test_sandra_executes_legal_smash_in_live_physics(self):
+        match = VolleyMatch()
+        match.start()
+        match.serve_delay = 0
+        match.ball = VolleyBall(310,110,0,60)
+        events = []
+        for _ in range(120):
+            match.update(1/120)
+            events.extend(match.events)
+        self.assertIn('spike', events)

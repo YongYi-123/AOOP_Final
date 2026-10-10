@@ -42,8 +42,6 @@ class PixelVolleyballScene(MinigameScene):
             self.volley.restart()
         elif any(action in ("menu", "pause") for action in actions):
             self.volley.match.toggle_pause()
-        elif "left" in actions or "right" in actions:
-            self.volley.select_difficulty(-1 if "left" in actions else 1)
         elif "interact" in actions or (event.key in (pygame.K_RETURN, pygame.K_KP_ENTER)
                                       and not self.game.session.player_for_key(event.key)):
             self.volley.confirm()
@@ -55,7 +53,7 @@ class PixelVolleyballScene(MinigameScene):
         for player in self.players or [None]:
             input_ = self.input_for(player)
             controls.append(VolleyInput(input_.axis("left", "right"), input_.held("up"),
-                                        input_.held("item") or input_.held("interact")))
+                                        input_.held("item")))
         self.volley.update(dt, controls)
 
     def draw(self, surface):

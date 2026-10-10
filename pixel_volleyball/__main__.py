@@ -32,8 +32,6 @@ def main():
                         running = False
                     elif event.key in (pygame.K_RETURN, pygame.K_e):
                         game.confirm()
-                    elif event.key in (pygame.K_LEFT, pygame.K_a, pygame.K_RIGHT, pygame.K_d):
-                        game.select_difficulty(-1 if event.key in (pygame.K_LEFT, pygame.K_a) else 1)
                     elif event.key in (pygame.K_p, pygame.K_i, pygame.K_o):
                         game.match.toggle_pause()
                     elif event.key in (pygame.K_r, pygame.K_BACKSPACE):

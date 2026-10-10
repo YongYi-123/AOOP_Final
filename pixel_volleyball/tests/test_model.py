@@ -73,9 +73,14 @@ class VolleyPhysicsTests(unittest.TestCase):
         m.serve_delay = 0
         m.update(.1)
         self.assertLess(m.players[1].x, before)
+        hits = 0
+        crossed = False
         for _ in range(1500):
             m.update(1 / 60)
-        self.assertGreater(sum(m.points), 0)
+            hits += m.events.count("hit") + m.events.count("spike")
+            crossed |= m.ball.x < NET_X
+        self.assertGreater(hits, 2)
+        self.assertTrue(crossed)
 
     def test_large_frame_stalls_are_bounded(self):
         self.match.update(10)

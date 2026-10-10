@@ -55,7 +55,7 @@ class MatchOutcome:
 
 
 class VolleyMatch:
-    def __init__(self, local_players=1, target=5, difficulty="NORMAL"):
+    def __init__(self, local_players=1, target=5):
         if local_players not in (1, 2) or target < 1:
             raise ValueError("volleyball needs 1-2 players and a positive target")
         self.local_players, self.target = local_players, target
@@ -65,7 +65,7 @@ class VolleyMatch:
         self.elapsed = 0.0
         self.outcome = None
         self.events = []
-        self.ai = VolleyAI(difficulty)
+        self.ai = VolleyAI()
         self._serve(0)
 
     def _serve(self, side):

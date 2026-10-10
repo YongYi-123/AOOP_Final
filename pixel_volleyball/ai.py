@@ -1,26 +1,13 @@
 """Reaction-limited AI strategies; all opponents use the same player physics."""
-from dataclasses import dataclass
 import math
 
 
-@dataclass(frozen=True)
-class AIDifficulty:
-    name: str
-    reaction: float
-    error: float
-    attack: bool
-
-
-DIFFICULTIES = (AIDifficulty('EASY', .28, 24, False),
-                AIDifficulty('NORMAL', .12, 5, True),
-                AIDifficulty('HARD', .05, 0, True))
-
-
 class VolleyAI:
-    def __init__(self, difficulty='NORMAL'):
-        self.difficulty = next((d for d in DIFFICULTIES if d.name == difficulty.upper()), None)
-        if self.difficulty is None:
-            raise ValueError('unknown volleyball AI difficulty')
+    """Sandra reacts every 90 ms, with bounded error and ordinary player inputs."""
+    REACTION = .09
+    ERROR = 4
+
+    def __init__(self):
         self.wait = 0
         self.decisions = 0
         self.target = 290
@@ -50,27 +37,25 @@ class VolleyAI:
         self.jump_wait = max(0, self.jump_wait - dt)
         if self.wait <= 0:
             self.decisions += 1
-            error = self.difficulty.error * math.sin(self.decisions * 1.7)
+            error = self.ERROR * math.sin(self.decisions * 1.7)
             target = self.predict(ball)
             self.target = max(218, min(366, target + error)) if target > 200 else 290
-            self.wait = self.difficulty.reaction
+            self.wait = self.REACTION
         delta = self.target - player.x
         move = 0 if abs(delta) < 4 else (1 if delta > 0 else -1)
         near = abs(ball.x - player.x) < 28 and ball.x > 207
         # A jump takes ~0.2 seconds to meet a descending ball above the net.
-        jump = (near and 125 < ball.y < 205 and 0 < ball.vy < 220
+        jump = (near and 80 < ball.y < 145 and -40 < ball.vy < 180
                 and player.y >= 258-player.radius and player.hit_cooldown == 0
                 and self.jump_wait == 0)
         if jump:
             self.jump_wait = 1.1
-        spike = (self.difficulty.attack and near and player.y < 190
-                 and ball.y < 156 and ball.vy > -100)
+        # Press once shortly before head contact, respecting the same windup.
+        relative_y = ball.y - player.y
+        closing = ball.vy - player.vy
+        approaching = (-45 < relative_y < -12 and closing > 0)
+        time_to_contact = max(0, (-18-relative_y) / max(1, closing))
+        spike = (near and player.y < 190 and ball.y < 156
+                 and approaching and time_to_contact < .09
+                 and player.attack.age >= .38 and not player.attack.held)
         return VolleyInput(move, jump, spike)
-
-    def attack_velocity(self, ball, opponent):
-        if self.difficulty.name != 'HARD':
-            return -285, 90
-        # Aim at open court using a physically bounded shot, not teleportation.
-        target = 45 if opponent.x > 105 else 155
-        flight = (30 + math.sqrt(30**2 + 2 * 620 * max(1, 252-ball.y))) / 620
-        return max(-300, min(-125, (target-ball.x) / flight)), -30

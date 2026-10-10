@@ -100,14 +100,14 @@ class VolleyballLobbyTests(unittest.TestCase):
         self.frames(1, pygame.K_BACKSPACE)
         self.assertEqual(self.scene.get_result(), first)
 
-    def test_cat_difficulty_keys_start_replay_and_return(self):
+    def test_movement_keys_do_not_change_sandra_start_replay_and_return(self):
         self.make_game()
         self.frames(1, pygame.K_RIGHT)
         self.frames(1, pygame.K_RIGHT, down=False)
-        self.assertEqual(self.scene.volley.match.ai.difficulty.name, 'HARD')
+        self.assertEqual(self.scene.volley.match.ai.REACTION, .09)
         self.frames(1, pygame.K_RETURN)
         self.assertEqual(self.scene.volley.match.state, MatchState.PLAYING)
         self.frames(1, pygame.K_BACKSPACE)
-        self.assertEqual(self.scene.volley.match.ai.difficulty.name, 'HARD')
+        self.assertEqual(self.scene.volley.match.ai.REACTION, .09)
         self.frames(30, pygame.K_ESCAPE)
         self.assertIs(self.game.scenes.current, self.room)

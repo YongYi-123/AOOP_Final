@@ -40,7 +40,7 @@ class VolleyRenderer:
         self.text(surface, "MOVE LEFT/RIGHT  UP JUMP  ITEM SPIKE", (200, 280))
         self.text(surface, "MENU PAUSE  BACKSPACE RESTART  ESC LOBBY", (200, 293))
         if match.state is MatchState.TITLE:
-            self.panel(surface, ("FIRST TO FIVE", f"AI: {match.ai.difficulty.name}  LEFT/RIGHT" if match.local_players == 1 else "LOCAL TWO PLAYER", "E / ENTER TO START"))
+            self.panel(surface, ("FIRST TO FIVE", "CHALLENGE SANDRA" if match.local_players == 1 else "LOCAL TWO PLAYER", "E / ENTER TO START"))
         elif match.state is MatchState.PAUSED:
             self.panel(surface, ("PAUSED", "E / ENTER TO RESUME"))
         elif match.state is MatchState.FINISHED:
