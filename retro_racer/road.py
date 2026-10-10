@@ -5,6 +5,7 @@ import settings as S
 import assets
 from tracks import TRACKS
 from track_scenery import CircuitLandmarks
+from street_details import StreetDistricts
 
 
 class RoadSegment:
@@ -52,6 +53,7 @@ class Road:
 
         Cheap enough to call whenever the theme or game mode changes (~1200 segments).
         """
+        self.districts = StreetDistricts.for_road(self.route,theme)
         self.theme = theme
         light, dark = theme.colors
         for seg in self.segments:
@@ -135,7 +137,7 @@ class Road:
         after it, so nearer road/cars always cover farther ones."""
         visible = self.project(cam_z, player_x)
         by_segment = {}
-        for car in tuple(cars)+self.landmarks:
+        for car in tuple(cars)+self.landmarks+self.districts:
             by_segment.setdefault(int(car.z // S.SEGMENT_LENGTH) % len(self.segments), []).append(car)
         drawable = [s for s in visible if not s.behind and s.sy2 < s.sy1 and s.sy1 <= S.HEIGHT + 1]
         for seg in reversed(drawable):
