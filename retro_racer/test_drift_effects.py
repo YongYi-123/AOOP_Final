@@ -103,3 +103,34 @@ class SkidTests(unittest.TestCase):
         effects.update(0.1, *inputs(brake=True))
         effects.reset()
         self.assertEqual((effects.skids, effects.smoke), ([], []))
+
+
+class CollisionTests(unittest.TestCase):
+    def test_one_burst_per_collision_and_expiry(self):
+        effects = DriftEffects()
+        player, road, controls = inputs(speed=0)
+        effects.update(0.01, player, road, controls)
+        self.assertEqual(effects.sparks, [])
+        player.collisions = 1
+        effects.update(0.01, player, road, controls)
+        self.assertEqual(len(effects.sparks), 18)
+        effects.update(0.01, player, road, controls)
+        self.assertEqual(len(effects.sparks), 18)
+        surface = pygame.Surface((800, 600))
+        effects.draw_sparks(surface)
+        self.assertTrue(any(pygame.image.tobytes(surface, "RGB")))
+        for _ in range(5):
+            effects.update(0.1, player, road, controls)
+        self.assertEqual(effects.sparks, [])
+
+    def test_shake_is_small_and_intensity_zero_disables(self):
+        effects = DriftEffects(rng=random.Random(7))
+        for _ in range(100):
+            x, y = effects.shake_offset(1)
+            self.assertTrue(abs(x) <= 4 and abs(y) <= 2)
+        effects.intensity = 0
+        self.assertEqual(effects.shake_offset(1), (0, 0))
+        player, road, controls = inputs()
+        player.collisions = 1
+        effects.update(0.1, player, road, controls)
+        self.assertEqual(effects.sparks, [])

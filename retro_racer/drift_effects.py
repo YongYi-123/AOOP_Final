@@ -7,6 +7,30 @@ import pygame
 
 
 @dataclass
+class CollisionSpark:
+    x: float
+    y: float
+    vx: float
+    vy: float
+    age: float = 0.0
+    lifetime: float = 0.4
+
+    def update(self, dt):
+        self.age += dt
+        self.x += self.vx * dt
+        self.y += self.vy * dt
+        self.vy += 100 * dt
+
+    def draw(self, surf, anchor, intensity):
+        fade = max(0, 1 - self.age / self.lifetime)
+        x, y = anchor[0] + self.x, anchor[1] + self.y
+        color = (int(255 * fade), int(190 * fade), int(70 * fade))
+        pygame.draw.line(surf, color, (int(x), int(y)),
+                         (int(x - self.vx * 0.025), int(y - self.vy * 0.025)),
+                         max(1, int(2 * intensity)))
+
+
+@dataclass
 class SkidMark:
     """Road drawable with the same x/z projection contract as traffic cars."""
     x: float
@@ -86,6 +110,8 @@ class DriftEffects:
         self._smoke_time = 0.0
         self.skids = []
         self._skid_time = 0.0
+        self.sparks = []
+        self._collisions = 0
 
     @property
     def rear_offset(self):
@@ -103,6 +129,11 @@ class DriftEffects:
         for mark in self.skids:
             mark.age += dt
         self.skids = [mark for mark in self.skids if mark.age < mark.lifetime]
+        for spark in self.sparks:
+            spark.update(dt)
+        self.sparks = [spark for spark in self.sparks if spark.age < spark.lifetime]
+        crashed = player.collisions > self._collisions
+        self._collisions = player.collisions
         self.state = DriftState.detect(player.speed_percent, controls["steer"],
                                        road.segment_at(player.front_z).curve, controls["brake"])
         target = self.state.amount if self.intensity else 0.0
@@ -112,7 +143,14 @@ class DriftEffects:
             self._smoke_time = 0
             self.skids.clear()
             self._skid_time = 0
+            self.sparks.clear()
             return
+        if crashed:
+            for _ in range(max(1, int(18 * self.intensity))):
+                self.sparks.append(CollisionSpark(self.rear_offset, -40,
+                                                  self.rng.uniform(-180, 180),
+                                                  self.rng.uniform(-130, 70)))
+            self.sparks = self.sparks[-72:]
         if self.state.braking:
             self._skid_time += dt
             if self._skid_time >= 0.035:
@@ -140,3 +178,15 @@ class DriftEffects:
 
     def road_drawables(self):
         return list(self.skids) if self.intensity else []
+
+    def draw_sparks(self, surf):
+        if self.intensity:
+            for spark in self.sparks:
+                spark.draw(surf, (surf.get_width() / 2, surf.get_height() - 30), self.intensity)
+
+    def shake_offset(self, strength):
+        amplitude = 4 * self.intensity * max(0, min(1, strength))
+        if not amplitude:
+            return (0, 0)
+        return (int(self.rng.uniform(-amplitude, amplitude)),
+                int(self.rng.uniform(-amplitude * 0.6, amplitude * 0.6)))
