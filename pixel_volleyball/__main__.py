@@ -6,12 +6,12 @@ from .keyboard import VolleyKeyboard
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Original Pixel Volleyball")
+    parser = argparse.ArgumentParser(description="Original Cat Volleyball")
     parser.add_argument("--two-player", action="store_true")
     args = parser.parse_args()
     pygame.init()
     screen = pygame.display.set_mode((800, 600))
-    pygame.display.set_caption("Neon Corner - Pixel Volleyball")
+    pygame.display.set_caption("Neon Corner - Cat Volleyball")
     canvas = pygame.Surface((400, 300))
     game = VolleyGame(2 if args.two_player else 1)
     clock = pygame.time.Clock()
@@ -32,6 +32,8 @@ def main():
                         running = False
                     elif event.key in (pygame.K_RETURN, pygame.K_e):
                         game.confirm()
+                    elif event.key in (pygame.K_LEFT, pygame.K_a, pygame.K_RIGHT, pygame.K_d):
+                        game.select_difficulty(-1 if event.key in (pygame.K_LEFT, pygame.K_a) else 1)
                     elif event.key in (pygame.K_p, pygame.K_i, pygame.K_o):
                         game.match.toggle_pause()
                     elif event.key in (pygame.K_r, pygame.K_BACKSPACE):

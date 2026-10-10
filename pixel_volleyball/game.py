@@ -1,5 +1,6 @@
 """Presentation and match lifecycle; input providers supply logical controls."""
 from .model import MatchState, VolleyMatch
+from .ai import DIFFICULTIES
 from .settlement import VolleyReward
 from .rendering import VolleyRenderer
 from .audio import VolleySounds
@@ -8,7 +9,8 @@ from .audio import VolleySounds
 class VolleyGame:
     def __init__(self, local_players=1):
         self.local_players = local_players
-        self.match = VolleyMatch(local_players)
+        self.difficulty_index = 1
+        self.match = VolleyMatch(local_players, difficulty=DIFFICULTIES[self.difficulty_index].name)
         self.renderer = VolleyRenderer()
         self.audio = VolleySounds()
         self.best = [VolleyReward() for _ in range(local_players)]
@@ -20,8 +22,15 @@ class VolleyGame:
 
     def restart(self):
         self.observe_result()
-        self.match = VolleyMatch(self.local_players)
+        self.match = VolleyMatch(self.local_players, difficulty=DIFFICULTIES[self.difficulty_index].name)
         self.match.start()
+
+    def select_difficulty(self, direction):
+        if self.local_players != 1 or self.match.state is not MatchState.TITLE:
+            return False
+        self.difficulty_index = (self.difficulty_index + direction) % len(DIFFICULTIES)
+        self.match = VolleyMatch(1, difficulty=DIFFICULTIES[self.difficulty_index].name)
+        return True
 
     def confirm(self):
         if self.match.state is MatchState.FINISHED:

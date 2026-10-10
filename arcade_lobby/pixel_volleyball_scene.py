@@ -42,6 +42,8 @@ class PixelVolleyballScene(MinigameScene):
             self.volley.restart()
         elif any(action in ("menu", "pause") for action in actions):
             self.volley.match.toggle_pause()
+        elif "left" in actions or "right" in actions:
+            self.volley.select_difficulty(-1 if "left" in actions else 1)
         elif "interact" in actions or (event.key in (pygame.K_RETURN, pygame.K_KP_ENTER)
                                       and not self.game.session.player_for_key(event.key)):
             self.volley.confirm()
@@ -63,7 +65,7 @@ class PixelVolleyballScene(MinigameScene):
         self.volley.observe_result()
         results = tuple(PlayerResult(profile.profile_id,
                                      result.score if self.volley.has_completed else None,
-                                     RewardBundle(tickets=result.tickets, reason="PIXEL VOLLEYBALL"))
+                                     RewardBundle(tickets=result.tickets, reason="CAT VOLLEYBALL"))
                         for profile, result in zip(self.participants, self.volley.best))
         return MiniGameResult(results)
 

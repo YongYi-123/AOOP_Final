@@ -248,8 +248,8 @@ MACHINES = [
         "play_cost": 1,
     },
     {
-        "id": "pixel_volleyball", "name": "Pixel Volleyball", "marquee": "BALL",
-        "description": "Jump, receive and spike across the neon court. "
+        "id": "pixel_volleyball", "name": "Cat Volleyball", "marquee": "BALL",
+        "description": "Jump, receive and spike a yarn ball with pixel cats. "
                        "First to five points wins. Play solo or challenge a friend!",
         "slot": "wall_3", "neon": (90, 240, 255), "accent": (255, 110, 210),
         "screen": "puzzle", "play_cost": 1,
