@@ -11,6 +11,7 @@ from dataclasses import dataclass
 from functools import lru_cache
 import math
 from terrain import ELEVATION_PROFILES
+from route_designs import NEW_ROUTE_DESIGNS
 
 CURVE_GAIN = 40.0
 
@@ -102,3 +103,5 @@ TRACKS = (
          (80,220),(-20,160),(-180,230),(-350,280),(-460,180),(-420,60),
          (-300,20),(-340,-100),(-480,-200),(-380,-320),(-200,-320)), 1360),
 )
+
+TRACKS += tuple(TrackDefinition(*design) for design in NEW_ROUTE_DESIGNS)

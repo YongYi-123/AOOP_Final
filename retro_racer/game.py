@@ -458,7 +458,7 @@ class Game:
         elif state is State.CAR_SELECT:
             self.car_menu.draw(hud, scr, self.time)
         elif state is State.TRACK_SELECT:
-            size = hud.card_size(len(self.tracks))
+            size = hud.card_size(min(3, len(self.tracks)))
             if size not in self.track_previews:
                 self.track_previews[size] = tuple(MiniMap.preview(track.build(S.SEGMENT_LENGTH), size)
                                                    for track in self.tracks)

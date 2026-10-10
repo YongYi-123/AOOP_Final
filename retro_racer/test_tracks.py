@@ -9,9 +9,9 @@ from tracks import TRACKS, CURVE_GAIN
 
 
 class RouteTests(unittest.TestCase):
-    def test_three_distinct_closed_routes_with_uniform_distance(self):
+    def test_five_distinct_closed_routes_with_uniform_distance(self):
         routes = [t.build() for t in TRACKS]
-        self.assertEqual(len({r.points for r in routes}), 3)
+        self.assertEqual(len({r.points for r in routes}), 5)
         for route in routes:
             with self.subTest(track=route.key):
                 self.assertEqual(route.points[0], route.points[-1])

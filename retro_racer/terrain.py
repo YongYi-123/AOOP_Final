@@ -15,4 +15,5 @@ class ElevationProfile:
 
 
 ELEVATION_PROFILES = {'emerald':ElevationProfile(65,2), 'harbor':ElevationProfile(25,1),
-                      'summit':ElevationProfile(180,3)}
+                      'summit':ElevationProfile(180,3), 'starlight':ElevationProfile(35,2),
+                      'cloudpass':ElevationProfile(280,3)}

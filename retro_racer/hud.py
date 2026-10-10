@@ -265,6 +265,11 @@ class Hud:
         """cards: [(name, preview_surface, tagline)]."""
         self.menu_frame(surf, "SELECT TRACK", "UP/DOWN TRACK  LEFT/RIGHT SCENERY  ENTER OK  ESC BACK")
         self.text(surf, f"SCENERY: {scenery}", (S.WIDTH // 2, 160), CYAN, self.small, "center")
+        selected_tagline = cards[index][2]
+        if len(cards) > 3:
+            start = min(max(0, index - 1), len(cards) - 3)
+            self.text(surf, f"TRACK {index + 1}/{len(cards)}", (S.WIDTH // 2, 180), DIM, self.small, "center")
+            cards, index = cards[start:start+3], index-start
         n, gap = len(cards), 16
         w = cards[0][1].get_width()
         x0 = (S.WIDTH - (n * w + (n - 1) * gap)) // 2
@@ -279,7 +284,7 @@ class Hud:
                 shade.fill((0, 0, 20, 120))
                 surf.blit(shade, (x, y))
             self.text(surf, name, (x + w // 2, y + preview.get_height() + 22), YELLOW if on else DIM, self.font, "center")
-        self.text(surf, cards[index][2], (S.WIDTH // 2, 420), CYAN, self.font, "center")
+        self.text(surf, selected_tagline, (S.WIDTH // 2, 420), CYAN, self.font, "center")
 
     def draw_end(self, surf, manager, state, t, end_t):
         surf.blit(self.scanlines, (0, 0))
