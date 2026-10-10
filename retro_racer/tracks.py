@@ -10,6 +10,7 @@ from bisect import bisect_right
 from dataclasses import dataclass
 from functools import lru_cache
 import math
+from terrain import ELEVATION_PROFILES
 
 CURVE_GAIN = 40.0
 
@@ -20,6 +21,7 @@ class CircuitRoute:
     points: tuple
     curves: tuple
     segment_length: float
+    heights: tuple = ()
 
     @property
     def length(self):
@@ -32,6 +34,13 @@ class CircuitRoute:
         a, b = self.points[i], self.points[i + 1]
         return (a[0] + (b[0] - a[0]) * fraction,
                 a[1] + (b[1] - a[1]) * fraction)
+
+    def elevation_at(self,z):
+        if not self.heights:
+            return 0.0
+        progress=(z%self.length)/self.segment_length
+        i=int(progress)
+        return self.heights[i]+(self.heights[i+1]-self.heights[i])*(progress-i)
 
 
 @dataclass(frozen=True)
@@ -72,7 +81,9 @@ class TrackDefinition:
             a, c = points[i - 1], points[(i + 1) % self.segments]
             u, v = (b[0]-a[0], b[1]-a[1]), (c[0]-b[0], c[1]-b[1])
             curves.append(math.atan2(u[0]*v[1]-u[1]*v[0], u[0]*v[0]+u[1]*v[1]) * CURVE_GAIN)
-        return CircuitRoute(self.key, tuple(points + [points[0]]), tuple(curves), segment_length)
+        profile = ELEVATION_PROFILES.get(self.key)
+        heights = profile.sample(self.segments) if profile else ()
+        return CircuitRoute(self.key, tuple(points + [points[0]]), tuple(curves), segment_length, heights)
 
 
 TRACKS = (
