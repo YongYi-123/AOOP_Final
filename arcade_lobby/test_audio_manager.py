@@ -46,3 +46,30 @@ class AudioTests(unittest.TestCase):
         audio.update(.1)
         bus.play('hit')
         self.assertGreater(audio.last_effect['hit'], previous)
+
+    def test_lobby_minigame_return_and_volume_keys(self):
+        os.environ.setdefault('SDL_VIDEODRIVER', 'dummy')
+        from game import Game
+        from player_profile import PlayerProfile
+        from local_session import LocalSession
+        from room_testing import goto_room
+        game = Game(session=LocalSession([PlayerProfile(profile_id='audio_test')]))
+        self.addCleanup(game.quit)
+        room = goto_room(game, 'arcade_floor')
+        for game_id in ('pixel_volleyball', 'cat_minesweeper', 'retro_racer'):
+            machine = next(m for m in room.machines if m.id == game_id)
+            room._start_game(machine, player=room.players[0])
+            for _ in range(30):
+                game.step([], 1 / 60)
+            self.assertEqual(game.audio.theme, game_id)
+            self.assertTrue(game.audio.channels[game.audio.active].get_busy())
+            game.step([pygame.event.Event(pygame.KEYDOWN, key=pygame.K_ESCAPE, mod=0)], 1 / 60)
+            for _ in range(30):
+                game.step([], 1 / 60)
+            self.assertEqual(game.audio.theme, 'lobby')
+        before = game.audio.bgm_volume
+        game.step([pygame.event.Event(pygame.KEYDOWN, key=pygame.K_F6, mod=0)], 1 / 60)
+        self.assertAlmostEqual(game.audio.bgm_volume, before - .1)
+        before = game.audio.sfx_volume
+        game.step([pygame.event.Event(pygame.KEYDOWN, key=pygame.K_F9, mod=0)], 1 / 60)
+        self.assertAlmostEqual(game.audio.sfx_volume, before + .1)

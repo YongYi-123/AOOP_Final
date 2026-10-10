@@ -1,5 +1,6 @@
 """Single-player cat minesweeper adapter; only the starter's profile is rewarded."""
 import pygame
+from audio_manager import GameSoundBus
 from minigame import MinigameScene, MiniGameResult, PlayerResult
 from rewards import RewardBundle
 from cat_minesweeper.game import MineGame
@@ -10,6 +11,9 @@ class CatMinesweeperScene(MinigameScene):
     def __init__(self, game, machine):
         super().__init__(game, machine)
         self.mine_game = MineGame()
+        if hasattr(self.game, "audio"):
+            self.mine_game.audio.stop()
+            self.mine_game.audio = GameSoundBus(self.game.audio)
         self.leaving = False
 
     def handle_event(self, event):

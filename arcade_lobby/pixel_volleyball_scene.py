@@ -1,5 +1,6 @@
 """Thin player-input and settlement adapter for the independent volleyball package."""
 import pygame
+from audio_manager import GameSoundBus
 from minigame import MinigameScene, MiniGameResult, PlayerResult
 from rewards import RewardBundle
 from pixel_volleyball.game import VolleyGame
@@ -16,6 +17,9 @@ class PixelVolleyballScene(MinigameScene):
         super().attach_players(players, spectators)
         self.volley.audio.stop()
         self.volley = VolleyGame(len(self.players) or 1)
+        if hasattr(self.game, "audio"):
+            self.volley.audio.stop()
+            self.volley.audio = GameSoundBus(self.game.audio)
 
     def handle_event(self, event):
         if self.leaving:
