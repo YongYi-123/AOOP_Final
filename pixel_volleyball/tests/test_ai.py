@@ -47,3 +47,19 @@ class AITests(unittest.TestCase):
         before = match.players[1].x
         match.update(.1, [VolleyInput(), VolleyInput()])
         self.assertEqual(match.players[1].x, before)
+
+    def test_normal_and_hard_receive_a_ball_easy_can_miss(self):
+        results = {}
+        for difficulty in ('EASY', 'NORMAL', 'HARD'):
+            match = VolleyMatch(difficulty=difficulty)
+            match.start()
+            match.serve_delay = 0
+            match.ball = VolleyBall(280,180,0,100)
+            events = []
+            for _ in range(90):
+                match.update(1/120)
+                events.extend(match.events)
+            results[difficulty] = events
+        self.assertIn('hit', results['NORMAL'])
+        self.assertIn('hit', results['HARD'])
+        self.assertIn('point', results['EASY'])
