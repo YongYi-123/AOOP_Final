@@ -84,3 +84,20 @@ class SmashTests(unittest.TestCase):
         self.assertEqual(player.attack.age, before)
         match._serve(0)
         self.assertFalse(player.attack.animating)
+
+    def test_human_timed_smash_survives_different_frame_rates(self):
+        for fps in (30, 60, 144):
+            for side in (0, 1):
+                match = VolleyMatch(2)
+                match.start()
+                match.serve_delay = 0
+                player = match.players[side]
+                player.y, player.vy = 174, -40
+                match.ball = VolleyBall(player.x,144,0,100)
+                controls = [VolleyInput(),VolleyInput()]
+                controls[side] = VolleyInput(spike=True)
+                events = []
+                for _ in range(round(.2*fps)):
+                    match.update(1/fps, controls)
+                    events.extend(match.events)
+                self.assertEqual(events.count('spike'),1,(fps,side,events))

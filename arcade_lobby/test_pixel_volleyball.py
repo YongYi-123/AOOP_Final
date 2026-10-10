@@ -111,3 +111,29 @@ class VolleyballLobbyTests(unittest.TestCase):
         self.assertEqual(self.scene.volley.match.ai.REACTION, .09)
         self.frames(30, pygame.K_ESCAPE)
         self.assertIs(self.game.scenes.current, self.room)
+
+    def test_start_key_does_not_arm_smash_and_item_key_does(self):
+        self.make_game()
+        self.frames(1, pygame.K_e)
+        match = self.scene.volley.match
+        player = match.players[0]
+        player.y, player.vy = 174, -40
+        match.serve_delay = 0
+        from pixel_volleyball.model import VolleyBall
+        match.ball = VolleyBall(40,90,0,0)
+        self.frames(2)
+        self.assertFalse(player.attack.animating)
+        self.frames(1, pygame.K_SPACE)
+        self.assertTrue(player.attack.animating)
+
+    def test_two_players_can_swing_independently(self):
+        self.make_game(True)
+        self.frames(1, pygame.K_e)
+        match = self.scene.volley.match
+        for player in match.players:
+            player.y, player.vy = 174, -40
+        self.frames(1, pygame.K_SPACE)
+        self.assertTrue(match.players[0].attack.animating)
+        self.assertFalse(match.players[1].attack.animating)
+        self.frames(1, pygame.K_RSHIFT)
+        self.assertTrue(match.players[1].attack.animating)
