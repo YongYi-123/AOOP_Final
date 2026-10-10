@@ -63,4 +63,4 @@ class MiniMapTests(unittest.TestCase):
 
     def test_original_circuits_have_distinct_geometry_previews(self):
         images = [pygame.image.tobytes(MiniMap.preview(t.build(), (240, 160)), "RGB") for t in TRACKS]
-        self.assertEqual(len(set(images)), 3)
+        self.assertEqual(len(set(images)), len(TRACKS))
