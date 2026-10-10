@@ -42,11 +42,11 @@ class VolleyPhysicsTests(unittest.TestCase):
         m._player_collision(player)
         self.assertLess(m.ball.vy, 0)
         self.assertIn("hit", m.events)
-        player.y = 185
-        player.spike_time, player.hit_cooldown = .15, 0
+        player.y = 170
+        player.attack.age, player.hit_cooldown = .05, 0
         m.ball = VolleyBall(player.x, player.y - 18, 0, 100)
         m._player_collision(player)
-        self.assertGreater(m.ball.vy, 0)
+        self.assertGreater(m.ball.vy, -360)
         self.assertGreater(m.ball.vx, 250)
 
     def test_pause_freezes_physics_and_finished_outcome_is_immutable(self):

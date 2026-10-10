@@ -1,8 +1,9 @@
 """Deterministic court rules and fixed-substep physics, with no pygame import."""
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import Enum
 import math
 from .ai import VolleyAI
+from .smash import SmashAttack
 
 WIDTH, HEIGHT, FLOOR, NET_X, NET_TOP = 400, 300, 258, 200, 162
 GRAVITY = 620.0
@@ -30,7 +31,7 @@ class VolleyPlayer:
     vy: float = 0
     radius: int = 14
     hit_cooldown: float = 0
-    spike_time: float = 0
+    attack: SmashAttack = field(default_factory=SmashAttack)
     moving: float = 0
     hit_flash: float = 0
 
@@ -43,6 +44,7 @@ class VolleyBall:
     vy: float
     radius: int = 6
     rotation: float = 0
+    smash_left: float = 0
 
 
 @dataclass(frozen=True)
@@ -73,7 +75,8 @@ class VolleyMatch:
         for player in self.players:
             player.x = 90 if player.side == 0 else 310
             player.y, player.vy = FLOOR - player.radius, 0
-            player.hit_cooldown = player.spike_time = 0
+            player.hit_cooldown = 0
+            player.attack = SmashAttack()
 
     def start(self):
         if self.state is MatchState.TITLE:
@@ -116,11 +119,12 @@ class VolleyMatch:
             if player.y == FLOOR - player.radius:
                 player.vy = 0
             player.hit_cooldown = max(0, player.hit_cooldown - dt)
-            player.spike_time = 0.15 if control.spike else max(0, player.spike_time - dt)
+            player.attack.update(dt, control.spike, player.y < FLOOR - player.radius - 8)
         if self.serve_delay > 0:
             self.serve_delay = max(0, self.serve_delay - dt)
             return
         ball = self.ball
+        ball.smash_left = max(0, ball.smash_left - dt)
         ball.rotation = (ball.rotation + ball.vx * dt * 4) % 360
         ball.vy += GRAVITY * dt
         previous_x = ball.x
@@ -174,14 +178,16 @@ class VolleyMatch:
                 ball.vy -= inward * uy
             return
         direction = 1 if player.side == 0 else -1
+        spike = player.attack.can_hit(player, ball)
         ball.y = player.y - radius - 0.1
-        ball.vx = direction * 190
-        ball.vy = -360
-        spike = player.spike_time > 0 and player.y < FLOOR - player.radius - 8
+        ball.vx, ball.vy = direction * 190, -360
         if spike:
-            ball.vx, ball.vy = direction * 285, 90
+            aim = None
             if player.side == 1 and self.local_players == 1:
-                ball.vx, ball.vy = self.ai.attack_velocity(ball, self.players[0])
+                aim = 45 if self.players[0].x > 105 else 155
+            ball.vx, ball.vy = player.attack.velocity(player, ball, aim)
+            player.attack.connected = True
+            ball.smash_left = .4
         player.hit_flash = .2
         player.hit_cooldown = 0.18
         self.events.append("spike" if spike else "hit")
