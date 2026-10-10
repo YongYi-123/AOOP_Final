@@ -178,6 +178,38 @@ class RacerLaunchTests(unittest.TestCase):
         self.frames(1, pygame.K_m)
         self.assertTrue(racer.minimap.visible)
 
+    def test_scenery_thumbnails_select_from_lobby_and_settle_normally(self):
+        scene = self.launch()
+        racer = scene.racer
+        for _ in range(2):
+            self.frames(1, pygame.K_RETURN)
+        route = racer.road.route
+        for index, theme in enumerate(racer.themes.themes):
+            self.assertEqual(racer.theme_index, index)
+            self.assertIs(racer.road.theme, theme)
+            self.assertIs(racer.road.route, route)
+            self.frames(1, pygame.K_RIGHT)
+        self.assertEqual(len(racer.scenery_gallery.renderer._previews), 6)
+        self.frames(1, pygame.K_LEFT)
+        chosen = racer.theme
+        self.assertEqual(chosen.key, "forest")
+        self.frames(1, pygame.K_RETURN)
+        self.frames(1, pygame.K_RETURN)
+        self.assertEqual(racer.state.value, "COUNTDOWN")
+        self.assertIs(racer.road.theme, chosen)
+        racer.begin_playing()
+        racer.player.score = 2500
+        racer.player.distance = racer.road.length * racer.manager.laps
+        self.frames()
+        expected = scene.results.outcome
+        self.assertEqual(expected.status, "completed")
+        self.frames(1, pygame.K_BACKSPACE)
+        self.frames(1, pygame.K_ESCAPE)
+        self.frames(40, pygame.K_ESCAPE)
+        self.assertIs(self.game.scenes.current, self.room)
+        self.assertEqual(self.game.profile.tickets, expected.tickets)
+        self.assertEqual(self.game.profile.high_score("retro_racer"), expected.score)
+
     def test_all_original_tracks_settle_once_and_record_daily_score(self):
         task = DailyTask(TaskSpec("racer_best", "Racer best", "high_score", 1, 1,
                                   game_id="retro_racer"))
