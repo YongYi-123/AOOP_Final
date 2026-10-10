@@ -479,6 +479,7 @@ class OwnershipTests(TwoPlayerTest):
         self.assertIsInstance(shop,PrizeCounterScene)
         self.assertIs(shop.owner,self.p2)
         self.assertIs(shop.shop.profile,self.b)
+        self.frames(20)  # Finish the station flash and scene-entry wipe.
         self.frames(40,[key(pygame.K_ESCAPE)])
         self.assertIs(self.game.scenes.current,plaza)
         self.use(self.p1, frames=30)                             # P1 opens the wheel
