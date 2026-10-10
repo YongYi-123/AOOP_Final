@@ -170,7 +170,8 @@ class DriftEffects:
                 self.skids = self.skids[-64:]
         else:
             self._skid_time = 0
-        if abs(self.state.amount) > 0.15:
+        oil_spin = active and any(getattr(e,"sound",None) == "skid" for e in getattr(player,"effects",()))
+        if abs(self.state.amount) > 0.15 or oil_spin:
             self._smoke_time += dt
             while self._smoke_time >= 0.04:
                 self._smoke_time -= 0.04

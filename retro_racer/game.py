@@ -7,6 +7,7 @@ import gc
 import math
 import pygame
 import settings as S
+from road_hazards import RoadHazards
 from road import Road
 from car import PlayerCar
 from traffic import TrafficManager
@@ -107,6 +108,7 @@ class Game:
 
     def reset(self):
         """Put every piece of race state back to a fresh start (no process restart needed)."""
+        self.hazards = RoadHazards(self.road)
         self.player = PlayerCar(self.selected_car_spec)       # position, speed, score, distance, collisions, cooldown, push
         self.traffic.reset(self.player, self.manager.traffic_count)     # also restores speed scale
         for manager in self.managers.values():
@@ -378,8 +380,10 @@ class Game:
                 self.audio.play("shield")           # a shield swallowed the crash
         checkpoints = self.manager.next_checkpoint
         self.state = self.manager.update(dt, self.player)
+        opponents = self.manager.field.racers if self.mode is GameMode.COMPETITIVE else ()
+        self.hazards.update(dt, self.player, opponents)
         self.manager.apply_difficulty(self.traffic, self.player)
-        for event in self.manager.pop_events():     # racer collisions, item pickups / hits
+        for event in self.manager.pop_events() + self.hazards.pop_events():     # racer collisions, item pickups / hits
             if event == "bump":
                 self.drift.trigger_impact(self.player)
                 self.shake = S.SHAKE_TIME
@@ -412,7 +416,7 @@ class Game:
         self.backdrop.draw(scene, self.bg_scroll)
         # Camera sits behind the car; the car itself is drawn at a fixed spot.
         self.road.draw(scene, self.player.z, self.player.x,
-                       self.drift.road_drawables() + self.traffic.cars + self.manager.drawables())
+                       self.drift.road_drawables() + self.traffic.cars + self.manager.drawables() + self.hazards.drawables())
         self.drift.draw_smoke(scene)
         self.player.draw(scene, visual_offset=self.drift.rear_offset, visual_yaw=self.drift.yaw)
         self.drift.draw_sparks(scene)
