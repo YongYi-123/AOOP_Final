@@ -60,3 +60,23 @@ class RoadHazardTests(unittest.TestCase):
         ai.z,ai.x=oil.z,oil.x
         game.hazards.update(.01,player,[ai])
         self.assertTrue(any(isinstance(e,OilSpinEffect) for e in ai.effects))
+
+    def test_shield_and_paint_feedback_for_generated_oil(self):
+        from effects import ShieldEffect
+        from unittest.mock import patch
+        game=self.game()
+        oil=game.hazards.puddles[0]
+        player=game.player
+        player.z=oil.z-S.CAMERA_HEIGHT*S.CAMERA_DEPTH
+        player.x=oil.x
+        player.add_effect(ShieldEffect())
+        game.hazards.update(.01,player)
+        self.assertFalse(any(isinstance(e,OilSpinEffect) for e in player.effects))
+        self.assertEqual(game.hazards.pop_events(),['shield'])
+        ai=game.manager.field.racers[0]
+        ai.z,ai.x=oil.z,oil.x
+        game.hazards.update(.01,player,[ai])
+        ai._tick_effects(.9)
+        with patch('racer.draw_car_rear') as draw:
+            ai.draw(pygame.Surface((800,600)),400,400,100)
+            self.assertAlmostEqual(draw.call_args.kwargs['yaw'],180)

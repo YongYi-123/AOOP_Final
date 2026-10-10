@@ -31,7 +31,9 @@ class RacerCar(DrivenCar):
 
     def draw(self, surf, sx, sy, sw):
         width = sw * self.WIDTH
-        draw_car_rear(surf, sx, sy, width, self.spec.style.key, lean=int(self.steer_visual * 8), livery=self.livery)
+        draw_car_rear(surf, sx, sy, width, self.spec.style.key, lean=int(self.steer_visual * 8), livery=self.livery,
+                      yaw=sum(getattr(e, "visual_yaw", 0.0) for e in self.effects)
+                      if S.DRIVING_FX_INTENSITY > 0 else 0.0)
         self.decorate(surf, sx, sy, width)
 
 
