@@ -5,7 +5,6 @@ and `self.theme` the look, so nothing in update()/draw() branches on the mode or
 """
 import gc
 import math
-import random
 import pygame
 import settings as S
 from road import Road
@@ -21,6 +20,7 @@ from hud import Hud
 from tuning import Tuner
 from audio import Audio
 from difficulty import DIFFICULTIES, DEFAULT_DIFFICULTY
+from drift_effects import DriftEffects
 
 IDLE = {"accelerate": False, "brake": False, "steer": 0}
 COAST = {"accelerate": False, "brake": True, "steer": 0}    # slow to a stop after the race ends
@@ -70,6 +70,7 @@ class Game:
         self.car_menu = CarSelectMenu(CAR_CATALOG)
         self.ai_level = DEFAULT_DIFFICULTY               # AI difficulty for competitive races; persists across restarts
         self.selected_car_spec = CAR_CATALOG.default     # confirmed choice; survives countdown, restarts, end screens
+        self.drift = DriftEffects(S.DRIVING_FX_INTENSITY)
         self.reset()
         self.apply_look()
         self.state = State.TITLE
@@ -93,6 +94,7 @@ class Game:
         for manager in self.managers.values():
             manager.reset()             # timers, laps, checkpoints, endless level, banners, results
         self.shake = 0.0
+        self.drift.reset()
         self.bg_scroll = 0.0
         self.flash_time = 0.0
         self.countdown = 0.0
@@ -164,6 +166,12 @@ class Game:
                 self.menu_move(-1 if e.key in (pygame.K_LEFT, pygame.K_UP) else 1, horizontal=e.key in (pygame.K_LEFT, pygame.K_RIGHT))
             elif e.key in ITEM_KEYS:
                 self.use_item()
+            elif e.key == pygame.K_v:
+                levels = (0.0, 0.5, 1.0, 1.5, 2.0)
+                current = min(range(len(levels)), key=lambda i: abs(levels[i] - S.DRIVING_FX_INTENSITY))
+                S.DRIVING_FX_INTENSITY = levels[(current + 1) % len(levels)]
+                self.drift.intensity = S.DRIVING_FX_INTENSITY
+                self._say(f"DRIVING FX {int(S.DRIVING_FX_INTENSITY * 100)}%")
             elif e.key == pygame.K_m:
                 self.audio.toggle_mute()
                 self._say("MUTED" if self.audio.muted else f"VOLUME {int(self.audio.volume * 100)}%")
@@ -287,6 +295,7 @@ class Game:
         self.time += dt
         self.hud.time = self.time
         self.audio.tick(dt)
+        self.drift.intensity = S.DRIVING_FX_INTENSITY
         if self.paused:                         # frozen: no world, race clock, AI, effects or engine
             return
         self.last_dt = dt
@@ -294,7 +303,9 @@ class Game:
         handler = self._update_attract if self.state in ATTRACT_STATES else {
             State.COUNTDOWN: self._update_countdown, State.PLAYING: self._update_playing,
             State.FINISHED: self._update_ended, State.GAME_OVER: self._update_ended}[self.state]
+        playing = self.state is State.PLAYING
         handler(dt, controls)
+        self.drift.update(dt, self.player, self.road, controls, active=playing)
         self.flash_time = max(0.0, self.flash_time - dt)
         self._update_engine_sound()
 
@@ -366,11 +377,14 @@ class Game:
         scene.fill(self.theme.ground[1])
         self.backdrop.draw(scene, self.bg_scroll)
         # Camera sits behind the car; the car itself is drawn at a fixed spot.
-        self.road.draw(scene, self.player.z, self.player.x, self.traffic.cars + self.manager.drawables())
-        self.player.draw(scene)
+        self.road.draw(scene, self.player.z, self.player.x,
+                       self.drift.road_drawables() + self.traffic.cars + self.manager.drawables())
+        self.drift.draw_smoke(scene)
+        self.player.draw(scene, visual_offset=self.drift.rear_offset, visual_yaw=self.drift.yaw)
+        self.drift.draw_sparks(scene)
         # Collision feedback: shake the scene and tint it red, both fading out.
         t = self.shake / S.SHAKE_TIME
-        offset = (random.randint(-1, 1) * int(12 * t), random.randint(-1, 1) * int(8 * t)) if t else (0, 0)
+        offset = self.drift.shake_offset(t)
         self.screen.fill((0, 0, 0))
         self.screen.blit(scene, offset)
         if t:

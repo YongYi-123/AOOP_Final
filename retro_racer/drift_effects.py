@@ -46,9 +46,9 @@ class SkidMark:
         thickness = max(1, int(width * 0.065 * min(1, self.strength)))
         length = max(2, int(width * 0.22))
         for side in (-1, 1):
-            x = int(cx + side * width * 0.35)
-            pygame.draw.line(surf, (shade, shade, shade), (x, int(bottom) - length),
-                             (x, int(bottom)), thickness)
+            x = int(cx + side * width * 0.45)
+            pygame.draw.line(surf, (shade, shade, shade), (x, int(bottom)),
+                             (x, int(bottom) + length), thickness)
 
 
 @dataclass
@@ -62,7 +62,7 @@ class TireSmoke:
     def update(self, dt):
         self.age += dt
         self.x += self.vx * dt
-        self.y += 50 * dt
+        self.y += 20 * dt
 
     def draw(self, surf, anchor, intensity):
         progress = self.age / self.lifetime
@@ -121,7 +121,7 @@ class DriftEffects:
     def yaw(self):
         return self.offset * 6 * self.intensity
 
-    def update(self, dt, player, road, controls):
+    def update(self, dt, player, road, controls, active=True):
         dt = max(0.0, min(0.1, dt))
         for puff in self.smoke:
             puff.update(dt)
@@ -134,8 +134,9 @@ class DriftEffects:
         self.sparks = [spark for spark in self.sparks if spark.age < spark.lifetime]
         crashed = player.collisions > self._collisions
         self._collisions = player.collisions
-        self.state = DriftState.detect(player.speed_percent, controls["steer"],
-                                       road.segment_at(player.front_z).curve, controls["brake"])
+        self.state = (DriftState.detect(player.speed_percent, controls["steer"],
+                                        road.segment_at(player.front_z).curve, controls["brake"])
+                      if active else DriftState())
         target = self.state.amount if self.intensity else 0.0
         self.offset += (target - self.offset) * (1 - math.exp(-10 * max(0.0, dt)))
         if not self.intensity:
@@ -145,7 +146,7 @@ class DriftEffects:
             self._skid_time = 0
             self.sparks.clear()
             return
-        if crashed:
+        if crashed and active:
             for _ in range(max(1, int(18 * self.intensity))):
                 self.sparks.append(CollisionSpark(self.rear_offset, -40,
                                                   self.rng.uniform(-180, 180),
@@ -165,8 +166,8 @@ class DriftEffects:
             while self._smoke_time >= 0.04:
                 self._smoke_time -= 0.04
                 for side in (-1, 1):
-                    self.smoke.append(TireSmoke(side * 52 * player.spec.width + self.rear_offset,
-                                               -8, self.rng.uniform(-18, 18)))
+                    self.smoke.append(TireSmoke(side * 58 * player.spec.width + self.rear_offset,
+                                               -8, side * self.rng.uniform(45, 90)))
             self.smoke = self.smoke[-80:]
         else:
             self._smoke_time = 0

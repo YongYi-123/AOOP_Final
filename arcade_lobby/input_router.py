@@ -15,7 +15,7 @@ from settings import BACK_KEYS
 # Keys no player owns that every scene may still use (ESC is the explicit,
 # global "back": the one rule that any player can leave a screen with).
 SHARED_KEYS = frozenset(BACK_KEYS) | {pygame.K_BACKSPACE, pygame.K_q, pygame.K_m,
-                                      pygame.K_LEFTBRACKET, pygame.K_RIGHTBRACKET}
+                                      pygame.K_LEFTBRACKET, pygame.K_RIGHTBRACKET, pygame.K_v}
 
 
 class PlayerInput:
