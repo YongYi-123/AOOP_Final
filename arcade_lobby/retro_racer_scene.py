@@ -16,6 +16,8 @@ import pygame
 from font import get_font
 from gfx import scale_color, shade
 from minigame import MinigameScene
+from racer_results import RacerVisitResults
+from rewards import RewardResult
 from settings import BACK_KEYS, Col
 
 RETRO_DIR = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)),
@@ -70,6 +72,7 @@ class RetroRacerScene(MinigameScene):
         self.leaving = False
         self.loading_drawn = False
         self.error = None
+        self.results = RacerVisitResults()
         font = get_font()
         self.title = font.render_glow(machine.name, shade(machine.accent, 0.6), machine.neon, scale=6)
         self.loading = font.render_glow("LOADING...", Col.TEXT, scale_color(machine.accent, 0.6), scale=3)
@@ -80,17 +83,33 @@ class RetroRacerScene(MinigameScene):
 
     @property
     def failed(self):
-        # No race scoring is wired up yet, so a successful run gets the base
-        # class's placeholder payout; a racer that failed to load is refunded.
+        # A racer that failed to load is refunded by the existing room flow.
         return self.error is not None
+
+    def get_result(self):
+        return self.results.get_result(self.participants)
+
+    def get_reward(self):
+        outcome = self.results.outcome
+        return RewardResult(self.machine.id, outcome.tickets,
+                            None if outcome.status == "abandoned" else outcome.score)
+
+    def on_quit(self):
+        if self.racer and not self.error:
+            self.results.observe(self.racer)
+            self.racer.audio.stop_engine()
 
     # ------------------------------------------------------------ lifecycle
     def on_enter(self):
         if self.racer:
-            self._restart()
+            try:
+                self._restart()
+            except Exception as exc:
+                self._load_failed(exc)
 
     def on_exit(self):
-        if self.racer:
+        if self.racer and not self.error:
+            self.results.observe(self.racer)
             self.racer.set_paused(False)
             self.racer.audio.stop_engine()   # otherwise the engine hum follows you out
 
@@ -100,11 +119,21 @@ class RetroRacerScene(MinigameScene):
             game_mod, race_mod = load_retro_racer()
             cls._racer = game_mod.Game(screen=self.game.screen)
             cls._title_state = race_mod.State.TITLE
-        except Exception:
-            traceback.print_exc()
-            self.error = "COULD NOT START RETRO RACER"
-            return
-        self._restart()
+            self._restart()
+        except Exception as exc:
+            self._load_failed(exc)
+
+    def _load_failed(self, exc):
+        traceback.print_exc()
+        if self.racer:
+            try:
+                self.racer.audio.stop_engine()
+            except Exception:
+                pass  # Initialization may not have created the audio object.
+        type(self)._racer = None
+        type(self)._title_state = None
+        self.error = "COULD NOT START RETRO RACER"
+        self.error_kind = type(exc).__name__.upper()
 
     def _restart(self):
         r = self.racer
@@ -141,30 +170,35 @@ class RetroRacerScene(MinigameScene):
             if event.type == pygame.KEYDOWN and event.key in BACK_KEYS:
                 self._leave()
         elif self.racer and not self.leaving:
+            # Capture the ended run before ENTER / BACKSPACE resets its data.
+            self.results.observe(self.racer)
             translated = self.racer_event(event)
             if translated is not None:
                 self.racer.handle_event(translated)
 
     def update(self, dt):
+        if self.error or self.leaving:
+            return
         if self.racer is None:
             # First visit: once the wipe has opened on the loading card, build.
             if self.loading_drawn and not self.error and not self.game.scenes.transitioning:
                 self._load()
-            return
-        if self.leaving:
             return
         if not self.racer.running:           # the racer asked to quit
             self.racer.audio.stop_engine()
             self._leave()
             return
         self.racer.update(dt, self.racer_controls())
+        self.results.observe(self.racer)
 
     def _leave(self):
+        if self.leaving:
+            return
         self.leaving = True
         self.game.scenes.pop()
 
     def draw(self, surf):
-        if self.racer is None:
+        if self.error or self.racer is None:
             self._draw_card(surf)
             self.loading_drawn = True
         else:
@@ -180,6 +214,8 @@ class RetroRacerScene(MinigameScene):
             msg = font.render_glow(self.error, Col.MAGENTA, scale_color(Col.MAGENTA, 0.4), scale=2)
             hint = font.render("PRESS ESC TO RETURN TO ARCADE", Col.YELLOW, scale=2)
             surf.blit(msg, msg.get_rect(center=(w // 2, h // 2 + 40)))
+            detail = font.render(getattr(self, "error_kind", "LOAD ERROR"), Col.TEXT_MUTED, scale=2)
+            surf.blit(detail, detail.get_rect(center=(w // 2, h // 2 + 60)))
             surf.blit(hint, hint.get_rect(center=(w // 2, h // 2 + 80)))
         else:
             surf.blit(self.loading, self.loading.get_rect(center=(w // 2, h // 2 + 50)))

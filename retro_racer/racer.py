@@ -124,6 +124,8 @@ class RaceField:
                     front.nudge(1.0 if front.x >= rear.x else -1.0)
                     if rear is self.player:
                         self.events.append("crash" if landed else "shield")
+                    elif front is self.player and landed:
+                        self.events.append("bump")
 
     def _collide_traffic(self):
         if self.traffic is None:

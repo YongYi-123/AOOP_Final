@@ -6,7 +6,7 @@ from car_specs import CAR_CATALOG, player_livery
 from effects import ShieldBreakEffect
 
 
-def draw_car_rear(surf, cx, y, width, variant, lean=0.0, livery=None, marker=False):
+def draw_car_rear(surf, cx, y, width, variant, lean=0.0, livery=None, marker=False, yaw=0.0):
     """Blit a pixel-art rear-view car, `width` px wide, with its bottom-centre at (cx, y).
     `marker` adds the small player-only chevron above the roof."""
     w = int(width)
@@ -14,10 +14,12 @@ def draw_car_rear(surf, cx, y, width, variant, lean=0.0, livery=None, marker=Fal
         return
     frame = (pygame.time.get_ticks() // 90) % 2           # alternates the tyre tread
     sprite = assets.car_sprite(variant, w, frame, livery)
+    if abs(yaw) >= 0.5:
+        sprite = pygame.transform.rotate(sprite, round(yaw))
     h = sprite.get_height()
     shadow_h = max(1, int(w * 0.09))
     pygame.draw.ellipse(surf, (0, 0, 0), (cx - w * 0.56, y - shadow_h, w * 1.12, shadow_h * 2.4))
-    surf.blit(sprite, (cx - w / 2 + lean, y - h))
+    surf.blit(sprite, (cx - sprite.get_width() / 2 + lean, y - h))
     if marker:
         size = max(4, int(w * 0.075))
         tip = (cx + lean, y - h - 3)
@@ -250,9 +252,10 @@ class PlayerCar(DrivenCar):
         super().update(dt, road, accelerate, brake, steer)
         self.score += (self.distance - before) * (1.0 + self.speed_ratio) * 0.01
 
-    def draw(self, surf):
+    def draw(self, surf, visual_offset=0.0, visual_yaw=0.0):
         bob = 2 if (pygame.time.get_ticks() // 60) % 2 and self.speed > 0 else 0
         width, bottom = 150 * self.spec.width, S.HEIGHT - 30 + bob
-        draw_car_rear(surf, S.WIDTH // 2, bottom, width, self.spec.style.key, lean=int(self.steer_visual * 8),
-                      livery=self.livery, marker=True)
-        self.decorate(surf, S.WIDTH // 2, bottom, width)
+        center = S.WIDTH // 2 + visual_offset
+        draw_car_rear(surf, center, bottom, width, self.spec.style.key, lean=int(self.steer_visual * 8),
+                      livery=self.livery, marker=True, yaw=visual_yaw)
+        self.decorate(surf, center, bottom, width)

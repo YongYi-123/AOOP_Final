@@ -226,9 +226,9 @@ class ControlsTests(unittest.TestCase):
         self.assertIn(pygame.K_RCTRL, P2_CONTROLS.interact)
         self.assertEqual(P2_CONTROLS.inventory, (pygame.K_o,))
 
-    def test_solo_keeps_the_original_bindings(self):
+    def test_solo_keeps_original_bindings_and_adds_enter(self):
         self.assertTrue(set(P1_CONTROLS.move) | set(P2_CONTROLS.move) <= set(SOLO_CONTROLS.move))
-        self.assertEqual(SOLO_CONTROLS.interact, (pygame.K_e,))
+        self.assertEqual(SOLO_CONTROLS.interact, (pygame.K_e, pygame.K_RETURN, pygame.K_KP_ENTER))
         self.assertEqual(SOLO_CONTROLS.inventory, (pygame.K_i,))
 
     def test_schemes_per_player_count_and_custom_schemes(self):

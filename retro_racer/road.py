@@ -1,9 +1,9 @@
 """Pseudo-3D road: segments, track layout, projection and rendering."""
-import math
 import random
 import pygame
 import settings as S
 import assets
+from tracks import TRACKS
 
 
 class RoadSegment:
@@ -22,42 +22,19 @@ class RoadSegment:
         self.behind = False
 
 
-def ease(t):
-    return (1 - math.cos(t * math.pi)) / 2
-
-
 class Road:
-    def __init__(self, theme, markers=True):
+    def __init__(self, theme, markers=True, route=None):
+        self.route = route or TRACKS[0].build(S.SEGMENT_LENGTH)
+        if self.route.segment_length != S.SEGMENT_LENGTH:
+            raise ValueError("route and road segment lengths must match")
         self.segments = []
         self._build()
-        self.length = len(self.segments) * S.SEGMENT_LENGTH
+        self.length = self.route.length
         self.apply(theme, markers)
 
     # ---- track construction -------------------------------------------------
-    def _add_section(self, enter, hold, leave, curve):
-        start = self.segments[-1].curve if self.segments else 0.0
-        for n in range(enter + hold + leave):
-            if n < enter:
-                c = start + (curve - start) * ease(n / enter)
-            elif n < enter + hold:
-                c = curve
-            else:
-                c = curve * (1 - ease((n - enter - hold) / leave))
-            self.segments.append(RoadSegment(len(self.segments), c))
-
     def _build(self):
-        add = self._add_section
-        add(25, 25, 25, 0)      # straight
-        add(40, 60, 40, 3.0)    # right
-        add(25, 40, 25, 0)
-        add(40, 60, 40, -4.0)   # left
-        add(20, 30, 20, 0)
-        add(30, 40, 30, 2.0)    # S-bend
-        add(30, 40, 30, -2.5)
-        add(40, 80, 40, 5.0)    # sharp right
-        add(25, 30, 25, 0)
-        add(40, 60, 40, -3.5)
-        add(30, 40, 30, 0)      # ends at curve 0 so the loop is seamless
+        self.segments = [RoadSegment(i, curve) for i, curve in enumerate(self.route.curves)]
         self._find_markers()
 
     def _find_markers(self):
