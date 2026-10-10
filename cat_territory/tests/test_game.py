@@ -63,3 +63,8 @@ class TerritoryGameTests(unittest.TestCase):
         self.assertIn((0,0),game.board.cats)
         self.assertNotIn((0,0),game.board.marks)
         self.assertEqual(game.board.hearts,3)
+
+    def test_legacy_launch_command_uses_territory_game(self):
+        from cat_minesweeper.__main__ import main as legacy_main
+        from cat_territory.__main__ import main as territory_main
+        self.assertIs(legacy_main,territory_main)
