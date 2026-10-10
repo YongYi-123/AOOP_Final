@@ -85,3 +85,23 @@ class ShopSceneTests(unittest.TestCase):
         self.key(pygame.K_ESCAPE)
         self.frames()
         self.assertIs(self.game.scenes.current,self.room)
+
+    def test_expanded_track_catalogue_scrolls_and_prevents_duplicate_charge(self):
+        self.room.open_prize_counter()
+        self.frames()
+        shop=self.game.scenes.current
+        shop.category=shop.KINDS.index('track')
+        shop.index=len(shop.rows)-1
+        rendered=[]
+        original=shop.text
+        def capture(surface,text,pos,*args,**kwargs):
+            rendered.append((text,pos))
+            return original(surface,text,pos,*args,**kwargs)
+        shop.text=capture
+        shop.draw(pygame.Surface((400,300)))
+        self.assertIn((shop.rows[-1].name,(22,205)),rendered)
+        shop.purchase_or_equip()
+        self.assertTrue(shop.shop.garage.owns('track','switchyard'))
+        shop.purchase_or_equip()
+        self.assertEqual(self.profiles[0].tickets,340)
+        self.assertEqual(self.profiles[0].racing_selection['track'],'switchyard')

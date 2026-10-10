@@ -9,6 +9,7 @@ from .service import PrizeService
 
 class PrizeCounterScene(BaseScene):
     KINDS = ('car','track','scenery','paint','decoration')
+    VISIBLE_ROWS = 6
 
     def __init__(self,game,owner):
         super().__init__(game)
@@ -65,9 +66,10 @@ class PrizeCounterScene(BaseScene):
         self.text(surface,self.owner.tag,(20,40))
         self.text(surface,f'TICKETS {self.owner.profile.tickets}',(240,40),(255,224,90))
         self.text(surface,f'< {self.KINDS[self.category].upper()} >',(20,62),(255,224,90),2)
-        for i,prize in enumerate(self.rows):
+        start = max(0,min(self.index-2,len(self.rows)-self.VISIBLE_ROWS))
+        for i,prize in enumerate(self.rows[start:start+self.VISIBLE_ROWS]):
             y = 90+i*23
-            selected = i == self.index
+            selected = i+start == self.index
             if selected:pygame.draw.rect(surface,(65,35,95),(16,y-3,368,21))
             self.text(surface,prize.name,(22,y),prize.color)
             owned = self.shop.garage.owns(prize.kind,prize.key)
@@ -80,6 +82,7 @@ class PrizeCounterScene(BaseScene):
 
 class GarageScene(PrizeCounterScene):
     KINDS = ('car','paint')
+    VISIBLE_ROWS = 4
 
     def __init__(self,game,owner):
         super().__init__(game,owner)
