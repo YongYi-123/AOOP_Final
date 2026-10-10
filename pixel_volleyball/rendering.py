@@ -1,8 +1,9 @@
-"""Original neon court and tiny robot athletes using the lobby bitmap font."""
+"""Original neon court and original cat athletes using the lobby bitmap font."""
 import math
 import pygame
 from arcade_lobby.font import get_font
 from .model import FLOOR, NET_TOP, NET_X, MatchState
+from .cat_art import CatAthleteRenderer, YarnRenderer
 
 CYAN, PINK, YELLOW = (90, 240, 255), (255, 110, 210), (255, 224, 90)
 
@@ -10,6 +11,8 @@ CYAN, PINK, YELLOW = (90, 240, 255), (255, 110, 210), (255, 224, 90)
 class VolleyRenderer:
     def __init__(self):
         self.font = get_font()
+        self.cats = CatAthleteRenderer()
+        self.yarn = YarnRenderer()
 
     def text(self, surface, text, center, color=CYAN, scale=1):
         image = self.font.render_glow(text, color, (35, 20, 65), scale)
@@ -28,31 +31,16 @@ class VolleyRenderer:
         pygame.draw.line(surface, CYAN, (NET_X, NET_TOP), (NET_X, FLOOR), 5)
         for y in range(NET_TOP + 8, FLOOR, 8):
             pygame.draw.line(surface, (70, 110, 140), (194, y), (206, y))
-        for player, color in zip(match.players, (CYAN, PINK)):
-            x, y = round(player.x), round(player.y)
-            pygame.draw.rect(surface, (3, 3, 12), (x - 14, y - 14, 28, 28))
-            pygame.draw.rect(surface, color, (x - 12, y - 12, 24, 24))
-            pygame.draw.rect(surface, (20, 25, 55), (x - 9, y - 7, 18, 8))
-            for dx in (-5, 4):
-                surface.fill(YELLOW, (x + dx, y - 5, 3, 3))
-            surface.fill((230, 235, 255), (x - 6, y + 6, 12, 2))
-            arm_y = y - 18 if player.spike_time else y + 2
-            for dx in (-17, 14):
-                surface.fill(color, (x + dx, arm_y, 4, 10))
-            bob = int(math.sin(match.elapsed * 18) * 2) if player.vy == 0 else 0
-            for dx in (-9, 5):
-                surface.fill(color, (x + dx, y + 14 + bob, 5, 3))
-        ball = match.ball
-        pygame.draw.circle(surface, (25, 15, 45), (round(ball.x), round(ball.y)), 8)
-        pygame.draw.circle(surface, YELLOW, (round(ball.x), round(ball.y)), ball.radius)
-        pygame.draw.line(surface, (255, 250, 220), (ball.x - 4, ball.y - 2), (ball.x + 4, ball.y - 2))
-        self.text(surface, "PIXEL VOLLEYBALL", (200, 16), PINK, 2)
+        for player in match.players:
+            self.cats.draw(surface, player, match)
+        self.yarn.draw(surface, match.ball)
+        self.text(surface, "CAT VOLLEYBALL", (200, 16), PINK, 2)
         self.text(surface, f"P1  {match.points[0]} : {match.points[1]}  {'AI' if match.local_players == 1 else 'P2'}",
                   (200, 39), YELLOW, 2)
         self.text(surface, "MOVE LEFT/RIGHT  UP JUMP  ITEM SPIKE", (200, 280))
         self.text(surface, "MENU PAUSE  BACKSPACE RESTART  ESC LOBBY", (200, 293))
         if match.state is MatchState.TITLE:
-            self.panel(surface, ("FIRST TO FIVE", "E / ENTER TO START"))
+            self.panel(surface, ("FIRST TO FIVE", f"AI: {match.ai.difficulty.name}  LEFT/RIGHT" if match.local_players == 1 else "LOCAL TWO PLAYER", "E / ENTER TO START"))
         elif match.state is MatchState.PAUSED:
             self.panel(surface, ("PAUSED", "E / ENTER TO RESUME"))
         elif match.state is MatchState.FINISHED:
@@ -62,7 +50,7 @@ class VolleyRenderer:
             self.text(surface, "READY!", (200, 100), YELLOW, 2)
 
     def panel(self, surface, lines):
-        pygame.draw.rect(surface, (12, 8, 30), (38, 96, 324, 68))
-        pygame.draw.rect(surface, PINK, (38, 96, 324, 68), 1)
+        pygame.draw.rect(surface, (12, 8, 30), (38, 90, 324, 88))
+        pygame.draw.rect(surface, PINK, (38, 90, 324, 88), 1)
         for i, line in enumerate(lines):
-            self.text(surface, line, (200, 116 + i * 27), YELLOW, 2 if i == 0 else 1)
+            self.text(surface, line, (200, 108 + i * 26), YELLOW, 2 if i == 0 else 1)

@@ -42,6 +42,7 @@ class VolleyBall:
     vx: float
     vy: float
     radius: int = 6
+    rotation: float = 0
 
 
 @dataclass(frozen=True)
@@ -120,6 +121,7 @@ class VolleyMatch:
             self.serve_delay = max(0, self.serve_delay - dt)
             return
         ball = self.ball
+        ball.rotation = (ball.rotation + ball.vx * dt * 4) % 360
         ball.vy += GRAVITY * dt
         previous_x = ball.x
         ball.x += ball.vx * dt
