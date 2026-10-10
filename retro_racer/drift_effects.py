@@ -1,6 +1,30 @@
 """Presentation-only driving feedback. Never mutates a car or road."""
 from dataclasses import dataclass
 import math
+import random
+
+import pygame
+
+
+@dataclass
+class TireSmoke:
+    x: float
+    y: float
+    vx: float
+    age: float = 0.0
+    lifetime: float = 0.65
+
+    def update(self, dt):
+        self.age += dt
+        self.x += self.vx * dt
+        self.y += 50 * dt
+
+    def draw(self, surf, anchor, intensity):
+        progress = self.age / self.lifetime
+        radius = max(1, int((5 + progress * 13) * intensity))
+        puff = pygame.Surface((radius * 2, radius * 2), pygame.SRCALPHA)
+        pygame.draw.circle(puff, (185, 175, 190, int(105 * (1 - progress))), (radius, radius), radius)
+        surf.blit(puff, (anchor[0] + self.x - radius, anchor[1] + self.y - radius))
 
 
 @dataclass(frozen=True)
@@ -21,7 +45,8 @@ class DriftState:
 class DriftEffects:
     """Own visual state for one racer; intensity 0 disables all feedback."""
 
-    def __init__(self, intensity=1.0):
+    def __init__(self, intensity=1.0, rng=None):
+        self.rng = rng or random.Random()  # Separate from traffic, AI and item RNG.
         self.intensity = intensity
         self.reset()
 
@@ -36,6 +61,8 @@ class DriftEffects:
     def reset(self):
         self.state = DriftState()
         self.offset = 0.0
+        self.smoke = []
+        self._smoke_time = 0.0
 
     @property
     def rear_offset(self):
@@ -46,7 +73,30 @@ class DriftEffects:
         return self.offset * 6 * self.intensity
 
     def update(self, dt, player, road, controls):
+        dt = max(0.0, min(0.1, dt))
+        for puff in self.smoke:
+            puff.update(dt)
+        self.smoke = [p for p in self.smoke if p.age < p.lifetime]
         self.state = DriftState.detect(player.speed_percent, controls["steer"],
                                        road.segment_at(player.front_z).curve, controls["brake"])
         target = self.state.amount if self.intensity else 0.0
         self.offset += (target - self.offset) * (1 - math.exp(-10 * max(0.0, dt)))
+        if not self.intensity:
+            self.smoke.clear()
+            self._smoke_time = 0
+            return
+        if abs(self.state.amount) > 0.15 or self.state.braking:
+            self._smoke_time += dt
+            while self._smoke_time >= 0.04:
+                self._smoke_time -= 0.04
+                for side in (-1, 1):
+                    self.smoke.append(TireSmoke(side * 52 * player.spec.width + self.rear_offset,
+                                               -8, self.rng.uniform(-18, 18)))
+            self.smoke = self.smoke[-80:]
+        else:
+            self._smoke_time = 0
+
+    def draw_smoke(self, surf):
+        if self.intensity:
+            for puff in self.smoke:
+                puff.draw(surf, (surf.get_width() / 2, surf.get_height() - 30), self.intensity)
