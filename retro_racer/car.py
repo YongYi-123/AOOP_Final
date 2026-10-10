@@ -256,6 +256,8 @@ class PlayerCar(DrivenCar):
         bob = 2 if (pygame.time.get_ticks() // 60) % 2 and self.speed > 0 else 0
         width, bottom = 150 * self.spec.width, S.HEIGHT - 30 + bob
         center = S.WIDTH // 2 + visual_offset
+        oil_yaw = sum(getattr(effect, "visual_yaw", 0.0) for effect in self.effects)
+        visual_yaw += oil_yaw if S.DRIVING_FX_INTENSITY > 0 else 0.0
         draw_car_rear(surf, center, bottom, width, self.spec.style.key, lean=int(self.steer_visual * 8),
                       livery=self.livery, marker=True, yaw=visual_yaw)
         self.decorate(surf, center, bottom, width)

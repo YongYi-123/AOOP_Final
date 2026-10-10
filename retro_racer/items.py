@@ -11,6 +11,7 @@ import math
 import random
 import pygame
 import settings as S
+from oil_spin import OilSpinEffect
 from effects import SpeedBoostEffect, SlowEffect, ShieldEffect, SpinEffect
 from assets import BLACK, WHITE, YELLOW, ORANGE, RED, CYAN, GREEN, GREY, NAVY
 
@@ -213,7 +214,7 @@ class OilSlick(Hazard):
 
     def __init__(self, owner, z, x):
         super().__init__(owner, z, x)
-        self.touched = {}                      # car id -> time it last triggered, so one pass = one hit
+        self.touched = set()                   # cars currently inside: one trigger per entry
 
     def update(self, dt, world):
         alive = super().update(dt, world)
@@ -221,9 +222,12 @@ class OilSlick(Hazard):
             if car is self.owner and self.age < 1.0:
                 continue                         # the dropper isn't hit by its own oil straight away
             if abs(wrap(car.front_z - self.z, world.length)) < self.DEPTH and abs(car.x - self.x) < self.HALF + car.WIDTH / 2:
-                if self.age - self.touched.get(id(car), -9.0) > 1.5:
-                    self.touched[id(car)] = self.age
-                    world.hostile(car, SlowEffect(1.8, speed=0.55, grip=0.5))
+                if id(car) not in self.touched:
+                    self.touched.add(id(car))
+                    if not any(isinstance(e, OilSpinEffect) for e in car.effects):
+                        world.hostile(car, OilSpinEffect())
+            else:
+                self.touched.discard(id(car))
         return alive
 
     def draw(self, surf, sx, sy, sw):
