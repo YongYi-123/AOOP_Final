@@ -591,6 +591,8 @@ class BaseRoomScene(BaseScene):
         self.acting_player = player
         try:
             if isinstance(target, ArcadeMachine):
+                if hasattr(self.game, "audio"):
+                    self.game.audio.play("machine")
                 self.open_dialogue(target, player)
             else:
                 target.interact(self)

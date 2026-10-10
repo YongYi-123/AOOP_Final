@@ -4,6 +4,8 @@ import pygame
 import settings as S
 import assets
 from tracks import TRACKS
+from track_scenery import CircuitLandmarks
+from street_details import StreetDistricts
 
 
 class RoadSegment:
@@ -30,6 +32,7 @@ class Road:
         self.segments = []
         self._build()
         self.length = self.route.length
+        self.landmarks = CircuitLandmarks.for_route(self.route)
         self.apply(theme, markers)
 
     # ---- track construction -------------------------------------------------
@@ -50,6 +53,7 @@ class Road:
 
         Cheap enough to call whenever the theme or game mode changes (~1200 segments).
         """
+        self.districts = StreetDistricts.for_road(self.route,theme)
         self.theme = theme
         light, dark = theme.colors
         for seg in self.segments:
@@ -109,6 +113,7 @@ class Road:
         base_idx = int(cam_z // S.SEGMENT_LENGTH)
         base_pct = (cam_z % S.SEGMENT_LENGTH) / S.SEGMENT_LENGTH
         cam_x = player_x * S.ROAD_WIDTH
+        elevation = self.route.elevation_at(cam_z+S.CAMERA_HEIGHT*S.CAMERA_DEPTH)
         x = 0.0                                   # accumulated horizontal curve offset
         dx = -self.segments[base_idx % n].curve * base_pct
         visible = []
@@ -119,8 +124,8 @@ class Road:
             z2 = z1 + S.SEGMENT_LENGTH
             seg.behind = (z1 - cam_z) <= S.CAMERA_DEPTH
             if not seg.behind:
-                seg.sx1, seg.sy1, seg.sw1 = self._project(0, 0, z1, cam_x - x, cam_z)
-                seg.sx2, seg.sy2, seg.sw2 = self._project(0, 0, z2, cam_x - x - dx, cam_z)
+                seg.sx1, seg.sy1, seg.sw1 = self._project(0, self.route.elevation_at(z1)-elevation, z1, cam_x - x, cam_z)
+                seg.sx2, seg.sy2, seg.sw2 = self._project(0, self.route.elevation_at(z2)-elevation, z2, cam_x - x - dx, cam_z)
             x += dx
             dx += seg.curve
             visible.append(seg)
@@ -132,7 +137,7 @@ class Road:
         after it, so nearer road/cars always cover farther ones."""
         visible = self.project(cam_z, player_x)
         by_segment = {}
-        for car in cars:
+        for car in tuple(cars)+self.landmarks+self.districts:
             by_segment.setdefault(int(car.z // S.SEGMENT_LENGTH) % len(self.segments), []).append(car)
         drawable = [s for s in visible if not s.behind and s.sy2 < s.sy1 and s.sy1 <= S.HEIGHT + 1]
         for seg in reversed(drawable):

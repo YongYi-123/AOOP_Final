@@ -197,8 +197,7 @@ class SoonStation(Prop):
 
 
 class PrizeCounter(Station):
-    """The prize counter in the PRIZE PLAZA. Only a placeholder for now: it
-    opens a 'coming soon' notice (the shop comes later)."""
+    """Open the acting player's ticket shop in the PRIZE PLAZA."""
     prompt_label = "PRIZE COUNTER"
 
     def __init__(self, pos):

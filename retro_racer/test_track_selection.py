@@ -18,7 +18,7 @@ class TrackSelectionTests(unittest.TestCase):
 
     def test_each_selected_route_rebuilds_all_geometry_dependents(self):
         game = self.game
-        for index in range(3):
+        for index in range(len(game.tracks)):
             self.assertEqual(game.track_index, index)
             self.assertEqual(game.road.route.key, game.tracks[index].key)
             manager = game.managers[GameMode.COMPETITIVE]

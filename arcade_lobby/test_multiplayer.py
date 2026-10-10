@@ -474,7 +474,14 @@ class OwnershipTests(TwoPlayerTest):
         self.p1.avatar.y = float(wheel.zone.bottom - 2)
         self.frames(5)
         self.use(self.p2)
-        self.assertTrue(plaza.notice.visible)
+        from racing_progression.ui import PrizeCounterScene
+        shop = self.game.scenes.current
+        self.assertIsInstance(shop,PrizeCounterScene)
+        self.assertIs(shop.owner,self.p2)
+        self.assertIs(shop.shop.profile,self.b)
+        self.frames(20)  # Finish the station flash and scene-entry wipe.
+        self.frames(40,[key(pygame.K_ESCAPE)])
+        self.assertIs(self.game.scenes.current,plaza)
         self.use(self.p1, frames=30)                             # P1 opens the wheel
         for _ in range(50):
             self.frames(1)

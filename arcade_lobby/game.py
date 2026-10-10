@@ -10,6 +10,7 @@ How the game starts:
 """
 import pygame
 
+from audio_manager import AudioManager
 from game_clock import GameClock
 from menus import StartupFlow
 from player_profile import ProfileStore
@@ -44,6 +45,8 @@ class Game:
         self.clock = pygame.time.Clock()
         self.running = True
 
+        self.audio = AudioManager()
+        self.audio.switch("lobby")
         self.scenes = SceneManager()
         self.style = STYLES.get(style)      # None: the default (neon_lofi); unknown names fall back
         if session is not None:
@@ -70,8 +73,25 @@ class Game:
             if event.type == pygame.QUIT:
                 self.quit()
             else:
+                if event.type == pygame.KEYDOWN:
+                    actor = self.session.player_for_key(event.key) if self.session else None
+                    action = actor.controls.action_for(event.key) if actor else None
+                    if action == "interact" or event.key in (pygame.K_RETURN, pygame.K_KP_ENTER):
+                        self.audio.play("confirm")
+                    elif event.key == pygame.K_ESCAPE:
+                        self.audio.play("cancel")
+                    elif event.key in (pygame.K_F6, pygame.K_F7):
+                        self.audio.set_volumes(bgm=self.audio.bgm_volume + (-.1 if event.key == pygame.K_F6 else .1))
+                    elif event.key in (pygame.K_F8, pygame.K_F9):
+                        self.audio.set_volumes(sfx=self.audio.sfx_volume + (-.1 if event.key == pygame.K_F8 else .1))
                 self.scenes.handle_event(event)
         self.scenes.update(dt)
+        self.audio.update(dt)
+        machine = getattr(self.scenes.current, "machine", None)
+        self.audio.switch(machine.id if machine else "lobby")
+        racer = getattr(self.scenes.current, "racer", None)
+        if racer and hasattr(racer, "audio"):
+            racer.audio.external_gain = self.audio.sfx_volume
         self.scenes.draw(self.canvas, self.screen)
 
     def quit(self):
@@ -80,6 +100,7 @@ class Game:
         if self.running:
             self.running = False
             self.scenes.quit()
+            self.audio.stop()
 
     def run(self):
         while self.running:

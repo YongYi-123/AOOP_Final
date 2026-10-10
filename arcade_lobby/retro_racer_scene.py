@@ -138,6 +138,9 @@ class RetroRacerScene(MinigameScene):
     def _restart(self):
         r = self.racer
         r.screen = self.game.screen
+        from racing_progression.service import RacingGarage
+        profile = self.participants[0] if self.participants else self.game.session.primary.profile
+        r.configure_progression(RacingGarage(profile))
         r.reset()
         r.state = self._title_state
         r.running = True
