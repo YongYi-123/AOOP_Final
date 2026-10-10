@@ -28,6 +28,15 @@ class RacingGarage:
         self.profile.set_racing_selection(kind,key)
         return True
 
+    def lock_message(self, kind, key):
+        prize = prize_for(kind,key)
+        return f"LOCKED - {prize.cost} TICKETS" if prize else "UNAVAILABLE"
+
+    @property
+    def paint_color(self):
+        prize = prize_for('paint',self.selected('paint'))
+        return None if prize.free else prize.color
+
     def owned_cars(self):
         return tuple(p for p in PRIZES if p.kind == 'car' and self.owns('car',p.key))
 

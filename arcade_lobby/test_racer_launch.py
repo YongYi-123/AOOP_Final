@@ -179,6 +179,7 @@ class RacerLaunchTests(unittest.TestCase):
         self.assertTrue(racer.minimap.visible)
 
     def test_scenery_thumbnails_select_from_lobby_and_settle_normally(self):
+        self.game.profile.inventory.add_item('racing_scenery_forest')
         scene = self.launch()
         racer = scene.racer
         for _ in range(2):
@@ -211,6 +212,10 @@ class RacerLaunchTests(unittest.TestCase):
         self.assertEqual(self.game.profile.high_score("retro_racer"), expected.score)
 
     def test_all_original_tracks_settle_once_and_record_daily_score(self):
+        from racing_progression.catalog import PRIZES
+        for prize in PRIZES:
+            if prize.kind == 'track' and not prize.free:
+                self.game.profile.inventory.add_item(prize.item_id)
         task = DailyTask(TaskSpec("racer_best", "Racer best", "high_score", 1, 1,
                                   game_id="retro_racer"))
         self.game.profile._tasks.tasks = [task]

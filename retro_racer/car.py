@@ -236,11 +236,11 @@ class PlayerCar(DrivenCar):
 
     @property
     def livery(self):
-        return player_livery(self.spec)
+        return self._custom_livery or player_livery(self.spec)
 
     @livery.setter
-    def livery(self, value):        # DrivenCar.__init__ assigns None; the player's livery is always derived from its spec
-        pass
+    def livery(self, value):
+        self._custom_livery = value
 
     @property
     def front_z(self):
