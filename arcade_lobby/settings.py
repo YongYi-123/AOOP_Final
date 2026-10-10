@@ -102,9 +102,9 @@ DAILY_TASK_POOL = (
     # Only offered while the player owns a coupon to use.
     {"id": "use_coupon", "description": "USE A FREE PLAY COUPON", "event": "coupon_used",
      "target": 1, "reward": 4, "requires_item": "free_play_coupon"},
-    # No minigame reports a score yet, so this one cannot be finished.
+    # Retro Racer reports real scores through MiniGameResult.
     {"id": "beat_high_score", "description": "BEAT ONE HIGH SCORE", "event": "high_score",
-     "target": 1, "reward": 10, "available": False},
+     "target": 1, "reward": 10},
 )
 
 # Lucky Wheel: entry cost and the reward table. The chance of a reward is

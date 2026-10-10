@@ -16,6 +16,8 @@ import pygame
 from font import get_font
 from gfx import scale_color, shade
 from minigame import MinigameScene
+from racer_results import RacerVisitResults
+from rewards import RewardResult
 from settings import BACK_KEYS, Col
 
 RETRO_DIR = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)),
@@ -70,6 +72,7 @@ class RetroRacerScene(MinigameScene):
         self.leaving = False
         self.loading_drawn = False
         self.error = None
+        self.results = RacerVisitResults()
         font = get_font()
         self.title = font.render_glow(machine.name, shade(machine.accent, 0.6), machine.neon, scale=6)
         self.loading = font.render_glow("LOADING...", Col.TEXT, scale_color(machine.accent, 0.6), scale=3)
@@ -80,9 +83,21 @@ class RetroRacerScene(MinigameScene):
 
     @property
     def failed(self):
-        # No race scoring is wired up yet, so a successful run gets the base
-        # class's placeholder payout; a racer that failed to load is refunded.
+        # A racer that failed to load is refunded by the existing room flow.
         return self.error is not None
+
+    def get_result(self):
+        return self.results.get_result(self.participants)
+
+    def get_reward(self):
+        outcome = self.results.outcome
+        return RewardResult(self.machine.id, outcome.tickets,
+                            None if outcome.status == "abandoned" else outcome.score)
+
+    def on_quit(self):
+        if self.racer and not self.error:
+            self.results.observe(self.racer)
+            self.racer.audio.stop_engine()
 
     # ------------------------------------------------------------ lifecycle
     def on_enter(self):
@@ -91,6 +106,7 @@ class RetroRacerScene(MinigameScene):
 
     def on_exit(self):
         if self.racer:
+            self.results.observe(self.racer)
             self.racer.set_paused(False)
             self.racer.audio.stop_engine()   # otherwise the engine hum follows you out
 
@@ -141,6 +157,8 @@ class RetroRacerScene(MinigameScene):
             if event.type == pygame.KEYDOWN and event.key in BACK_KEYS:
                 self._leave()
         elif self.racer and not self.leaving:
+            # Capture the ended run before ENTER / BACKSPACE resets its data.
+            self.results.observe(self.racer)
             translated = self.racer_event(event)
             if translated is not None:
                 self.racer.handle_event(translated)
@@ -158,6 +176,7 @@ class RetroRacerScene(MinigameScene):
             self._leave()
             return
         self.racer.update(dt, self.racer_controls())
+        self.results.observe(self.racer)
 
     def _leave(self):
         self.leaving = True
