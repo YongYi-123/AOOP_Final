@@ -7,13 +7,19 @@ it must be owned and made for that slot. Nothing here touches collision boxes,
 speed or any gameplay stat - cosmetics only change the sprite frames
 (player.py paints the layers) and the colours of the outfit.
 
-Slots:  palette (outfit colours), hat, face, accessory.
+Slots:  palette (outfit colours), hat, face, accessory (a pin or badge on the chest),
+clip (hair clip), tail (worn behind) and jacket (replaces the torso colours).
+
+Skin tone, eye style, hair and the base shirt colour are NOT cosmetics: they are
+free choices (avatar_style.py) that need no ownership.
 """
 from dataclasses import dataclass, replace
 
 PALETTE, HAT, FACE, ACCESSORY = "palette", "hat", "face", "accessory"
-SLOTS = (PALETTE, HAT, FACE, ACCESSORY)
-SLOT_NAMES = {PALETTE: "COLORS", HAT: "HAT", FACE: "FACE", ACCESSORY: "PIN"}
+CLIP, TAIL, JACKET = "clip", "tail", "jacket"
+SLOTS = (PALETTE, HAT, FACE, ACCESSORY, CLIP, TAIL, JACKET)
+SLOT_NAMES = {PALETTE: "COLORS", HAT: "HAT", FACE: "FACE", ACCESSORY: "PIN",
+              CLIP: "CLIP", TAIL: "TAIL", JACKET: "COAT"}
 
 
 @dataclass(frozen=True)
@@ -29,6 +35,13 @@ COSMETICS = {c.item_id: c for c in (
     Cosmetic("cat_ears", HAT),
     Cosmetic("retro_sunglasses", FACE),
     Cosmetic("star_pin", ACCESSORY),
+    Cosmetic("neon_headphones", HAT),
+    Cosmetic("pixel_crown", HAT),
+    Cosmetic("glowing_visor", FACE),
+    Cosmetic("champion_badge", ACCESSORY),
+    Cosmetic("star_hair_clip", CLIP),
+    Cosmetic("cat_tail", TAIL),
+    Cosmetic("rainbow_jacket", JACKET),
     Cosmetic("palette_sunset", PALETTE, ((255, 150, 70), (214, 100, 50), (255, 100, 160), (200, 60, 120), (255, 240, 170))),
     Cosmetic("palette_mint", PALETTE, ((90, 230, 170), (50, 170, 130), (240, 250, 245), (180, 210, 200), (255, 180, 220))),
     Cosmetic("palette_grape", PALETTE, ((140, 90, 230), (96, 60, 180), (255, 214, 90), (210, 160, 40), (255, 250, 200))),

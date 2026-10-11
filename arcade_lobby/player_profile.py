@@ -21,6 +21,7 @@ from collections import deque, namedtuple
 from contextlib import contextmanager
 from dataclasses import replace
 
+from avatar_style import BasicAppearance
 from daily_rewards import DailyRewardManager
 from daily_tasks import DailyTaskManager
 from game_clock import GameClock
@@ -30,7 +31,7 @@ from settings import (NEON21_DAILY_TICKET_CAP, STARTING_TICKETS, STARTING_TOKENS
                       TRANSACTION_HISTORY_SIZE)
 
 # field: "tokens", "tickets", "games_played", "high_score", "daily", "tasks",
-#        "chance_games", "cats_petted", "inventory", "decorations", "appearance" or "collection"
+#        "chance_games", "cats_petted", "inventory", "decorations", "appearance", "basic_appearance" or "collection"
 # delta: signed change (for "high_score": the new score); value: new total
 ProfileChange = namedtuple("ProfileChange", "field delta value")
 
@@ -57,7 +58,7 @@ class PlayerProfile:
                  lifetime_tokens_spent=0, chance_games_played=0, cats_petted=0,
                  daily=None, daily_tasks=None, history=(), clock=None, inventory=None,
                  home_decorations=None, profile_id=None, display_name=None, racing_selection=None,
-                 neon21=None, appearance=None, collection_display=None):
+                 neon21=None, appearance=None, collection_display=None, basic_appearance=None):
         # Who this profile is. The id is the save identity (never the name);
         # both are None for a bare profile that is not managed by a ProfileManager.
         self.profile_id = profile_id
@@ -88,6 +89,10 @@ class PlayerProfile:
         # slots are the default outfit; ownership is checked when it is applied.
         self._appearance = {k: v for k, v in (appearance or {}).items()
                             if isinstance(k, str) and isinstance(v, str)}
+        # The FREE look (skin, eyes, hair, shirt colour; see avatar_style.py). Needs no
+        # ownership; an older save without it keeps the original look.
+        self._basic = (basic_appearance if isinstance(basic_appearance, BasicAppearance)
+                       else BasicAppearance.from_dict(basic_appearance))
         # Collectible ids pinned on the HOME display shelf, in order.
         self._collection_display = [i for i in (collection_display or []) if isinstance(i, str)]
         self._racing_selection = {k:v for k,v in (racing_selection or {}).items()
@@ -170,6 +175,21 @@ class PlayerProfile:
         if changed:
             self._notify("appearance", 0, len(self._appearance))
         return changed
+
+    @property
+    def basic_appearance(self):
+        """The free look: a BasicAppearance (immutable)."""
+        return self._basic
+
+    def set_basic_appearance(self, basic, field=None, option_id=None):
+        """Replace the free look with `basic` (a BasicAppearance), or change one field
+        (`field`, `option_id`). Returns True if anything changed. Always free."""
+        new = basic.with_choice(field, option_id) if field else basic
+        if new == self._basic:
+            return False
+        self._basic = new
+        self._notify("basic_appearance", 0, 0)
+        return True
 
     @property
     def collection_display(self):
@@ -503,6 +523,7 @@ class PlayerProfile:
             "home_decorations": dict(self._home_decorations),
             "racing_selection": dict(self._racing_selection),
             "appearance": dict(self._appearance),
+            "basic_appearance": self._basic.to_dict(),
             "collection_display": list(self._collection_display),
             "neon21": {"date": self._neon21_date, "tickets": self._neon21_tickets,
                        **({"pending": dict(self._neon21_pending)} if self._neon21_pending else {})},
@@ -548,6 +569,7 @@ class PlayerProfile:
             racing_selection=data.get("racing_selection") if isinstance(data.get("racing_selection"),dict) else {},
             neon21=data.get("neon21"),
             appearance=data.get("appearance") if isinstance(data.get("appearance"), dict) else {},
+            basic_appearance=BasicAppearance.from_dict(data.get("basic_appearance")),
             collection_display=data.get("collection_display") if isinstance(data.get("collection_display"), list) else [],
             profile_id=data["profile_id"] if isinstance(data.get("profile_id"), str) else None,
             display_name=data["display_name"] if isinstance(data.get("display_name"), str) else None,

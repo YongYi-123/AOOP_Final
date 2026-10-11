@@ -200,7 +200,7 @@ class SpriteLayerTests(unittest.TestCase):
                          pixels(styled_sheet(P1_LOOK, appearance)["down"]["idle"][0]))
 
     def test_outfit_of_reads_the_three_layer_slots(self):
-        self.assertEqual(outfit_of({HAT: "a", FACE: "b", ACCESSORY: "c", PALETTE: "d"}), ("a", "b", "c"))
+        self.assertEqual(outfit_of({HAT: "a", FACE: "b", ACCESSORY: "c", PALETTE: "d"}), ("a", "b", "c", None, None, None))
 
 
 class AvatarInTheHubTests(unittest.TestCase):

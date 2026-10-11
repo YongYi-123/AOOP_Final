@@ -161,10 +161,63 @@ def _cabinet(s, c, a):
     s.fill(Col.YELLOW, (8, 11, 1, 1))
 
 
+def _headphones(s, c, a):
+    pygame.draw.arc(s, a, (2, 1, 10, 11), 0.0, 3.1416, 2)
+    s.fill(c, (1, 6, 3, 6))
+    s.fill(c, (10, 6, 3, 6))
+    s.fill(a, (2, 8, 1, 2))
+    s.fill(a, (11, 8, 1, 2))
+
+
+def _crown(s, c, a):
+    pygame.draw.polygon(s, c, [(1, 11), (1, 3), (4, 7), (7, 1), (10, 7), (13, 3), (13, 11)])
+    s.fill(shade(c, -0.3), (1, 10, 12, 2))
+    s.fill(a, (6, 7, 2, 2))
+    s.fill(shade(c, 0.6), (2, 4, 1, 2))
+
+
+def _visor(s, c, a):
+    s.fill(a, (0, 4, 14, 6))
+    s.fill(c, (1, 5, 12, 2))
+    s.fill((255, 255, 255), (2, 5, 2, 1))
+    s.fill(shade(a, 0.3), (0, 8, 14, 1))
+
+
+def _medal(s, c, a):
+    s.fill(a, (4, 0, 2, 5))
+    s.fill(c, (8, 0, 2, 5))
+    pygame.draw.circle(s, c, (7, 9), 5)
+    pygame.draw.circle(s, shade(c, -0.35), (7, 9), 5, 1)
+    s.fill(a, (6, 7, 2, 4))
+    s.fill(shade(c, 0.6), (4, 7, 1, 2))
+
+
+def _clip(s, c, a):
+    s.fill(shade(c, -0.4), (1, 9, 12, 2))
+    pygame.draw.polygon(s, c, [(7, 0), (9, 4), (13, 4), (10, 7), (11, 11), (7, 9), (3, 11), (4, 7), (1, 4), (5, 4)])
+    s.fill(a, (6, 3, 2, 3))
+
+
+def _tail(s, c, a):
+    for x, y, w in ((1, 11, 4), (4, 9, 4), (7, 6, 3), (9, 3, 3), (10, 1, 3)):
+        s.fill(c, (x, y, w, 3))
+    s.fill(shade(c, -0.3), (4, 12, 3, 1))
+    s.fill(a, (11, 1, 2, 2))
+
+
+def _jacket(s, c, a):
+    for i, color in enumerate(((255, 70, 90), (255, 160, 60), (255, 230, 80), (90, 230, 120), (80, 170, 255))):
+        s.fill(color, (3, 3 + i * 2, 8, 2))
+    s.fill((140, 96, 230), (0, 3, 3, 8))
+    s.fill((140, 96, 230), (11, 3, 3, 8))
+    s.fill((24, 18, 50), (6, 3, 2, 10))
+
+
 PAINTERS = {"sticker": _sticker, "cap": _cap, "ticket": _ticket, "badge": _badge,
             "lamp": _lamp, "plush": _plush, "plant": _plant, "clock": _clock, "frame": _frame,
             "rug": _rug, "star": _star, "ears": _ears, "glasses": _glasses, "swatch": _swatch,
-            "trophy": _trophy, "coin": _coin, "clover": _clover, "cabinet": _cabinet}
+            "headphones": _headphones, "crown": _crown, "visor": _visor, "medal": _medal,
+            "clip": _clip, "tail": _tail, "jacket": _jacket, "trophy": _trophy, "coin": _coin, "clover": _clover, "cabinet": _cabinet}
 _cache = {}
 
 

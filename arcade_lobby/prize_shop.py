@@ -22,6 +22,8 @@ COUPON_PRICE = 12       # tickets: one play is worth a token, a coupon is a conv
 
 # item id -> tickets, in the order the shop lists them
 _COSMETIC_PRICES = {"neon_cap": 30, "cat_ears": 25, "retro_sunglasses": 35, "star_pin": 20,
+                    "star_hair_clip": 18, "neon_headphones": 45, "pixel_crown": 80, "glowing_visor": 40,
+                    "champion_badge": 55, "cat_tail": 35, "rainbow_jacket": 90,
                     "palette_sunset": 20, "palette_mint": 20, "palette_grape": 20, "palette_cherry": 20}
 _COLLECTIBLE_PRICES = {"cat_sticker": 15, "lucky_clover": 35, "retro_badge": 40, "golden_token": 50,
                        "arcade_trophy": 60, "mini_cabinet": 75}
