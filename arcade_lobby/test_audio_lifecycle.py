@@ -68,7 +68,7 @@ class HubCase(unittest.TestCase):
         self.assertTrue(a.music_playing())
         active, other = a.channels[a.active], a.channels[1 - a.active]
         self.assertIs(active.get_sound(), a.music[theme])
-        self.assertAlmostEqual(active.get_volume(), a.bgm_volume * a.duck, delta=.02)
+        self.assertAlmostEqual(active.get_volume(), 0 if a.muted else a.bgm_volume * a.duck, delta=.02)
         self.assertFalse(other.get_busy(), "a previous track is still playing")
 
     def start_game(self, game_id):
