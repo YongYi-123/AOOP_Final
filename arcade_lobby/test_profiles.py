@@ -543,8 +543,13 @@ class StartupFlowTests(FlowTest):
         self.assertEqual(sel.entry.text, "KEVI")
         self.frames(1, [key(pygame.K_RETURN)])
         self.assertIsNone(sel.entry)
+        self.assertEqual(len(self.m), 0)                         # the CHARACTER CREATOR comes first ...
+        self.settle()
+        self.assertEqual(type(self.scene).__name__, "CharacterCreatorScene")
+        self.go(pygame.K_RETURN, pygame.K_RETURN, pygame.K_RETURN, pygame.K_RETURN, pygame.K_RETURN,
+                pygame.K_DOWN, pygame.K_RETURN)                  # ... then CONFIRM makes the profile
         self.assertEqual([i.display_name for i in self.m.list_profiles()], ["KEVI"])
-        self.assertEqual(sel.selected_info.display_name, "KEVI")
+        self.assertEqual(self.scene.selected_info.display_name, "KEVI")
 
     def test_blank_and_duplicate_names_are_rejected_in_the_entry_box(self):
         self.start(["Alice"])
@@ -579,6 +584,10 @@ class StartupFlowTests(FlowTest):
         self.go(pygame.K_RETURN)
         self.frames(1, typed("zed"))
         self.frames(1, [key(pygame.K_RETURN)])
+        self.settle()
+        self.go(pygame.K_DOWN, pygame.K_DOWN, pygame.K_DOWN, pygame.K_DOWN, pygame.K_DOWN, pygame.K_DOWN,
+                pygame.K_RETURN)                                 # creator: down to CONFIRM
+        p2 = self.scene
         self.assertEqual(p2.selected_info.display_name, "ZED")
         self.go(pygame.K_RETURN)
         self.assertEqual([p.profile.display_name for p in self.game.session], ["Alice", "ZED"])
