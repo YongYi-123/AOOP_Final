@@ -292,13 +292,43 @@ class AudioManager:
                     self._fail("stop faded-out music", exc)
         self._apply_volumes()
 
-    def set_volumes(self, bgm=None, sfx=None):
+    def set_volumes(self, bgm=None, sfx=None, save=True):
+        """Set either volume (0..1) and apply it at once. `save=False` while a slider is being dragged
+        (call save_prefs() when it is let go)."""
         if bgm is not None:
             self.bgm_volume = max(0, min(1, bgm))
         if sfx is not None:
             self.sfx_volume = max(0, min(1, sfx))
         self._apply_volumes()
+        if save:
+            self.save_prefs()
+
+    def restore_defaults(self):
+        self.bgm_volume, self.sfx_volume, self.muted = DEFAULT_BGM, DEFAULT_SFX, False
+        self._apply_volumes()
         self.save_prefs()
+
+    def play_test_sound(self):
+        """The settings screen's TEST SOUND: an effect at the current effects volume. Returns False (and plays
+        nothing) when muted or when there is no audio device, so the screen can say why."""
+        if not self.enabled or self.muted:
+            return False
+        self.last_effect.pop("purchase", None)
+        self.play("purchase")
+        return "purchase" in self.last_effect
+
+    def sfx_busy(self):
+        """Mixer channels currently playing an effect (the music and engine channels are not counted)."""
+        if not self.enabled:
+            return []
+        try:
+            return [i for i in range(SFX_CHANNELS, pygame.mixer.get_num_channels()) if pygame.mixer.Channel(i).get_busy()]
+        except pygame.error:
+            return []
+
+    @property
+    def fade_state(self):
+        return "CROSSFADING" if self.mix != self.mix_to else "STEADY"
 
     def set_muted(self, muted):
         self.muted = bool(muted)
