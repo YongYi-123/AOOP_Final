@@ -16,20 +16,29 @@ from room import Prop, make_prize_counter
 from settings import INTERACT_FLASH, Col
 
 
+def _brightened(sprite, accent):
+    """An already-outlined sprite with a faint accent tint for the 'selected' look."""
+    lit = sprite.copy()
+    lit.fill((*shade(accent, 0.5), 0), special_flags=pygame.BLEND_RGB_ADD)
+    return lit
+
+
 class Station(Prop):
     """A prop with an [E] prompt. Subclasses supply the sprite and interact()."""
     prompt_label = "USE"
     REACH = (26, 24)        # how far beyond its footprint the prompt appears
 
-    def __init__(self, sprite, pos, footprint, neon, accent, glow_strength=0.3):
+    def __init__(self, sprite, pos, footprint, neon, accent, glow_strength=0.3, outline=True):
         x, y = pos
         w, h = sprite.get_size()
         glow = neon_rect_glow(w, h, neon, 7, glow_strength)
-        super().__init__(outlined(sprite), (x - 1, y - 1), footprint, glow, (x - 7, y - 7))
+        art = outlined(sprite) if outline else sprite       # (a sprite that is already outlined keeps one line)
+        off = 1 if outline else 0
+        super().__init__(art, (x - off, y - off), footprint, glow, (x - 7, y - 7))
         self.neon, self.accent = neon, accent
         self.rect = pygame.Rect(x, y, w, h)
         self.zone = self.footprint.inflate(*self.REACH)
-        self.highlighted = outlined(sprite, shade(accent, 0.5))
+        self.highlighted = outlined(sprite, shade(accent, 0.5)) if outline else _brightened(sprite, accent)
         self.highlight = False
         self.flash_time = 0.0
         self.time = 0.0
@@ -229,6 +238,30 @@ class PrizeCounter(Station):
 
     def interact(self, scene):
         scene.open_prize_counter()
+
+    def draw(self, surf):
+        super().draw(surf)
+        # a soft glint sliding over the glass every few seconds (subtle prize-case lighting)
+        phase = (self.time % 4.0) / 1.2
+        if phase < 1:
+            x = self.rect.x + 4 + int(phase * (self.rect.w - 12))
+            for dy, c in ((3, (220, 250, 255)), (4, (150, 200, 230)), (5, (120, 160, 210))):
+                surf.fill(c, (x - (dy - 3), self.rect.y + dy - 1, 2, 1))
+            surf.fill((255, 255, 255), (x + 1, self.rect.y + 2, 1, 1))
+
+
+class Seat(Station):
+    """A stool the player can sit on (E). Sitting only moves how the avatar is DRAWN (the
+    body and its collision box stay where they are); E or any movement key stands up."""
+    prompt_label = "SIT"
+
+    def __init__(self, sprite, pos, footprint):
+        super().__init__(sprite, pos, footprint, Col.CYAN, Col.CYAN, 0.12, outline=False)
+        x, y = pos
+        self.seat_pos = (x + sprite.get_width() // 2, y + 8)       # where the sitting avatar's feet are drawn
+
+    def interact(self, scene):
+        scene.sit_player(self)
 
 
 def build_daily_board(profile, pos):

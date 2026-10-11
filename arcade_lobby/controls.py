@@ -35,12 +35,13 @@ class ControlScheme:
     item: tuple = ()                # "use item" in minigames
     pause: tuple = ()               # extra pause keys in minigames
     confirm: tuple = ()             # extra "OK" keys for menus / minigames (not used in the hub)
+    emote: tuple = ()               # wave / celebrate in the hub
     keys: frozenset = field(init=False)
 
     def __post_init__(self):
         object.__setattr__(self, "keys", frozenset(self.move) | frozenset(self.interact)
                            | frozenset(self.inventory) | frozenset(self.item) | frozenset(self.pause)
-                           | frozenset(self.confirm))
+                           | frozenset(self.confirm) | frozenset(self.emote))
 
     def label(self, *actions, limit=2):
         """Short readable names of this player's keys for `actions` ('W/UP'),
@@ -60,7 +61,8 @@ class ControlScheme:
         if key in self.move:
             return DIRECTION_ACTIONS[self.move[key]]
         for action, keys in (("interact", self.interact), ("menu", self.inventory),
-                             ("item", self.item), ("pause", self.pause), ("confirm", self.confirm)):
+                             ("item", self.item), ("pause", self.pause), ("confirm", self.confirm),
+                             ("emote", self.emote)):
             if key in keys:
                 return action
         return None
@@ -93,12 +95,13 @@ SOLO_CONTROLS = ControlScheme("SOLO", {**WASD, **ARROWS},
                               (pygame.K_e, pygame.K_RETURN, pygame.K_KP_ENTER), (pygame.K_i,),
                               "WASD", "E/ENTER", "I",
                               item=(pygame.K_SPACE, pygame.K_LSHIFT, pygame.K_z, pygame.K_x),
-                              pause=(pygame.K_p,), confirm=(pygame.K_RETURN, pygame.K_KP_ENTER))
+                              pause=(pygame.K_p,), confirm=(pygame.K_RETURN, pygame.K_KP_ENTER),
+                              emote=(pygame.K_t,))
 P1_CONTROLS = ControlScheme("P1", dict(WASD), (pygame.K_e,), (pygame.K_i,), "WASD", "E", "I",
-                            item=(pygame.K_SPACE, pygame.K_LSHIFT))
+                            item=(pygame.K_SPACE, pygame.K_LSHIFT), emote=(pygame.K_t,))
 P2_CONTROLS = ControlScheme("P2", dict(ARROWS), (pygame.K_RETURN, pygame.K_RCTRL, pygame.K_KP_ENTER),
                             (pygame.K_o,), "ARROWS", "ENTER", "O",
-                            item=(pygame.K_RSHIFT, pygame.K_KP0))
+                            item=(pygame.K_RSHIFT, pygame.K_KP0), emote=(pygame.K_SLASH,))
 
 # how many local players -> one scheme per player
 SCHEMES = {1: (SOLO_CONTROLS,), 2: (P1_CONTROLS, P2_CONTROLS)}

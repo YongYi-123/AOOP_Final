@@ -220,10 +220,11 @@ class PrizePlazaScene(BaseRoomScene):
     ambience_mix = {"arcade_buzz": 0.1, "machine_hum": 0.06}
     exits = (RoomExit("left", "home", "right"),)
     cat_spots = {}              # nobody lives here yet
+    music_id = "prize_plaza"
     hint_rows = (
         [("MOVE: WASD", Col.TEXT)],
         [("E :", Col.TEXT), ("INTERACT", Col.YELLOW)],
-        [("I :", Col.TEXT), ("BAG", Col.YELLOW)],
+        [("I :", Col.TEXT), ("BAG", Col.YELLOW), ("  T :", Col.TEXT), ("WAVE", Col.YELLOW)],
     )
 
     # ------------------------------------------------------------ building

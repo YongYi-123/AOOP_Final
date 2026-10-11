@@ -14,6 +14,7 @@ from font import get_font
 from gfx import neon_rect_glow, scale_color, shade
 from lofi_props import make_stool
 from room import Prop, make_vending
+from stations import Seat
 from room_art import FloorStrips, HubBackdrop
 from room_scene import BaseRoomScene, RoomExit
 from settings import FLOOR_TOP, Col, VIEW_H, VIEW_W
@@ -95,10 +96,11 @@ class ArcadeFloorScene(BaseRoomScene):
         "pixel": ((120, 124), (250, 124), (324, 196), (330, 244)),   # curious: patrols the corridor
     }
     action_hint = "PLAY"
+    music_id = "lobby"
     hint_rows = (
         [("MOVE: WASD", Col.TEXT)],
         [("E/ENTER :", Col.TEXT), ("PLAY", Col.YELLOW)],
-        [("I :", Col.TEXT), ("BAG", Col.YELLOW)],
+        [("I :", Col.TEXT), ("BAG", Col.YELLOW), ("  T :", Col.TEXT), ("WAVE", Col.YELLOW)],
     )
 
     def __init__(self, game, hub):
@@ -114,7 +116,7 @@ class ArcadeFloorScene(BaseRoomScene):
         stool = make_stool()
         vend = Prop(make_vending(), (332, 32), (333, FLOOR_TOP, 30, 26),
                     neon_rect_glow(30, 58, Col.CYAN, 7, 0.4), (325, 27))
-        stools = [Prop(stool, (x, 184), (x + 1, 192, 12, 5)) for x in (123, 207, 291)]
+        stools = [Seat(stool, (x, 184), (x + 1, 192, 12, 5)) for x in (123, 207, 291)]
         return self.layout.build_idle_cabinets() + [vend] + stools
 
     def build_renderer(self):

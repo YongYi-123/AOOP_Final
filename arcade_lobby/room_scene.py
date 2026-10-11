@@ -100,6 +100,14 @@ ARRIVAL_SPREAD = {
 }
 
 
+def facing_toward(player, rect):
+    """The facing (down / up / left / right) that looks from `player` at `rect`."""
+    dx, dy = rect.centerx - player.x, rect.centery - (player.y - 8)
+    if abs(dx) > abs(dy) * 1.5:
+        return "right" if dx > 0 else "left"
+    return "down" if dy > 0 else "up"
+
+
 class BaseRoomScene(BaseScene):
     room_id = None
     ambience_mix = {}           # ambience layer -> volume while this room is on screen
@@ -324,6 +332,7 @@ class BaseRoomScene(BaseScene):
             p.held.clear()
             p.activating = None
             p.nearby = p.nearby_cat = None
+            p.stop_action()
             p.stop()
         for thing in self.interactables:
             thing.highlight = False
@@ -364,6 +373,7 @@ class BaseRoomScene(BaseScene):
             lines.append((self.session.player_for_avatar(player).tag, player.look.accent))
             lines.append((f"{score}+{tickets} TICKETS", Col.YELLOW))
         if lines:
+            self.play_sound("ticket")
             self.notice.show("GAME COMPLETE", lines, Col.GREEN, duration=3.6 if len(lines) > 1 else None)
 
     # ------------------------------------------------------------ daily clock
@@ -426,14 +436,44 @@ class BaseRoomScene(BaseScene):
             player.held.clear()
         elif action in ("up", "down", "left", "right") and key not in player.held:
             player.held.append(key)
+        elif action == "emote":
+            self._emote(player)
+        elif action == "interact" and player.sitting:
+            player.stop_action()                    # E on the seat stands up (and does nothing else)
         elif action == "interact" and player.nearby:
             if isinstance(player.nearby, ArcadeMachine):
                 self._emit("machine_visited", player, key=player.nearby.id)
             player.nearby.activate()
             player.activating = (player.nearby, INTERACT_FLASH)
+            player.play_action("press", facing_toward(player, player.nearby.rect))
         elif action == "interact" and player.nearby_cat:
             if self.cats.interact(player.nearby_cat, player):
                 self._emit("cat_petted", player)
+                player.play_action("pet", facing_toward(player, player.nearby_cat.feet), emote="heart")
+                self.play_sound("pet")
+
+    def _emote(self, player):
+        """T / '/': wave, then celebrate on the next press. Never while a window is open or
+        while the player is already doing something (sitting, E-flash)."""
+        if player.activating or player.sitting:
+            return
+        pose = "cheer" if player.action == "wave" else "wave"
+        player.play_action(pose, "down")
+        self.play_sound("emote")
+
+    def sit_player(self, seat):
+        """A SEAT was used: the acting player sits on it unless somebody else already does."""
+        player = self._actor()
+        if any(p is not player and p.sitting and p.seat == seat.seat_pos for p in self.players):
+            self.notice.show("SEAT TAKEN", [], Col.YELLOW)
+            return
+        player.sit(seat.seat_pos, "down")
+        self.play_sound("sit")
+
+    def play_sound(self, name):
+        audio = getattr(self.game, "audio", None)
+        if audio is not None:
+            audio.play(name)
 
     def _key_during_modal(self, key):
         """A key of the player who does NOT own the open modal: they can keep
@@ -656,6 +696,7 @@ class BaseRoomScene(BaseScene):
         plays = [(player, session)]
         for other in group[1:]:
             plays.append((other, machine.start_play(other.profile)))
+        self.play_sound("token")                # the token drops in
         self.interaction = MachineInteraction(machine, self.session.player_for_avatar(player))
         self.active_play = (session, scene)
         self.active_plays = plays
@@ -736,14 +777,17 @@ class BaseRoomScene(BaseScene):
         for p in self.players:
             direction = (0, 0) if self._is_busy(p) else p.direction
             p.update(dt, direction, self.solids + self.cats.blockers(p))
+            if p.footstep:                      # a foot just came down
+                p.footstep = False
+                self.play_sound("footstep")
         self.cats.update(dt, self.players, busy)
         self._check_exits()
 
         # Machines win over cats when both are in reach.
         for p in self.players:
             held_still = self._is_busy(p)
-            p.nearby = None if held_still else self._find_nearby(p)
-            p.nearby_cat = None if held_still or p.nearby else self.cats.find_nearby(p)
+            p.nearby = None if held_still or p.sitting else self._find_nearby(p)
+            p.nearby_cat = None if held_still or p.nearby or p.sitting else self.cats.find_nearby(p)
         for m in self.interactables:
             m.highlight = any(p.nearby is m for p in self.players)
         for p in self.players:

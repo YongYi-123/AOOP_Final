@@ -98,10 +98,11 @@ class HomeRoomScene(BaseRoomScene):
         "luna": ((50, 112), (366, 150), (350, 180)),      # quiet corners
         "bean": ((262, 132), (214, 160), (150, 200)),     # wandering the lounge
     }
+    music_id = "home"
     hint_rows = (
         [("MOVE: WASD", Col.TEXT)],
         [("E :", Col.TEXT), ("INTERACT", Col.YELLOW)],
-        [("I :", Col.TEXT), ("BAG", Col.YELLOW)],
+        [("I :", Col.TEXT), ("BAG", Col.YELLOW), ("  T :", Col.TEXT), ("WAVE", Col.YELLOW)],
     )
 
     def __init__(self, game, hub):

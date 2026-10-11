@@ -460,6 +460,8 @@ class HubPlayer(AnimatedSprite):
         self.action = None              # a short pose (ACTIONS) or "sit"; None = walking / idle
         self.action_time = 0.0
         self.seat = None                # (x, y) feet position drawn while sitting; collision is unchanged
+        self.footstep = False           # set when a foot comes down: the room plays the step sound
+        self._step_frame = -1
         self.emote = None               # (kind, seconds left): a heart / sparkle beside the head
         self.label = label              # "P1" / "P2"; empty in a one-player session
         self.tag_left = 0.0
@@ -603,6 +605,10 @@ class HubPlayer(AnimatedSprite):
             state = "walk" if self.moving else "idle"
             self.anim.play(f"{state}_{self.facing}", sync=self.moving and was_moving)
             self.anim.update(dt)
+            frame = self.anim.frame_index if self.moving else -1
+            if frame != self._step_frame and frame in (0, 2):
+                self.footstep = True            # the walk cycle's two foot-down frames
+            self._step_frame = frame
         self.tag_left = max(0.0, self.tag_left - dt)
         if self.emote is not None:
             kind, left = self.emote

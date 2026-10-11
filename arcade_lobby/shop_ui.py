@@ -128,7 +128,8 @@ class ShopScene(MenuScene):
         if result.success:
             self.say(f"{result.message}  {entry.name}", Col.GREEN, 3.0)
             self.banner = (entry.name, 1.6)
-            self.play("confirm")
+            self.play("purchase")
+            self.owner.avatar.play_action("cheer", "down", emote="sparkle")    # plays when the room is back
         else:
             self.say(result.message, Col.MAGENTA)
             self.play("cancel")
