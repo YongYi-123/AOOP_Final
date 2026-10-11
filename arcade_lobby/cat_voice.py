@@ -170,6 +170,7 @@ class MeowBank:
 
 
 _bank = None
+master_gain = lambda: 1.0      # noqa: E731 - the hub points this at its effects volume / mute (see Game), 1.0 on its own
 
 
 def meow_bank():
@@ -200,11 +201,14 @@ class CatVoice:
             return False
         self.last_time = now
         self.plays += 1
+        gain = master_gain()
+        if gain <= 0:                       # muted from the hub: the cat still "meows" (the bubble), silently
+            return True
         sound = (self.bank or meow_bank()).get(kind, self.pitch)
         if sound is not None:
             channel = sound.play()
             if channel is not None:
-                channel.set_volume(self.volume * loudness)
+                channel.set_volume(min(1.0, self.volume * loudness * gain))
                 self.channel, self.sound = channel, sound
         return True
 
