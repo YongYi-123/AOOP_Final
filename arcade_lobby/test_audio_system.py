@@ -10,6 +10,7 @@ import shutil
 import struct
 import tempfile
 import unittest
+import unittest.mock
 import wave
 from unittest.mock import patch
 
@@ -296,6 +297,76 @@ class GameMusicTests(unittest.TestCase):
     def test_the_volume_readout_draws(self):
         self.key(pygame.K_F6, 3)
         self.assertGreater(self.game.volume_toast, 0)
+
+
+
+class DiagnosticsTests(unittest.TestCase):
+    def test_default_music_volume_is_comfortably_audible(self):
+        self.assertGreaterEqual(am.DEFAULT_BGM, .4)
+
+    def test_status_reports_the_state_that_explains_silence(self):
+        a = AudioManager()
+        a.switch("home")
+        st = a.status()
+        self.assertTrue(st["enabled"] and st["music_playing"])
+        self.assertEqual((st["theme"], st["missing_music"], st["missing_sfx"]), ("home", [], []))
+        a.set_muted(True)
+        st = a.status()
+        self.assertEqual((st["muted"], st["effective_music"], st["effective_sfx"]), (True, 0, 0))
+        self.assertTrue(AudioManager(asset_dir=os.path.join(tempfile.gettempdir(), "nope")).status()["missing_music"])
+
+    def test_a_failed_start_is_logged_and_recorded_not_swallowed(self):
+        with patch("pygame.mixer.get_init", return_value=None), \
+                patch("pygame.mixer.init", side_effect=pygame.error("libpulse.so.0 missing")):
+            with self.assertLogs("arcade.audio", "WARNING") as logs:
+                a = AudioManager()
+        self.assertFalse(a.enabled)
+        self.assertIn("libpulse", a.init_error)
+        self.assertIn("apt install libpulse0", logs.output[0])
+
+    def test_music_chosen_before_the_device_works_starts_after_a_retry(self):
+        with patch("pygame.mixer.get_init", return_value=None), \
+                patch("pygame.mixer.init", side_effect=pygame.error("no device")), self.assertLogs("arcade.audio"):
+            a = AudioManager()
+        a.switch("prize_plaza")
+        self.assertFalse(a.music_playing())
+        pygame.mixer.init()
+        self.assertTrue(a.init_mixer())
+        self.assertTrue(a.music_playing())
+        self.assertEqual(a.theme, "prize_plaza")
+
+    def test_a_playback_error_is_logged_and_kept(self):
+        a = AudioManager()
+        a.sounds["confirm"] = unittest.mock.Mock(play=unittest.mock.Mock(side_effect=pygame.error("boom")))
+        with self.assertLogs("arcade.audio", "ERROR"):
+            a.play("confirm")
+        self.assertIn("boom", a.last_error)
+
+    def test_test_tone_plays_even_when_muted_and_diagnostics_runs(self):
+        a = AudioManager()
+        a.set_muted(True)
+        self.assertTrue(a.test_tone(.1))
+        import audio_diagnostics
+        with patch("audio_diagnostics.AudioManager", lambda prefs_path=None: a):
+            self.assertEqual(audio_diagnostics.main(["--silent"]), 1)       # reports "muted" as a problem
+
+    def test_mochi_meow_goes_through_the_shared_audio_system(self):
+        game = Game(session=LocalSession([PlayerProfile(profile_id="mo")]))
+        self.addCleanup(game.quit)
+        room = goto_room(game, "prize_plaza")
+        game.audio.play = unittest.mock.Mock()
+        room.mochi.sound("meow")
+        game.audio.play.assert_called_with("meow")
+        self.assertIn("meow", am.SFX_FILES)
+
+    def test_muted_or_missing_audio_shows_a_badge(self):
+        game = Game(session=LocalSession([PlayerProfile(profile_id="bd")]))
+        self.addCleanup(game.quit)
+        game.audio.set_muted(True)
+        before = pygame.image.tostring(game.screen, "RGB")
+        game.step([], DT)
+        game.step([], DT)
+        self.assertNotEqual(before, pygame.image.tostring(game.screen, "RGB"))
 
 
 if __name__ == "__main__":
