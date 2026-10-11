@@ -1,12 +1,20 @@
 """Reaction-limited AI strategies; all opponents use the same player physics."""
 import math
+from .court import BALL_GRAVITY
 from .smash import SmashAttack
 
 
 class VolleyAI:
-    """Sandra reacts every 90 ms, with bounded error and ordinary player inputs."""
-    REACTION = .09
-    ERROR = 4
+    """Sandra is a friendly opponent: she re-aims every 200 ms with a visible
+    positioning error, is slow to react to one incoming ball in three (LAPSE_EVERY),
+    and goes for a Smash on one offered ball in three. She uses ordinary player
+    inputs and the same movement speed as a human."""
+    REACTION = 0.14
+    ERROR = 12
+    LAPSE_EVERY = 4         # every 3rd ball that crosses to her side catches her out
+    LAPSE_DELAY = .22       # extra seconds before she starts moving on that ball
+    SMASH_EVERY = 3         # she smashes one offered ball in three
+    SMASH_SHOCK = .30       # a Smash coming over costs her this long: it can score, if she is out of position
 
     def __init__(self):
         self.wait = 0
@@ -16,6 +24,10 @@ class VolleyAI:
         self.opportunities = 0      # balls offered in the Smash zone so far
         self.had_chance = False
         self.going_for_smash = False
+        self.prev_incoming = False
+        self.freeze = 0.0
+        self.balls_received = 0
+        self.lapse = False
 
     @staticmethod
     def predict(ball):
@@ -23,7 +35,7 @@ class VolleyAI:
         x, y, vx, vy = ball.x, ball.y, ball.vx, ball.vy
         step = 1 / 120
         for _ in range(360):
-            vy += 620 * step
+            vy += BALL_GRAVITY * step
             x += vx * step
             y += vy * step
             if x < 26 or x > 374:
@@ -42,7 +54,7 @@ class VolleyAI:
         x, y, vx, vy = ball.x, ball.y, ball.vx, ball.vy
         step = 1 / 120
         for i in range(360):
-            vy += 620 * step
+            vy += BALL_GRAVITY * step
             x += vx * step
             y += vy * step
             if x < 26 or x > 374:
@@ -67,18 +79,30 @@ class VolleyAI:
 
     def controls(self, player, ball, dt=1/120):
         from .model import VolleyInput
-        # Sandra goes for a Smash on every other ball offered in the zone, so
+        # Sandra goes for a Smash on one ball in SMASH_EVERY offered in the zone, so
         # she stays beatable and a human always gets a breather.
         chance = self.intercept(ball)
         if chance is not None and not self.had_chance:
             self.opportunities += 1
         self.had_chance = chance is not None
-        self.going_for_smash = self.opportunities % 2 == 1
+        self.going_for_smash = self.opportunities % self.SMASH_EVERY == self.SMASH_EVERY - 1
+        incoming = ball.vx > 30                                    # heading for her side
+        if incoming and not self.prev_incoming:                    # a new ball has just been struck toward her
+            self.balls_received += 1
+            self.lapse = self.balls_received % self.LAPSE_EVERY == 0
+            if self.lapse:
+                self.freeze = self.LAPSE_DELAY                     # caught napping: she stands still for a moment
+            if ball.smash_left > 0 or ball.vx > 190:               # blazing yarn: a moment of shock
+                self.freeze = max(self.freeze, self.SMASH_SHOCK)
+        self.prev_incoming = incoming
+        if self.freeze > 0:
+            self.freeze = max(0.0, self.freeze - dt)
+            return VolleyInput()
         self.wait -= dt
         self.jump_wait = max(0, self.jump_wait - dt)
         if self.wait <= 0:
             self.decisions += 1
-            error = self.ERROR * math.sin(self.decisions * 1.7)
+            error = self.ERROR * math.sin(self.decisions * 1.7) * (2 if self.lapse else 1)
             target = self.predict(ball)
             attack = self.smash_target(player, ball)
             if attack is not None:

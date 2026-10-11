@@ -13,6 +13,7 @@ import pygame
 
 from animation import Animation, AnimatedSprite
 from controls import SOLO_CONTROLS
+from cosmetics import ACCESSORY, FACE, HAT, PALETTE, apply_palette, resolve_appearance
 from font import get_font
 from gfx import outlined, soft_shadow
 from settings import PLAYER_SPEED, VIEW_W, Col
@@ -57,9 +58,65 @@ IDLE_DURATION = 0.4
 WALK_DURATION = 0.12
 
 
-def _draw_frame(facing, step=0, bob=0, blink=False, look=DEFAULT_LOOK):
+NO_OUTFIT = (None, None, None)      # (hat, face accessory, pin): the default outfit
+CAP, CAP_BAND, CAP_DARK = (255, 70, 200), (80, 240, 255), (190, 40, 150)
+EAR_INNER, SHADES, SHADES_GLINT, PIN_GOLD = (255, 140, 190), (28, 22, 60), (80, 240, 255), (255, 214, 90)
+
+
+def _draw_hat(px, hat, facing, b):
+    """A hat replaces the beanie: bare hair under it, then the hat itself."""
+    px(HAIR, 2, 3 + b, 8, 2)
+    side = facing in ("left", "right")
+    if hat == "neon_cap":
+        px(CAP, 3, 1 + b, 6, 1)
+        px(CAP, 2, 2 + b, 8, 2)
+        px(CAP_BAND, 2, 4 + b, 8, 1)
+        px(CAP_BAND, 5, 0 + b, 2, 1)
+        if facing == "down":
+            px(CAP_DARK, 3, 5 + b, 6, 1)
+        elif side:
+            px(CAP_DARK, 0, 4 + b, 3, 1)
+            px(CAP_DARK, 1, 5 + b, 2, 1)
+    elif hat == "cat_ears":
+        for ox in ((2, 7) if not side else (3, 6)):
+            tip = ox + (0 if ox < 5 else 2)
+            px(HAIR, tip, 1 + b, 1, 1)
+            px(HAIR, tip - (ox >= 5), 2 + b, 2, 1)
+            px(HAIR, tip - (ox >= 5) * 2, 3 + b, 3, 1)
+            px(EAR_INNER, tip + (1 if ox < 5 else -1), 2 + b, 1, 1)
+
+
+def _draw_face(px, face, facing, b):
+    if face != "retro_sunglasses":
+        return
+    if facing == "down":
+        px(SHADES, 3, 6 + b, 3, 2)
+        px(SHADES, 6, 6 + b, 3, 2)
+        px(SHADES_GLINT, 3, 6 + b)
+        px(SHADES_GLINT, 6, 6 + b)
+    elif facing == "up":
+        px(SHADES, 2, 6 + b)
+        px(SHADES, 9, 6 + b)
+    else:
+        px(SHADES, 2, 6 + b, 3, 2)
+        px(SHADES, 5, 6 + b, 4, 1)
+        px(SHADES_GLINT, 2, 6 + b)
+
+
+def _draw_pin(px, pin, facing, b):
+    if pin != "star_pin" or facing == "up":
+        return
+    x = 7 if facing == "down" else 4
+    px(PIN_GOLD, x, 10 + b, 2, 2)
+    px((255, 250, 200), x, 10 + b)
+
+
+def _draw_frame(facing, step=0, bob=0, blink=False, look=DEFAULT_LOOK, outfit=NO_OUTFIT):
     """Paint one 12x18 frame. step: 0 standing, 1/2 left/right foot forward.
-    bob: pixels the upper body sinks (walk bounce / idle breathing)."""
+    bob: pixels the upper body sinks (walk bounce / idle breathing).
+    outfit: (hat, face, pin) cosmetic ids, painted in layers over the body with
+    the same bob as the part of the body they sit on."""
+    hat, face, pin = outfit
     s = pygame.Surface((12, 18), pygame.SRCALPHA)
 
     def px(color, x, y, w=1, h=1):
@@ -118,10 +175,14 @@ def _draw_frame(facing, step=0, bob=0, blink=False, look=DEFAULT_LOOK):
             px(EYE, 3, eye_y + b, 1, eye_h)
             px(BLUSH, 4, 8 + b)
 
-    # Beanie with a glowing pom-pom
-    px(look.beanie, 2, 1 + b, 8, 3)
-    px(look.beanie_dark, 2, 4 + b, 8, 1)
-    px(look.pom, 5, 0 + b, 2, 1)
+    if hat:
+        _draw_hat(px, hat, facing, b)
+    else:                           # Beanie with a glowing pom-pom
+        px(look.beanie, 2, 1 + b, 8, 3)
+        px(look.beanie_dark, 2, 4 + b, 8, 1)
+        px(look.pom, 5, 0 + b, 2, 1)
+    _draw_face(px, face, facing, b)
+    _draw_pin(px, pin, facing, b)
 
     if facing == "right":
         s = pygame.transform.flip(s, True, False)
@@ -131,21 +192,32 @@ def _draw_frame(facing, step=0, bob=0, blink=False, look=DEFAULT_LOOK):
 _SHEETS = {}
 
 
-def player_sheet(look=DEFAULT_LOOK):
-    """{facing: {"idle": [...], "walk": [...]}} built once per look and shared."""
-    sheet = _SHEETS.get(look)
+def outfit_of(appearance):
+    """(hat, face, pin) from a {slot: item id} appearance."""
+    return (appearance.get(HAT), appearance.get(FACE), appearance.get(ACCESSORY))
+
+
+def player_sheet(look=DEFAULT_LOOK, outfit=NO_OUTFIT):
+    """{facing: {"idle": [...], "walk": [...]}} built once per (look, outfit) and shared."""
+    key = (look, outfit)
+    sheet = _SHEETS.get(key)
     if sheet is None:
-        sheet = _SHEETS[look] = {}
+        sheet = _SHEETS[key] = {}
         for f in FACINGS:
-            n = _draw_frame(f, look=look)
-            breathe = _draw_frame(f, bob=1, look=look)
-            blink = _draw_frame(f, blink=True, look=look) if f != "up" else n
+            n = _draw_frame(f, look=look, outfit=outfit)
+            breathe = _draw_frame(f, bob=1, look=look, outfit=outfit)
+            blink = _draw_frame(f, blink=True, look=look, outfit=outfit) if f != "up" else n
             sheet[f] = {
                 "idle": [n, n, breathe, breathe, n, n, breathe, blink],
-                "walk": [_draw_frame(f, 1, 1, look=look), _draw_frame(f, 0, 0, look=look),
-                         _draw_frame(f, 2, 1, look=look), _draw_frame(f, 0, 0, look=look)],
+                "walk": [_draw_frame(f, 1, 1, look=look, outfit=outfit), _draw_frame(f, 0, 0, look=look, outfit=outfit),
+                         _draw_frame(f, 2, 1, look=look, outfit=outfit), _draw_frame(f, 0, 0, look=look, outfit=outfit)],
             }
     return sheet
+
+
+def styled_sheet(look, appearance):
+    """The sheet for a base look wearing `appearance` (palette recolours the look)."""
+    return player_sheet(apply_palette(look, appearance.get(PALETTE)), outfit_of(appearance))
 
 
 class HubPlayer(AnimatedSprite):
@@ -153,19 +225,15 @@ class HubPlayer(AnimatedSprite):
     TAG_TIME = 3.0          # seconds the P1 / P2 marker shows after arriving
 
     def __init__(self, pos, controls=SOLO_CONTROLS, profile=None, look=DEFAULT_LOOK, label=""):
-        sheet = player_sheet(look)
-        animations = {}
-        for f in FACINGS:
-            animations[f"idle_{f}"] = Animation(sheet[f]["idle"], IDLE_DURATION)
-            animations[f"walk_{f}"] = Animation(sheet[f]["walk"], WALK_DURATION)
-        super().__init__(animations, "idle_up")
+        super().__init__(self._animations(player_sheet(look)), "idle_up")
         self.x, self.y = float(pos[0]), float(pos[1])  # centre-bottom of feet
         self.facing = "up"
         self.moving = False
         self.shadow = soft_shadow(12, 5)
         self.controls = controls        # which keys drive this body
         self.profile = profile          # whose progress it plays for (HubPlayer does not own it)
-        self.look = look
+        self.look = look                # the base look (P1 / P2 identity colours)
+        self.appearance = {}            # cosmetics worn right now ({slot: item id})
         self.label = label              # "P1" / "P2"; empty in a one-player session
         self.tag_left = 0.0
         self.tag_note = ""              # e.g. "GUEST" while visiting P1's home
@@ -176,6 +244,45 @@ class HubPlayer(AnimatedSprite):
         self.activating = None          # (target, time left) while the E-flash plays
         self.prompt = PromptBubble(key=controls.interact_hint or "E", tag=label,
                                    accent=look.accent if label else None)   # P1 / P2 look different
+        if profile is not None:         # cosmetics follow the profile: owned + worn items
+            self.refresh_appearance()
+            profile.subscribe(self._on_profile_change)
+
+    def _on_profile_change(self, change):
+        if change.field in ("appearance", "inventory"):
+            self.refresh_appearance()
+
+    def detach(self):
+        """Stop following the profile (the avatar is being discarded)."""
+        if self.profile is not None:
+            self.profile.unsubscribe(self._on_profile_change)
+
+    @staticmethod
+    def _animations(sheet):
+        animations = {}
+        for f in FACINGS:
+            animations[f"idle_{f}"] = Animation(sheet[f]["idle"], IDLE_DURATION)
+            animations[f"walk_{f}"] = Animation(sheet[f]["walk"], WALK_DURATION)
+        return animations
+
+    def set_appearance(self, appearance):
+        """Wear `appearance` ({slot: cosmetic id}; {} is the default outfit).
+        Only the frames change: position, facing, the running animation and the
+        collision box (FEET_W x FEET_H) are untouched."""
+        appearance = dict(appearance)
+        if appearance == self.appearance:
+            return
+        self.appearance = appearance
+        state, facing_anim = self.anim.name, self.anim.current
+        frame, elapsed = facing_anim.current_frame, facing_anim.time
+        self.anim.animations = self._animations(styled_sheet(self.look, appearance))
+        self.anim.current = self.anim.animations[state]
+        self.anim.current.current_frame = frame % len(self.anim.current.frames)
+        self.anim.current.time = elapsed
+
+    def refresh_appearance(self):
+        """Re-read what the profile owns and has chosen to wear."""
+        self.set_appearance(resolve_appearance(self.profile))
 
     @property
     def number(self):

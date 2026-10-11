@@ -4,8 +4,9 @@ where it can go (DecorationSlot) and who keeps track (HomeDecorationManager).
 There is no editor yet. The room has a fixed set of slots; each slot has a
 type and a default decoration. A decoration of the matching type (and size)
 can be put in a slot with HomeDecorationManager.equip(), which stores the choice
-in the PlayerProfile so it is saved. Later, prizes bought with TICKETS only
-need to register a DecorationDefinition in the catalogue and call equip().
+in the PlayerProfile so it is saved. Prizes bought with TICKETS (prize_shop.py) put an item in the inventory; the
+manager's place() puts an owned decoration in a slot, remove() puts the slot
+back to its default (the decoration stays owned).
 
 How each slot type is drawn:
   wall_poster, rug   flat: baked into one cached layer under the sprites
@@ -22,6 +23,7 @@ from backdrop import NeonLight, neon_tube
 from font import get_font
 from gfx import outlined, scale_color
 from lofi_props import make_tall_plant
+from racing_progression.catalog import prize_for
 from room import Prop, make_plant
 from settings import VIEW_H, VIEW_W, Lofi
 
@@ -37,8 +39,8 @@ class DecorationDefinition:
     """One decoration: what it is, which kind of slot it fits and how to
     paint it. `painter` is called once and its result cached. For a neon sign
     the painter returns the white shape of the tube and `neon` is its
-    (core colour, rim colour). `ticket_cost` is for the future prize counter;
-    default decorations cost nothing."""
+    (core colour, rim colour). `ticket_cost` is the Prize Counter price;
+    a decoration that costs nothing is always available."""
     decoration_id: str
     name: str
     slot_type: str
@@ -76,6 +78,14 @@ class DecorationSlot:
             raise ValueError(f"unknown slot type {self.slot_type!r}")
 
 
+def decoration_item_id(decoration_id):
+    """The inventory item that means "I own this decoration". The decorations
+    the racing counter already sold keep their racing_decoration_* ids."""
+    if prize_for("decoration", decoration_id) is not None:
+        return f"racing_decoration_{decoration_id}"
+    return f"decor_{decoration_id}"
+
+
 class DecorationCatalog:
     """Every decoration that exists, by id."""
 
@@ -97,6 +107,9 @@ class DecorationCatalog:
 
     def __len__(self):
         return len(self._items)
+
+    def __iter__(self):
+        return iter(self._items.values())
 
 
 class DecorationProp(Prop):
@@ -180,6 +193,37 @@ class HomeDecorationManager:
     def reset_slot(self, slot_id):
         if slot_id in self.slots:
             self.profile.set_home_decoration(slot_id, None)
+
+    # ------------------------------------------------------------ ownership
+    def is_available(self, decoration_id):
+        """May the player use this decoration? Free ones always; the rest
+        once bought (an item in the profile's inventory)."""
+        definition = self.catalog.get(decoration_id)
+        if definition is None:
+            return False
+        return definition.ticket_cost == 0 or self.profile.inventory.has_item(
+            decoration_item_id(decoration_id))
+
+    def choices_for(self, slot_id):
+        """[DecorationDefinition] the player could put in this slot right now
+        (right type and size, owned), in catalogue order."""
+        return [d for d in self.catalog if self.can_equip(slot_id, d.decoration_id)
+                and self.is_available(d.decoration_id)]
+
+    def place(self, slot_id, decoration_id):
+        """equip() for an owned decoration only. False (nothing changes) if it
+        is not owned or does not fit the slot."""
+        if not self.is_available(decoration_id):
+            return False
+        return self.equip(slot_id, decoration_id)
+
+    def remove(self, slot_id):
+        """Take the placed decoration out: the slot shows its default again.
+        The decoration stays in the inventory."""
+        self.reset_slot(slot_id)
+
+    def current_id(self, slot_id):
+        return self.decoration_for(slot_id).decoration_id
 
     def _on_profile_change(self, change):
         if change.field == "decorations":
@@ -360,6 +404,61 @@ def _plant_bushy():
     return make_plant(Lofi.TERRACOTTA, Lofi.TERRACOTTA_HI)
 
 
+def _table_lamp():
+    s = pygame.Surface((10, 12), pygame.SRCALPHA)
+    pygame.draw.polygon(s, (255, 110, 190), [(2, 0), (7, 0), (9, 6), (0, 6)])
+    s.fill((255, 190, 225), (3, 1, 3, 3))
+    s.fill((90, 76, 130), (4, 6, 2, 4))
+    s.fill((60, 46, 100), (1, 10, 8, 2))
+    s.fill((80, 240, 255), (1, 10, 8, 1))
+    return outlined(s)
+
+
+def _cat_plush():
+    s = pygame.Surface((12, 12), pygame.SRCALPHA)
+    orange, cream = (246, 164, 86), (255, 236, 214)
+    s.fill(orange, (1, 0, 3, 3))
+    s.fill(orange, (8, 0, 3, 3))
+    s.fill((255, 140, 190), (2, 1, 1, 1))
+    s.fill((255, 140, 190), (9, 1, 1, 1))
+    s.fill(orange, (1, 2, 10, 5))
+    s.fill(orange, (2, 7, 8, 4))
+    s.fill(cream, (4, 8, 4, 3))
+    s.fill((30, 20, 50), (3, 4, 1, 2))
+    s.fill((30, 20, 50), (8, 4, 1, 2))
+    s.fill((255, 140, 190), (5, 5, 2, 1))
+    return outlined(s)
+
+
+def _pixel_plant():
+    s = pygame.Surface((20, 32), pygame.SRCALPHA)
+    pot, pot_hi = (150, 90, 200), (190, 130, 240)
+    s.fill(pot, (4, 21, 12, 10))
+    s.fill(pot_hi, (3, 20, 14, 3))
+    s.fill(shade_dark(pot), (4, 28, 12, 3))
+    s.fill((80, 240, 255), (4, 25, 12, 1))                         # a neon stripe on the pot
+    for x, y, w, h, c in ((9, 2, 3, 19, Lofi.LEAF), (5, 6, 4, 4, Lofi.LEAF), (12, 4, 4, 4, Lofi.LEAF),
+                          (3, 12, 5, 3, Lofi.LEAF), (12, 11, 5, 3, Lofi.LEAF), (6, 16, 4, 3, Lofi.LEAF),
+                          (9, 0, 3, 3, Lofi.LEAF_LIGHT), (5, 6, 2, 2, Lofi.LEAF_LIGHT), (13, 4, 2, 2, Lofi.LEAF_LIGHT),
+                          (3, 12, 2, 1, Lofi.LEAF_LIGHT), (13, 11, 2, 1, Lofi.LEAF_LIGHT)):
+        s.fill(c, (x, y, w, h))
+    return outlined(s)
+
+
+def _retro_clock():
+    s = pygame.Surface((24, 26), pygame.SRCALPHA)
+    pygame.draw.circle(s, (80, 240, 255), (12, 12), 11)
+    pygame.draw.circle(s, (255, 70, 200), (12, 12), 10, 1)
+    pygame.draw.circle(s, (20, 14, 44), (12, 12), 9)
+    for x, y in ((12, 4), (12, 19), (4, 12), (19, 12)):
+        s.fill((255, 214, 90), (x, y, 1, 2) if x == 12 else (x, y, 2, 1))
+    s.fill((236, 232, 255), (12, 7, 1, 6))                            # hour hand
+    s.fill((255, 140, 190), (12, 12, 5, 1))                           # minute hand
+    s.fill((255, 214, 90), (12, 12, 1, 1))
+    s.fill((60, 46, 100), (10, 22, 4, 3))                             # little feet
+    return s
+
+
 _HEART = ("0110110", "1111111", "1111111", "0111110", "0011100", "0001000")
 _NOTE = ("0001110", "0001010", "0001000", "0001000", "0111000", "1111000", "0110000")
 _STAR = ("000010000", "000010000", "000111000", "111111111", "011111110",
@@ -399,21 +498,25 @@ def default_catalog():
     return DecorationCatalog([
         DecorationDefinition("poster_cassette", "Cassette Poster", WALL_POSTER, _poster_cassette),
         DecorationDefinition("poster_vinyl", "Vinyl Poster", WALL_POSTER, _poster_vinyl),
-        DecorationDefinition("poster_cat", "Sleepy Cat Poster", WALL_POSTER, _poster_cat),
-        DecorationDefinition("poster_arcade", "Play Poster", WALL_POSTER, _poster_arcade),
+        DecorationDefinition("poster_cat", "Sleepy Cat Poster", WALL_POSTER, _poster_cat, 25),
+        DecorationDefinition("poster_arcade", "Arcade Poster", WALL_POSTER, _poster_arcade, 20),
+        DecorationDefinition("retro_clock", "Retro Clock", WALL_POSTER, _retro_clock, 30),
         DecorationDefinition("rug_lounge", "Plum Rug", RUG, _rug_lounge),
-        DecorationDefinition("rug_teal", "Teal Rug", RUG, _rug_teal),
+        DecorationDefinition("rug_teal", "Teal Rug", RUG, _rug_teal, 35),
         DecorationDefinition("table_cactus", "Tiny Cactus", TABLE_DECOR, _table_cactus),
-        DecorationDefinition("table_candle", "Candle", TABLE_DECOR, _table_candle),
-        DecorationDefinition("table_snacks", "Snack Plate", TABLE_DECOR, _table_snacks),
+        DecorationDefinition("table_candle", "Candle", TABLE_DECOR, _table_candle, 15),
+        DecorationDefinition("table_snacks", "Snack Plate", TABLE_DECOR, _table_snacks, 15),
+        DecorationDefinition("table_lamp", "Neon Lamp", TABLE_DECOR, _table_lamp, 30),
+        DecorationDefinition("cat_plush", "Cat Plush", TABLE_DECOR, _cat_plush, 25),
         DecorationDefinition("plant_monstera", "Monstera", PLANT, _plant_monstera),
         DecorationDefinition("plant_bushy", "Bushy Plant", PLANT, _plant_bushy),
+        DecorationDefinition("pixel_plant", "Pixel Plant", PLANT, _pixel_plant, 35),
         DecorationDefinition("neon_note", "Neon Note", NEON_SIGN, _neon_note,
                              neon=((210, 248, 255), (90, 190, 215))),
-        DecorationDefinition("neon_heart", "Neon Heart", NEON_SIGN, _neon_heart,
+        DecorationDefinition("neon_heart", "Neon Heart", NEON_SIGN, _neon_heart, 40,
                              neon=((255, 214, 236), (230, 90, 170))),
-        DecorationDefinition("neon_star", "Neon Star", NEON_SIGN, _neon_star,
+        DecorationDefinition("neon_star", "Neon Star", NEON_SIGN, _neon_star, 35,
                              neon=((255, 244, 190), (255, 170, 70))),
         DecorationDefinition("bed_round", "Round Cat Bed", CAT_BED, _bed_round),
-        DecorationDefinition("bed_blue", "Blue Cat Bed", CAT_BED, _bed_blue),
+        DecorationDefinition("bed_blue", "Blue Cat Bed", CAT_BED, _bed_blue, 30),
     ])

@@ -4,7 +4,14 @@ from enum import Enum
 import math
 from .ai import VolleyAI
 from .smash import SmashAttack
-from .court import WIDTH, HEIGHT, FLOOR, NET_X, NET_TOP, GRAVITY
+from .court import WIDTH, HEIGHT, FLOOR, NET_X, NET_TOP, GRAVITY, BALL_GRAVITY
+from .rally import lob_velocity
+
+
+HIT_REACH = 4           # extra contact distance around the cat's body (a more forgiving paw)
+MAX_BALL_SPEED = 480    # the yarn never exceeds this, whatever bounces it picked up
+SERVE_VX, SERVE_VY, SERVE_DELAY = 125, -240, 1.0
+WALL_BOUNCE, CEILING_BOUNCE = .9, .8     # yarn loses a little energy on walls and ceiling
 
 
 class MatchState(Enum):
@@ -69,8 +76,8 @@ class VolleyMatch:
 
     def _serve(self, side):
         self.ball = VolleyBall(90 if side == 0 else 310, 185,
-                               170 if side == 0 else -170, -290)
-        self.serve_delay = 0.8
+                               SERVE_VX if side == 0 else -SERVE_VX, SERVE_VY)
+        self.serve_delay = SERVE_DELAY
         for player in self.players:
             player.x = 90 if player.side == 0 else 310
             player.y, player.vy = FLOOR - player.radius, 0
@@ -125,15 +132,16 @@ class VolleyMatch:
         ball = self.ball
         ball.smash_left = max(0, ball.smash_left - dt)
         ball.rotation = (ball.rotation + ball.vx * dt * 4) % 360
-        ball.vy += GRAVITY * dt
+        ball.vy += BALL_GRAVITY * dt
         previous_x = ball.x
         ball.x += ball.vx * dt
         ball.y += ball.vy * dt
         if ball.x < 20 + ball.radius or ball.x > WIDTH - 20 - ball.radius:
+            toward_right = ball.x < WIDTH / 2                      # the wall it is at decides which way it leaves
             ball.x = max(20 + ball.radius, min(WIDTH - 20 - ball.radius, ball.x))
-            ball.vx = -ball.vx
+            ball.vx = abs(ball.vx) * WALL_BOUNCE * (1 if toward_right else -1)     # a ball already leaving is not reversed
         if ball.y < 52 + ball.radius:
-            ball.y, ball.vy = 52 + ball.radius, abs(ball.vy)
+            ball.y, ball.vy = 52 + ball.radius, abs(ball.vy) * CEILING_BOUNCE
         self._net_collision(previous_x)
         for player in self.players:
             self._player_collision(player)
@@ -157,13 +165,16 @@ class VolleyMatch:
         if normal_speed < 0:
             ball.vx -= 1.8 * normal_speed * ux
             ball.vy -= 1.8 * normal_speed * uy
+            speed = math.hypot(ball.vx, ball.vy)
+            if speed > MAX_BALL_SPEED:              # a bounce may not speed the yarn up without limit
+                ball.vx, ball.vy = ball.vx * MAX_BALL_SPEED / speed, ball.vy * MAX_BALL_SPEED / speed
             self.events.append("bounce")
 
     def _player_collision(self, player):
         ball = self.ball
         dx, dy = ball.x - player.x, ball.y - player.y
         distance = math.hypot(dx, dy)
-        radius = ball.radius + player.radius
+        radius = ball.radius + player.radius + HIT_REACH
         if distance >= radius:
             return
         if player.hit_cooldown > 0:
@@ -179,7 +190,7 @@ class VolleyMatch:
         direction = 1 if player.side == 0 else -1
         spike = player.attack.can_hit(player, ball)
         ball.y = player.y - radius - 0.1
-        ball.vx, ball.vy = direction * 190, -360
+        ball.vx, ball.vy = lob_velocity(player, ball)
         if spike:
             aim = None
             if player.side == 1 and self.local_players == 1:

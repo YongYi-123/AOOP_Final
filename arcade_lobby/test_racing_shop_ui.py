@@ -27,7 +27,7 @@ class ShopSceneTests(unittest.TestCase):
 
     def test_counter_owns_input_and_repeated_confirm_equips_without_charge(self):
         self.room.acting_player = self.room.players[1]
-        self.room.open_prize_counter()
+        self.room.open_racing_counter()
         self.frames()
         scene = self.game.scenes.current
         self.assertIsInstance(scene,PrizeCounterScene)
@@ -62,7 +62,7 @@ class ShopSceneTests(unittest.TestCase):
         self.assertIs(self.game.scenes.current,self.room)
 
     def test_shop_to_garage_and_back_preserves_owner(self):
-        self.room.open_prize_counter()
+        self.room.open_racing_counter()
         self.frames()
         shop = self.game.scenes.current
         self.key(pygame.K_i)
@@ -87,7 +87,7 @@ class ShopSceneTests(unittest.TestCase):
         self.assertIs(self.game.scenes.current,self.room)
 
     def test_expanded_track_catalogue_scrolls_and_prevents_duplicate_charge(self):
-        self.room.open_prize_counter()
+        self.room.open_racing_counter()
         self.frames()
         shop=self.game.scenes.current
         shop.category=shop.KINDS.index('track')

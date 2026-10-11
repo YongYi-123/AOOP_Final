@@ -27,6 +27,8 @@ class ItemDefinition:
     # How the inventory screen draws it: {"shape": ..., "color": (r, g, b), "accent": (r, g, b)}
     # (shapes are painted by item_icons.py)
     icon: dict = field(default_factory=dict, hash=False, compare=False)
+    # One line on where the item is used ("EQUIP IT AT THE WARDROBE"), shown when inspected.
+    use_hint: str = field(default="", hash=False, compare=False)
 
     def __post_init__(self):
         if not self.id or self.category not in CATEGORIES or self.rarity not in RARITIES:
@@ -72,17 +74,72 @@ class ItemRegistry:
 _ITEMS = (
     ItemDefinition(
         "cat_sticker", "CAT STICKER", "A tiny sticker of the arcade cat.", COLLECTIBLE, COMMON,
-        stackable=False, icon={"shape": "sticker", "color": (246, 164, 86), "accent": (255, 240, 220)}),
+        stackable=False, icon={"shape": "sticker", "color": (246, 164, 86), "accent": (255, 240, 220)},
+        use_hint="SHOW IT IN HOME'S COLLECTION"),
     ItemDefinition(
         "neon_cap", "NEON CAP", "A glowing cap for a true arcade regular.", COSMETIC, UNCOMMON,
-        stackable=False, icon={"shape": "cap", "color": (255, 70, 200), "accent": (80, 240, 255)}),
+        stackable=False, icon={"shape": "cap", "color": (255, 70, 200), "accent": (80, 240, 255)},
+        use_hint="WEAR IT AT THE WARDROBE IN HOME"),
     ItemDefinition(
-        "free_play_coupon", "FREE PLAY COUPON", "One free play on any machine. Not usable yet.",
+        "free_play_coupon", "FREE PLAY COUPON", "One free play on an arcade cabinet, instead of a token.",
         ARCADE, COMMON, stackable=True, max_stack=99,
-        icon={"shape": "ticket", "color": (90, 255, 150), "accent": (255, 214, 90)}),
+        icon={"shape": "ticket", "color": (90, 255, 150), "accent": (255, 214, 90)},
+        use_hint="USED AT ARCADE CABINETS"),
     ItemDefinition(
         "retro_badge", "RETRO BADGE", "A shiny badge for fans of the old racing games.", COLLECTIBLE, RARE,
-        stackable=False, icon={"shape": "badge", "color": (255, 168, 60), "accent": (255, 72, 72)}),
+        stackable=False, icon={"shape": "badge", "color": (255, 168, 60), "accent": (255, 72, 72)},
+        use_hint="SHOW IT IN HOME'S COLLECTION"),
+)
+
+# ---- Prize Counter goods. Decorations that the racing counter already sold keep
+# their racing_decoration_* ids (so old saves and both shops agree); the rest are
+# decor_*. Cosmetic ids are what the wardrobe equips (see cosmetics.py).
+_PINK, _CYAN, _GOLD, _GREEN, _VIOLET = (255, 110, 190), (90, 240, 255), (255, 214, 90), (90, 255, 150), (170, 120, 255)
+_DECOR_USE = "PLACE IT IN DECORATION MODE AT HOME"
+_WARDROBE_USE = "WEAR IT AT THE WARDROBE IN HOME"
+_COLLECT_USE = "SHOW IT IN HOME'S COLLECTION"
+
+
+def _item(item_id, name, text, category, rarity, shape, color, accent, hint, stackable=False):
+    return ItemDefinition(item_id, name, text, category, rarity, stackable=stackable,
+                          icon={"shape": shape, "color": color, "accent": accent}, use_hint=hint)
+
+
+_SHOP_ITEMS = (
+    _item("decor_table_lamp", "NEON LAMP", "A little lamp that glows on the coffee table.", COSMETIC, UNCOMMON,
+          "lamp", _PINK, _GOLD, _DECOR_USE),
+    _item("decor_cat_plush", "CAT PLUSH", "A soft plush of the arcade cat.", COSMETIC, UNCOMMON,
+          "plush", (246, 164, 86), (255, 240, 220), _DECOR_USE),
+    _item("decor_pixel_plant", "PIXEL PLANT", "A leafy plant in a neat square pot.", COSMETIC, COMMON,
+          "plant", _GREEN, (200, 120, 80), _DECOR_USE),
+    _item("decor_retro_clock", "RETRO CLOCK", "A wall clock with a neon rim.", COSMETIC, UNCOMMON,
+          "clock", _CYAN, _PINK, _DECOR_USE),
+    _item("decor_table_candle", "CANDLE", "A calm candle for the table.", COSMETIC, COMMON,
+          "lamp", _GOLD, (255, 150, 80), _DECOR_USE),
+    _item("decor_table_snacks", "SNACK PLATE", "Arcade snacks, always fresh.", COSMETIC, COMMON,
+          "plush", _PINK, _GOLD, _DECOR_USE),
+    _item("cat_ears", "CAT EARS", "Pointy ears for a feline look.", COSMETIC, UNCOMMON,
+          "ears", (246, 164, 86), _PINK, _WARDROBE_USE),
+    _item("retro_sunglasses", "RETRO SUNGLASSES", "Dark shades with a neon glint.", COSMETIC, UNCOMMON,
+          "glasses", (40, 30, 90), _CYAN, _WARDROBE_USE),
+    _item("star_pin", "STAR PIN", "A small gold star for your jacket.", COSMETIC, COMMON,
+          "star", _GOLD, (255, 250, 200), _WARDROBE_USE),
+    _item("palette_sunset", "SUNSET COLORS", "A warm orange and pink outfit.", COSMETIC, COMMON,
+          "swatch", (255, 150, 70), (255, 100, 160), _WARDROBE_USE),
+    _item("palette_mint", "MINT COLORS", "A cool green and white outfit.", COSMETIC, COMMON,
+          "swatch", (90, 230, 170), (230, 255, 245), _WARDROBE_USE),
+    _item("palette_grape", "GRAPE COLORS", "A deep purple and gold outfit.", COSMETIC, COMMON,
+          "swatch", (140, 90, 230), _GOLD, _WARDROBE_USE),
+    _item("palette_cherry", "CHERRY COLORS", "A bold red and cream outfit.", COSMETIC, COMMON,
+          "swatch", (235, 60, 90), (255, 235, 220), _WARDROBE_USE),
+    _item("arcade_trophy", "ARCADE TROPHY", "A golden cup for a proven champion.", COLLECTIBLE, RARE,
+          "trophy", _GOLD, (255, 250, 200), _COLLECT_USE),
+    _item("golden_token", "GOLDEN TOKEN", "A shiny token that is too nice to spend.", COLLECTIBLE, UNCOMMON,
+          "coin", _GOLD, (255, 140, 40), _COLLECT_USE),
+    _item("lucky_clover", "LUCKY CLOVER", "A four-leaf clover pressed in glass.", COLLECTIBLE, UNCOMMON,
+          "clover", _GREEN, (200, 255, 210), _COLLECT_USE),
+    _item("mini_cabinet", "MINI CABINET", "A tiny arcade cabinet that really lights up.", COLLECTIBLE, EPIC,
+          "cabinet", _VIOLET, _CYAN, _COLLECT_USE),
 )
 
 from racing_progression.catalog import PRIZES
@@ -90,4 +147,12 @@ from racing_progression.catalog import PRIZES
 _RACING_ITEMS = tuple(ItemDefinition(p.item_id, p.name, f"Permanent {p.kind} unlock.",
     COSMETIC if p.kind in ('paint','decoration') else ARCADE, UNCOMMON,
     stackable=False, icon={"shape":"badge", "color":p.color, "accent":(255,224,90)}) for p in PRIZES)
-ITEM_REGISTRY = ItemRegistry(_ITEMS + _RACING_ITEMS)
+_RACING_DECOR_SHAPES = {"poster_cat": "frame", "rug_teal": "rug", "neon_heart": "star", "bed_blue": "plush",
+                        "poster_arcade": "frame", "neon_star": "star"}
+_RACING_ITEMS = tuple(
+    ItemDefinition(d.id, d.name, d.description, d.category, d.rarity, stackable=False,
+                   icon={**d.icon, "shape": _RACING_DECOR_SHAPES[d.id.split("racing_decoration_")[1]]}
+                   if d.id.startswith("racing_decoration_") else d.icon,
+                   use_hint=_DECOR_USE if d.id.startswith("racing_decoration_") else "")
+    for d in _RACING_ITEMS)
+ITEM_REGISTRY = ItemRegistry(_ITEMS + _SHOP_ITEMS + _RACING_ITEMS)

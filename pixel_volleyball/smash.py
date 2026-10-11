@@ -1,16 +1,16 @@
 """Timed Smash swing shared by human players and Sandra, independent of rendering."""
 from dataclasses import dataclass
 import math
-from .court import FLOOR, GRAVITY, NET_TOP, NET_X
+from .court import BALL_GRAVITY, FLOOR, NET_TOP, NET_X
 
 
 @dataclass
 class SmashAttack:
     WINDUP = .025       # the paw is still rising; contact before this is a normal hit
-    ACTIVE_END = .26    # last moment the paw can still connect
+    ACTIVE_END = .30    # last moment the paw can still connect
     RECOVER = .34       # earliest a new swing can start after the previous one
     ANIMATION = .38     # pose length
-    BUFFER = .10        # a press this early is remembered until the swing may start
+    BUFFER = .16        # a press this early is remembered until the swing may start
     MAX_SPEED_X = 470   # keeps long cross-court Smashes defendable
     MIN_FLIGHT = .40
 
@@ -49,7 +49,7 @@ class SmashAttack:
         """Aim a steep ballistic shot at a landing spot in the opponent's court.
 
         The quickest flight that still clears the net is used, so a Smash is
-        far faster and flatter than the 190/-360 lob of a normal hit, and
+        far faster and steeper than a normal lob (rally.lob_velocity), and
         steeper the closer to the net it is struck. `aim` is a landing x
         (Sandra's tactics); humans get a depth that grows with distance from
         the net and with moving toward it."""
@@ -66,20 +66,20 @@ class SmashAttack:
         flight = max(cls.MIN_FLIGHT, abs(dx) / cls.MAX_SPEED_X)
         far_edge = to_net + 3       # the ball must be over the tape until it passes the net's far side
         while True:
-            vx, vy = dx / flight, (dy - .5 * GRAVITY * flight**2) / flight
+            vx, vy = dx / flight, (dy - .5 * BALL_GRAVITY * flight**2) / flight
             if far_edge <= 0 or flight >= 1.4 or cls._clears_net(ball, vx, vy, direction):
                 return vx, vy
             flight += .02
 
     @staticmethod
-    def _clears_net(ball, vx, vy, direction):
+    def _clears_net(ball, vx, vy, direction, margin=None):
         """Walk the arc past the tape; the round ball must stay `margin` clear of
         the net's real shape (its top corners included), not just of its centre line."""
-        margin = ball.radius + 2        # covers the physics' integration error
+        margin = ball.radius + 2 if margin is None else margin     # default covers the physics' integration error
         t = 0.0
         while True:
             x = ball.x + vx * t
-            y = ball.y + vy * t + .5 * GRAVITY * t * t
+            y = ball.y + vy * t + .5 * BALL_GRAVITY * t * t
             if (x - NET_X) * direction > 3 + margin or t > 3:
                 return True
             nearest_x = max(NET_X - 3, min(NET_X + 3, x))

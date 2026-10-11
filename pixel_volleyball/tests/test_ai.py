@@ -14,8 +14,9 @@ class AITests(unittest.TestCase):
         ai = VolleyAI()
         for _ in range(120):
             ai.controls(player, ball, 1/120)
-        self.assertTrue(8 <= ai.decisions <= 12)
-        self.assertLessEqual(abs(ai.target - 250), 4)
+        expected = 1 / ai.REACTION                       # one fresh decision per reaction time
+        self.assertTrue(expected - 2 <= ai.decisions <= expected + 2)
+        self.assertLessEqual(abs(ai.target - 250), ai.ERROR)
         self.assertGreater(abs(ai.target - 250), .1)
 
     def test_sandra_times_swing_before_head_contact(self):
