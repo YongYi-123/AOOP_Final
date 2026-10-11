@@ -12,6 +12,7 @@ import sys
 
 import pygame
 
+from audio_settings_ui import AudioSettingsScene, draw_debug_hud
 from audio_manager import DEFAULT_SFX, DUCK_PAUSED, AudioManager
 from game_clock import GameClock
 from menus import StartupFlow
@@ -55,6 +56,7 @@ class Game:
             self.audio.switch("lobby")      # the title / profile screens play the hub theme; a session picks its room's
         if not self.audio.enabled:
             print(f"[audio] OFF: {self.audio.init_error}  (run: python audio_diagnostics.py)", file=sys.stderr)
+        self.audio_hud = False              # F10: the developer audio HUD
         self.volume_toast = 0.0             # seconds left on the "MUSIC 22%  SFX 70%" readout
         self.scenes = SceneManager()
         self.style = STYLES.get(style)      # None: the default (neon_lofi); unknown names fall back
@@ -92,6 +94,11 @@ class Game:
                     elif event.key == pygame.K_ESCAPE:
                         if not own:
                             self.audio.play("cancel")
+                    elif event.key == pygame.K_F10:
+                        self.audio_hud = not self.audio_hud        # developer HUD: off by default, never pauses play
+                    elif event.key == pygame.K_F4:
+                        self.open_audio_settings()
+                        continue
                     elif event.key in (pygame.K_F6, pygame.K_F7):
                         self.audio.set_volumes(bgm=self.audio.bgm_volume + (-.1 if event.key == pygame.K_F6 else .1))
                         self.volume_toast = 2.0
@@ -111,6 +118,8 @@ class Game:
             racer.audio.external_gain = self.audio.effective_sfx
         self.volume_toast = max(0.0, self.volume_toast - dt)
         self.scenes.draw(self.canvas, self.screen)
+        if self.audio_hud:
+            draw_debug_hud(self, self.screen)
         if self.volume_toast > 0:
             self._draw_volume_toast()
         elif self.audio.muted or not self.audio.enabled:
@@ -160,6 +169,20 @@ class Game:
             self.screen.fill((14, 8, 34), rect.inflate(8 * px, 4 * px))
             self.screen.blit(img, rect)
             y = rect.bottom + 3 * px
+
+    def open_audio_settings(self):
+        """F4: the AUDIO SETTINGS screen (F4 again closes it). The music underneath keeps playing; a racing
+        engine is silenced while the screen is up (the race is not updated behind it)."""
+        current = self.scenes.current
+        if isinstance(current, AudioSettingsScene):
+            current.close()
+            return
+        if self.scenes.transitioning:
+            return
+        racer = getattr(current, "racer", None)
+        if racer is not None and hasattr(racer, "audio"):
+            racer.audio.engine(0, False)
+        self.scenes.push(AudioSettingsScene(self))
 
     def _draw_audio_badge(self):
         """A small always-visible reminder in the top-right corner while music is off."""

@@ -61,7 +61,7 @@ RACER_KEYS = {
 # The racer is laid out for this logical size (retro_racer/settings.py WIDTH x HEIGHT). It always
 # renders into its own surface of exactly this size, which is then scaled uniformly into whatever
 # the window offers, so the window size can never crop or stretch the game.
-ENGINE_BOOST = 1.7          # the engine sits well above the hub's background music
+ENGINE_BOOST = 1.2          # the engine sits above the hub music: +2 dB at idle to +8 dB flat out
 RACER_SIZE = (800, 600)
 SPECTATOR_Y = 148           # logical y of the spectator tag: under the DISTANCE readout, clear of the HUD
 
@@ -89,6 +89,7 @@ def racer_key_labels(scheme):
 
 class RetroRacerScene(MinigameScene):
     full_resolution = True
+    audio_hud_anchor = "midleft"           # the racer's stats fill the top-left corner
 
     # The embedded game takes ~2 s to build (sound synthesis, sprite caches),
     # so it is built on the first visit and reused afterwards.
