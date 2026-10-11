@@ -107,6 +107,7 @@ class BaseRoomScene(BaseScene):
     cat_spots = {}              # cat id -> places it likes (first = home); only cats of this room
     hint_rows = None            # rows for the controls box (see ui.InstructionBox)
     resume_notice = None        # (title, lines, color) to show when a minigame scene closes
+    edit_mode = False           # decoration mode: draw only the room itself (no prompts, HUD or tags)
 
     def __init__(self, game, hub):
         super().__init__(game)
@@ -807,6 +808,8 @@ class BaseRoomScene(BaseScene):
         for m in self.machines:
             m.draw_glow(surf)
         self.cats.draw_overlay(surf)
+        if self.edit_mode:
+            return
 
         avoid = self.prompt_avoid_rects()
         for p in self.players:

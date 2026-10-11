@@ -483,9 +483,9 @@ class OwnershipTests(TwoPlayerTest):
         self.p1.avatar.y = float(wheel.zone.bottom - 2)
         self.frames(5)
         self.use(self.p2)
-        from racing_progression.ui import PrizeCounterScene
+        from shop_ui import ShopScene
         shop = self.game.scenes.current
-        self.assertIsInstance(shop,PrizeCounterScene)
+        self.assertIsInstance(shop, ShopScene)
         self.assertIs(shop.owner,self.p2)
         self.assertIs(shop.shop.profile,self.b)
         self.frames(20)  # Finish the station flash and scene-entry wipe.

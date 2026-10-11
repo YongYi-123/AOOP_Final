@@ -1,7 +1,8 @@
 import unittest
 from pixel_volleyball.smash import SmashAttack
 from pixel_volleyball.model import VolleyMatch, VolleyBall, VolleyInput
-from pixel_volleyball.court import NET_TOP
+from pixel_volleyball.court import BALL_GRAVITY, NET_TOP
+from pixel_volleyball.rally import LOB_VX_MAX
 
 
 class SmashTests(unittest.TestCase):
@@ -13,7 +14,7 @@ class SmashTests(unittest.TestCase):
         self.assertTrue(attack.active)
         attack.update(.2, True, True)
         self.assertTrue(attack.active)
-        attack.update(.05, True, True)
+        attack.update(attack.ACTIVE_END - attack.age + .01, True, True)      # just past the end of the window
         self.assertFalse(attack.active)
         attack.update(1, True, True)
         self.assertFalse(attack.animating)
@@ -45,7 +46,7 @@ class SmashTests(unittest.TestCase):
             self.assertIn('spike', match.events)
             self.assertTrue(player.attack.connected)
             self.assertEqual(match.ball.vx > 0, side == 0)
-            self.assertGreaterEqual(abs(match.ball.vx), 250)
+            self.assertGreaterEqual(abs(match.ball.vx), 1.5 * LOB_VX_MAX)      # clearly faster than any normal return
             self.assertGreater(match.ball.smash_left, 0)
             player.hit_cooldown = 0
             match.ball.y = player.y - 18
@@ -74,7 +75,7 @@ class SmashTests(unittest.TestCase):
             match.ball.x, match.ball.y = x, 150
             vx, vy = SmashAttack.velocity(player, match.ball)
             time = (200 - x) / vx
-            self.assertLessEqual(150 + vy*time + 310*time*time, NET_TOP - match.ball.radius - 3 + .001)
+            self.assertLessEqual(150 + vy*time + BALL_GRAVITY / 2*time*time, NET_TOP - match.ball.radius - 3 + .001)
         player.x, match.ball.x, match.ball.y = 90, 90, 150
         player.moving = 1
         fast = SmashAttack.velocity(player, match.ball)

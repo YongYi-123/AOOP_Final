@@ -12,13 +12,17 @@ from backdrop import (AmbientAnimator, BackgroundRenderer, DustMotes,
 from daily_ui import DailyBonusPopup
 from decorations import (CAT_BED, NEON_SIGN, PLANT, RUG, TABLE_DECOR, WALL_POSTER,
                          DecorationSlot, HomeDecorationManager, default_catalog)
+from collection_ui import CollectionScene
+from decor_ui import DecorationScene
 from gfx import radial_glow, scale_color
+from home_stations import CollectionStation, DecorStation, WardrobeStation
 from lofi_props import (CoffeeTable, FloorLamp, Speaker, make_beanbag, make_couch)
 from room import Prop
 from room_art import WALL_STRIP_Y, HubBackdrop
 from room_scene import BaseRoomScene, RoomExit
 from settings import FLOOR_TOP, Col, Lofi, VIEW_H, VIEW_W, WALL_SIDE
 from stations import build_daily_board
+from wardrobe_ui import WardrobeScene
 
 WINDOW = pygame.Rect(24, 7, 38, 31)
 
@@ -126,6 +130,9 @@ class HomeRoomScene(BaseRoomScene):
             Prop(make_beanbag(), (234, 102), (235, 110, 20, 8)),
             Speaker((96, 92)),
             board,
+            WardrobeStation(),
+            DecorStation(),
+            CollectionStation(self.profile),
         ]
         return self.furniture + self.decorations.props
 
@@ -173,6 +180,27 @@ class HomeRoomScene(BaseRoomScene):
 
     def draw_room_overlay(self, surf):
         self.decorations.draw_neon(surf)
+
+    # ------------------------------------------------------------ personal stations
+    def open_wardrobe(self):
+        """The WARDROBE changes the avatar of whoever pressed E (their own profile)."""
+        owner = self.session.player_for_avatar(self._actor())
+        self.game.scenes.push(WardrobeScene(self.game, owner))
+
+    def open_collection(self):
+        owner = self.session.player_for_avatar(self._actor())
+        self.game.scenes.push(CollectionScene(self.game, owner))
+
+    def open_decoration_mode(self):
+        """Decoration mode rearranges THIS home (P1's), with P1's own decorations:
+        a guest can look at the room but not change it."""
+        player = self._actor()
+        owner = self.session.player_for_avatar(player)
+        if owner is not self.session.primary:
+            self.notice.show("GUEST", [(f"ONLY {self.session.primary.name} CAN DECORATE", Col.TEXT_MUTED)],
+                             Col.MAGENTA)
+            return
+        self.game.scenes.push(DecorationScene(self.game, owner, self))
 
     # ------------------------------------------------------------ daily login
     def on_room_enter(self):

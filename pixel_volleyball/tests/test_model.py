@@ -1,6 +1,7 @@
 import unittest
 from types import SimpleNamespace
 from pixel_volleyball.ai import VolleyAI
+from pixel_volleyball.rally import LOB_VX_MAX
 from pixel_volleyball.model import *
 
 
@@ -48,8 +49,8 @@ class VolleyPhysicsTests(unittest.TestCase):
         player.attack.age, player.hit_cooldown = .05, 0
         m.ball = VolleyBall(player.x, player.y - 18, 0, 100)
         m._player_collision(player)
-        self.assertGreater(m.ball.vy, -360)
-        self.assertGreater(m.ball.vx, 250)
+        self.assertGreater(m.ball.vx, 1.5 * LOB_VX_MAX)      # a Smash is much faster than a return
+        self.assertIn('spike', m.events)
 
     def test_pause_freezes_physics_and_finished_outcome_is_immutable(self):
         m = self.match

@@ -30,7 +30,7 @@ from settings import (NEON21_DAILY_TICKET_CAP, STARTING_TICKETS, STARTING_TOKENS
                       TRANSACTION_HISTORY_SIZE)
 
 # field: "tokens", "tickets", "games_played", "high_score", "daily", "tasks",
-#        "chance_games", "cats_petted", "inventory" or "decorations"
+#        "chance_games", "cats_petted", "inventory", "decorations", "appearance" or "collection"
 # delta: signed change (for "high_score": the new score); value: new total
 ProfileChange = namedtuple("ProfileChange", "field delta value")
 
@@ -57,7 +57,7 @@ class PlayerProfile:
                  lifetime_tokens_spent=0, chance_games_played=0, cats_petted=0,
                  daily=None, daily_tasks=None, history=(), clock=None, inventory=None,
                  home_decorations=None, profile_id=None, display_name=None, racing_selection=None,
-                 neon21=None):
+                 neon21=None, appearance=None, collection_display=None):
         # Who this profile is. The id is the save identity (never the name);
         # both are None for a bare profile that is not managed by a ProfileManager.
         self.profile_id = profile_id
@@ -84,6 +84,12 @@ class PlayerProfile:
         # HOME decoration slot id -> the decoration the player put there. Slots
         # not listed show their default (see decorations.HomeDecorationManager).
         self._home_decorations = dict(home_decorations or {})
+        # What the avatar wears: slot -> cosmetic item id (see cosmetics.py). Missing
+        # slots are the default outfit; ownership is checked when it is applied.
+        self._appearance = {k: v for k, v in (appearance or {}).items()
+                            if isinstance(k, str) and isinstance(v, str)}
+        # Collectible ids pinned on the HOME display shelf, in order.
+        self._collection_display = [i for i in (collection_display or []) if isinstance(i, str)]
         self._racing_selection = {k:v for k,v in (racing_selection or {}).items()
                                   if k in ("car","track","scenery","paint") and isinstance(v,str)}
         # NEON 21 state: tickets won per calendar day (the daily cap) and the
@@ -148,6 +154,34 @@ class PlayerProfile:
         if changed:
             self._notify("decorations", 0, len(self._home_decorations))
         return changed
+
+    @property
+    def appearance(self):
+        return dict(self._appearance)  # a copy: edit through set_appearance()
+
+    def set_appearance(self, slot, item_id):
+        """Wear `item_id` in an avatar slot (None takes it off). Whether the
+        item is owned and fits is the CosmeticService's call."""
+        if item_id is None:
+            changed = self._appearance.pop(slot, None) is not None
+        else:
+            changed = self._appearance.get(slot) != item_id
+            self._appearance[slot] = item_id
+        if changed:
+            self._notify("appearance", 0, len(self._appearance))
+        return changed
+
+    @property
+    def collection_display(self):
+        return list(self._collection_display)
+
+    def set_collection_display(self, item_ids):
+        item_ids = [i for i in item_ids if isinstance(i, str)]
+        if item_ids != self._collection_display:
+            self._collection_display = item_ids
+            self._notify("collection", 0, len(item_ids))
+            return True
+        return False
 
     @property
     def racing_selection(self):
@@ -468,6 +502,8 @@ class PlayerProfile:
             "inventory": self._inventory.to_dict(),
             "home_decorations": dict(self._home_decorations),
             "racing_selection": dict(self._racing_selection),
+            "appearance": dict(self._appearance),
+            "collection_display": list(self._collection_display),
             "neon21": {"date": self._neon21_date, "tickets": self._neon21_tickets,
                        **({"pending": dict(self._neon21_pending)} if self._neon21_pending else {})},
         }
@@ -511,6 +547,8 @@ class PlayerProfile:
             home_decorations=decorations,
             racing_selection=data.get("racing_selection") if isinstance(data.get("racing_selection"),dict) else {},
             neon21=data.get("neon21"),
+            appearance=data.get("appearance") if isinstance(data.get("appearance"), dict) else {},
+            collection_display=data.get("collection_display") if isinstance(data.get("collection_display"), list) else [],
             profile_id=data["profile_id"] if isinstance(data.get("profile_id"), str) else None,
             display_name=data["display_name"] if isinstance(data.get("display_name"), str) else None,
         )

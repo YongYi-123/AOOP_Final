@@ -9,8 +9,13 @@ import pygame
 
 from backdrop import (AmbientAnimator, BackgroundRenderer, DustMotes,
                       LightingOverlay, StringLights)
+import math
+
+from decorations import _cat_plush
 from font import get_font
 from gfx import neon_rect_glow, outlined, scale_color
+from item_icons import PAINTERS, item_icon
+from item_registry import ITEM_REGISTRY
 from room import Prop, make_gumball, make_plant
 from lucky_cabinets import KINDS
 from neon21_art import suit_icon
@@ -20,10 +25,15 @@ from settings import Col, Lofi, VIEW_H, VIEW_W
 from stations import PrizeCounter, SoonStation, build_lucky_corner
 from racing_progression.station import GarageStation
 from racing_progression.ui import PrizeCounterScene, GarageScene
+from shop_ui import ShopScene
 
+CASES = ((158, (255, 140, 190), "plush"), (198, (120, 220, 255), "trophy"))   # x, neon colour, centrepiece
+SIGN = (26, 6, 100, 32)                                    # the PRIZE COUNTER marquee: x, y, w, h
 # three zones, left to right: PRIZE COUNTER, DISPLAY SHELVES, LUCKY CORNER
 COUNTER_POS = (36, 104)
 LUCKY_POS = (268, 98)
+SHELF_ITEMS = (("arcade_trophy", "decor_cat_plush", "mini_cabinet", "golden_token", "lucky_clover"),
+               ("retro_badge", "cat_sticker", "star_pin", "neon_cap", "decor_table_lamp"))
 PRIZE_COLORS = ((255, 140, 190), (120, 220, 255), (255, 214, 90), (160, 240, 150),
                 (190, 150, 255), (255, 120, 120))
 
@@ -52,7 +62,7 @@ def _prize(color, kind):
 
 class PlazaBackdrop(HubBackdrop):
     """Prize shelves, the TICKET PRIZES sign and a gold-edged carpet."""
-    SHELVES = ((146, 28), (146, 46))                        # (x, y) of each shelf board
+    SHELVES = ((146, 34), (146, 52))                        # (x, y) of each shelf board
     SHELF_W = 104
 
     def paint_floor(self, surf):
@@ -99,41 +109,110 @@ class PlazaBackdrop(HubBackdrop):
             surf.fill((120, 78, 90), (x, y, self.SHELF_W, 3))
             surf.fill((176, 128, 110), (x, y, self.SHELF_W, 1))
             surf.fill((60, 36, 56), (x + 2, y + 3, self.SHELF_W - 4, 1))
-            for j, px in enumerate(range(x + 4, x + self.SHELF_W - 12, 14)):
-                surf.blit(_prize(PRIZE_COLORS[(i * 3 + j) % len(PRIZE_COLORS)], (i + j) % 3),
-                          (px, y - 9))
+            for j, item_id in enumerate(SHELF_ITEMS[i]):
+                icon = item_icon(ITEM_REGISTRY.get(item_id))
+                surf.blit(icon, (x + 4 + j * 20, y - icon.get_height() + 1))
             for px in (x + 2, x + self.SHELF_W - 4):           # brackets
                 surf.fill((60, 36, 56), (px, y + 3, 2, 5))
-        # ticket-shaped sign
-        w, h = 92, 24
-        sx, sy = 32, 10                                         # above the prize counter
+        # the PRIZE COUNTER marquee: a gold-edged plate with the name in lights (bulbs chase in SignLights)
+        sx, sy, w, h = SIGN
         pygame.draw.rect(surf, (255, 190, 70), (sx, sy, w, h), border_radius=3)
         pygame.draw.rect(surf, (90, 20, 80), (sx + 2, sy + 2, w - 4, h - 4), border_radius=2)
-        for yy in range(sy + 4, sy + h - 3, 4):                 # perforations
-            surf.fill((255, 190, 70), (sx + 12, yy, 1, 2))
-            surf.fill((255, 190, 70), (sx + w - 13, yy, 1, 2))
-        for cx in (sx, sx + w - 1):                             # notches
-            pygame.draw.circle(surf, self.theme.wall, (cx, sy + h // 2), 3)
+        pygame.draw.rect(surf, (150, 40, 130), (sx + 4, sy + 4, w - 8, h - 8), 1, border_radius=1)
         font = get_font()
-        word = font.render_glow("TICKETS", (255, 236, 160), (200, 110, 30), scale=2)
-        surf.blit(word, ((w - word.get_width()) // 2 + sx, sy + (h - word.get_height()) // 2))
-        self.add_light(neon_rect_glow(w, h, (255, 170, 60), 8, self.style.strength(0.3)), (sx - 8, sy - 8))
+        word = font.render_glow("PRIZE", (255, 236, 160), (200, 110, 30), scale=2)
+        surf.blit(word, (sx + (w - word.get_width()) // 2, sy + 6))
+        small = font.render_glow("COUNTER", (255, 190, 230), (170, 50, 130))
+        surf.blit(small, (sx + (w - small.get_width()) // 2, sy + h - 12))
+        self.add_light(neon_rect_glow(w, h, (255, 170, 60), 9, self.style.strength(0.34)), (sx - 9, sy - 9))
+        font = get_font()
         label = font.render_glow("DISPLAY", (255, 190, 230), (170, 50, 130))   # over the shelves
         surf.blit(label, (146 + (self.SHELF_W - label.get_width()) // 2, 9))
 
 
-def _display_case(color):
-    s = pygame.Surface((26, 38), pygame.SRCALPHA)
-    s.fill((46, 30, 80), (0, 4, 26, 34))
-    s.fill((16, 10, 40), (2, 6, 22, 22))
-    s.fill(color, (0, 4, 26, 1))
-    for i, c in enumerate(PRIZE_COLORS[:3]):
-        s.blit(_prize(c, (i + 1) % 3), (3 + i * 7, 17))
-    s.fill((200, 240, 255), (3, 7, 1, 14))                     # glass shine
-    s.fill((30, 22, 60), (0, 29, 26, 9))
-    s.fill(color, (0, 36, 26, 1))
-    s.fill(Col.YELLOW, (11, 31, 4, 2))
+def _hero(kind):
+    """A 28x28 pixel-art centrepiece for a display case (2x a 14px sprite)."""
+    if kind == "plush":
+        small = _cat_plush()
+    else:
+        small = pygame.Surface((14, 14), pygame.SRCALPHA)
+        PAINTERS[kind](small, (255, 214, 90), (255, 250, 200))
+    return pygame.transform.scale(small, (small.get_width() * 2, small.get_height() * 2))
+
+
+CASE_W, CASE_H = 32, 46
+
+
+def _display_case(color, kind):
+    """A lit glass case: a big centrepiece on a pedestal, a gold plate below."""
+    s = pygame.Surface((CASE_W, CASE_H), pygame.SRCALPHA)
+    s.fill((46, 30, 80), (0, 4, CASE_W, CASE_H - 4))
+    s.fill((16, 10, 40), (2, 6, CASE_W - 4, 30))
+    for y in range(7, 36, 3):                                   # a faint spotlit gradient in the glass
+        k = 1 - abs(y - 20) / 18
+        s.fill((int(34 * k) + 16, int(24 * k) + 10, int(70 * k) + 40), (2, y, CASE_W - 4, 3))
+    s.fill(color, (0, 4, CASE_W, 1))
+    hero = _hero(kind)
+    s.blit(hero, ((CASE_W - hero.get_width()) // 2, 6))
+    s.fill(scale_color(color, 0.6), (5, 33, CASE_W - 10, 3))     # pedestal
+    s.fill(color, (5, 33, CASE_W - 10, 1))
+    s.fill((200, 240, 255), (3, 7, 1, 16))                      # glass shine
+    s.fill((30, 22, 60), (0, 37, CASE_W, 9))
+    s.fill(Col.YELLOW, (CASE_W // 2 - 6, 40, 12, 3))             # name plate
+    s.fill((140, 90, 20), (CASE_W // 2 - 5, 41, 10, 1))
+    s.fill(color, (0, CASE_H - 1, CASE_W, 1))
     return outlined(s)
+
+
+class SignLights:
+    """The bulbs round the PRIZE COUNTER marquee, chasing in gold / pink / cyan,
+    plus a slow overall pulse. Purely visual."""
+
+    COLORS = ((255, 214, 90), (255, 110, 190), (120, 230, 255))
+
+    def __init__(self, rect):
+        x, y, w, h = rect
+        pts = [(x + i, y + 1) for i in range(4, w - 4, 8)] + [(x + w - 2, y + j) for j in range(4, h - 4, 8)]
+        pts += [(x + i, y + h - 3) for i in range(w - 6, 3, -8)] + [(x + 1, y + j) for j in range(h - 6, 3, -8)]
+        self.points = pts
+        self.t = 0.0
+
+    def update(self, t):
+        self.t = t
+
+    def draw(self, surf):
+        lit = int(self.t * 6)
+        for i, (x, y) in enumerate(self.points):
+            if (i - lit) % 3 == 0:
+                color = self.COLORS[(i + lit // 3) % 3]
+                surf.fill(color, (x, y, 2, 2))
+                surf.fill(scale_color(color, 0.45), (x - 1, y, 4, 2))
+            else:
+                surf.fill((120, 80, 60), (x, y, 2, 2))
+
+
+class SpotBeams:
+    """Soft spotlight cones that fall on the display cases and breathe slowly."""
+
+    def __init__(self, centres, top=64, bottom=150, color=(255, 230, 190)):
+        self.beams = []
+        for k, cx in enumerate(centres):
+            w = 44
+            beam = pygame.Surface((w, bottom - top), pygame.SRCALPHA)
+            for y in range(bottom - top):
+                half = 4 + int(14 * y / (bottom - top))
+                a = int(60 * (1 - y / (bottom - top)) ** 1.2)
+                beam.fill((*color, a), (w // 2 - half, y, half * 2, 1))
+            self.beams.append((beam, (cx - w // 2, top), k * 1.9))
+        self.t = 0.0
+
+    def update(self, t):
+        self.t = t
+
+    def draw(self, surf):
+        for beam, pos, phase in self.beams:
+            beam.set_alpha(int(150 + 90 * math.sin(self.t * 1.4 + phase)))
+            surf.blit(beam, pos)
 
 
 class PrizePlazaScene(BaseRoomScene):
@@ -150,9 +229,9 @@ class PrizePlazaScene(BaseRoomScene):
     # ------------------------------------------------------------ building
     def build_props(self):
         counter = PrizeCounter(COUNTER_POS)
-        cases = [Prop(_display_case(color), (x, 112), (x + 1, 140, 26, 8),
-                      neon_rect_glow(26, 38, color, 6, self.style.strength(0.22)), (x - 6, 106))
-                 for x, color in ((164, (255, 140, 190)), (200, (120, 220, 255)))]
+        cases = [Prop(_display_case(color, kind), (x, 104), (x + 1, 142, CASE_W, 8),
+                      neon_rect_glow(CASE_W + 2, CASE_H + 2, color, 6, self.style.strength(0.22)), (x - 6, 98))
+                 for x, color, kind in CASES]
         lucky = build_lucky_corner(*LUCKY_POS)
         spare_bays = [SoonStation((LUCKY_POS[0] + 40 * i, LUCKY_POS[1] + 70)) for i in range(2)]
         plant = make_plant(Lofi.TERRACOTTA, Lofi.TERRACOTTA_HI)
@@ -169,15 +248,20 @@ class PrizePlazaScene(BaseRoomScene):
         animator = AmbientAnimator()
         animator.add(StringLights(20, VIEW_W - 20, 2, span=40, sag=4,
                                   colors=((255, 214, 90), (255, 110, 190), (190, 150, 255))), "overlay")
-        spots = [(x, y, (x * 7 + y * 3) % 6) for y in (21, 39) for x in range(150, 246, 14)]
+        spots = [(x, y, (x * 7 + y * 3) % 6) for y in (27, 45) for x in range(150, 246, 14)]
         animator.add(Twinkles(spots), "overlay")
         corner = [(LUCKY_POS[0] + dx, LUCKY_POS[1] + dy, (dx * 5 + dy) % 7)
                   for dx, dy in ((-8, -12), (30, -14), (70, -12), (112, -10), (-10, 30), (112, 40),
                                  (-8, 74), (34, 120), (74, 96), (112, 110))]
         animator.add(Twinkles(corner, ((255, 214, 90), (255, 140, 220), (120, 255, 190))), "overlay")
+        animator.add(SignLights(SIGN), "overlay")
+        animator.add(SpotBeams([x + CASE_W // 2 + 1 for x, _, _ in CASES]), "overlay")
+        counter = [(COUNTER_POS[0] + dx, COUNTER_POS[1] + dy, (dx * 3 + dy) % 5)
+                   for dx, dy in ((4, 2), (30, 6), (56, 2), (76, 8), (14, 16), (66, 18))]
+        animator.add(Twinkles(counter), "overlay")             # sparkle over the glass counter top
         animator.add(DustMotes((30, 70, 340, 200), count=14), "overlay")
         pools = [((200, 170), 150, (24, 10, 30), 0.8),
-                 ((198, 44), 70, (40, 24, 14), 0.5),              # display shelves
+                 ((198, 50), 70, (40, 24, 14), 0.5),              # display shelves
                  ((76, 126), 60, (44, 28, 10), 0.6),              # prize counter
                  ((322, 118), 56, (40, 14, 34), 0.6),             # lucky corner
                  ((308, 188), 50, (30, 10, 30), 0.6)]
@@ -188,7 +272,11 @@ class PrizePlazaScene(BaseRoomScene):
     # ------------------------------------------------------------ prize counter
     def open_prize_counter(self):
         owner = self.session.player_for_avatar(self._actor())
-        self.game.scenes.push(PrizeCounterScene(self.game,owner))
+        self.game.scenes.push(ShopScene(self.game, owner))
+
+    def open_racing_counter(self):
+        owner = self.session.player_for_avatar(self._actor())
+        self.game.scenes.push(PrizeCounterScene(self.game, owner))
 
     def open_garage(self):
         owner = self.session.player_for_avatar(self._actor())

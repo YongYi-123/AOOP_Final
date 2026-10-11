@@ -12,6 +12,7 @@ from pixel_volleyball.game import VolleyGame
 from pixel_volleyball.keyboard import VolleyKeyboard
 from pixel_volleyball.keyboard_hints import default_hints, hint_lines
 from pixel_volleyball.model import MatchState, VolleyBall, VolleyInput, VolleyMatch
+from pixel_volleyball.rally import LOB_VX_MAX
 from pixel_volleyball.smash import SmashAttack
 
 IDLE = VolleyInput()
@@ -197,6 +198,7 @@ class SmashBufferTests(unittest.TestCase):
         match.ball = VolleyBall(300, 100, 0, 0)
         swings = 0
         for frame in range(200):
+            match.ball.x, match.ball.y, match.ball.vx, match.ball.vy = 300, 100, 0, 0     # parked: only the input matters
             was = match.players[0].attack.age
             match.update(1 / 60, [VolleyInput(jump=frame % 50 < 2, spike=frame == 5 or frame > 70), IDLE])
             swings += match.players[0].attack.age < was
@@ -221,12 +223,12 @@ class SmashBufferTests(unittest.TestCase):
         for fps in (30, 60, 144):
             for side in (0, 1):
                 self.assertEqual(self.live_jump(fps, side, .15), ['spike'], (fps, side))
-                self.assertEqual(self.live_jump(fps, side, .0)[:1], ['hit'], (fps, side))     # far too early
+                self.assertEqual(self.live_jump(fps, side, .0)[:1], ['spike'], (fps, side))   # a press as you leave the floor is buffered
                 self.assertEqual(self.live_jump(fps, side, .45)[:1], ['hit'], (fps, side))    # after contact
         working = [t / 100 for t in range(0, 50)
                    if self.live_jump(60, 0, t / 100)[:1] == ['spike']]
-        self.assertGreaterEqual(working[-1] - working[0], .2)
-        self.assertEqual(len(working), working[-1] * 100 - working[0] * 100 + 1)     # one unbroken window
+        self.assertGreaterEqual(working[-1] - working[0], .25)
+        self.assertEqual(len(working), round(working[-1] * 100 - working[0] * 100) + 1)     # one unbroken window
 
     def test_one_press_in_the_air_never_produces_two_smashes(self):
         for fps in (30, 60, 144):
@@ -241,8 +243,9 @@ class SmashTrajectoryTests(unittest.TestCase):
             smash_first, smash, _ = strike(side, True)
             self.assertEqual(hit_first['events'], ['hit'])
             self.assertEqual(smash_first['events'], ['spike'])
-            # Normal return: the slow 190/-360 lob that climbs to the ceiling area.
-            self.assertEqual((abs(hit_first['vx']), hit_first['vy']), (190, -360))
+            # Normal return: the gentle aimed lob (rally.lob_velocity), never faster than LOB_VX_MAX across.
+            self.assertLessEqual(abs(hit_first['vx']), LOB_VX_MAX)
+            self.assertLess(hit_first['vy'], -250)
             self.assertGreater(hit['rise'], 80)
             self.assertGreater(hit['time'], 1.0)
             # Smash: faster, never climbs, and drops on the floor much sooner at a steep angle.
@@ -250,7 +253,7 @@ class SmashTrajectoryTests(unittest.TestCase):
             self.assertLess(smash['rise'], 20)
             self.assertGreaterEqual(smash['angle'], 45)
             self.assertGreater(abs(smash_first['vx']), abs(hit_first['vx']) + 60)
-            self.assertGreater(smash['speed'], 400)
+            self.assertGreater(smash['speed'], hit['speed'] + 20)
             self.assertGreater(smash['land'][3], 300)           # slamming down at landing
 
     def test_smash_scores_for_the_attacker_when_undefended(self):
@@ -365,8 +368,8 @@ class SmashAiTests(unittest.TestCase):
         return match, spikes
 
     def test_sandra_smashes_in_solo_play_toward_the_player_court(self):
-        match, spikes = self.solo_rally()
-        self.assertGreaterEqual(len(spikes), 3)
+        match, spikes = self.solo_rally(60)                 # Sandra smashes one offered ball in four
+        self.assertGreaterEqual(len(spikes), 2)
         for _, (x, y, kind, side) in spikes:
             self.assertEqual(side, 1)
             self.assertLess(y, NET_TOP)
@@ -394,6 +397,21 @@ class SmashAiTests(unittest.TestCase):
         self.assertTrue(30 < match.ball.x < 370)
         self.assertGreaterEqual(fly(match)['angle'], 40)
 
+    def test_most_of_sandras_smashes_land_near_the_human_where_they_can_be_returned(self):
+        for p1_x in (60, 100, 150):
+            match = VolleyMatch(1)
+            match.start()
+            match.serve_delay = 0
+            match.players[0].x, match.players[0].y = p1_x, -500
+            sandra = match.players[1]
+            sandra.y = 172
+            sandra.attack.age = .08
+            match.ball = VolleyBall(sandra.x - 6, 154, 0, 0)
+            match.ai.smashes = 0                                 # the first Smash is not the placed one
+            match._player_collision(sandra)
+            self.assertIn('spike', match.events)
+            self.assertLess(abs(fly(match)['land'][0] - p1_x), 45)
+
     def test_ai_aims_away_from_the_player_without_leaving_the_court(self):
         for p1_x in (40, 100, 180):
             match = VolleyMatch(1)
@@ -405,6 +423,7 @@ class SmashAiTests(unittest.TestCase):
             sandra.y = 172
             sandra.attack.age = .08
             match.ball = VolleyBall(sandra.x - 6, 154, 0, 0)
+            match.ai.smashes = VolleyAI.SMASH_AIM_EVERY - 1      # this is the Smash she places away from the human
             match._player_collision(sandra)
             self.assertIn('spike', match.events)
             flight = fly(match)

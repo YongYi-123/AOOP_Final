@@ -183,6 +183,11 @@ class InventoryUI:
         for line in wrap_text(definition.description, box.w - 12):
             draw_text(img, line, (pad, y), Col.TEXT_MUTED)
             y += LINE_H
+        if definition.use_hint:                               # where the item is used
+            y += 3
+            for line in wrap_text(definition.use_hint, box.w - 12):
+                draw_text(img, line, (pad, y), Col.CYAN)
+                y += LINE_H
         bottom = box.bottom - 6 - LINE_H
         draw_text(img, f"OWNED: {qty}", (pad, bottom), Col.YELLOW)
         if self.inspecting:

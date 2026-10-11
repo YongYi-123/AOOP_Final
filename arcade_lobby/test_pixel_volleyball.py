@@ -11,6 +11,8 @@ from room_testing import goto_room
 from scenes import minigame_definition
 from pixel_volleyball_scene import PixelVolleyballScene
 from pixel_volleyball.model import MatchState
+from pixel_volleyball.ai import VolleyAI
+from pixel_volleyball.rally import LOB_VX_MAX
 
 
 class VolleyballLobbyTests(unittest.TestCase):
@@ -104,11 +106,11 @@ class VolleyballLobbyTests(unittest.TestCase):
         self.make_game()
         self.frames(1, pygame.K_RIGHT)
         self.frames(1, pygame.K_RIGHT, down=False)
-        self.assertEqual(self.scene.volley.match.ai.REACTION, .09)
+        self.assertEqual(self.scene.volley.match.ai.REACTION, VolleyAI.REACTION)
         self.frames(1, pygame.K_RETURN)
         self.assertEqual(self.scene.volley.match.state, MatchState.PLAYING)
         self.frames(1, pygame.K_BACKSPACE)
-        self.assertEqual(self.scene.volley.match.ai.REACTION, .09)
+        self.assertEqual(self.scene.volley.match.ai.REACTION, VolleyAI.REACTION)
         self.frames(30, pygame.K_ESCAPE)
         self.assertIs(self.game.scenes.current, self.room)
 
@@ -178,7 +180,7 @@ class VolleyballSmashHubTests(unittest.TestCase):
             match.points[:] = [0, 0]
             player = self.smash(match, 0, key)
             self.assertTrue(player.attack.connected)
-            self.assertGreater(match.ball.vx, 250)
+            self.assertGreater(match.ball.vx, 1.5 * LOB_VX_MAX)      # Smash: far faster than a return
             self.assertGreater(match.ball.vy, -150)
             for _ in range(120):
                 self.frames(1)
@@ -191,14 +193,14 @@ class VolleyballSmashHubTests(unittest.TestCase):
         match = self.start(True)
         player = self.smash(match, 0, pygame.K_SPACE)
         self.assertTrue(player.attack.connected)
-        self.assertGreater(match.ball.vx, 250)
+        self.assertGreater(match.ball.vx, 1.5 * LOB_VX_MAX)      # Smash: far faster than a return
         self.assertFalse(match.players[1].attack.animating)
         match.points[:] = [0, 0]
         match._serve(0)
         match.serve_delay = 0
         player = self.smash(match, 1, pygame.K_RSHIFT)
         self.assertTrue(player.attack.connected)
-        self.assertLess(match.ball.vx, -250)
+        self.assertLess(match.ball.vx, -1.5 * LOB_VX_MAX)
         self.assertFalse(match.players[0].attack.animating)
         for _ in range(120):
             self.frames(1)
@@ -251,8 +253,8 @@ class VolleyballSmashHubTests(unittest.TestCase):
         match.ball = VolleyBall(player.x + 6, player.y - 17, 0, 0)
         self.frames(1)
         self.assertFalse(player.attack.connected)
-        self.assertEqual(match.ball.vx, 190)
-        self.assertLess(match.ball.vy, -330)            # the high lob, not a flat smash
+        self.assertTrue(0 < match.ball.vx <= LOB_VX_MAX)      # a gentle aimed return, not a Smash
+        self.assertLess(match.ball.vy, -250)            # the high lob, not a flat smash
         crossed_high = False
         for _ in range(90):
             self.frames(1)

@@ -518,8 +518,8 @@ class GameplayInRoomsTests(HubTest):
         self.assertIs(plaza.nearby, counter)
         tickets, tokens = self.game.profile.tickets, self.game.profile.tokens
         self.frames(30, [key(pygame.K_e)])
-        from racing_progression.ui import PrizeCounterScene
-        self.assertIsInstance(self.game.scenes.current,PrizeCounterScene)
+        from shop_ui import ShopScene
+        self.assertIsInstance(self.game.scenes.current, ShopScene)
         self.assertEqual((self.game.profile.tickets, self.game.profile.tokens), (tickets, tokens))
 
     def test_daily_board_and_tasks_work_in_home_after_travelling(self):
