@@ -12,10 +12,10 @@ ASSET_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets")
 MUSIC_FILES = {"lobby": "arcade_floor", "prize_plaza": "prize_plaza", "lucky_corner": "lucky_corner",
                "home": "home"}
 SFX_FILES = ("footstep", "confirm", "cancel", "machine", "token", "ticket", "purchase", "card", "equip",
-             "pet", "emote", "sit")
+             "pet", "emote", "sit", "meow")
 # some effects are meant to be barely there
-SFX_GAIN = {"footstep": 0.3, "card": 0.7, "confirm": 0.8, "cancel": 0.8, "sit": 0.7, "emote": 0.8}
-MIN_GAP = {"footstep": 0.16}            # seconds between two plays of the same effect (default .06)
+SFX_GAIN = {"footstep": 0.3, "card": 0.7, "confirm": 0.8, "cancel": 0.8, "sit": 0.7, "emote": 0.8, "meow": 0.6}
+MIN_GAP = {"footstep": 0.16, "meow": 1.2}            # seconds between two plays of the same effect (default .06)
 DEFAULT_BGM, DEFAULT_SFX = .22, .7
 FADE_MS = 700
 

@@ -403,9 +403,17 @@ def sfx_sit():
     return m.finish(peak=0.5, fade=0.01)
 
 
+def sfx_meow():
+    """Mochi's soft greeting: a short rising-then-falling mew."""
+    m = _sfx(0.42)
+    m.note(0, 0.13, 560, "tri", 0.35, attack=0.02, release=0.04, vibrato=9, slide=900)
+    m.note(0.12, 0.2, 1000, "sine", 0.3, attack=0.02, release=0.1, vibrato=9, slide=-1100)
+    return m.finish(peak=0.4, fade=0.01)
+
+
 SFX = {"footstep": sfx_footstep, "confirm": sfx_confirm, "cancel": sfx_cancel, "machine": sfx_machine,
        "token": sfx_token, "ticket": sfx_ticket, "purchase": sfx_purchase, "card": sfx_card,
-       "equip": sfx_equip, "pet": sfx_pet, "emote": sfx_emote, "sit": sfx_sit}
+       "equip": sfx_equip, "meow": sfx_meow, "pet": sfx_pet, "emote": sfx_emote, "sit": sfx_sit}
 
 
 def generate(only=None):
