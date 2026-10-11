@@ -76,7 +76,7 @@ class RacerSettlementTests(TwoPlayerTest):
         scene.results.observe(racer(state="PLAYING", score=999999))
         self.assertEqual(scene.get_result().player_results[0].reward.tickets, 23)
 
-    def test_quit_captures_result_and_stops_engine(self):
+    def test_quit_captures_result_and_stops_all_racer_sound(self):
         room, scene, _ = self.launch()
         r = racer()
         r.audio = mock.Mock()
@@ -86,7 +86,7 @@ class RacerSettlementTests(TwoPlayerTest):
             self.game.quit()
             self.game.quit()
         self.assertEqual(self.p2.profile.tickets, before + 23)
-        r.audio.stop_engine.assert_called_once()
+        r.audio.stop_all.assert_called_once()      # the engine AND every racer effect
 
     def test_pop_captures_end_screen_before_room_resumes(self):
         room, scene, _ = self.launch()

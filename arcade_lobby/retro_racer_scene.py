@@ -61,6 +61,7 @@ RACER_KEYS = {
 # The racer is laid out for this logical size (retro_racer/settings.py WIDTH x HEIGHT). It always
 # renders into its own surface of exactly this size, which is then scaled uniformly into whatever
 # the window offers, so the window size can never crop or stretch the game.
+ENGINE_BOOST = 1.7          # the engine sits well above the hub's background music
 RACER_SIZE = (800, 600)
 SPECTATOR_Y = 148           # logical y of the spectator tag: under the DISTANCE readout, clear of the HUD
 
@@ -125,7 +126,7 @@ class RetroRacerScene(MinigameScene):
     def on_quit(self):
         if self.racer and not self.error:
             self.results.observe(self.racer)
-            self.racer.audio.stop_engine()
+            self.racer.audio.stop_all()
 
     # ------------------------------------------------------------ lifecycle
     def on_enter(self):
@@ -139,7 +140,7 @@ class RetroRacerScene(MinigameScene):
         if self.racer and not self.error:
             self.results.observe(self.racer)
             self.racer.set_paused(False)
-            self.racer.audio.stop_engine()   # otherwise the engine hum follows you out
+            self.racer.audio.stop_all()      # otherwise the engine hum follows you out
 
     def _load(self):
         cls = type(self)
@@ -170,6 +171,9 @@ class RetroRacerScene(MinigameScene):
         from racing_progression.service import RacingGarage
         profile = self.participants[0] if self.participants else self.game.session.primary.profile
         r.configure_progression(RacingGarage(profile))
+        r.audio.stop_all()                       # a clean slate: no engine or effect tail from the last visit
+        r.audio.muted = False                    # (the hub owns mute: M)
+        r.audio.engine_boost = ENGINE_BOOST
         r.reset()
         r.state = self._title_state
         r.running = True

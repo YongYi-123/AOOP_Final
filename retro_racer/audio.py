@@ -13,6 +13,7 @@ RATE = 22050
 ENGINE_LOOP = 4410            # 0.2 s; every engine pitch has a whole number of cycles in it -> seamless loop
 ENGINE_CYCLES = [6, 8, 12, 16, 20, 24, 30, 36, 44, 52, 60]   # 30 .. 300 Hz
 LOW_EXTRA, BASE_SPAN = 1, 7   # the original 8 pitches are loops 1..8; 0 (lower) and 9-10 (higher) give cars room to shift
+RESERVED = 4                  # mixer channels 0-3 are never handed out to effects (engine 0-1, hub music 2-3)
 ENGINE_BASE, ENGINE_SLOPE = 0.45, 0.5                # engine gain = BASE + SLOPE * speed fraction
 
 
@@ -88,6 +89,7 @@ class Audio:
         self.enabled = False
         self.muted = False
         self.external_gain = 1.0
+        self.engine_boost = 1.0      # the arcade hub raises the engine so it stays on top of its background music
         self.volume = S.VOLUME if volume is None else volume
         self.sounds, self.loops, self.channels = {}, [], []
         self.channel_loop = [None, None]
@@ -101,7 +103,7 @@ class Audio:
                 raise pygame.error("unsupported sample format")
             self.stereo = pygame.mixer.get_init()[2] == 2
             pygame.mixer.set_num_channels(max(16, pygame.mixer.get_num_channels()))
-            pygame.mixer.set_reserved(4)                       # channels 0-1 belong to the engine
+            pygame.mixer.set_reserved(RESERVED)                # channels 0-1 belong to the engine
             self.channels = [pygame.mixer.Channel(0), pygame.mixer.Channel(1)]
             self.sounds = {name: (self._make(fn()), base) for name, (fn, base, _) in self.SFX.items()}
             self.loops = [self._make(_engine_loop(c)) for c in ENGINE_CYCLES]
@@ -147,7 +149,8 @@ class Audio:
         return min(S.SFX_MAX_GAIN, gain)
 
     def _voices_busy(self):
-        return sum(pygame.mixer.Channel(i).get_busy() for i in range(len(self.channels), pygame.mixer.get_num_channels()))
+        # only the shared effect channels count: 0-1 are the engine and 2-3 belong to the hub's music
+        return sum(pygame.mixer.Channel(i).get_busy() for i in range(RESERVED, pygame.mixer.get_num_channels()))
 
     def engine_gain(self, speed_frac):
         """Channel volume for the engine at a given speed fraction (before the pitch cross-fade)."""
@@ -157,7 +160,7 @@ class Audio:
     def engine_level(self, speed_frac, volume=1.0):
         """engine_gain with the car's own volume and the temporary duck while a big event plays."""
         duck = S.ENGINE_DUCK if self.duck_left > 0 else 1.0
-        return min(1.0, self.engine_gain(speed_frac) * volume * duck)
+        return min(1.0, self.engine_gain(speed_frac) * volume * duck * self.engine_boost)
 
     # ---- effects ----------------------------------------------------------------------------------
     def play(self, name):
@@ -180,8 +183,8 @@ class Audio:
             sound.play()
             if category in self.DUCKERS and not remote:
                 self.duck_left = 0.4
-        except pygame.error:
-            pass
+        except pygame.error as exc:
+            print(f"[audio] racer effect '{name}' failed: {exc}", flush=True)
 
     # ---- engine: cross-fade between two neighbouring pre-rendered pitches -----------------------------
     def loop_position(self, speed_frac, pitch_shift=0.0):
@@ -202,6 +205,9 @@ class Audio:
             frac = u - lo
             # equal-power cross-fade keeps the loudness steady while the pitch changes
             weights = {lo: math.sqrt(1.0 - frac), lo + 1: math.sqrt(frac)}
+            for c, ch in enumerate(self.channels):          # a channel that someone else stopped is not playing its loop
+                if self.channel_loop[c] is not None and not ch.get_busy():
+                    self.channel_loop[c] = None
             missing = [i for i in weights if i not in self.channel_loop]
             for c, ch in enumerate(self.channels):
                 if self.channel_loop[c] not in weights:        # this channel's pitch is no longer needed
@@ -210,8 +216,8 @@ class Audio:
             level = self.engine_level(speed_frac, volume)
             for c, ch in enumerate(self.channels):
                 ch.set_volume(level * weights[self.channel_loop[c]])
-        except pygame.error:
-            pass
+        except pygame.error as exc:
+            print(f"[audio] racer engine failed: {exc}", flush=True)
 
     def stop_engine(self):
         if not self.enabled:
@@ -220,3 +226,18 @@ class Audio:
             if self.channel_loop[c] is not None:
                 ch.fadeout(250)
                 self.channel_loop[c] = None
+
+    def stop_all(self):
+        """Leave cleanly: the engine and every racer effect stop now (no fade-out tail, nothing left ringing)."""
+        if not self.enabled:
+            return
+        try:
+            for c, ch in enumerate(self.channels):
+                ch.stop()
+                self.channel_loop[c] = None
+            for sound, _ in self.sounds.values():
+                sound.stop()
+            for sound in self.loops:
+                sound.stop()
+        except pygame.error as exc:
+            print(f"[audio] could not stop racer sounds: {exc}", flush=True)
