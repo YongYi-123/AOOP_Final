@@ -19,6 +19,7 @@ from item_icons import item_icon
 from menu_kit import FRAME, GOLD, ROSE, ROW_H, MenuScene, fit_text, item_icon_for_ticket
 from preview_art import pedestal, preview_for_item
 from prize_shop import CATEGORIES, ShopService, entries_in
+from shopkeeper import Shopkeeper, nameplate_image
 from settings import Col
 from ui import DialogueBox, draw_text, wrap_text
 
@@ -27,6 +28,8 @@ TABS = CATEGORIES + (RACING,)
 LIST = pygame.Rect(14, 60, 206, 9 * ROW_H + 2)          # 9 rows
 SIDE = pygame.Rect(226, 60, FRAME.right - 226 - 8, 9 * ROW_H + 2)
 BUY_LOCK = 0.4              # seconds after a purchase in which E does nothing (no double buys)
+KEEPER_BOX = pygame.Rect(262, 6, 44, 36)     # Mochi's portrait (header gap: clear of title, balance and tabs)
+BUBBLE_W = 88
 CONFIRM_DELAY = 0.25        # the confirmation box ignores keys this long (a held E cannot answer it)
 
 
@@ -34,9 +37,12 @@ class ShopScene(MenuScene):
     title = "PRIZE COUNTER"
     VISIBLE = 9
 
-    def __init__(self, game, owner):
+    def __init__(self, game, owner, keeper=None):
+        """keeper: Mochi, shared with the room she sits in (a shop opened elsewhere gets its own)."""
         super().__init__(game, owner)
         self.shop = ShopService(owner.profile)
+        self.keeper = keeper or Shopkeeper(sound=self.play)
+        self.keeper.notify("open", owner.avatar)        # the shop really opened for this player
         self.tab = 0
         self.index = 0
         self.first = 0
@@ -101,6 +107,7 @@ class ShopScene(MenuScene):
         elif not self.shop.can_afford(entry):
             self.say(f"NEED {entry.cost - self.shop.tickets} MORE TICKETS", Col.MAGENTA)
             self.play("cancel")
+            self.keeper.notify("insufficient", self.owner.avatar)
         else:
             self.confirm(entry)
 
@@ -130,9 +137,12 @@ class ShopScene(MenuScene):
             self.banner = (entry.name, 1.6)
             self.play("purchase")
             self.owner.avatar.play_action("cheer", "down", emote="sparkle")    # plays when the room is back
+            self.keeper.notify("purchase", self.owner.avatar)
         else:
             self.say(result.message, Col.MAGENTA)
             self.play("cancel")
+            if result.code == "need_tickets":
+                self.keeper.notify("insufficient", self.owner.avatar)
 
     def _click_row(self, i):
         if i == self.index and self.lock <= 0:
@@ -140,8 +150,13 @@ class ShopScene(MenuScene):
         else:
             self.select(i)
 
+    def close(self):
+        self.keeper.notify("leave", self.owner.avatar)      # she waves goodbye (seen when the room is back)
+        super().close()
+
     def update(self, dt):
         super().update(dt)
+        self.keeper.update(dt)
         self.lock = max(0.0, self.lock - dt)
         if self.banner:
             text, left = self.banner
@@ -160,6 +175,7 @@ class ShopScene(MenuScene):
 
     def draw_body(self, surf):
         self.draw_frame(surf)
+        self._draw_keeper(surf)
         self.draw_tabs(surf, TABS, self.tab, on_click=self.set_tab)
         if self.category == RACING:
             self._draw_racing(surf)
@@ -167,6 +183,32 @@ class ShopScene(MenuScene):
             self._draw_list(surf)
             self._draw_side(surf, self.entry)
         self.draw_footer(surf)
+
+    def _draw_keeper(self, surf):
+        """Mochi's portrait in the header gap between the title and the ticket balance, with her
+        speech (or her nameplate when she is quiet) to its left. It overlaps nothing: the
+        title ends at x~172, the balance starts at x~323, the tabs begin at y=44."""
+        box = KEEPER_BOX
+        surf.fill((14, 9, 34), box)
+        pygame.draw.rect(surf, scale_color(GOLD, 0.5), box, 1)
+        image, dy = self.keeper.portrait()
+        surf.set_clip(box.inflate(-2, -2))
+        surf.blit(image, image.get_rect(midbottom=(box.centerx, box.bottom - 2 + dy)))
+        surf.set_clip(None)
+        lines = self.keeper.speech_lines(BUBBLE_W - 8)
+        if lines:
+            panel = pygame.Rect(box.x - BUBBLE_W - 4, box.y + 1, BUBBLE_W, box.h - 2)
+            surf.fill((246, 240, 255), panel)
+            pygame.draw.rect(surf, Col.OUTLINE, panel, 1)
+            pygame.draw.polygon(surf, (246, 240, 255), [(panel.right, panel.centery - 3),
+                                                        (panel.right + 3, panel.centery), (panel.right, panel.centery + 3)])
+            y = panel.centery - len(lines[:2]) * LINE_H // 2
+            for line in lines[:2]:
+                draw_text(surf, line, (panel.centerx, y), (60, 36, 100), anchor="midtop")
+                y += LINE_H
+        else:
+            plate = nameplate_image()
+            surf.blit(plate, plate.get_rect(midright=(box.x - 8, box.centery)))
 
     def _draw_list(self, surf):
         rows = self.rows

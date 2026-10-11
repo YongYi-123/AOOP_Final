@@ -26,12 +26,14 @@ from stations import PrizeCounter, SoonStation, build_lucky_corner
 from racing_progression.station import GarageStation
 from racing_progression.ui import PrizeCounterScene, GarageScene
 from shop_ui import ShopScene
+from shopkeeper import Shopkeeper
 
 CASES = ((158, (255, 140, 190), "plush"), (198, (120, 220, 255), "trophy"))   # x, neon colour, centrepiece
 SIGN = (26, 6, 100, 32)                                    # the PRIZE COUNTER marquee: x, y, w, h
 # three zones, left to right: PRIZE COUNTER, DISPLAY SHELVES, LUCKY CORNER
 COUNTER_POS = (36, 104)
 LUCKY_POS = (268, 98)
+MOCHI_POS = (COUNTER_POS[0] + 60, COUNTER_POS[1] + 2)      # her feet: the middle of the counter top
 SHELF_ITEMS = (("arcade_trophy", "decor_cat_plush", "mini_cabinet", "golden_token", "lucky_clover"),
                ("retro_badge", "cat_sticker", "star_pin", "neon_cap", "decor_table_lamp"))
 PRIZE_COLORS = ((255, 140, 190), (120, 220, 255), (255, 214, 90), (160, 240, 150),
@@ -229,6 +231,7 @@ class PrizePlazaScene(BaseRoomScene):
 
     # ------------------------------------------------------------ building
     def build_props(self):
+        self.mochi = Shopkeeper(MOCHI_POS, sound=self.play_sound, sort_y=COUNTER_POS[1] + 36.5)      # the cat on the counter (not solid)
         counter = PrizeCounter(COUNTER_POS)
         cases = [Prop(_display_case(color, kind), (x, 104), (x + 1, 142, CASE_W, 8),
                       neon_rect_glow(CASE_W + 2, CASE_H + 2, color, 6, self.style.strength(0.22)), (x - 6, 98))
@@ -270,10 +273,20 @@ class PrizePlazaScene(BaseRoomScene):
                                    pools=[(pos, r, style.light(c), sq) for pos, r, c, sq in pools])
         return BackgroundRenderer(backdrop, animator, lighting)
 
+    # ------------------------------------------------------------ Mochi
+    def update_room(self, dt):
+        self.mochi.update(dt, self.players)
+
+    def drawables(self):
+        return super().drawables() + [self.mochi]
+
+    def draw_room_overlay(self, surf):
+        self.mochi.draw_bubble(surf)
+
     # ------------------------------------------------------------ prize counter
     def open_prize_counter(self):
         owner = self.session.player_for_avatar(self._actor())
-        self.game.scenes.push(ShopScene(self.game, owner))
+        self.game.scenes.push(ShopScene(self.game, owner, keeper=self.mochi))
 
     def open_racing_counter(self):
         owner = self.session.player_for_avatar(self._actor())
