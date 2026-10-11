@@ -209,6 +209,8 @@ def _draw_tail(px, tail, facing, b, front):
 def _draw_eyes(px, look, facing, eye_y, b, blink):
     """Eyes on the front (down) or the near side (left) of the head."""
     style, EYE = look.eyes, look.eye
+    light_eye = sum(EYE) > 450                      # cream eyes (dark skins): the sparkle / pupil is dark
+    glint = (30, 20, 50) if light_eye else (255, 255, 255)
     xs = (4, 7) if facing == "down" else (3,)
     if blink and style not in ("dot", "sleepy"):
         style = "sleepy"
@@ -217,9 +219,11 @@ def _draw_eyes(px, look, facing, eye_y, b, blink):
             px(EYE, x, eye_y + b, 1, 2 if not blink else 1)
         elif style == "wide":
             px(EYE, x - (facing == "down"), 6 + b, 2, 2)
+            if light_eye:
+                px(glint, x, 7 + b)
         elif style == "sparkle":
             px(EYE, x - (facing == "down"), 6 + b, 2, 2)
-            px((255, 255, 255), x - (facing == "down"), 6 + b)
+            px(glint, x - (facing == "down"), 6 + b)
         elif style == "happy":                      # a small ^ arch
             if facing == "down":
                 inner, outer = (4, 3) if x == 4 else (7, 8)

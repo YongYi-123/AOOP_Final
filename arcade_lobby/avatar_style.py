@@ -29,8 +29,8 @@ SKIN_TONES = (
     Option("porcelain", "PORCELAIN", ((255, 232, 212), (255, 150, 176), (30, 20, 50))),
     Option("tan", "TAN", ((228, 176, 128), (240, 120, 130), (30, 20, 50))),
     Option("caramel", "CARAMEL", ((190, 132, 90), (226, 112, 118), (24, 14, 40))),
-    Option("brown", "BROWN", ((142, 94, 64), (214, 104, 110), (255, 244, 230))),   # light eyes stay readable
-    Option("deep", "DEEP", ((98, 64, 50), (200, 98, 106), (255, 244, 230))),
+    Option("brown", "BROWN", ((150, 102, 70), (214, 104, 110), (255, 244, 230))),   # light eyes stay readable
+    Option("deep", "DEEP", ((106, 70, 54), (200, 98, 106), (255, 244, 230))),
 )
 EYE_STYLES = (
     Option("dot", "DOTS"),

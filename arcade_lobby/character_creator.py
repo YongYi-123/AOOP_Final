@@ -142,9 +142,10 @@ class CharacterCreatorScene(MenuScene):
     def draw(self, surf):
         self._hit = []
         super().draw(surf)
-        surf.blit(neon_panel(PANEL.w, PANEL.h, Col.MAGENTA, Col.CYAN, 240), PANEL.topleft)
+        surf.fill((16, 9, 36), PANEL)
+        surf.blit(neon_panel(PANEL.w, PANEL.h, Col.MAGENTA, Col.CYAN, 255), PANEL.topleft)
         draw_centered(surf, "CREATE YOUR CHARACTER", 18, shade(Col.CYAN, 0.5), 2, scale_color(Col.MAGENTA, 0.8))
-        draw_centered(surf, self.name.upper(), 36, Col.YELLOW)
+        draw_centered(surf, self.name.upper(), 38, Col.YELLOW)
         self._draw_stage(surf)
         self._draw_rows(surf)
         self._draw_buttons(surf)
