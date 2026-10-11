@@ -8,6 +8,8 @@ How the game starts:
                                       profile stored in that single file (the
                                       original behaviour; used by tools and tests)
 """
+import sys
+
 import pygame
 
 from audio_manager import AudioManager
@@ -46,7 +48,10 @@ class Game:
         self.running = True
 
         self.audio = AudioManager(prefs_path=audio_prefs)     # volumes + mute are saved there (None: not saved)
-        self.audio.switch("lobby")
+        if session is None:
+            self.audio.switch("lobby")      # the title / profile screens play the hub theme; a session picks its room's
+        if not self.audio.enabled:
+            print(f"[audio] OFF: {self.audio.init_error}  (run: python audio_diagnostics.py)", file=sys.stderr)
         self.volume_toast = 0.0             # seconds left on the "MUSIC 22%  SFX 70%" readout
         self.scenes = SceneManager()
         self.style = STYLES.get(style)      # None: the default (neon_lofi); unknown names fall back
@@ -101,6 +106,8 @@ class Game:
         self.scenes.draw(self.canvas, self.screen)
         if self.volume_toast > 0:
             self._draw_volume_toast()
+        elif self.audio.muted or not self.audio.enabled:
+            self._draw_audio_badge()
 
     @staticmethod
     def music_for(scene):
@@ -123,6 +130,16 @@ class Game:
         img = get_font().render_glow(text, (255, 214, 90), (90, 60, 20), scale=px)
         rect = img.get_rect(midtop=(self.screen.get_width() // 2, 4 * px))
         self.screen.fill((14, 8, 34), rect.inflate(8 * px, 4 * px))
+        self.screen.blit(img, rect)
+
+    def _draw_audio_badge(self):
+        """A small always-visible reminder in the top-right corner while music is off."""
+        from font import get_font
+        px = max(1, self.screen.get_height() // VIEW_H)
+        text = "MUTED (M)" if self.audio.muted else "NO AUDIO"
+        img = get_font().render_glow(text, (255, 120, 140), (90, 20, 40), scale=px)
+        rect = img.get_rect(topright=(self.screen.get_width() - 4 * px, 3 * px))
+        self.screen.fill((14, 8, 34), rect.inflate(4 * px, 2 * px))
         self.screen.blit(img, rect)
 
     def quit(self):
