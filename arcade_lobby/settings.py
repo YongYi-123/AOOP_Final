@@ -134,6 +134,18 @@ HIGH_LOW_COST = 2
 HIGH_LOW_PAYOUTS = (2, 3, 5)
 HIGH_LOW_RANKS = 13             # cards run from 1 (ace) to 13 (king)
 
+# NEON 21 (Blackjack). Wagers are always TOKENS. Before the deal the player picks
+# how WINNINGS are paid: TOKENS (default) or TICKETS. The stake itself is always
+# returned in Tokens. Net profit converts at NEON21_TICKETS_PER_TOKEN tickets per
+# profit token, but at most NEON21_DAILY_TICKET_CAP tickets per profile per
+# calendar day; profit beyond the cap is paid in Tokens (and the player is told).
+# These tickets are gambling winnings: they do not count as "earned" tickets
+# (lifetime stat, EARN 50 TICKETS task). Natural blackjack pays 3:2, rounded down.
+NEON21_WAGERS = (1, 2, 5, 10)
+NEON21_DEFAULT_WAGER = 2
+NEON21_TICKETS_PER_TOKEN = 1
+NEON21_DAILY_TICKET_CAP = 30
+
 
 class Col:
     """Neon arcade palette: dark navy/purple base with bright accents."""

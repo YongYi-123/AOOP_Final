@@ -3,11 +3,14 @@ board and the Lucky Corner machines. A Station is a Prop (so rooms depth-sort,
 collide with and light it like any furniture) that the player can walk up to
 and press E on; the scene calls `interact(scene)` once the flash has played."""
 
+import math
+
 import pygame
 
 from font import get_font
-from gfx import neon_rect_glow, outlined, scale_color, shade
+from gfx import lerp_color, neon_rect_glow, outlined, scale_color, shade
 from high_low import HighLowGame
+from lucky_cabinets import KINDS, SIZE, build_cabinet, draw_marquee, draw_screen
 from lucky_wheel import LuckyWheelGame
 from room import Prop, make_prize_counter
 from settings import INTERACT_FLASH, Col
@@ -126,30 +129,46 @@ def _lucky_sprite(label, neon, accent):
     return s
 
 
-class ChanceStation(Station):
-    """A Lucky Corner machine. `game_cls` builds a fresh ChanceGame for each
-    round; the station knows nothing about the rules."""
+class LuckyCabinet(Station):
+    """A Lucky Corner machine with its own look (lucky_cabinets.KINDS) and an
+    animated marquee and screen. Subclasses decide what E does."""
     prompt_label = "PLAY"
 
-    def __init__(self, pos, game_cls, label, neon, accent):
+    def __init__(self, pos, kind, label):
         x, y = pos
-        super().__init__(_lucky_sprite(label, neon, accent), pos, (x + 1, y + 28, 28, 12),
-                         neon, accent, 0.4)
-        self.game_cls = game_cls
+        spec = KINDS[kind]
+        super().__init__(build_cabinet(kind), pos, (x + 1, y + 28, 28, 12),
+                         spec["neon"], spec["accent"], 0.4)
+        self.kind = kind
         self.prompt_label = f"PLAY {label}"
+
+    def draw(self, surf):
+        super().draw(surf)
+        origin = self.rect.topleft
+        draw_screen(surf, self.kind, origin, self.time)
+        draw_marquee(surf, self.kind, origin, self.time)
+
+
+class ChanceStation(LuckyCabinet):
+    """A token chance game. `game_cls` builds a fresh ChanceGame for each
+    round; the station knows nothing about the rules."""
+
+    def __init__(self, pos, game_cls, label, neon=None, accent=None, kind=None):
+        super().__init__(pos, kind or {"SPIN": "spin", "HI-LO": "hilo"}[label], label)
+        self.game_cls = game_cls
 
     def interact(self, scene):
         scene.open_chance_game(self.game_cls)
 
-    def draw(self, surf):
-        super().draw(surf)
-        x, y = self.rect.topleft
-        for i in range(5):                                  # chase lights on the marquee
-            lit = int(self.time * 6) % 5 == i
-            surf.fill(Col.YELLOW if lit else self.neon, (x + 3 + i * 5, y + 7, 2, 1))
-        screen = pygame.Rect(x + 5, y + 11, self.rect.w - 10, 12)
-        hue = int(self.time * 4) % 3
-        surf.fill(scale_color((Col.MAGENTA, Col.CYAN, Col.YELLOW)[hue], 0.5), screen.inflate(-4, -4))
+
+class Neon21Station(LuckyCabinet):
+    """The NEON 21 Blackjack cabinet."""
+
+    def __init__(self, pos):
+        super().__init__(pos, "neon21", "NEON 21")
+
+    def interact(self, scene):
+        scene.open_neon21()
 
 
 class LuckySign(Prop):
@@ -181,6 +200,9 @@ class LuckySign(Prop):
         for i in range(0, self.sprite.get_width() - 2, 6):   # blinking bulbs along the top
             if int(self.time * 3 + i / 6) % 2:
                 surf.fill(Col.YELLOW, (self.pos[0] + 2 + i, self.pos[1] - 1, 2, 1))
+        k = (math.sin(self.time * 2.2) + 1) / 2              # gentle neon pulse on the tube border
+        border = lerp_color(scale_color(Col.MAGENTA, 0.65), shade(Col.MAGENTA, 0.35), k)
+        pygame.draw.rect(surf, border, self.sprite.get_rect(topleft=self.pos), 1)
 
 
 class SoonStation(Prop):
@@ -214,11 +236,11 @@ def build_daily_board(profile, pos):
 
 
 def build_lucky_corner(x, y, spacing=40):
-    """The Lucky Corner in the PRIZE PLAZA: its sign, the two chance games and
-    a dark bay for the next one. (x, y) is the top-left of the first machine."""
+    """The Lucky Corner in the PRIZE PLAZA: its sign, SPIN, HI-LO and NEON 21.
+    (x, y) is the top-left of the first machine."""
     return [
         LuckySign((x - 1, y - 15)),
-        ChanceStation((x, y), LuckyWheelGame, "SPIN", (255, 70, 200), (255, 214, 90)),
-        ChanceStation((x + spacing, y), HighLowGame, "HI-LO", (80, 240, 255), (90, 255, 150)),
-        SoonStation((x + spacing * 2, y)),
+        ChanceStation((x, y), LuckyWheelGame, "SPIN"),
+        ChanceStation((x + spacing, y), HighLowGame, "HI-LO"),
+        Neon21Station((x + spacing * 2, y)),
     ]

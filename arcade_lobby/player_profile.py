@@ -26,7 +26,7 @@ from daily_tasks import DailyTaskManager
 from game_clock import GameClock
 from inventory import Inventory
 from rewards import RewardService
-from settings import (STARTING_TICKETS, STARTING_TOKENS,
+from settings import (NEON21_DAILY_TICKET_CAP, STARTING_TICKETS, STARTING_TOKENS,
                       TRANSACTION_HISTORY_SIZE)
 
 # field: "tokens", "tickets", "games_played", "high_score", "daily", "tasks",
@@ -56,7 +56,8 @@ class PlayerProfile:
                  total_games_played=0, lifetime_tickets_earned=0, lifetime_tokens_earned=0,
                  lifetime_tokens_spent=0, chance_games_played=0, cats_petted=0,
                  daily=None, daily_tasks=None, history=(), clock=None, inventory=None,
-                 home_decorations=None, profile_id=None, display_name=None, racing_selection=None):
+                 home_decorations=None, profile_id=None, display_name=None, racing_selection=None,
+                 neon21=None):
         # Who this profile is. The id is the save identity (never the name);
         # both are None for a bare profile that is not managed by a ProfileManager.
         self.profile_id = profile_id
@@ -85,6 +86,13 @@ class PlayerProfile:
         self._home_decorations = dict(home_decorations or {})
         self._racing_selection = {k:v for k,v in (racing_selection or {}).items()
                                   if k in ("car","track","scenery","paint") and isinstance(v,str)}
+        # NEON 21 state: tickets won per calendar day (the daily cap) and the
+        # one wager that is paid but not yet settled (see neon21.py).
+        neon21 = neon21 if isinstance(neon21, dict) else {}
+        self._neon21_date = neon21.get("date") if isinstance(neon21.get("date"), str) else ""
+        self._neon21_tickets = _count(neon21.get("tickets"), 0)
+        pending = neon21.get("pending")
+        self._neon21_pending = dict(pending) if isinstance(pending, dict) else None
         self._tasks.ensure_current(self.clock.today(), eligible=self._task_eligible)
 
     # ------------------------------------------------------------ read-only
@@ -265,6 +273,39 @@ class PlayerProfile:
             self._tickets += amount
             self._notify(self.TICKET, amount, self._tickets)
 
+    # ------------------------------------------------------------ NEON 21
+    def neon21_tickets_today(self):
+        """Tickets NEON 21 has paid this profile today (resets each calendar day)."""
+        return self._neon21_tickets if self._neon21_date == self.clock.today().isoformat() else 0
+
+    def neon21_ticket_room(self):
+        return max(0, NEON21_DAILY_TICKET_CAP - self.neon21_tickets_today())
+
+    def award_neon21_tickets(self, amount):
+        """Pay Blackjack winnings in Tickets. Unlike add_tickets this is NOT
+        'earned': it skips the lifetime-earned statistic and the EARN TICKETS
+        daily task, and it counts against the daily NEON 21 cap. Returns False
+        (paying nothing) if the cap would be exceeded."""
+        _check_amount(amount)
+        if amount > self.neon21_ticket_room():
+            return False
+        if amount:
+            self._neon21_tickets = self.neon21_tickets_today() + amount
+            self._neon21_date = self.clock.today().isoformat()
+            self._tickets += amount
+            self._notify(self.TICKET, amount, self._tickets)
+        return True
+
+    @property
+    def neon21_pending(self):
+        """The saved unsettled round (a dict) or None."""
+        return dict(self._neon21_pending) if self._neon21_pending else None
+
+    def set_neon21_pending(self, data):
+        """Record (or with None, clear) the open round so it survives a crash."""
+        self._neon21_pending = dict(data) if data else None
+        self._notify("neon21", 0, 0)
+
     # ------------------------------------------------------------ daily login
     def daily_status(self, today=None):
         """DailyStatus for `today` (default: the clock's date)."""
@@ -427,6 +468,8 @@ class PlayerProfile:
             "inventory": self._inventory.to_dict(),
             "home_decorations": dict(self._home_decorations),
             "racing_selection": dict(self._racing_selection),
+            "neon21": {"date": self._neon21_date, "tickets": self._neon21_tickets,
+                       **({"pending": dict(self._neon21_pending)} if self._neon21_pending else {})},
         }
 
     @classmethod
@@ -455,7 +498,7 @@ class PlayerProfile:
             tickets=tickets,
             high_scores=scores,
             total_games_played=_count(data.get("total_games_played"), 0),
-            lifetime_tickets_earned=max(tickets, _count(data.get("lifetime_tickets_earned"), tickets)),
+            lifetime_tickets_earned=_count(data.get("lifetime_tickets_earned"), tickets),   # missing: assume all were earned
             lifetime_tokens_earned=_count(data.get("lifetime_tokens_earned"), 0),
             lifetime_tokens_spent=_count(data.get("lifetime_tokens_spent"), 0),
             chance_games_played=_count(data.get("chance_games_played"), 0),
@@ -467,6 +510,7 @@ class PlayerProfile:
             inventory=Inventory.from_dict(data.get("inventory")),
             home_decorations=decorations,
             racing_selection=data.get("racing_selection") if isinstance(data.get("racing_selection"),dict) else {},
+            neon21=data.get("neon21"),
             profile_id=data["profile_id"] if isinstance(data.get("profile_id"), str) else None,
             display_name=data["display_name"] if isinstance(data.get("display_name"), str) else None,
         )

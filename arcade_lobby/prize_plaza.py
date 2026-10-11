@@ -12,6 +12,8 @@ from backdrop import (AmbientAnimator, BackgroundRenderer, DustMotes,
 from font import get_font
 from gfx import neon_rect_glow, outlined, scale_color
 from room import Prop, make_gumball, make_plant
+from lucky_cabinets import KINDS
+from neon21_art import suit_icon
 from room_art import HubBackdrop, Twinkles
 from room_scene import BaseRoomScene, RoomExit
 from settings import Col, Lofi, VIEW_H, VIEW_W
@@ -62,6 +64,35 @@ class PlazaBackdrop(HubBackdrop):
         for x in range(carpet.x + 14, carpet.right - 8, 20):
             pygame.draw.polygon(surf, (255, 190, 120), [(x, carpet.centery - 3), (x + 3, carpet.centery),
                                                         (x, carpet.centery + 3), (x - 3, carpet.centery)])
+        self.paint_lucky_corner(surf)
+
+    def paint_lucky_corner(self, surf):
+        """The Lucky Corner's own floor: a plum rug with a gold edge, card
+        suits in its corners, scattered coins and a neon pool under each
+        cabinet. Paint only - nothing here is solid or blocks a path."""
+        rug = pygame.Rect(LUCKY_POS[0] - 14, LUCKY_POS[1] - 20, 122, 128)
+        rug.right = min(rug.right, VIEW_W - 22)
+        surf.fill((30, 12, 50), rug)
+        for ty in range(rug.top + 2, rug.bottom - 2, 8):                  # soft checker
+            for tx in range(rug.left + 2, rug.right - 2, 8):
+                if ((tx - rug.left) // 8 + (ty - rug.top) // 8) % 2:
+                    surf.fill((38, 16, 62), (tx, ty, 8, 8))
+        pygame.draw.rect(surf, (255, 190, 70), rug, 1)
+        pygame.draw.rect(surf, (150, 40, 130), rug.inflate(-4, -4), 1)
+        for suit, (cx, cy) in zip("SHDC", ((rug.left + 6, rug.top + 6), (rug.right - 13, rug.top + 6),
+                                          (rug.left + 6, rug.bottom - 13), (rug.right - 13, rug.bottom - 13))):
+            color = (255, 120, 140) if suit in "HD" else (120, 230, 190)
+            surf.blit(suit_icon(suit, color, big=True), (cx, cy))
+        for cx, cy in ((rug.left + 12, rug.centery + 6), (rug.right - 18, rug.centery - 8),
+                       (rug.centerx - 4, rug.bottom - 8)):                  # dropped coins
+            pygame.draw.circle(surf, (255, 190, 70), (cx, cy), 2)
+            surf.fill((255, 244, 190), (cx - 1, cy - 1, 1, 1))
+        for kind, x in zip(("spin", "hilo", "neon21"), (LUCKY_POS[0] + 40 * i for i in range(3))):
+            neon = KINDS[kind]["neon"]
+            pool = pygame.Surface((30, 14), pygame.SRCALPHA)
+            for yy in range(14):                                            # floor reflection, fading out
+                pool.fill((*neon, int(70 * (1 - yy / 14) ** 2)), (0, yy, 30, 1))
+            surf.blit(pool, (x - 1, LUCKY_POS[1] + 40))
 
     def paint_room(self, surf):
         for i, (x, y) in enumerate(self.SHELVES):
@@ -140,6 +171,10 @@ class PrizePlazaScene(BaseRoomScene):
                                   colors=((255, 214, 90), (255, 110, 190), (190, 150, 255))), "overlay")
         spots = [(x, y, (x * 7 + y * 3) % 6) for y in (21, 39) for x in range(150, 246, 14)]
         animator.add(Twinkles(spots), "overlay")
+        corner = [(LUCKY_POS[0] + dx, LUCKY_POS[1] + dy, (dx * 5 + dy) % 7)
+                  for dx, dy in ((-8, -12), (30, -14), (70, -12), (112, -10), (-10, 30), (112, 40),
+                                 (-8, 74), (34, 120), (74, 96), (112, 110))]
+        animator.add(Twinkles(corner, ((255, 214, 90), (255, 140, 220), (120, 255, 190))), "overlay")
         animator.add(DustMotes((30, 70, 340, 200), count=14), "overlay")
         pools = [((200, 170), 150, (24, 10, 30), 0.8),
                  ((198, 44), 70, (40, 24, 14), 0.5),              # display shelves

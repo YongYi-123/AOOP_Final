@@ -38,6 +38,7 @@ import pygame
 
 from cat_colony import CatColony
 from chance_scene import ChanceGameScene
+from neon21_scene import Neon21Scene
 from daily_ui import TaskPanel
 from inventory_ui import InventoryUI
 from item_registry import FREE_PLAY_COUPON
@@ -105,6 +106,7 @@ class BaseRoomScene(BaseScene):
     exits = ()                  # RoomExit doorways
     cat_spots = {}              # cat id -> places it likes (first = home); only cats of this room
     hint_rows = None            # rows for the controls box (see ui.InstructionBox)
+    resume_notice = None        # (title, lines, color) to show when a minigame scene closes
 
     def __init__(self, game, hub):
         super().__init__(game)
@@ -297,6 +299,9 @@ class BaseRoomScene(BaseScene):
             hud.clear_effects()
         self._end_play(ran=True)
         self._check_new_day()
+        if self.resume_notice:              # e.g. NEON 21 settled a hand you walked out of
+            self.notice.show(*self.resume_notice)
+            self.resume_notice = None
 
     def on_quit(self):
         # Closing the window mid-game still pays out what was played; if the
@@ -606,6 +611,15 @@ class BaseRoomScene(BaseScene):
         self._pause_for_minigame()
         self.game.scenes.push(ChanceGameScene(self.game, game_cls,
                                               self.session.player_for_avatar(player)))
+
+    def open_neon21(self, player=None):
+        """Walk up to the NEON 21 table. Nothing is charged here: the wager is
+        taken (from the player who walked up) when they press DEAL."""
+        if self.active_play is not None or self.game.scenes.transitioning:
+            return
+        player = self._actor(player)
+        self._pause_for_minigame()
+        self.game.scenes.push(Neon21Scene(self.game, self.session.player_for_avatar(player)))
 
     def _start_game(self, machine, use_coupon=False, player=None, participants=None):
         # A paid game is already starting/running, or a wipe is in progress
