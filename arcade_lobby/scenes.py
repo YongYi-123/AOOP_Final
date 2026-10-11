@@ -124,7 +124,6 @@ MINIGAME_SCENES = {"retro_racer": RetroRacerScene,
 # really has a two-player mode; the placeholder screens only stand in.
 MINIGAME_DEFINITIONS = {d.game_id: d for d in (
     MiniGameDefinition("retro_racer", 1, 1),
-    MiniGameDefinition("space_blaster", 1, 2),
     MiniGameDefinition("puzzle_drop", 1, 1),
     MiniGameDefinition("pixel_volleyball", 1, 2),
     MiniGameDefinition("cat_minesweeper", 1, 1),

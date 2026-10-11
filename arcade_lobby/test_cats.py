@@ -369,7 +369,7 @@ class SceneSafetyTests(CatSceneTest):
         self.use_room("arcade_floor")
 
     def enter_minigame(self):
-        machine = next(m for m in self.room.machines if m.id == "space_blaster")
+        machine = next(m for m in self.room.machines if m.id == "puzzle_drop")
         self.room.player.x, self.room.player.y = machine.rect.centerx, machine.rect.bottom + 12
         self.run_frames(3)
         self.run_frames(30, [key(pygame.K_e)])

@@ -236,18 +236,6 @@ MACHINES = [
         "play_cost": 1,
     },
     {
-        "id": "space_blaster",
-        "name": "Space Blaster",
-        "marquee": "SPACE",
-        "description": "Wobbly critters are drifting past the moon! "
-                       "Defend the city skies with your trusty pew-pew ship.",
-        "x": 92,
-        "neon": (60, 130, 255),
-        "accent": (90, 240, 255),
-        "screen": "space",
-        "play_cost": 1,
-    },
-    {
         "id": "puzzle_drop",
         "name": "Puzzle Drop",
         "marquee": "DROP",

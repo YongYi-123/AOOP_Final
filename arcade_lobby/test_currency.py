@@ -116,11 +116,11 @@ class ProfileStoreTests(TempDirTest):
         store = ProfileStore(self.path)
         p = PlayerProfile(tokens=3, tickets=125, high_scores={"retro_racer": 5200},
                           total_games_played=4, lifetime_tickets_earned=175)
-        p.record_score("space_blaster", 3200)
+        p.record_score("puzzle_drop", 3200)
         store.save(p)
         q = store.load()
         self.assertEqual(q.to_dict(), p.to_dict())
-        self.assertEqual(q.high_scores, {"retro_racer": 5200, "space_blaster": 3200})
+        self.assertEqual(q.high_scores, {"retro_racer": 5200, "puzzle_drop": 3200})
 
     def test_corrupted_json_does_not_crash(self):
         for junk in ("{not json", "", "[1, 2, 3]", "null", "\xff\xfe"):
@@ -214,13 +214,13 @@ class MachineAndSessionTests(unittest.TestCase):
     def test_session_rejects_other_games_reward(self):
         s = PlaySession(PlayerProfile(), "retro_racer", 1)
         with self.assertRaises(ValueError):
-            s.settle(RewardResult("space_blaster", 5))
+            s.settle(RewardResult("puzzle_drop", 5))
 
 
 # ---------------------------------------------------------------- full game flow
 class ArcadeFlowTests(TempDirTest):
     """Drives the real Game/SceneManager/ARCADE FLOOR with key events."""
-    MACHINE = "space_blaster"   # a placeholder minigame (no slow racer load)
+    MACHINE = "puzzle_drop"   # a placeholder minigame (no slow racer load)
 
     def make_game(self, **kw):
         g = Game(save_path=self.path, **kw)

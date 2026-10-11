@@ -448,7 +448,7 @@ class GameplayInRoomsTests(HubTest):
 
     def test_machine_payment_after_travelling(self):
         arcade = self.go_arcade()
-        machine = next(m for m in arcade.machines if m.id == "space_blaster")
+        machine = next(m for m in arcade.machines if m.id == "puzzle_drop")
         tokens = self.game.profile.tokens
         self.play_once(arcade, machine)
         self.assertEqual(self.game.profile.tokens, tokens - machine.play_cost)
@@ -790,8 +790,8 @@ class ArcadeLayoutTests(unittest.TestCase):
     def test_game_id_defaults_to_the_machine_id_and_drives_the_minigame(self):
         for m in ArcadeLayout.from_settings().build_machines():
             self.assertEqual(m.game_id, m.id)
-        data = dict(MACHINES[1], game_id="space_blaster", id="space_blaster_2")
-        self.assertEqual(ArcadeMachine(data).game_id, "space_blaster")
+        data = dict(MACHINES[1], game_id="puzzle_drop", id="puzzle_drop_2")
+        self.assertEqual(ArcadeMachine(data).game_id, "puzzle_drop")
 
     def test_every_slot_is_in_bounds_and_the_machines_do_not_overlap(self):
         rects = [pygame.Rect(x, y, 36, 62) for x, y in ARCADE_SLOTS.values()]

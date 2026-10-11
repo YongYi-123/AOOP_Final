@@ -135,7 +135,7 @@ class RetroIsolationTests(TwoPlayerTest):
         self.assertEqual(room.dialogue.title, "Retro Racer")
         self.assertIn("1 PLAYER ONLY - P2 SPECTATES", [text for text, _ in room.dialogue.details])
         self.frames(1, [key(pygame.K_ESCAPE)])
-        blaster = self.machine(room, "space_blaster")
+        blaster = self.machine(room, "duo_test")
         self.stand_at(self.p1, blaster)
         self.frames(5)
         self.use(self.p1)
@@ -427,7 +427,7 @@ class NeutralWorldTests(TwoPlayerTest):
     def test_the_machine_dialogue_names_the_player_count(self):
         room = self.arcade()
         lines = {}
-        for machine_id in ("retro_racer", "space_blaster"):
+        for machine_id in ("retro_racer", "duo_test"):
             machine = self.machine(room, machine_id)
             self.stand_at(self.p1, machine)
             self.stand_at(self.p2, machine, dx=-150)
@@ -463,7 +463,7 @@ class ModalOwnershipTests(TwoPlayerTest):
 
     def test_machine_dialogues_belong_to_the_starter(self):
         room = self.arcade()
-        machine = self.machine(room, "space_blaster")
+        machine = self.machine(room, "duo_test")
         for starter, other in ((self.p1, self.p2), (self.p2, self.p1)):
             self.stand_at(starter, machine)
             self.stand_at(other, machine, dx=-150)
@@ -482,7 +482,7 @@ class ModalOwnershipTests(TwoPlayerTest):
     def test_the_coupon_and_players_prompts_keep_their_owner(self):
         RewardService.grant_item(self.b, FREE_PLAY_COUPON)
         room = self.arcade()
-        machine = self.machine(room, "space_blaster")
+        machine = self.machine(room, "duo_test")
         self.stand_at(self.p2, machine)
         self.stand_at(self.p1, machine, dx=-150)
         self.frames(5)
@@ -558,7 +558,7 @@ class ModalOwnershipTests(TwoPlayerTest):
 class JoinFlowTests(TwoPlayerTest):
     def start_join(self, starter, other):
         room = self.arcade()
-        blaster = self.machine(room, "space_blaster")
+        blaster = self.machine(room, "duo_test")
         self.stand_at(starter, blaster)
         self.stand_at(other, blaster, dx=-150)
         self.frames(5)
@@ -618,7 +618,7 @@ class JoinFlowTests(TwoPlayerTest):
 class ResultOwnershipTests(TwoPlayerTest):
     def play_two(self):
         room = self.arcade()
-        blaster = self.machine(room, "space_blaster")
+        blaster = self.machine(room, "duo_test")
         self.stand_at(self.p1, blaster)
         self.stand_at(self.p2, blaster, dx=-150)
         self.frames(5)
@@ -634,7 +634,7 @@ class ResultOwnershipTests(TwoPlayerTest):
         room = self.arcade()
         shown = []
         room.notice.show = lambda title, lines=(), color=None, duration=None: shown.append(list(lines))
-        blaster = self.machine(room, "space_blaster")
+        blaster = self.machine(room, "duo_test")
         self.stand_at(self.p1, blaster)
         self.stand_at(self.p2, blaster, dx=-150)
         self.frames(5)
@@ -652,9 +652,9 @@ class ResultOwnershipTests(TwoPlayerTest):
         room = self.arcade()
         shown = []
         room.notice.show = lambda title, lines=(), color=None, duration=None: shown.append((title, list(lines)))
-        blaster = self.machine(room, "space_blaster")
-        sa = PlaySession(self.a, "space_blaster", 1)
-        sb = PlaySession(self.b, "space_blaster", 1)
+        blaster = self.machine(room, "duo_test")
+        sa = PlaySession(self.a, "duo_test", 1)
+        sb = PlaySession(self.b, "duo_test", 1)
         scene = type("S", (), {"failed": False, "get_result": lambda s: type("R", (), {
             "player_results": (PlayerResult(self.a.profile_id, 700, RewardBundle(tickets=7)),
                                PlayerResult(self.b.profile_id, 300, RewardBundle(tickets=3))),
@@ -668,7 +668,7 @@ class ResultOwnershipTests(TwoPlayerTest):
         self.assertEqual(title, "GAME COMPLETE")
         self.assertEqual(texts, ["P1 ALICE", "SCORE 700  +7 TICKETS", "P2 BOB", "SCORE 300  +3 TICKETS"])
         self.assertEqual((self.a.tickets, self.b.tickets), (7, 3))
-        self.assertEqual((self.a.high_score("space_blaster"), self.b.high_score("space_blaster")), (700, 300))
+        self.assertEqual((self.a.high_score("duo_test"), self.b.high_score("duo_test")), (700, 300))
         self.assertIsNotNone(blaster)
 
     def test_a_one_player_game_reports_only_the_active_player(self):
