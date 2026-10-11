@@ -42,6 +42,7 @@ def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--silent", action="store_true", help="report only; play nothing")
     ap.add_argument("--seconds", type=float, default=4.0, help="how long to play the hub theme")
+    ap.add_argument("--all", action="store_true", help="also play every room and minigame theme in turn (--seconds each)")
     args = ap.parse_args(argv)
     logging.basicConfig(level=logging.INFO, format="  log: %(levelname)s %(message)s")
 
@@ -63,6 +64,8 @@ def main(argv=None):
     print(f"Music volume        : {st['music_volume']:.0%}  (effective {st['effective_music']:.0%})")
     print(f"SFX volume          : {st['sfx_volume']:.0%}  (effective {st['effective_sfx']:.0%})")
     print(f"Muted               : {st['muted']}")
+    print(f"Music ducked (pause): {st['duck']:.0%}   watchdog restarts: {st['recoveries']}")
+    print(f"Themes              : {', '.join(MUSIC_FILES)}")
     print(f"Missing music files : {st['missing_music'] or 'none'}")
     print(f"Missing SFX files   : {st['missing_sfx'] or 'none'}")
     for line in wsl_notes():
@@ -91,6 +94,14 @@ def main(argv=None):
             playing = playing or audio.music_playing()
             time.sleep(0.05)
         print(f"Mixer reports music channel busy: {playing}   current track: {audio.theme}")
+        if args.all:
+            for theme in MUSIC_FILES:
+                audio.switch(theme)
+                end = time.time() + args.seconds
+                while time.time() < end:
+                    audio.update(0.05)
+                    time.sleep(0.05)
+                print(f"  {theme:18s} playing={audio.music_playing()}  file={MUSIC_FILES[theme]}.wav")
         if audio.last_error:
             problems.append(f"PLAYBACK ERROR: {audio.last_error}")
         audio.stop()
