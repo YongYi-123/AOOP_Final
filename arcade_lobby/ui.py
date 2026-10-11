@@ -69,37 +69,66 @@ def dim_screen(surf, alpha):
 
 class PromptBubble:
     """Animated '[E] PLAY' prompt: fades in, bobs and pulses. The label can
-    change per target ('PLAY', 'PET', ...); each label is rendered once."""
-    FADE_SPEED = 6.0
+    change per target ('PLAY', 'PET', ...); each label is rendered once.
 
-    def __init__(self, label="PLAY", key="E"):
+    In a two-player session each player's bubble wears that player's colour and
+    a P1 / P2 chip. The bubble normally floats above the player's head; draw()
+    is told which screen areas must stay readable (cabinet marquees, signs, the
+    other player's bubble) and moves the bubble - below the player, or sideways
+    - to the first spot that covers none of them. Nothing here knows about any
+    particular machine."""
+    FADE_SPEED = 6.0
+    HEAD_GAP = 22                   # the anchor sits this far above the feet
+    H = 15
+
+    def __init__(self, label="PLAY", key="E", tag="", accent=None):
         self._frames = {}
         self.key = key              # what the bracketed key says: [E], [ENTER]
+        self.tag = tag              # "P1" / "P2" in a two-player session, else ""
+        self.accent = accent        # the player's colour (None: the default cyan)
         self.label = label
         self.alpha = 0.0
         self.anchor = None
+        self._spot = None           # (dx, y) used last: kept while it stays clear
+        self._key = self._rect = self._tail_up = None
 
     @property
     def frames(self):
-        frames = self._frames.get(self.label)
+        return self._frames_for(False)
+
+    def _frames_for(self, tail_up):
+        key = (self.label, tail_up)
+        frames = self._frames.get(key)
         if frames is None:
-            frames = self._frames[self.label] = [
-                self._build(Col.CYAN, Col.TEXT, self.label),
-                self._build(shade(Col.CYAN, 0.5), Col.YELLOW, self.label)]
+            border = self.accent or Col.CYAN
+            frames = self._frames[key] = [
+                self._build(border, Col.TEXT, self.label, tail_up),
+                self._build(shade(border, 0.5), Col.YELLOW, self.label, tail_up)]
         return frames
 
-    def _build(self, border, key_color, text):
+    def _build(self, border, key_color, text, tail_up=False):
         font = get_font()
         key = font.render_glow(f"[{self.key}]", key_color, scale_color(key_color, 0.35))
         label = font.render_glow(text, Col.TEXT, scale_color(Col.MAGENTA, 0.6))
-        w = key.get_width() + label.get_width() + 12
-        h = 15
+        tag = font.render_glow(self.tag, self.accent or Col.CYAN, scale_color(self.accent or Col.CYAN, 0.4)) \
+            if self.tag else None
+        tag_w = tag.get_width() + 4 if tag else 0
+        w = tag_w + key.get_width() + label.get_width() + 12
+        h = self.H
+        top = 4 if tail_up else 0                       # room for the tail on whichever side points at the player
         s = pygame.Surface((w, h + 4), pygame.SRCALPHA)
-        s.blit(neon_panel(w, h, border, None, 235), (0, 0))
-        s.blit(key, (5, 4))
-        s.blit(label, (8 + key.get_width(), 4))
+        s.blit(neon_panel(w, h, border, None, 235), (0, top))
+        x = 5
+        if tag:
+            s.blit(tag, (x, top + 4))
+            x += tag_w
+        s.blit(key, (x, top + 4))
+        s.blit(label, (x + 3 + key.get_width(), top + 4))
         cx = w // 2
-        pygame.draw.polygon(s, border, [(cx - 3, h - 1), (cx + 3, h - 1), (cx, h + 3)])
+        if tail_up:
+            pygame.draw.polygon(s, border, [(cx - 3, top), (cx + 3, top), (cx, 0)])
+        else:
+            pygame.draw.polygon(s, border, [(cx - 3, h - 1), (cx + 3, h - 1), (cx, h + 3)])
         return s
 
     def update(self, dt, anchor, label=None):
@@ -115,17 +144,89 @@ class PromptBubble:
             self.alpha = max(target, self.alpha - step)
         if anchor:
             self.anchor = anchor
+        elif self.alpha <= 0:
+            self._spot = self._key = None
 
-    def draw(self, surf, time):
+    # ------------------------------------------------------------ placement
+    SAFE = pygame.Rect(2, 2, VIEW_W - 4, VIEW_H - 4)
+
+    def place(self, avoid=(), below_first=False):
+        """(rect, tail_up) of the bubble, without the bob. The preferred spot is
+        above the head (below the feet when `below_first`, which is what a machine
+        wants so its own sprite stays visible). Every spot within reach - a sweep
+        from above the head down to below the feet, and sideways - is scored by how
+        much of an `avoid` rect it would cover (heavily) and how far it is from the
+        preferred spot (lightly); the best one wins. A spot that was clear last
+        time is kept while it stays clear, so the bubble does not jump around."""
+        ax, ay = self.anchor
+        w, h = self._frames_for(False)[0].get_size()
+        feet_y = ay + self.HEAD_GAP
+        above_y, below_y = ay - h, feet_y + 4
+        pref_y = below_y if below_first else above_y
+        key = (self.anchor, self.label, below_first, tuple(map(tuple, avoid)))
+        if key == self._key:
+            return self._rect, self._tail_up
+        spots = []
+        other_y = above_y if below_first else below_y
+        ys = [pref_y, other_y] + list(range(above_y - 12, below_y + 29, 4))
+        for dx in sorted({v * s for v in range(0, w + 41, 6) for s in (-1, 1)}):
+            for y in ys:
+                rect = pygame.Rect(ax + dx - w // 2, y, w, h)
+                if self.SAFE.contains(rect):
+                    spots.append((abs(dx) + abs(y - pref_y) / 2, dx, y, rect))
+        spots.sort(key=lambda s: s[:3])                         # nearest to the preferred spot first
+        avoid = list(avoid)
+        choice = None
+        if self._spot is not None:                              # keep the spot that worked while it stays clear
+            for pen, dx, y, rect in spots:
+                if (dx, y) == self._spot and rect.collidelist(avoid) == -1:
+                    choice = (rect, dx, y)
+                    break
+        if choice is None:
+            for pen, dx, y, rect in spots:
+                if rect.collidelist(avoid) == -1:               # the nearest spot that covers nothing
+                    choice = (rect, dx, y)
+                    break
+        if choice is None and spots:                            # nowhere is clear: cover as little as possible
+            pen, dx, y, rect = min(spots, key=lambda s: 100 * sum(_overlap(s[3], r) for r in avoid) + s[0])
+            choice = (rect, dx, y)
+        if choice is None:                                      # no spot fits the screen: clamp the preferred one
+            choice = (pygame.Rect(ax - w // 2, pref_y, w, h).clamp(self.SAFE), 0, pref_y)
+        rect, dx, y = choice
+        self._spot = (dx, y)
+        self._key, self._rect, self._tail_up = key, rect, rect.top >= feet_y - 4
+        return self._rect, self._tail_up
+
+    def draw(self, surf, time, avoid=(), below_first=False):
+        """Draw the bubble; returns the rect it used (None when hidden) so the
+        next player's bubble can avoid it."""
         if self.alpha <= 0 or not self.anchor:
-            return
-        frame = self.frames[int(time * 3) % 2]
+            return None
+        rect, tail_up = self.place(avoid, below_first)
+        frame = self._frames_for(tail_up)[int(time * 3) % 2]
         bob = int(round(math.sin(time * 5) * 1.5))
         rise = int((1 - self.alpha) * 6)
-        rect = frame.get_rect(midbottom=(self.anchor[0], self.anchor[1] + bob + rise))
-        rect.clamp_ip(pygame.Rect(2, 2, VIEW_W - 4, VIEW_H - 4))
+        drawn = rect.move(0, bob + (rise if not tail_up else -rise))
         frame.set_alpha(int(255 * self.alpha))
-        surf.blit(frame, rect)
+        surf.blit(frame, drawn)
+        return rect
+
+
+def _overlap(a, b):
+    clip = a.clip(b)
+    return clip.w * clip.h
+
+
+def selection_brackets(surf, rect, color, time):
+    """Four pulsing corner brackets around the machine a player is using, in that
+    player's colour. They sit just outside the sprite, so no sign is covered."""
+    k = 0.65 + 0.35 * math.sin(time * 6)
+    c = scale_color(color, k)
+    r = rect.inflate(6, 6)
+    for cx, cy, sx, sy in ((r.left, r.top, 1, 1), (r.right - 1, r.top, -1, 1),
+                           (r.left, r.bottom - 1, 1, -1), (r.right - 1, r.bottom - 1, -1, -1)):
+        surf.fill(c, (cx if sx > 0 else cx - 4, cy, 5, 1))
+        surf.fill(c, (cx, cy if sy > 0 else cy - 4, 1, 5))
 
 
 _bubbles = {}

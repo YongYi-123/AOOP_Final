@@ -55,7 +55,7 @@ from settings import (ARRIVAL_GRACE, CATS, Col, DEBUG_COUPON_KEY, DEBUG_NEXT_DAY
                       PLAYER_START, ROOM_IDS, SIDE_DOOR_H, SIDE_DOOR_Y, START_ROOM,
                       TRANSITION_TIME, VIEW_W)
 from stations import Station
-from ui import (DialogueBox, InstructionBox, JoinPrompt, Notice, RoomTitle, draw_text,
+from ui import (DialogueBox, InstructionBox, JoinPrompt, Notice, RoomTitle, draw_text, selection_brackets,
                 neon_panel)
 
 PLAY, PLAY_LOCKED, CANCEL = "PLAY", "PLAY  [LOCKED]", "CANCEL"
@@ -775,6 +775,17 @@ class BaseRoomScene(BaseScene):
         close = [m for m in self.interactables if m.zone.colliderect(feet)]
         return min(close, key=lambda m: abs(m.rect.centerx - player.x), default=None)
 
+    SIGN_BAND = 12      # the marquee strip across the top of every cabinet / station sprite
+
+    def prompt_avoid_rects(self):
+        """Screen areas an interaction prompt must not cover: the marquee of every
+        machine, station and idle cabinet in the room, plus any prop that names itself a sign
+        (`sign_rect`). Shared by every room, so no cabinet needs its own offset."""
+        rects = [pygame.Rect(t.rect.x, t.rect.y, t.rect.w, min(self.SIGN_BAND, t.rect.h))
+                 for t in self.machines + self.props if getattr(t, "rect", None) is not None]   # incl. idle SOON cabinets
+        rects += [pygame.Rect(p.sign_rect) for p in self.props if getattr(p, "sign_rect", None)]
+        return rects
+
     # ------------------------------------------------------------ draw
     def drawables(self):
         return self.props + self.machines
@@ -797,8 +808,14 @@ class BaseRoomScene(BaseScene):
             m.draw_glow(surf)
         self.cats.draw_overlay(surf)
 
+        avoid = self.prompt_avoid_rects()
         for p in self.players:
-            p.prompt.draw(surf, self.time)
+            if p.nearby is not None and p.prompt.alpha > 0:        # which machine is selected
+                selection_brackets(surf, p.nearby.rect, p.look.accent if p.label else Col.YELLOW, self.time)
+            mine = [p.nearby.rect] if p.nearby is not None else []   # keep the selected machine visible too
+            used = p.prompt.draw(surf, self.time, avoid + mine, below_first=p.nearby is not None)
+            if used is not None:
+                avoid.append(used.inflate(2, 2))                    # the next player's bubble keeps clear of this one
             p.draw_tag(surf)
         self._draw_waiting(surf)
         self.instructions.draw(surf)

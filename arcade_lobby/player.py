@@ -174,7 +174,8 @@ class HubPlayer(AnimatedSprite):
         self.nearby = None              # machine / station in reach
         self.nearby_cat = None
         self.activating = None          # (target, time left) while the E-flash plays
-        self.prompt = PromptBubble(key=controls.interact_hint or "E")
+        self.prompt = PromptBubble(key=controls.interact_hint or "E", tag=label,
+                                   accent=look.accent if label else None)   # P1 / P2 look different
 
     @property
     def number(self):

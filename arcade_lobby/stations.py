@@ -187,6 +187,7 @@ class LuckySign(Prop):
         x, y = pos
         super().__init__(plate, pos, (x, y, w, 1),
                          neon_rect_glow(w, h, Col.MAGENTA, 6, 0.3), (x - 6, y - 6))
+        self.sign_rect = pygame.Rect(x, y, w, h)        # interaction prompts keep off this
         self.time = 0.0
 
     def update(self, dt):

@@ -154,11 +154,13 @@ class SceneManager:
 
     def _draw_wipe(self, screen):
         # interleaved bands grow to cover the screen, with a neon leading edge
-        px = screen.get_height() // VIEW_H
+        w, height = screen.get_size()
+        if w <= 0 or height <= 0:           # a minimised / zero-size window has nothing to wipe
+            return
+        px = max(1, height // VIEW_H)       # (a window shorter than the canvas must not give 0)
         band = self.BAND * px
-        h = math.ceil(band * self.fade)
-        w = screen.get_width()
-        for y in range(0, screen.get_height(), band):
+        h = math.ceil(band * min(1.0, max(0.0, self.fade)))
+        for y in range(0, height, band):
             screen.fill(Col.FADE, (0, y, w, h))
             if self.fade < 1.0:
                 screen.fill(Col.MAGENTA if (y // band) % 2 else Col.CYAN, (0, y + h, w, px))
