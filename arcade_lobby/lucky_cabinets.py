@@ -94,7 +94,7 @@ def draw_marquee(surf, kind, origin, t):
     label = spec["label"]
     if kind == "neon21" and int(t / 1.1) % 2:
         label = "21"
-    glow = scale_color(spec["neon"], 0.45 + 0.1 * math.sin(t * 3))
+    glow = scale_color(spec["neon"], 0.3 + 0.06 * math.sin(t * 3))
     img = font.render_glow(label, GOLD if kind != "hilo" else (200, 252, 255), glow)
     surf.blit(img, img.get_rect(midtop=(x + SIZE[0] // 2, y)))
     for i in range(5):
@@ -148,13 +148,13 @@ def _screen_hilo(surf, inner, t):
     right = (("5", RED_SUIT) if phase < 1.5 else ("A", (44, 32, 78)))
     k = min(1.0, (phase % 1.5) / 0.4)
     face, frac = _flip(None, right, k)
-    _mini_card(surf, inner.x + 2, inner.y + 1, left, 1)
-    _mini_card(surf, inner.x + 9, inner.y + 1, face, frac)
+    _mini_card(surf, inner.x + 1, inner.y + 1, left, 1)
+    _mini_card(surf, inner.x + 8, inner.y + 1, face, frac)
     up = phase >= 1.5                                                  # arrow shows the call
     c = (90, 255, 150) if up else (255, 120, 120)
-    ax, ay = inner.right - 3, inner.centery
-    pts = [(ax - 2, ay + 1), (ax + 2, ay + 1), (ax, ay - 2)] if up else \
-          [(ax - 2, ay - 1), (ax + 2, ay - 1), (ax, ay + 2)]
+    ax, ay = inner.right - 2, inner.centery
+    pts = [(ax - 1, ay + 1), (ax + 1, ay + 1), (ax, ay - 1)] if up else \
+          [(ax - 1, ay - 1), (ax + 1, ay - 1), (ax, ay + 1)]
     if int(t * 4) % 4:
         pygame.draw.polygon(surf, c, pts)
 
@@ -175,9 +175,9 @@ def _screen_neon21(surf, inner, t):
         return face, 1
     a = face_at([(0.0, ("A", (44, 32, 78))), (4.4, None)], p)
     b = face_at([(0.4, ("K", (44, 32, 78))), (2.4, ("7", RED_SUIT)), (4.4, None)], p)
-    _mini_card(surf, inner.x + 2, inner.y + 1, *a)
-    _mini_card(surf, inner.x + 9, inner.y + 1, *b)
+    _mini_card(surf, inner.x + 1, inner.y + 1, *a)
+    _mini_card(surf, inner.x + 8, inner.y + 1, *b)
     for i, c in enumerate((GOLD, (255, 90, 170), GOLD)):               # little chip stack
-        surf.fill(c, (inner.right - 3, inner.bottom - 3 - i * 2, 2, 1))
+        surf.fill(c, (inner.right - 3, inner.bottom - 2 - i * 2, 2, 1))
     if int(t * 2) % 2:
-        surf.set_at((inner.right - 2, inner.top + 1), shade(GOLD, 0.5))   # twinkle
+        surf.set_at((inner.right - 2, inner.top + 2), shade(GOLD, 0.5))   # twinkle

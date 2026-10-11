@@ -30,6 +30,7 @@ from settings import (NEON21_DEFAULT_WAGER, NEON21_TICKETS_PER_TOKEN,
 
 TOKENS, TICKETS = "tokens", "tickets"
 REASON = "NEON 21"
+MAX_STAKE = 2 * max(NEON21_WAGERS)       # the biggest stake a real round can hold (a doubled top wager)
 
 
 @dataclass(frozen=True)
@@ -216,13 +217,13 @@ class Neon21Table:
         currency = saved.get("currency")
         self.currency = currency if currency in (TOKENS, TICKETS) else TOKENS
         try:
-            self.round = BlackjackRound.from_dict(saved.get("round"))
+            self.round = BlackjackRound.from_dict(saved.get("round"), max_bet=MAX_STAKE)
         except ValueError:
             self.round = None
             raw = saved.get("round") if isinstance(saved.get("round"), dict) else {}
             bet = raw.get("bet")
             with self.profile.batch():          # unreadable: give the stake back, never keep it
-                if isinstance(bet, int) and not isinstance(bet, bool) and bet > 0:
+                if isinstance(bet, int) and not isinstance(bet, bool) and 0 < bet <= MAX_STAKE:
                     self.profile.refund_tokens(bet, f"{REASON} STAKE")
                 self.profile.set_neon21_pending(None)
             self.notice = "UNFINISHED ROUND WAS UNREADABLE - STAKE RETURNED"

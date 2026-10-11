@@ -14,6 +14,7 @@ os.environ.setdefault("SDL_AUDIODRIVER", "dummy")
 
 import pygame  # noqa: E402
 
+from blackjack_testing import stacked_deck
 from blackjack import Card, Outcome  # noqa: E402
 from game import Game  # noqa: E402
 from game_clock import GameClock  # noqa: E402
@@ -36,8 +37,8 @@ def key(k):
 
 
 def stack(*labels):
-    ranks = {"A": 1, "J": 11, "Q": 12, "K": 13}
-    return [Card(2, "H")] * 20 + [Card(ranks.get(s) or int(s), "S") for s in labels][::-1]
+    return stacked_deck(*labels)
+
 
 
 WIN = ("10", "10", "9", "8")
@@ -398,7 +399,7 @@ class ScreenLayoutTests(HubBase):
         t.set_currency(TICKETS)
         t.set_wager(10)
         self.check(scene, "betting tickets")
-        self.rig(scene, ("5", "10", "6", "7", "2", "2", "2", "2", "2", "2", "2", "2"))
+        self.rig(scene, ("5", "10", "6", "7", "2", "2", "2", "2", "3", "3", "3", "3"))
         t.set_wager(5)
         self.frames(1, [key(pygame.K_e)])
         self.frames(5)
@@ -439,9 +440,94 @@ class ScreenLayoutTests(HubBase):
                            "profit_tokens": 10, "capped": True})())))
         self.assertEqual(p.neon21_ticket_room(), 30 - p.neon21_tickets_today())
 
+    def draw_with_views(self, scene, n_player, n_dealer):
+        """Put n cards on each side (no engine needed) and draw one frame."""
+        from neon21_scene import CardView
+        scene.table.phase = scene.table.PLAYING
+        scene.table.round = Neon21Table(scene.profile).round or __import__("blackjack").BlackjackRound(2)
+        cards = [Card((i % 13) + 1, "SHDC"[i % 4]) for i in range(12)]
+        scene.player_views = [CardView(c, -9) for c in cards[:n_player]]
+        scene.dealer_views = [CardView(c, -9, hole=i == 1) for i, c in enumerate(cards[:n_dealer])]
+        if n_dealer > 1:
+            scene.dealer_views[1].flip_at = -9
+        scene.busy_until = -1
+        canvas = pygame.Surface((VIEW_W, VIEW_H))
+        scene.draw(canvas)
+        return canvas
+
+    def test_the_spectating_tag_never_covers_the_controls(self):
+        """Two players: the other player's SPECTATING tag sits bottom-right."""
+        from font import get_font
+        room, scene = self.open_table()
+        scene.spectators = [type("P", (), {"tag": "P1 ALICE"})()]
+        tag = get_font().render_glow("P1 ALICE - SPECTATING", (0, 0, 0), (0, 0, 0)).get_rect()
+        tag.bottomright = (VIEW_W - 4, VIEW_H - 3)
+        states = []
+        for name in ("betting", "playing", "result"):
+            if name == "playing":
+                self.rig(scene, WIN)
+                self.frames(1, [key(pygame.K_e)])
+                self.frames(90)
+            if name == "result":
+                self.frames(1, [key(pygame.K_d)])
+                self.frames(250)
+            canvas = pygame.Surface((VIEW_W, VIEW_H))
+            scene.draw(canvas)
+            for r in scene.text_rects:
+                self.assertFalse(r.colliderect(tag), f"{name}: {r} under the spectating tag {tag}")
+            for _name, (rect, _l, _e) in scene.buttons.items():
+                self.assertFalse(rect.colliderect(tag), name)
+
+    def test_two_to_eleven_cards_fit_for_both_hands(self):
+        from neon21_scene import CARD_W, DEALER_BOUNDS, MIN_SPACING, PLAYER_BOUNDS, SHOE
+        room, scene = self.open_table()
+        shoe = pygame.Rect(SHOE[0] - 3, SHOE[1] - 3, CARD_W + 6, 60)
+        for n in range(2, 12):
+            self.draw_with_views(scene, n, n)
+            for side, bounds in (("dealer", DEALER_BOUNDS), ("player", PLAYER_BOUNDS)):
+                rects = scene.card_rects[side]
+                self.assertEqual(len(rects), n)
+                for r in rects:
+                    self.assertGreaterEqual(r.left, bounds[0], (side, n))
+                    self.assertLessEqual(r.right, bounds[1], (side, n))
+                for a, b in zip(rects, rects[1:]):
+                    self.assertGreaterEqual(b.left - a.left, MIN_SPACING, (side, n))   # corner index stays visible
+                    if n <= 7:
+                        self.assertGreaterEqual(b.left - a.right, 0, (side, n))         # no overlap at all
+                for r in rects:
+                    for t in scene.text_rects:
+                        self.assertFalse(r.colliderect(t), f"{side} card {r} hits text {t} (n={n})")
+                    for name, (button, _label, _enabled) in scene.buttons.items():
+                        self.assertFalse(r.colliderect(button), f"{side} card hits button {name} (n={n})")
+                    self.assertGreater(r.top, 24)
+                    self.assertLess(r.bottom, 232)                     # inside the felt, above the panel
+            for r in scene.card_rects["dealer"]:
+                self.assertFalse(r.colliderect(shoe), f"dealer card {r} hits the shoe (n={n})")
+            for r in scene.card_rects["player"]:
+                self.assertFalse(r.colliderect(shoe), f"player card {r} hits the shoe (n={n})")
+
+    def test_a_real_eleven_card_hand_and_a_long_dealer_hand_render(self):
+        room, scene = self.open_table()
+        # player: A A A A 2 2 2 2 3 3 3 = 21 in eleven cards (all legal: four Aces, four 2s ...)
+        self.rig(scene, ("A", "5", "A", "6", "A", "A", "2", "2", "2", "2", "3", "3", "3", "4", "3"))
+        self.frames(1, [key(pygame.K_e)])
+        self.frames(90)
+        for _ in range(9):
+            if scene.table.phase != scene.table.PLAYING:
+                break
+            self.frames(1, [key(pygame.K_a)])
+            self.frames(30)
+        self.frames(400)
+        self.assertGreaterEqual(len(scene.table.round.player), 10)
+        self.check(scene, "eleven cards")
+        self.assertGreaterEqual(len(scene.card_rects["player"]), 10)
+        for side in ("player", "dealer"):
+            for r in scene.card_rects[side]:
+                self.assertTrue(pygame.Rect(0, 0, VIEW_W, VIEW_H).contains(r))
+
     def test_long_hands_stay_on_screen(self):
         room, scene = self.open_table()
-        self.rig(scene, ("A", "2", "A", "3") + ("A", "A", "2", "2", "2", "A", "2", "2"))
+        self.rig(scene, ("A", "2", "A", "3") + ("A", "A", "2", "2", "2", "4", "4", "4"))
         self.frames(1, [key(pygame.K_e)])
         self.frames(90)
         for _ in range(6):

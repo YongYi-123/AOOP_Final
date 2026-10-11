@@ -9,6 +9,7 @@ import tempfile
 import unittest
 from datetime import date, timedelta
 
+from blackjack_testing import stacked_deck
 from blackjack import BlackjackRound, Card, Outcome
 from game_clock import GameClock
 from neon21 import TICKETS, TOKENS, Neon21Table
@@ -19,9 +20,8 @@ DAY1 = date(2026, 3, 10)
 
 
 def stack(*labels):
-    ranks = {"A": 1, "J": 11, "Q": 12, "K": 13}
-    cards = [Card(ranks.get(s) or int(s), "S") for s in labels]
-    return [Card(2, "H")] * 20 + cards[::-1]
+    return stacked_deck(*labels)
+
 
 
 # deal order: player, dealer, player, dealer, then draws

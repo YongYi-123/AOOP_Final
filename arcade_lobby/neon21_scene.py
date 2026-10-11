@@ -37,7 +37,10 @@ from settings import (BACK_KEYS, CONFIRM_KEYS, NEON21_DAILY_TICKET_CAP,
 FELT = (9, 58, 52)
 FELT_DARK = (6, 40, 38)
 RED = (255, 90, 100)
+MIN_SPACING = 14            # a fanned card still shows its corner index
 SHOE = (344, 32)
+DEALER_BOUNDS = (24, SHOE[0] - 6)     # the dealer's row stops short of the shoe
+PLAYER_BOUNDS = (24, VIEW_W - 24)
 DEAL_STEP = 0.28            # seconds between cards
 FLIP_TIME = 0.32
 SLIDE_TIME = 0.22
@@ -90,6 +93,7 @@ class Neon21Scene(BaseScene):
         self.buttons = {}
         self.hover = None
         self.text_rects = []            # every text drawn last frame (for layout tests)
+        self.card_rects = {"dealer": [], "player": []}
         self.particles = []
         self.rand = random.Random()
         self.icon = token_icon()
@@ -318,6 +322,7 @@ class Neon21Scene(BaseScene):
     # ------------------------------------------------------------ draw
     def draw(self, surf):
         self.text_rects = []
+        self.card_rects = {"dealer": [], "player": []}
         self.buttons = {}
         t = self.table
         draw_chance_backdrop(surf, (8, 4, 22), (24, 6, 44), GOLD, self.time)
@@ -365,19 +370,29 @@ class Neon21Scene(BaseScene):
         for i in range(3):                                                  # the shoe
             surf.blit(card_surface(None, False), (SHOE[0] - i, SHOE[1] - i))
 
-    def _spread(self, n):
-        spacing = min(44, (280 - CARD_W) // max(1, n - 1))      # no overlap up to 7 cards
+    def _spread(self, n, bounds):
+        """(left x, spacing) for n cards inside bounds=(min_x, max_x). Cards are
+        centred on the table with a 6px gap; a long hand fans out, each card
+        overlapping the one before it by just enough to fit, so the rank/suit
+        index in every card's top-left corner stays readable (spacing >= 14).
+        The hand is shifted away from whatever limits it (the dealer's shoe)."""
+        lo, hi = bounds
+        spacing = min(CARD_W + 6, (hi - lo - CARD_W) // max(1, n - 1)) if n > 1 else 0
+        spacing = max(spacing, MIN_SPACING)
         total = CARD_W + (n - 1) * spacing
-        return VIEW_W // 2 - total // 2, spacing
+        left = VIEW_W // 2 - total // 2
+        left = max(lo, min(left, hi - total))
+        return left, spacing
 
-    def _draw_hand(self, surf, views, y, hide_hole):
-        left, spacing = self._spread(len(views))
+    def _draw_hand(self, surf, views, y, bounds, side):
+        left, spacing = self._spread(len(views), bounds)
         shown = []
         for i, v in enumerate(views):
             age = self.time - v.vis_at
             if age < 0:
                 continue
             x = left + i * spacing
+            self.card_rects[side].append(pygame.Rect(x, y, CARD_W, CARD_H))
             k = min(1.0, age / SLIDE_TIME)
             k = 1 - (1 - k) ** 2
             px, py = SHOE[0] + (x - SHOE[0]) * k, SHOE[1] + (y - SHOE[1]) * k
@@ -397,8 +412,8 @@ class Neon21Scene(BaseScene):
         return shown
 
     def _draw_hands(self, surf):
-        dealer_cards = self._draw_hand(surf, self.dealer_views, 38, True)
-        player_cards = self._draw_hand(surf, self.player_views, 146, False)
+        dealer_cards = self._draw_hand(surf, self.dealer_views, 38, DEALER_BOUNDS, "dealer")
+        player_cards = self._draw_hand(surf, self.player_views, 146, PLAYER_BOUNDS, "player")
         d_text = "DEALER"
         if dealer_cards:
             d_text += f" {hand_value(dealer_cards)[0]}"
@@ -512,7 +527,7 @@ class Neon21Scene(BaseScene):
         self.button(surf, "deal", (316, 242, 64, 26), "DEAL" if can else "NO TOKENS", can, EMERALD, True)
         hint = f"{left}/{self.key_hint('right')} WAGER  {self.key_hint('up')}/{self.key_hint('down')} PAID IN  " \
                f"{self.key_hint('interact')} DEAL  ESC EXIT"
-        self.text(surf, hint, VIEW_W // 2, 282, Col.TEXT_MUTED, max_w=372)
+        self.text(surf, hint, VIEW_W // 2, 279, Col.TEXT_MUTED, max_w=372)
 
     def _panel_playing(self, surf, panel):
         t, ready = self.table, self.time >= self.busy_until
@@ -524,10 +539,10 @@ class Neon21Scene(BaseScene):
         label = f"{self.key_hint('up')} DOUBLE +{r.bet}"
         self.button(surf, "double", (268, 244, 104, 28), label, dbl, GOLD, dbl)
         if self.time < self.leave_until:
-            self.text(surf, "ESC AGAIN: HAND STANDS AND SETTLES", VIEW_W // 2, 282, Col.YELLOW, max_w=372)
+            self.text(surf, "ESC AGAIN: HAND STANDS AND SETTLES", VIEW_W // 2, 279, Col.YELLOW, max_w=372)
         else:
             why = "" if live and not r.can_double or dbl or not live else "  (DOUBLE: NEED MORE TOKENS)"
-            self.text(surf, "ESC: LEAVE (YOUR HAND STANDS)" + why, VIEW_W // 2, 282, Col.TEXT_MUTED, max_w=372)
+            self.text(surf, "ESC: LEAVE (YOUR HAND STANDS)" + why, VIEW_W // 2, 279, Col.TEXT_MUTED, max_w=372)
 
     def _panel_result(self, surf, panel):
         ready = self._banner_visible() and self.time >= self.banner_at + AGAIN_DELAY
@@ -536,7 +551,7 @@ class Neon21Scene(BaseScene):
                     ready, EMERALD, ready)
         self.button(surf, "exit", (204, 244, 100, 28), "ESC EXIT", True, Col.MAGENTA, False)
         if self._banner_visible() and not again:
-            self.text(surf, "OUT OF TOKENS - EARN MORE IN THE ARCADE", VIEW_W // 2, 282, Col.YELLOW, max_w=372)
+            self.text(surf, "OUT OF TOKENS - EARN MORE IN THE ARCADE", VIEW_W // 2, 279, Col.YELLOW, max_w=372)
         else:
-            self.text(surf, "WAGER AND PAYOUT CAN BE CHANGED BEFORE THE NEXT DEAL", VIEW_W // 2, 282,
+            self.text(surf, "WAGER AND PAYOUT CAN BE CHANGED BEFORE THE NEXT DEAL", VIEW_W // 2, 279,
                       Col.TEXT_MUTED, max_w=372)

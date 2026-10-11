@@ -5,16 +5,14 @@ Run headless from this folder:   python -m unittest test_blackjack -v
 import random
 import unittest
 
+from blackjack_testing import stacked_deck
 from blackjack import (BlackjackError, BlackjackRound, Card, Outcome, Phase,
                        hand_value, is_natural, natural_payout, new_deck)
 
 
 def stack(*labels):
-    """A deck that deals `labels` in order ('A', 'K', '7' ...), suits arbitrary."""
-    ranks = {"A": 1, "J": 11, "Q": 12, "K": 13}
-    cards = [Card(ranks.get(s) or int(s), "S") for s in labels]
-    filler = [Card(2, "H")] * 20
-    return filler + cards[::-1]          # the round pops from the end
+    """A real 52-card deck that deals `labels` first, in order ('A', 'K', '7' ...)."""
+    return stacked_deck(*labels)
 
 
 def rnd(bet, *labels):

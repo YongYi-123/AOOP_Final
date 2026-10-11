@@ -5,8 +5,9 @@ whatever stake the caller chose and never touches a profile: the caller
 charges the stake before dealing, and pays `payout` (stake included) once the
 round is SETTLED. That keeps the rules testable on their own.
 
-Rules: one fresh shuffled 52-card deck per round; dealer stands on every 17
-(soft 17 included); a natural (Ace + 10-value card on the first two cards)
+Rules: one fresh shuffled standard 52-card deck per round (dealt without
+replacement, one deck shared by player and dealer, never reshuffled mid-round);
+dealer stands on every 17 (soft 17 included); a natural (Ace + 10-value card on the first two cards)
 pays 3:2, rounded DOWN to a whole unit; a 21 made with 3+ cards is an ordinary
 21; dealer naturals are checked before the player may act; a double down is
 allowed on the first two cards only and draws exactly one card.
@@ -39,11 +40,30 @@ class Card:
         return min(self.rank, 10)
 
 
+DECK_SIZE = 52
+
+
+def standard_deck():
+    """One ordered 52-card deck, no jokers: each suit has A, 2-10, J, Q, K once."""
+    return [Card(rank, suit) for suit in SUITS for rank in range(1, 14)]
+
+
+STANDARD_CARDS = frozenset(standard_deck())
+
+
 def new_deck(rng=None):
-    """A fresh, fairly shuffled 52-card deck (Fisher-Yates via Random.shuffle)."""
-    deck = [Card(rank, suit) for suit in SUITS for rank in range(1, 14)]
+    """A fresh, fairly shuffled 52-card deck (Fisher-Yates via Random.shuffle).
+    The next card is deck[-1]: drawing pops from the end."""
+    deck = standard_deck()
     (rng or random.SystemRandom()).shuffle(deck)
     return deck
+
+
+def is_standard_deal(*piles):
+    """True if the piles together are exactly one standard deck: 52 cards, every
+    rank/suit combination once, nothing duplicated, nothing invented."""
+    cards = [c for pile in piles for c in pile]
+    return len(cards) == DECK_SIZE and set(cards) == STANDARD_CARDS
 
 
 def hand_value(cards):
@@ -93,6 +113,8 @@ class BlackjackRound:
             raise ValueError(f"bet must be a positive int, got {bet!r}")
         self.bet = bet
         self.deck = list(deck) if deck is not None else new_deck(rng)
+        if not is_standard_deal(self.deck):
+            raise ValueError("a round needs exactly one standard 52-card deck")
         self.player = []
         self.dealer = []
         self.phase = Phase.PLAYER
@@ -190,8 +212,9 @@ class BlackjackRound:
                 "outcome": self.outcome.value if self.outcome else None}
 
     @classmethod
-    def from_dict(cls, data):
-        """Rebuild a saved round. Raises ValueError for anything malformed."""
+    def from_dict(cls, data, max_bet=None):
+        """Rebuild a saved round. Raises ValueError for anything malformed
+        (including a bet above `max_bet`, which no real round could hold)."""
         try:
             def cards(raw):
                 out = [Card(int(r), str(s)) for r, s in raw]
@@ -200,12 +223,15 @@ class BlackjackRound:
                 return out
             self = cls.__new__(cls)
             bet = data["bet"]
-            if isinstance(bet, bool) or not isinstance(bet, int) or bet <= 0:
+            if isinstance(bet, bool) or not isinstance(bet, int) or bet <= 0 \
+                    or (max_bet is not None and bet > max_bet):
                 raise ValueError("bad bet")
             self.bet, self.doubled = bet, bool(data.get("doubled"))
             self.deck, self.player, self.dealer = (cards(data[k]) for k in ("deck", "player", "dealer"))
             if len(self.player) < 2 or len(self.dealer) < 2:
                 raise ValueError("incomplete hands")
+            if not is_standard_deal(self.deck, self.player, self.dealer):
+                raise ValueError("saved cards are not one standard deck")
             outcome = data.get("outcome")
             self.outcome = Outcome(outcome) if outcome else None
         except (KeyError, TypeError, ValueError) as exc:
@@ -220,6 +246,10 @@ class BlackjackRound:
             raise BlackjackError(f"cannot {action} now")
 
     def _draw(self):
+        """Take the top card of THE deck (shared by player and dealer). Cards
+        are never regenerated or reshuffled: an empty deck is an error."""
+        if not self.deck:
+            raise BlackjackError("the deck is exhausted")
         return self.deck.pop()
 
     def _check_naturals(self):
