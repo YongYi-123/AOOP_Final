@@ -292,14 +292,14 @@ class CouponTaskTests(unittest.TestCase):
         p.inventory.add_item(FREE_PLAY_COUPON)
         session = self.machine().start_play(p, use_coupon=True)
         self.assertFalse(p.daily_tasks[0].completed)             # not yet: the game has to be played
-        session.settle(RewardResult("space_blaster", 5))
-        session.settle(RewardResult("space_blaster", 5))
+        session.settle(RewardResult("puzzle_drop", 5))
+        session.settle(RewardResult("puzzle_drop", 5))
         self.assertEqual(p.daily_tasks[0].progress, 1)
         self.assertTrue(p.daily_tasks[0].completed)
 
     def test_paying_with_tokens_does_not_count(self):
         p = profile_with_tasks(self.spec())
-        self.machine().start_play(p).settle(RewardResult("space_blaster", 5))
+        self.machine().start_play(p).settle(RewardResult("puzzle_drop", 5))
         self.assertEqual(p.daily_tasks[0].progress, 0)
 
     def test_a_refunded_coupon_does_not_count(self):
@@ -326,7 +326,7 @@ class CouponTaskTests(unittest.TestCase):
                     g.step([], DT)
 
             frames(3, [key(pygame.K_ESCAPE)])
-            m = next(m for m in room.machines if m.id == "space_blaster")
+            m = next(m for m in room.machines if m.id == "puzzle_drop")
             room.player.x, room.player.y = m.rect.centerx, m.rect.bottom + 12
             frames(5)
             frames(30, [key(pygame.K_e)])

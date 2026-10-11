@@ -50,7 +50,7 @@ class CabinetArtTests(unittest.TestCase):
             self.assertIn(style, STYLES)
 
     def test_collision_and_interaction_use_the_standard_cabinet_box(self):
-        standard = ArcadeMachine(dict(machine_data("space_blaster"), x=100, y=30))
+        standard = ArcadeMachine(dict(machine_data("puzzle_drop"), x=100, y=30))
         for machine_id in ("cat_minesweeper", "pixel_volleyball", "retro_racer"):
             m = self.machine(machine_id)
             self.assertEqual(m.rect.size, (W, H))

@@ -23,6 +23,7 @@ from gfx import lerp_color, scale_color, shade
 from minigame import MiniGameDefinition, MinigameScene
 from retro_racer_scene import RetroRacerScene
 from pixel_volleyball_scene import PixelVolleyballScene
+from galaxy_defender_scene import GalaxyDefenderScene
 from cat_territory_scene import CatTerritoryScene
 from settings import BACK_KEYS, Col, VIEW_H, VIEW_W
 from ui import draw_text, neon_panel, wrap_text
@@ -116,7 +117,8 @@ class MinigamePlaceholderScene(MinigameScene):
 # minigames can be dropped in one at a time.
 MINIGAME_SCENES = {"retro_racer": RetroRacerScene,
                    "pixel_volleyball": PixelVolleyballScene,
-                   "cat_minesweeper": CatTerritoryScene}
+                   "cat_minesweeper": CatTerritoryScene,
+                   "galaxy_defender": GalaxyDefenderScene}
 
 
 # How many local players each minigame supports (anything not listed: 1). The
@@ -124,10 +126,10 @@ MINIGAME_SCENES = {"retro_racer": RetroRacerScene,
 # really has a two-player mode; the placeholder screens only stand in.
 MINIGAME_DEFINITIONS = {d.game_id: d for d in (
     MiniGameDefinition("retro_racer", 1, 1),
-    MiniGameDefinition("space_blaster", 1, 2),
     MiniGameDefinition("puzzle_drop", 1, 1),
     MiniGameDefinition("pixel_volleyball", 1, 2),
     MiniGameDefinition("cat_minesweeper", 1, 1),
+    MiniGameDefinition("galaxy_defender", 1, 1),
 )}
 
 

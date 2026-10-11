@@ -8,11 +8,12 @@ class AudioManager:
     THEMES = {'lobby': (262, 330, 392, 330, 294, 349, 440, 349),
               'retro_racer': (196, 247, 294, 392, 196, 294, 247, 392),
               'pixel_volleyball': (330, 392, 440, 523, 440, 392, 330, 294),
-              'cat_minesweeper': (262, 392, 330, 440, 349, 330, 294, 392)}
+              'cat_minesweeper': (262, 392, 330, 440, 349, 330, 294, 392),
+              'galaxy_defender': (220, 262, 330, 262, 247, 294, 370, 294)}
     EFFECTS = {'machine': (440, 660), 'confirm': (660, 880), 'cancel': (440, 220),
                'hit': (560,), 'spike': (1480, 880, 440), 'bounce': (240,), 'point': (660, 880),
                'win': (523, 659, 784), 'loss': (440, 330, 220),
-               'reveal': (700,), 'flag': (420, 560), 'skid': (480, 320, 160)}
+               'laser': (990, 760), 'boom': (180, 120), 'powerup': (660, 990), 'reveal': (700,), 'flag': (420, 560), 'skid': (480, 320, 160)}
 
     def __init__(self, bgm_volume=.22, sfx_volume=.7):
         self.bgm_volume, self.sfx_volume = bgm_volume, sfx_volume

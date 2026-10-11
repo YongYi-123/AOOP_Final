@@ -236,18 +236,6 @@ MACHINES = [
         "play_cost": 1,
     },
     {
-        "id": "space_blaster",
-        "name": "Space Blaster",
-        "marquee": "SPACE",
-        "description": "Wobbly critters are drifting past the moon! "
-                       "Defend the city skies with your trusty pew-pew ship.",
-        "x": 92,
-        "neon": (60, 130, 255),
-        "accent": (90, 240, 255),
-        "screen": "space",
-        "play_cost": 1,
-    },
-    {
         "id": "puzzle_drop",
         "name": "Puzzle Drop",
         "marquee": "DROP",
@@ -272,6 +260,13 @@ MACHINES = [
                        "Click to mark X, double click to place a cat. Three hearts!",
         "slot": "wall_4", "neon": (176, 96, 255), "accent": (90, 240, 255),
         "screen": "cat", "play_cost": 1,
+    },
+    {
+        "id": "galaxy_defender", "name": "Starfall Assault", "marquee": "STARFALL ASSAULT",
+        "description": "Fly your starfighter against endless waves of alien drones. "
+                       "Grab power cores, chain combos and beat the Mothership!",
+        "slot": "wall_1", "neon": (90, 240, 255), "accent": (255, 110, 210),
+        "screen": "galaxy", "play_cost": 1,
     },
 ]
 

@@ -31,6 +31,7 @@ STYLES = {
     "puzzle": dict(frames=32, fps=10, marquee=0.18, pulse=0.18),
     "cat": dict(frames=32, fps=8, marquee=0.4, pulse=0.2),
     "volley": dict(frames=32, fps=12, marquee=0.07, pulse=0.12),
+    "galaxy": dict(frames=32, fps=12, marquee=0.07, pulse=0.12),
 }
 
 

@@ -11,6 +11,7 @@ import random
 import shutil
 import tempfile
 import unittest
+from unittest import mock
 from datetime import date
 
 os.environ.setdefault("SDL_VIDEODRIVER", "dummy")
@@ -55,6 +56,14 @@ class TwoPlayerTest(unittest.TestCase):
     P1_TOKENS, P2_TOKENS = 12, 7
 
     def setUp(self):
+        # The old Space Blaster machine is gone; these ownership tests need a 1-2 player placeholder
+        # machine, so one exists for the test only (it never touches settings.MACHINES).
+        duo = dict(MACHINES[0], id="duo_test", name="Duo Test", marquee="DUO", slot="island_2", screen="space")
+        del duo["x"]
+        for patch in (mock.patch("arcade_layout.MACHINES", list(MACHINES) + [duo]),
+                      mock.patch.dict(MINIGAME_DEFINITIONS, {"duo_test": MiniGameDefinition("duo_test", 1, 2)})):
+            patch.start()
+            self.addCleanup(patch.stop)
         self.dir = tempfile.mkdtemp()
         self.manager = ProfileManager(os.path.join(self.dir, "saves"), clock=GameClock(lambda: DAY1))
         self.a = self.manager.create_profile("Alice")
@@ -723,14 +732,16 @@ class MiniGameTests(TwoPlayerTest):
             d = minigame_definition(data.get("game_id", data["id"]))
             self.assertGreaterEqual(d.min_players, 1)
             self.assertLessEqual(d.max_players, MAX_LOCAL_PLAYERS)
-        self.assertEqual(minigame_definition("space_blaster").max_players, 2)
+        self.assertEqual(minigame_definition("duo_test").max_players, 2)        # the test-only placeholder
+        self.assertEqual(minigame_definition("galaxy_defender").max_players, 1)
+        self.assertEqual(minigame_definition("pixel_volleyball").max_players, 2)
         self.assertEqual(minigame_definition("puzzle_drop").max_players, 1)
         self.assertEqual(minigame_definition("who_knows"), MiniGameDefinition("who_knows"))
         self.assertIn("retro_racer", MINIGAME_DEFINITIONS)
 
     def test_a_scene_knows_its_participants(self):
         room = self.arcade()
-        machine = self.machine(room, "space_blaster")
+        machine = self.machine(room, "duo_test")
         scene = create_minigame_scene(self.game, machine, [self.a, self.b])
         self.assertEqual(scene.participants, [self.a, self.b])
         solo = create_minigame_scene(self.game, machine)
@@ -738,7 +749,7 @@ class MiniGameTests(TwoPlayerTest):
 
     def test_results_are_one_per_player_and_never_combined(self):
         room = self.arcade()
-        scene = create_minigame_scene(self.game, self.machine(room, "space_blaster"), [self.a, self.b])
+        scene = create_minigame_scene(self.game, self.machine(room, "duo_test"), [self.a, self.b])
         result = scene.get_result()
         self.assertIsInstance(result, MiniGameResult)
         self.assertEqual([r.profile_id for r in result.player_results], [self.a.profile_id, self.b.profile_id])
@@ -750,17 +761,17 @@ class MiniGameTests(TwoPlayerTest):
         self.assertIsNone(result.for_profile("nobody"))
 
     def test_settling_a_player_result_pays_that_profile_once(self):
-        session = PlaySession(self.b, "space_blaster", 1)
+        session = PlaySession(self.b, "duo_test", 1)
         pr = PlayerResult(self.b.profile_id, 500, RewardBundle(tickets=9))
         self.assertIs(session.settle_result(pr), pr)
-        self.assertEqual((self.b.tickets, self.b.high_score("space_blaster"), self.b.total_games_played), (9, 500, 1))
+        self.assertEqual((self.b.tickets, self.b.high_score("duo_test"), self.b.total_games_played), (9, 500, 1))
         self.assertIsNone(session.settle_result(pr))             # once only
         self.assertFalse(session.refund())
         self.assertEqual((self.a.tickets, self.a.total_games_played), (0, 0))
 
     def test_a_two_player_machine_asks_how_many_play(self):
         room = self.arcade()
-        blaster = self.machine(room, "space_blaster")
+        blaster = self.machine(room, "duo_test")
         self.stand_at(self.p1, blaster)
         self.stand_at(self.p2, blaster, dx=-150)
         self.frames(5)
@@ -776,7 +787,7 @@ class MiniGameTests(TwoPlayerTest):
 
     def test_one_player_choice_only_charges_the_starter(self):
         room = self.arcade()
-        blaster = self.machine(room, "space_blaster")
+        blaster = self.machine(room, "duo_test")
         self.stand_at(self.p1, blaster)
         self.stand_at(self.p2, blaster, dx=-150)
         self.frames(5)
@@ -791,7 +802,7 @@ class MiniGameTests(TwoPlayerTest):
 
     def test_two_players_each_pay_and_each_are_rewarded_separately(self):
         room = self.arcade()
-        blaster = self.machine(room, "space_blaster")
+        blaster = self.machine(room, "duo_test")
         self.stand_at(self.p2, blaster)
         self.stand_at(self.p1, blaster, dx=-150)
         self.frames(5)
@@ -822,7 +833,7 @@ class MiniGameTests(TwoPlayerTest):
     def test_the_second_player_must_afford_to_join(self):
         self.b.spend_tokens(self.P2_TOKENS, "SETUP")
         room = self.arcade()
-        blaster = self.machine(room, "space_blaster")
+        blaster = self.machine(room, "duo_test")
         self.stand_at(self.p1, blaster)
         self.stand_at(self.p2, blaster, dx=-150)
         self.frames(5)

@@ -278,7 +278,7 @@ class CouponMachineTests(unittest.TestCase):
 
 # ---------------------------------------------------------------- in the arcade
 class CouponFlowTests(unittest.TestCase):
-    MACHINE = "space_blaster"          # a placeholder minigame (no slow racer load)
+    MACHINE = "puzzle_drop"          # a placeholder minigame (no slow racer load)
 
     def setUp(self):
         self.dir = tempfile.mkdtemp()

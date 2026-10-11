@@ -289,7 +289,7 @@ class DailyTaskTests(TempDirTest):
                        "target": 3, "reward": 5})
         before = p.tokens
         for _ in range(2):
-            p.record_game_played("space_blaster")
+            p.record_game_played("galaxy_defender")
         task = p.daily_tasks[0]
         self.assertEqual((task.progress, task.completed), (2, False))
         self.assertEqual(p.claim_task("g"), 0)                  # not finished: nothing
@@ -313,7 +313,7 @@ class DailyTaskTests(TempDirTest):
     def test_machine_specific_task(self):
         p = self.only({"id": "r", "description": "PLAY RACER", "event": "game_played",
                        "game_id": "retro_racer", "target": 1, "reward": 4})
-        p.record_game_played("space_blaster")
+        p.record_game_played("galaxy_defender")
         self.assertEqual(p.daily_tasks[0].progress, 0)
         p.record_game_played("retro_racer")
         self.assertTrue(p.daily_tasks[0].completed)
@@ -321,7 +321,7 @@ class DailyTaskTests(TempDirTest):
     def test_distinct_machine_visits(self):
         p = self.only({"id": "v", "description": "VISIT 3", "event": "machine_visited",
                        "distinct": True, "target": 3, "reward": 5})
-        for m in ("retro_racer", "retro_racer", "space_blaster", "retro_racer"):
+        for m in ("retro_racer", "retro_racer", "galaxy_defender", "retro_racer"):
             p.record_machine_visit(m)
         self.assertEqual(p.daily_tasks[0].progress, 2)
         p.record_machine_visit("puzzle_drop")
@@ -351,7 +351,7 @@ class DailyTaskTests(TempDirTest):
         for _ in range(3):
             p.record_cat_petted()
             p.record_game_played("retro_racer")
-        for m in ("retro_racer", "space_blaster", "puzzle_drop"):
+        for m in ("retro_racer", "galaxy_defender", "puzzle_drop"):
             p.record_machine_visit(m)
 
     def test_reopen_preserves_progress_and_claims(self):
@@ -360,7 +360,7 @@ class DailyTaskTests(TempDirTest):
         store.autosave(p)
         ids = [t.id for t in p.daily_tasks]
         p.record_cat_petted()                                    # part way on some tasks
-        p.record_game_played("space_blaster")
+        p.record_game_played("galaxy_defender")
         q = ProfileStore(self.path, clock_at()).load()
         self.assertEqual([t.id for t in q.daily_tasks], ids)
         self.assertEqual([t.progress for t in q.daily_tasks], [t.progress for t in p.daily_tasks])
@@ -826,7 +826,7 @@ class ArcadeEconomyFlowTests(TempDirTest):
         for _ in range(5):
             g.profile.record_game_played("retro_racer")
             g.profile.record_cat_petted()
-            for m in ("retro_racer", "space_blaster", "puzzle_drop"):
+            for m in ("retro_racer", "galaxy_defender", "puzzle_drop"):
                 g.profile.record_machine_visit(m)
         self.assertTrue(all(t.completed for t in g.profile.daily_tasks))
         before = g.profile.tokens
@@ -856,7 +856,7 @@ class ArcadeEconomyFlowTests(TempDirTest):
             g.profile.record_game_played("retro_racer")
             g.profile.record_cat_petted()
             g.profile.add_tickets(60)
-            for m in ("retro_racer", "space_blaster", "puzzle_drop"):
+            for m in ("retro_racer", "galaxy_defender", "puzzle_drop"):
                 g.profile.record_machine_visit(m)
         self.run_frames(g, 3)
         self.assertTrue(room.notice.visible)
@@ -900,7 +900,7 @@ class ArcadeEconomyFlowTests(TempDirTest):
                                       "target": 1, "reward": 5}], count=1)
         g.profile._tasks = mgr
         mgr.ensure_current(self.clock.today())
-        machine = next(m for m in room.machines if m.id == "space_blaster")
+        machine = next(m for m in room.machines if m.id == "puzzle_drop")
         self.stand_at(g, room, machine)
         self.run_frames(g, 30, [key(pygame.K_e)])
         self.run_frames(g, 40, [key(pygame.K_RETURN)])
