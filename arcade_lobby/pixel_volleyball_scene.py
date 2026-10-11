@@ -5,6 +5,7 @@ from minigame import MinigameScene, MiniGameResult, PlayerResult
 from rewards import RewardBundle
 from pixel_volleyball.game import VolleyGame
 from pixel_volleyball.model import VolleyInput, MatchState
+from pixel_volleyball.keyboard_hints import hint_lines
 
 
 class PixelVolleyballScene(MinigameScene):
@@ -15,6 +16,7 @@ class PixelVolleyballScene(MinigameScene):
         super().__init__(game, machine)
         self.volley = VolleyGame()
         self.leaving = False
+        self._tapped = set()    # item presses since the last frame, even if already released
 
     def attach_players(self, players, spectators=()):
         super().attach_players(players, spectators)
@@ -23,6 +25,16 @@ class PixelVolleyballScene(MinigameScene):
         if hasattr(self.game, "audio"):
             self.volley.audio.stop()
             self.volley.audio = GameSoundBus(self.game.audio)
+        self._tapped.clear()
+        self.volley.hints = self._hints()
+
+    def _hints(self):
+        """Each player's own key names, so the screen matches the real bindings."""
+        names = ("P1", "P2") if len(self.players) > 1 else ("",)
+        keys = [(name, *(p.controls.label(action, limit=limit) for action, limit in
+                         (("left", 1), ("right", 1), ("up", 1), ("item", 2))))
+                for name, p in zip(names, self.players)]
+        return hint_lines(keys) if keys else self.volley.hints
 
     def handle_event(self, event):
         if self.leaving:
@@ -35,6 +47,9 @@ class PixelVolleyballScene(MinigameScene):
             return
         actors = self.players or [None]
         actions = [self.input_for(player).feed(event) for player in actors]
+        for player, action in zip(actors, actions):
+            if action == "item":
+                self._tapped.add(id(player))
         if event.type != pygame.KEYDOWN:
             return
         if event.key == pygame.K_ESCAPE:
@@ -56,7 +71,8 @@ class PixelVolleyballScene(MinigameScene):
         for player in self.players or [None]:
             input_ = self.input_for(player)
             controls.append(VolleyInput(input_.axis("left", "right"), input_.held("up"),
-                                        input_.held("item")))
+                                        input_.held("item") or id(player) in self._tapped))
+        self._tapped.clear()
         self.volley.update(dt, controls)
 
     def draw(self, surface):

@@ -137,3 +137,146 @@ class VolleyballLobbyTests(unittest.TestCase):
         self.assertFalse(match.players[1].attack.animating)
         self.frames(1, pygame.K_RSHIFT)
         self.assertTrue(match.players[1].attack.animating)
+
+
+class VolleyballSmashHubTests(unittest.TestCase):
+    """Smash played through the real Arcade Hub: key routing, scene, physics and scoring."""
+    make_game = VolleyballLobbyTests.make_game
+    frames = VolleyballLobbyTests.frames
+
+    def start(self, two=False):
+        self.make_game(two)
+        self.frames(1, pygame.K_e)
+        match = self.scene.volley.match
+        match.serve_delay = 0
+        return match
+
+    def airborne(self, match, side):
+        from pixel_volleyball.model import VolleyBall
+        player = match.players[side]
+        player.y, player.vy = 168, 0
+        match.players[1 - side].y = -500
+        match.ball = VolleyBall(200, 60, 0, 0)       # parked up high until the swing is live
+        return player
+
+    def smash(self, match, side, key):
+        """Press `key` in the air, wait for the paw to wind up, then deliver the ball to it."""
+        from pixel_volleyball.model import VolleyBall
+        player = self.airborne(match, side)
+        self.frames(1, key)
+        self.frames(1, key, down=False)
+        self.frames(4)
+        self.assertTrue(player.attack.active)
+        direction = 1 if side == 0 else -1
+        match.ball = VolleyBall(player.x + direction * 6, player.y - 17, 0, 0)
+        self.frames(1)
+        return player
+
+    def test_solo_smash_key_drives_a_real_smash_to_a_point(self):
+        match = self.start()
+        for key in (pygame.K_SPACE, pygame.K_LSHIFT):
+            match.points[:] = [0, 0]
+            player = self.smash(match, 0, key)
+            self.assertTrue(player.attack.connected)
+            self.assertGreater(match.ball.vx, 250)
+            self.assertGreater(match.ball.vy, -150)
+            for _ in range(120):
+                self.frames(1)
+                if match.points != [0, 0]:
+                    break
+            self.assertEqual(match.points, [1, 0], key)
+            match.serve_delay = 0
+
+    def test_two_player_smash_keys_are_independent_and_aim_at_the_other_court(self):
+        match = self.start(True)
+        player = self.smash(match, 0, pygame.K_SPACE)
+        self.assertTrue(player.attack.connected)
+        self.assertGreater(match.ball.vx, 250)
+        self.assertFalse(match.players[1].attack.animating)
+        match.points[:] = [0, 0]
+        match._serve(0)
+        match.serve_delay = 0
+        player = self.smash(match, 1, pygame.K_RSHIFT)
+        self.assertTrue(player.attack.connected)
+        self.assertLess(match.ball.vx, -250)
+        self.assertFalse(match.players[0].attack.animating)
+        for _ in range(120):
+            self.frames(1)
+            if match.points != [0, 0]:
+                break
+        self.assertEqual(match.points, [0, 1])
+
+    def test_each_players_other_smash_key_and_the_wrong_keys_do_nothing_wrong(self):
+        match = self.start(True)
+        for p in match.players:
+            p.y, p.vy = 168, 0
+        self.frames(1, pygame.K_LSHIFT)
+        self.assertTrue(match.players[0].attack.animating)
+        self.assertFalse(match.players[1].attack.animating)
+        self.frames(1, pygame.K_LSHIFT, down=False)
+        self.frames(1, pygame.K_KP0)
+        self.assertTrue(match.players[1].attack.animating)
+        self.assertFalse(match.players[0].attack.animating and match.players[0].attack.age < .001)
+        self.frames(1, pygame.K_KP0, down=False)
+        match._serve(0)
+        match.serve_delay = 0
+        for p in match.players:
+            p.y, p.vy = 168, 0
+        for wrong in (pygame.K_RETURN, pygame.K_e, pygame.K_w, pygame.K_UP):
+            self.frames(1, wrong)
+            self.frames(1, wrong, down=False)
+        self.assertFalse(any(p.attack.animating for p in match.players))
+
+    def test_smash_tap_released_inside_one_frame_still_swings(self):
+        match = self.start()
+        match.players[0].y, match.players[0].vy = 168, 0
+        self.game.step([pygame.event.Event(pygame.KEYDOWN, key=pygame.K_SPACE, mod=0),
+                        pygame.event.Event(pygame.KEYUP, key=pygame.K_SPACE, mod=0)], 1 / 60)
+        self.assertTrue(match.players[0].attack.animating)
+
+    def test_buffered_smash_press_just_before_takeoff_works_through_the_hub(self):
+        match = self.start()
+        self.frames(1, pygame.K_SPACE)             # pressed on the ground
+        self.frames(1, pygame.K_SPACE, down=False)
+        self.assertFalse(match.players[0].attack.animating)
+        self.frames(1, pygame.K_w)                 # then jump
+        self.frames(3)                             # off the ground well within the buffer
+        self.assertTrue(match.players[0].attack.animating)
+        self.assertLess(match.players[0].attack.age, .1)
+
+    def test_normal_hit_still_works_and_is_not_a_smash(self):
+        from pixel_volleyball.model import VolleyBall
+        match = self.start()
+        player = match.players[0]
+        match.ball = VolleyBall(player.x + 6, player.y - 17, 0, 0)
+        self.frames(1)
+        self.assertFalse(player.attack.connected)
+        self.assertEqual(match.ball.vx, 190)
+        self.assertLess(match.ball.vy, -330)            # the high lob, not a flat smash
+        crossed_high = False
+        for _ in range(90):
+            self.frames(1)
+            crossed_high |= match.ball.x > 210 and match.ball.y < 160
+        self.assertTrue(crossed_high)                   # a slow lob over the net, played on normally
+
+    def test_on_screen_instructions_name_the_real_smash_keys(self):
+        from controls import key_label
+        self.make_game()
+        solo = " ".join(self.scene.volley.hints)
+        self.assertIn("SMASH", solo)
+        for key in self.scene.players[0].controls.item[:2]:
+            self.assertIn(key_label(key), solo)
+        self.make_game(True)
+        lines = self.scene.volley.hints
+        self.assertEqual(len(lines), 2)
+        for line, player, name in zip(lines, self.scene.players, ("P1", "P2")):
+            self.assertTrue(line.startswith(name), line)
+            for key in player.controls.item[:2]:
+                self.assertIn(key_label(key), line)
+        self.assertIn("R-SHIFT", lines[1])
+        surface = pygame.Surface((400, 300))
+        self.scene.draw(surface)
+
+
+if __name__ == "__main__":
+    unittest.main()

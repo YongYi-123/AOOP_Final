@@ -1,4 +1,6 @@
 import unittest
+from types import SimpleNamespace
+from pixel_volleyball.ai import VolleyAI
 from pixel_volleyball.model import *
 
 
@@ -76,10 +78,16 @@ class VolleyPhysicsTests(unittest.TestCase):
         hits = 0
         crossed = False
         for _ in range(1500):
-            m.update(1 / 60)
+            # An idle P1 loses the point as soon as Sandra aims a smash away from
+            # them, so P1 chases the ball like a beginner to keep the rally alive.
+            ball = m.ball
+            landing = 400 - VolleyAI.predict(SimpleNamespace(x=400 - ball.x, y=ball.y, vx=-ball.vx, vy=ball.vy))
+            landing = max(40, min(182, landing)) if ball.x < NET_X else 90
+            move = 1 if landing > m.players[0].x + 4 else (-1 if landing < m.players[0].x - 4 else 0)
+            m.update(1 / 60, [VolleyInput(move=move)])
             hits += m.events.count("hit") + m.events.count("spike")
             crossed |= m.ball.x < NET_X
-        self.assertGreater(hits, 2)
+        self.assertGreater(hits, 8)
         self.assertTrue(crossed)
 
     def test_large_frame_stalls_are_bounded(self):

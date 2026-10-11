@@ -70,6 +70,13 @@ class CatAthleteRenderer:
                     end = (x + direction*(16+round(progress*5)), arm_y+2)
                     pygame.draw.line(surface, scarf, start, end, 2)
                     pygame.draw.rect(surface, fur, (end[0]-2,end[1]-2,5,5))
+                    if player.attack.active:
+                        # Neon swoosh arc behind the striking paw plus a lit paw outline.
+                        pygame.draw.rect(surface, (255,224,90), (end[0]-3,end[1]-3,7,7), 1)
+                        for lag, color in ((5,(255,224,90)),(9,scarf)):
+                            pygame.draw.line(surface, color,
+                                             (end[0]-facing*lag, end[1]-lag),
+                                             (end[0]-facing*(lag+5), end[1]-lag-4), 2)
             pygame.draw.rect(surface, fur, (x+direction*12-2,arm_y,4,5))
             foot_y = y+11 + (int(wave*2)*direction if state is CatAnimation.MOVE else 0)
             pygame.draw.rect(surface, fur, (x+direction*6-2,foot_y,5,3))

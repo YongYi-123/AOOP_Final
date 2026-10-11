@@ -18,7 +18,7 @@ class SmashPresentationTests(unittest.TestCase):
             trail.update(.001, ball)
         self.assertEqual(len(trail.points), trail.LIMIT)
         ball.smash_left = 0
-        trail.update(.2, ball)
+        trail.update(trail.LIFETIME + .01, ball)
         self.assertFalse(trail.points)
         ball.smash_left = .2
         trail.update(.01, ball)
