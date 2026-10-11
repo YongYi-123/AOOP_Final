@@ -18,6 +18,9 @@ from each chord's own notes.
     prize_plaza   C major cheerful retro electronic, 132 BPM
     lucky_corner  swung electronic casino jazz, 104 BPM
     home          cozy lo-fi chiptune, 76 BPM
+
+and the same instrument family carries the minigame themes, each with its own key,
+tempo and groove (see the MINIGAME section below).
 """
 import math
 import os
@@ -71,9 +74,10 @@ class Mix:
     """A mono float buffer of `seconds`; notes that run past the end wrap round to
     the start, so a track loops without a click."""
 
-    def __init__(self, seconds):
+    def __init__(self, seconds, clean=False):
         self.n = int(RATE * seconds)
         self.buf = [0.0] * self.n
+        self.clean = clean          # one-shots: remove the DC offset (pulse waves have one) and fade in, so no click
 
     def note(self, start, dur, freq, kind, vol, attack=0.005, release=0.06, vibrato=0.0, slide=0.0):
         """Add one tone. `slide`: Hz change per second (pitch glide)."""
@@ -113,17 +117,30 @@ class Mix:
             ph += (48 + 110 * math.exp(-28 * t)) / RATE
             buf[(n0 + i) % size] += math.sin(6.283185307 * ph) * vol * math.exp(-17 * t)
 
-    def finish(self, lowpass=0.0, peak=0.8, fade=0.0):
-        """The 16-bit samples, normalised (and optionally warmed by a one-pole low-pass)."""
+    def finish(self, lowpass=0.0, peak=0.8, fade=0.0, rms=None):
+        """The 16-bit samples, normalised (and optionally warmed by a one-pole low-pass).
+        `rms` (dBFS): normalise to this average loudness instead of to `peak`, then soft-limit to `peak`,
+        so every track in a family sits at the same perceived level."""
         buf = self.buf
+        if self.clean or rms is not None:
+            mean = sum(buf) / len(buf)
+            buf = self.buf = [x - mean for x in buf]
+        if self.clean:
+            for i in range(min(len(buf), int(0.003 * RATE))):
+                buf[i] *= i / (0.003 * RATE)
         if lowpass:
             y = 0.0
             for i, x in enumerate(buf):
                 y += (x - y) * (1 - lowpass)
                 buf[i] = y
-        top = max(max(buf), -min(buf), 1e-9)
-        k = peak * 32767 / top
-        out = [int(x * k) for x in buf]
+        if rms is not None:
+            level = math.sqrt(sum(x * x for x in buf) / len(buf)) or 1e-9
+            k = 10 ** (rms / 20) / level * 32767
+            out = [int(peak * 32767 * math.tanh(x * k / (peak * 32767))) for x in buf]
+        else:
+            top = max(max(buf), -min(buf), 1e-9)
+            k = peak * 32767 / top
+            out = [int(x * k) for x in buf]
         tail = int(fade * RATE)                             # a short fade-out so a one-shot never clicks at its end
         for i in range(min(tail, len(out))):
             out[-1 - i] = int(out[-1 - i] * i / tail)
@@ -140,7 +157,9 @@ def write_wav(path, samples):
 
 
 # ------------------------------------------------------------------ music helpers
-CHORDS = {"": (0, 4, 7), "m": (0, 3, 7), "m7": (0, 3, 7, 10), "maj7": (0, 4, 7, 11), "7": (0, 4, 7, 10)}
+CHORDS = {"": (0, 4, 7), "m": (0, 3, 7), "m7": (0, 3, 7, 10), "maj7": (0, 4, 7, 11), "7": (0, 4, 7, 10),
+          "m9": (0, 3, 7, 10, 14), "9": (0, 4, 7, 10, 14), "maj9": (0, 4, 7, 11, 14), "m7b5": (0, 3, 6, 10),
+          "dim": (0, 3, 6, 9), "5": (0, 7, 12)}
 
 
 def chord_tones(symbol):
@@ -308,12 +327,257 @@ def home():
     return m.finish(lowpass=0.38)
 
 
-MUSIC = {"arcade_floor": arcade_floor, "prize_plaza": prize_plaza, "lucky_corner": lucky_corner, "home": home}
+# ------------------------------------------------------------------ MINIGAME themes
+# Every game gets its own key, tempo, groove and lead voice; all are 16 bars, loop without a seam
+# (notes wrap round the end) and are normalised to the same average loudness (MINIGAME_RMS).
+MINIGAME_RMS = -14.5
+
+
+def _drums(m, t0, beat, b, kick=(0, 1, 2, 3), snare=(1, 3), hat=8, kick_vol=0.5, snare_vol=0.2, hat_vol=0.08, seed=0):
+    for k in kick:
+        m.kick(t0 + k * beat, kick_vol)
+    for k in snare:
+        m.noise(t0 + k * beat, 0.15, snare_vol, decay=24, bright=0.65, seed=seed + b * 3 + k)
+    for k in range(hat):
+        m.noise(t0 + k * beat * 4 / hat + (beat * 2 / hat if hat == 4 else 0), 0.04, hat_vol, decay=75, seed=seed + b * 11 + k)
+
+
+def retro_racer():
+    """Fast synthwave: D minor, 140 BPM. Pumping 16th bass, four-on-the-floor, a soaring pulse lead,
+    and a rising engine rev as the loop starts."""
+    bpm, bars = 140, 16
+    beat = 60 / bpm
+    bar = beat * 4
+    m = Mix(bars * bar)
+    prog = ["Dm", "Bb", "F", "C"] * 3 + ["Dm", "Bb", "C", "A"]
+    lead = {"Dm": "A5 . D6 . F6 . E6 D6", "Bb": "D6 . F6 . Bb5 . C6 D6", "F": "C6 . F6 . A6 . G6 F6",
+            "C": "E6 . G6 . E6 . D6 C6", "A": "C#6 . E6 . A6 . G6 E6"}
+    for b in range(bars):
+        t0, sym = b * bar, prog[b]
+        root, tones = chord_tones(sym if sym != "A" else "A")
+        r = midi(root + "2")
+        for k in range(16):                                           # driving 16th bass with octave pops
+            m.note(t0 + k * beat / 4, beat / 4 * 0.8, hz(r + (12 if k % 4 == 3 else 0)), "saw", 0.16, release=0.02)
+        arpeggio(m, t0, beat / 4, tones + (12,), midi(root + "4"), "p25", 0.05, 16)
+        for off in tones:
+            m.note(t0, bar * 0.98, hz(midi(root + "3") + off), "saw", 0.02, attack=0.3, release=0.2)
+        _drums(m, t0, beat, b, kick_vol=0.52, snare_vol=0.22, seed=100)
+        for k in (0.5, 1.5, 2.5, 3.5):
+            m.noise(t0 + k * beat, 0.1, 0.07, decay=40, bright=0.9, seed=b * 5 + int(k * 2))     # open hat
+        if b >= 2:
+            grid(m, t0, beat / 2, lead[sym], "p12", 0.12, attack=0.004, release=0.07, vibrato=5.5)
+    m.note(0.0, 1.6, 70, "saw", 0.07, attack=0.2, release=0.3, slide=260)                       # engine rev
+    signature(m, 1.7, midi("D3"), minor=True, vol=0.1)
+    return m.finish(lowpass=0.36, rms=MINIGAME_RMS)
+
+
+def pixel_volleyball():
+    """Upbeat chiptune: G major, 148 BPM. Bouncy octave bass, a woodblock 'ball' on every beat, bright hook."""
+    bpm, bars = 148, 16
+    beat = 60 / bpm
+    bar = beat * 4
+    m = Mix(bars * bar)
+    prog = ["G", "Em", "C", "D"] * 3 + ["C", "D", "G", "G"]
+    lead = {"G": "B5 . D6 B5 G6 . D6 .", "Em": "G5 . B5 E6 . D6 B5 .", "C": "E6 . C6 E6 G6 . E6 C6", "D": "F#6 . D6 A5 D6 . F#6 A6"}
+    for b in range(bars):
+        t0, sym = b * bar, prog[b]
+        root, tones = chord_tones(sym)
+        r = midi(root + "2")
+        for k in range(8):
+            m.note(t0 + k * beat / 2, beat / 2 * 0.65, hz(r + (12 if k % 2 else 0)), "tri", 0.34, release=0.03)
+        for beat_i in range(4):                                       # the bouncing ball
+            m.note(t0 + beat_i * beat, 0.05, 780 if beat_i % 2 else 520, "sine", 0.1, release=0.04, slide=-1500)
+        for beat_i in (1, 3):
+            for off in tones:
+                m.note(t0 + beat_i * beat + beat / 2, beat * 0.22, hz(midi(root + "4") + off), "p25", 0.05, release=0.04)
+        _drums(m, t0, beat, b, kick=(0, 2), snare=(1, 3), hat=8, kick_vol=0.44, snare_vol=0.18, hat_vol=0.06, seed=200)
+        if b >= 1:
+            grid(m, t0, beat / 2, lead[sym], "sq" if b % 4 == 3 else "p25", 0.1, attack=0.004, release=0.06, vibrato=5)
+    signature(m, 0.0, midi("G3"), vol=0.12)
+    return m.finish(lowpass=0.22, rms=MINIGAME_RMS)
+
+
+def cat_minesweeper():
+    """Cat Territory: cute, playful puzzle pop. C major pentatonic, 108 BPM, plucky glockenspiel, pizzicato bass,
+    ticking shaker, and an occasional tiny 'mew' glide."""
+    bpm, bars = 108, 16
+    beat = 60 / bpm
+    bar = beat * 4
+    m = Mix(bars * bar)
+    prog = ["C", "Am", "F", "G"] * 2 + ["C", "Em", "F", "G", "Am", "F", "G", "C"]
+    hook = ["E6 G6 E6 C6 . D6 . .", "C6 . E6 . A5 . C6 .", "A5 C6 F6 . E6 C6 . .", "D6 . G6 . B5 D6 . ."]
+    for b in range(bars):
+        t0, sym = b * bar, prog[b]
+        root, tones = chord_tones(sym)
+        r = midi(root + "2")
+        for k, off in enumerate((0, 7, 12, 7)):                       # pizzicato bass, one pluck a beat
+            m.note(t0 + k * beat, beat * 0.3, hz(r + off), "tri", 0.4, release=0.05)
+        for k in range(8):                                            # mallet comping
+            m.note(t0 + k * beat / 2, beat * 0.2, hz(midi(root + "4") + tones[(k * 2) % len(tones)] + (12 if k % 3 == 2 else 0)),
+                   "bell", 0.045, attack=0.003, release=0.12)
+        for k in range(16):                                           # shaker
+            m.noise(t0 + k * beat / 4, 0.02, 0.04 if k % 2 else 0.06, decay=120, bright=0.9, seed=b * 17 + k)
+        m.kick(t0, 0.3)
+        m.kick(t0 + 2 * beat, 0.22)
+        m.noise(t0 + beat * 3, 0.06, 0.12, decay=45, bright=0.5, seed=b)                  # rim
+        if b >= 2:
+            grid(m, t0, beat / 2, hook[(b if b < 8 else b + 1) % 4], "bell", 0.14, attack=0.003, release=0.2)
+        if b in (7, 15):                                              # a tiny mew
+            m.note(t0 + 3 * beat, 0.16, 700, "sine", 0.07, release=0.05, vibrato=9, slide=900)
+    signature(m, 0.0, midi("C4"), vol=0.12)
+    return m.finish(lowpass=0.2, rms=MINIGAME_RMS)
+
+
+def galaxy_defender():
+    """Space arcade electro: E minor, 146 BPM. Pulsing saw bass, an up-down 16th arp, 16th hats, laser sweeps."""
+    bpm, bars = 146, 16
+    beat = 60 / bpm
+    bar = beat * 4
+    m = Mix(bars * bar)
+    prog = ["Em", "C", "G", "D"] * 3 + ["Em", "C", "D", "B"]
+    lead = {"Em": "B5 . E6 G6 . F#6 E6 .", "C": "G5 . C6 E6 . D6 C6 .", "G": "B5 . D6 G6 . F#6 D6 .",
+            "D": "A5 . D6 F#6 . E6 D6 .", "B": "F#5 . B5 D#6 . C#6 B5 ."}
+    for b in range(bars):
+        t0, sym = b * bar, prog[b]
+        root, tones = chord_tones(sym if sym != "B" else "B")
+        r = midi(root + "2")
+        for k in range(8):                                            # pulsing eighth bass
+            m.note(t0 + k * beat / 2, beat / 2 * 0.8, hz(r + (12 if k in (3, 7) else 0)), "saw", 0.17, release=0.03)
+        up_down = list(tones) + [12] + list(reversed(tones))
+        for k in range(16):                                           # shimmering arp
+            m.note(t0 + k * beat / 4, beat / 4 * 0.75, hz(midi(root + "4") + up_down[k % len(up_down)]), "sq", 0.035,
+                   attack=0.003, release=0.03)
+        _drums(m, t0, beat, b, kick_vol=0.5, snare_vol=0.2, hat=16, hat_vol=0.05, seed=300)
+        if b >= 2:
+            grid(m, t0, beat / 2, lead[sym], "p12", 0.11, attack=0.004, release=0.07, vibrato=6)
+        if b % 4 == 0:                                                # a laser sweep opens each phrase
+            m.note(t0, 0.35, 1900, "sine", 0.05, release=0.05, slide=-4200)
+    signature(m, 0.0, midi("E3"), minor=True, vol=0.1)
+    return m.finish(lowpass=0.34, rms=MINIGAME_RMS)
+
+
+def neon21():
+    """NEON 21: smooth electronic casino lounge. A minor 9ths, 90 BPM, electric-piano comping, walking bass, brushes."""
+    bpm, bars = 90, 16
+    beat = 60 / bpm
+    bar = beat * 4
+    swing = 0.58
+    m = Mix(bars * bar)
+    prog = ["Am9", "D9", "Gmaj9", "Cmaj9", "Fmaj9", "Bm7b5", "E7", "Am9"] * 2
+    lead = ["E6 . . D6 . C6 . .", "F#6 . . A6 . . G6 .", "D6 . B5 . . D6 . .", "E6 . . . G6 . E6 .",
+            "A6 . . G6 . F6 . .", "F6 . D6 . . B5 . .", "G#5 . B5 . D6 . E6 .", "C6 . . . . . . ."]
+    for b in range(bars):
+        t0, sym = b * bar, prog[b]
+        root, tones = chord_tones(sym)
+        r = midi(root + "2")
+        for k, off in enumerate((0, tones[1], 7, 9 if b % 2 else 5)):          # walking bass
+            m.note(t0 + k * beat, beat * 0.92, hz(r + off + (12 if r + off < midi("E2") else 0)), "tri", 0.42, release=0.06)
+        for when in (0.0, 1.5 + (swing - 0.5), 2.5):                       # e-piano comping
+            for off in tones:
+                m.note(t0 + when * beat, beat * 0.9, hz(midi(root + "3") + off + 12), "bell", 0.035, attack=0.01, release=0.4)
+        for off in tones[:4]:                                              # warm pad
+            m.note(t0, bar, hz(midi(root + "3") + off), "tri", 0.03, attack=0.4, release=0.4)
+        for k in range(8):                                                 # brushes
+            late = (swing - 0.5) * beat if k % 2 else 0
+            m.noise(t0 + k * beat / 2 + late, 0.05, 0.07 if k % 2 == 0 else 0.045, decay=55, bright=0.55, seed=b * 21 + k)
+        m.kick(t0, 0.26)
+        m.noise(t0 + 1 * beat, 0.14, 0.08, decay=22, bright=0.4, seed=b * 3)
+        m.noise(t0 + 3 * beat, 0.14, 0.08, decay=22, bright=0.4, seed=b * 3 + 1)
+        if b >= 1:
+            for i, tok in enumerate(lead[b % 8].split()):
+                if tok in (".", "-"):
+                    continue
+                late = (swing - 0.5) * beat if i % 2 else 0
+                m.note(t0 + i * beat / 2 + late, beat * 0.7, hz(midi(tok)), "sine", 0.12, attack=0.015, release=0.4, vibrato=5)
+    signature(m, 0.0, midi("A3"), minor=True, vol=0.1)
+    return m.finish(lowpass=0.35, rms=MINIGAME_RMS)
+
+
+def lucky_wheel():
+    """SPIN: game-show bounce. C major then a key lift to D, 126 BPM. Oom-pah bass, brassy stabs, snare-roll fills,
+    wheel-tick runs that slow down, and a 'ding' on the downbeats."""
+    bpm, bars = 126, 16
+    beat = 60 / bpm
+    bar = beat * 4
+    m = Mix(bars * bar)
+    prog = ["C", "F", "G", "C", "C", "F", "G", "G"] + ["D", "G", "A", "D", "D", "G", "A", "A"]
+    hook = ["E6 E6 G6 . E6 . C6 .", "F6 F6 A6 . F6 . C6 .", "G6 G6 B6 . G6 . D6 .", "E6 G6 C7 . G6 . E6 ."]
+    for b in range(bars):
+        t0, sym = b * bar, prog[b]
+        root, tones = chord_tones(sym)
+        r = midi(root + "2")
+        for k, off in ((0, 0), (2, 7)):                                    # oom
+            m.note(t0 + k * beat, beat * 0.5, hz(r + off), "tri", 0.45, release=0.04)
+        for k in (1, 3):                                                   # pah
+            for off in tones:
+                m.note(t0 + k * beat, beat * 0.3, hz(midi(root + "4") + off), "sq", 0.04, release=0.05)
+                m.note(t0 + k * beat, beat * 0.3, hz(midi(root + "3") + off), "saw", 0.025, release=0.05)
+        m.kick(t0, 0.4)
+        m.kick(t0 + 2 * beat, 0.4)
+        for k in (1, 3):
+            m.noise(t0 + k * beat, 0.12, 0.18, decay=26, bright=0.7, seed=b * 7 + k)
+        for k in range(8):
+            m.noise(t0 + k * beat / 2, 0.03, 0.05, decay=90, seed=b * 13 + k)
+        m.note(t0, 0.5, hz(midi(root + "6")), "bell", 0.07, attack=0.002, release=0.5)           # ding
+        if b % 4 == 3:                                                     # snare-roll fill into the next phrase
+            for k in range(8):
+                m.noise(t0 + 3 * beat + k * beat / 8, 0.05, 0.08 + 0.015 * k, decay=50, bright=0.7, seed=b * 29 + k)
+        if b % 8 == 7:                                                     # the wheel slows to a stop
+            t, gap = t0 + 2 * beat, 0.05
+            while t < t0 + bar - 0.05:
+                m.note(t, 0.012, 2200, "sine", 0.06, attack=0.001, release=0.01)
+                t, gap = t + gap, gap * 1.28
+        elif b >= 1:
+            grid(m, t0, beat / 2, hook[b % 4], "sq", 0.085, attack=0.01, release=0.08, vibrato=5.5)
+    signature(m, 0.0, midi("C4"), vol=0.12)
+    return m.finish(lowpass=0.22, rms=MINIGAME_RMS)
+
+
+def high_low():
+    """HI-LO: suspenseful but playful. A minor, 100 BPM. Chromatic pizzicato bass, a ticking woodblock, a lub-dub
+    heartbeat, and a call-and-response lead - a HIGH phrase answered by a LOW one."""
+    bpm, bars = 100, 16
+    beat = 60 / bpm
+    bar = beat * 4
+    m = Mix(bars * bar)
+    prog = ["Am", "Am", "Dm", "E7", "Am", "F", "Dm", "E7"] * 2
+    walk = {"Am": "A2 . A2 . Bb2 . B2 .", "Dm": "D3 . D3 . Eb3 . E3 .", "E7": "E2 . E2 . F2 . F#2 .", "F": "F2 . F2 . F#2 . G2 ."}
+    high = "E6 . D#6 . E6 . G6 ."
+    low = "E5 . D#5 . D5 . C5 ."
+    for b in range(bars):
+        t0, sym = b * bar, prog[b]
+        root, tones = chord_tones(sym)
+        grid(m, t0, beat / 2, walk[sym], "tri", 0.42, release=0.04, attack=0.004)
+        for k in range(4):                                                 # tick-tock woodblock
+            m.note(t0 + k * beat, 0.03, 1250 if k % 2 == 0 else 880, "sine", 0.1, attack=0.001, release=0.025, slide=-900)
+        m.kick(t0, 0.36)                                                   # lub
+        m.kick(t0 + 0.4 * beat, 0.22)                                      # dub
+        m.kick(t0 + 2 * beat, 0.3)
+        m.kick(t0 + 2.4 * beat, 0.18)
+        m.noise(t0 + 3 * beat + 0.02, 0.07, 0.1, decay=45, bright=0.7, seed=b)                # card flick
+        for off in tones:                                                  # tension pad that swells over 4 bars
+            m.note(t0, bar * 0.99, hz(midi(root + "3") + off), "tri", 0.02 + 0.012 * (b % 4), attack=0.5, release=0.3)
+        for k in (0.5, 1.5, 2.5, 3.5):
+            m.note(t0 + k * beat, beat * 0.18, hz(midi(root + "5") + tones[int(k * 2) % len(tones)]), "bell", 0.035,
+                   attack=0.002, release=0.1)
+        if b >= 2:
+            grid(m, t0, beat / 2, high if b % 2 == 0 else low, "bell", 0.14, attack=0.003, release=0.25)
+    m.note(0.0, 1.0, hz(midi("E4")), "tri", 0.05, attack=0.6, release=0.3)
+    signature(m, 0.0, midi("A3"), minor=True, vol=0.09)
+    return m.finish(lowpass=0.3, rms=MINIGAME_RMS)
+
+
+MINIGAME_MUSIC = {"retro_racer": retro_racer, "pixel_volleyball": pixel_volleyball, "cat_minesweeper": cat_minesweeper,
+                  "galaxy_defender": galaxy_defender, "neon21": neon21, "lucky_wheel": lucky_wheel, "high_low": high_low}
+
+
+ROOM_MUSIC = {"arcade_floor": arcade_floor, "prize_plaza": prize_plaza, "lucky_corner": lucky_corner, "home": home}
+MUSIC = {**ROOM_MUSIC, **MINIGAME_MUSIC}
 
 
 # ------------------------------------------------------------------ sound effects (short, quiet)
 def _sfx(seconds):
-    return Mix(seconds)
+    return Mix(seconds, clean=True)
 
 
 def sfx_footstep():
