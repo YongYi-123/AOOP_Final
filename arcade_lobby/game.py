@@ -12,7 +12,7 @@ import sys
 
 import pygame
 
-from audio_manager import AudioManager
+from audio_manager import DEFAULT_SFX, DUCK_PAUSED, AudioManager
 from game_clock import GameClock
 from menus import StartupFlow
 from player_profile import ProfileStore
@@ -48,6 +48,9 @@ class Game:
         self.running = True
 
         self.audio = AudioManager(prefs_path=audio_prefs)     # volumes + mute are saved there (None: not saved)
+        self.audio.preload()
+        import cat_voice                    # the cats' meows follow the hub's effects volume and mute
+        self._cat_gain = cat_voice.master_gain = lambda: self.audio.effective_sfx / DEFAULT_SFX
         if session is None:
             self.audio.switch("lobby")      # the title / profile screens play the hub theme; a session picks its room's
         if not self.audio.enabled:
@@ -82,10 +85,13 @@ class Game:
                 if event.type == pygame.KEYDOWN:
                     actor = self.session.player_for_key(event.key) if self.session else None
                     action = actor.controls.action_for(event.key) if actor else None
+                    own = getattr(self.scenes.current, "own_audio", False)    # a minigame has its own click sounds
                     if action == "interact" or event.key in (pygame.K_RETURN, pygame.K_KP_ENTER):
-                        self.audio.play("confirm")
+                        if not own:
+                            self.audio.play("confirm")
                     elif event.key == pygame.K_ESCAPE:
-                        self.audio.play("cancel")
+                        if not own:
+                            self.audio.play("cancel")
                     elif event.key in (pygame.K_F6, pygame.K_F7):
                         self.audio.set_volumes(bgm=self.audio.bgm_volume + (-.1 if event.key == pygame.K_F6 else .1))
                         self.volume_toast = 2.0
@@ -98,7 +104,8 @@ class Game:
                 self.scenes.handle_event(event)
         self.scenes.update(dt)
         self.audio.update(dt)
-        self.audio.switch(self.music_for(self.scenes.current))
+        self.audio.switch(self.music_for(self.scenes.stack))
+        self.audio.set_duck(self.duck_for(self.scenes.current))
         racer = getattr(self.scenes.current, "racer", None)
         if racer and hasattr(racer, "audio"):
             racer.audio.external_gain = self.audio.effective_sfx
@@ -110,27 +117,49 @@ class Game:
             self._draw_audio_badge()
 
     @staticmethod
-    def music_for(scene):
-        """The music theme a scene wants: a minigame's own theme, a room's or Lucky Corner
-        game's `music_id`, or None for menus / dialogs / the start screens, which keep
-        whatever is already playing (so opening a menu never restarts the song)."""
-        machine = getattr(scene, "machine", None)
-        if machine is not None:
-            return machine.id
-        return getattr(scene, "music_id", None)
+    def music_for(scenes):
+        """The music theme to play. `scenes` is the scene stack (or one scene): the topmost scene that has a
+        theme decides - a minigame's own theme, or a room's / Lucky Corner game's `music_id` - so a menu or dialog
+        opened on top of a game or room keeps that scene's music (and never restarts it), and a game that ends
+        hands the music straight back to the room below it. None keeps whatever is playing (the start screens)."""
+        for scene in reversed(scenes if isinstance(scenes, (list, tuple)) else [scenes]):
+            machine = getattr(scene, "machine", None)
+            theme = machine.id if machine is not None else getattr(scene, "music_id", None)
+            if theme:
+                return theme
+        return None
+
+    PAUSABLE = ("racer", "volley", "galaxy", "territory")
+
+    @classmethod
+    def duck_for(cls, scene):
+        """Music level while a minigame is paused: lowered, so the pause card is easy to read."""
+        for attr in cls.PAUSABLE:
+            inner = getattr(scene, attr, None)
+            if inner is None:
+                continue
+            state = getattr(getattr(inner, "match", None), "state", None) or getattr(inner, "screen", None)
+            if getattr(inner, "paused", False) is True or getattr(state, "name", "") == "PAUSED":
+                return DUCK_PAUSED
+        return 1.0
 
     def _draw_volume_toast(self):
-        """A small readout of the music / effects volume and mute, over the finished frame."""
+        """A small readout of the music / effects volume, mute and the track playing, over the finished frame."""
         from font import get_font
         a = self.audio
         text = "MUTED  (M)" if a.muted else f"MUSIC {round(a.bgm_volume * 100)}%   SFX {round(a.sfx_volume * 100)}%"
         if not a.enabled:
             text = "NO AUDIO DEVICE"
+        lines = [text] + ([a.track_title] if a.enabled and a.track_title else [])
         px = max(1, self.screen.get_height() // VIEW_H)
-        img = get_font().render_glow(text, (255, 214, 90), (90, 60, 20), scale=px)
-        rect = img.get_rect(midtop=(self.screen.get_width() // 2, 4 * px))
-        self.screen.fill((14, 8, 34), rect.inflate(8 * px, 4 * px))
-        self.screen.blit(img, rect)
+        y = 4 * px
+        for i, line in enumerate(lines):
+            colour, glow = ((255, 214, 90), (90, 60, 20)) if i == 0 else ((170, 150, 230), (50, 36, 90))
+            img = get_font().render_glow(line, colour, glow, scale=px)
+            rect = img.get_rect(midtop=(self.screen.get_width() // 2, y))
+            self.screen.fill((14, 8, 34), rect.inflate(8 * px, 4 * px))
+            self.screen.blit(img, rect)
+            y = rect.bottom + 3 * px
 
     def _draw_audio_badge(self):
         """A small always-visible reminder in the top-right corner while music is off."""
@@ -149,6 +178,9 @@ class Game:
             self.running = False
             self.scenes.quit()
             self.audio.stop()
+            import cat_voice
+            if cat_voice.master_gain is self._cat_gain:
+                cat_voice.master_gain = lambda: 1.0
 
     def run(self):
         while self.running:

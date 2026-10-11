@@ -73,7 +73,7 @@ class CardView:
 
 
 class Neon21Scene(BaseScene):
-    music_id = "lucky_corner"
+    music_id = "neon21"
     spectator_corner = "bottomright"
     spectator_offset = (4, 3)
 

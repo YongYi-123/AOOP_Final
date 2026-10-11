@@ -5,6 +5,7 @@ what ESC does mid-round) belongs to the game. It builds a fresh game from
 `game_cls` for each round."""
 import pygame
 
+from audio_manager import MUSIC_FILES
 from chance_game import draw_footer
 from daily_ui import token_icon
 from font import get_font
@@ -13,7 +14,7 @@ from settings import BACK_KEYS, CONFIRM_KEYS, VIEW_W, Col
 
 
 class ChanceGameScene(BaseScene):
-    music_id = "lucky_corner"
+    music_id = "lucky_corner"           # the Lucky Corner theme, unless the game has a theme of its own (SPIN, HI-LO)
     AGAIN_DELAY = 0.7       # after a result, before E can deal the next (charged) round
 
     def __init__(self, game, game_cls, player=None):
@@ -24,6 +25,7 @@ class ChanceGameScene(BaseScene):
         if player is not None:
             self.spectators = [p for p in game.session if p is not player]
         self.game_cls = game_cls
+        self.music_id = getattr(game_cls, "id", "") if getattr(game_cls, "id", "") in MUSIC_FILES else self.music_id
         self.round = game_cls()
         self.time = 0.0
         self.done_age = 0.0

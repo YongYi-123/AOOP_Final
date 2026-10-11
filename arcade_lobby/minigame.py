@@ -54,6 +54,7 @@ class MinigameScene(BaseScene):
     A game that supports two players overrides get_result() and returns one
     PlayerResult per participant (`self.participants`: their profiles).
     """
+    own_audio = True        # it plays its own click / confirm sounds: the hub adds none on top
 
     def __init__(self, game, machine):
         super().__init__(game)
