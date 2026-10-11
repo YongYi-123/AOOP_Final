@@ -30,7 +30,7 @@ DOOR = pygame.Rect(5, 43, 26, 14)
 W_BODY, H_BODY_END = 36, 59      # cabinet width; row below which the kick plate (checkered flag for the racer) starts
 
 
-TICKER_STYLES = ("volley", "racer")      # marquees too long for 32px: they scroll the whole name
+TICKER_STYLES = ("volley", "racer", "galaxy")      # marquees too long for 32px: they scroll the whole name
 
 
 def marquee_frames(style, label):
@@ -259,6 +259,66 @@ def decorate_volley(s, frame, n, neon, accent):
     _bezel_leds(s, frame, n, VOLLEY_YELLOW, VOLLEY_ORANGE, scale_color(VOLLEY_BLUE, 0.7))
 
 
+# ----------------------------------------------------------------- Starfall Assault
+GALAXY_CYAN = (90, 240, 255)
+GALAXY_VIOLET = (170, 110, 255)
+GALAXY_ORANGE = (255, 160, 60)
+_GALAXY_STARS = ((3, 2, 8), (11, 9, 16), (19, 5, 24), (7, 13, 8), (15, 0, 16), (22, 11, 8))
+
+
+def _galaxy_ship(s, x, y):
+    """A tiny fighter: pointed nose, swept wings and an orange engine glow."""
+    s.set_at((x + 2, y), (255, 255, 255))
+    s.fill(GALAXY_CYAN, (x + 1, y + 1, 3, 2))
+    s.fill(GALAXY_CYAN, (x, y + 2, 5, 1))
+    s.set_at((x, y + 3), GALAXY_CYAN)
+    s.set_at((x + 4, y + 3), GALAXY_CYAN)
+    s.set_at((x + 2, y + 1), (60, 110, 230))
+    s.set_at((x + 2, y + 3), GALAXY_ORANGE)
+
+
+def _galaxy_drone(s, x, y, color):
+    """A tiny saucer drone with a glowing eye."""
+    s.fill(color, (x, y + 1, 5, 1))
+    s.fill(color, (x + 1, y, 3, 1))
+    s.set_at((x + 2, y), (130, 255, 150))
+    s.set_at((x + 1, y + 2), color)
+    s.set_at((x + 3, y + 2), color)
+
+
+def screen_galaxy(s, p, accent, neon):
+    """Endless starfield, a marching formation of alien drones and the fighter firing upwards."""
+    s.fill((12, 8, 38))
+    for sx, sy, speed in _GALAXY_STARS:
+        s.set_at((sx, int(sy + p * 2.0 * speed) % 16), (200, 190, 255))
+    sway = int(math.sin(p * math.tau) * 3)
+    for row in range(2):
+        for col in range(4):
+            _galaxy_drone(s, 3 + col * 5 + sway, 1 + row * 3, GALAXY_VIOLET if row else (255, 100, 200))
+    sx = 9 + int(math.sin(p * math.tau * 2) * 7)
+    _galaxy_ship(s, sx, 12)
+    shot = 11 - int(p * 4 * 14) % 12
+    s.fill(GALAXY_CYAN, (sx + 2, shot, 1, 2))
+
+
+def marquee_galaxy(s, r, label, frame, neon, accent):
+    _ticker(s, r, label, frame, "galaxy", GALAXY_CYAN, GALAXY_ORANGE, scale_color(GALAXY_VIOLET, 0.5))
+
+
+def decorate_galaxy(s, frame, n, neon, accent):
+    """The lower door is a window onto space: stars, a drone drifting past and the fighter below."""
+    d = DOOR
+    s.fill((8, 6, 30), d)
+    for i, (sx, sy) in enumerate(((3, 2), (9, 8), (15, 4), (21, 10), (6, 11), (18, 1))):
+        s.set_at((d.x + sx, d.y + (sy + frame * (1 + i % 2) // 8) % (d.h - 3)), (200, 190, 255))
+    u = frame / n
+    _galaxy_drone(s, d.x + 4 + int((1 - abs(2 * u - 1)) * (d.w - 12)), d.y + 3, (255, 100, 200))
+    _galaxy_ship(s, d.centerx - 2, d.bottom - 6)
+    s.fill(GALAXY_CYAN, (d.centerx, d.bottom - 10 - (frame * 2) % 8, 1, 2))
+    s.fill((6, 4, 14), (d.centerx - 1, d.bottom - 1, 3, 1))
+    _bezel_leds(s, frame, n, GALAXY_CYAN, GALAXY_ORANGE, scale_color(GALAXY_VIOLET, 0.6))
+
+
 # ----------------------------------------------------------------- Retro Racer
 RACER_RED = (255, 64, 80)
 RACER_BLUE = (70, 150, 255)
@@ -385,9 +445,9 @@ def mix_color(a, b, k):
 
 
 # ----------------------------------------------------------------- registry
-SCREEN_PAINTERS = {"cat": screen_cat, "volley": screen_volley, "racer": screen_racer}
-MARQUEES = {"cat": marquee_cat, "volley": marquee_volley, "racer": marquee_racer}
+SCREEN_PAINTERS = {"cat": screen_cat, "volley": screen_volley, "racer": screen_racer, "galaxy": screen_galaxy}
+MARQUEES = {"cat": marquee_cat, "volley": marquee_volley, "racer": marquee_racer, "galaxy": marquee_galaxy}
 BODY_DECORATORS = {"cat": lambda s, f, n, neon, accent: decorate_cat(s, f, neon, accent),
-                   "volley": decorate_volley, "racer": decorate_racer}
+                   "volley": decorate_volley, "racer": decorate_racer, "galaxy": decorate_galaxy}
 BODY_COLORS = {"racer": (CHARCOAL, CHARCOAL_SIDE)}   # cabinet body / side colours where not the default
 HEADROOM = {"cat": (5, headroom_cat), "racer": (4, headroom_racer)}              # style -> (extra rows above the cabinet, painter)
