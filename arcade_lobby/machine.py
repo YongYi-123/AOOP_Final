@@ -26,7 +26,7 @@ SOFT_GLOW = 0.6         # halo scale when a room asks for soft_glow
 # Per-style animation timing, so every machine feels a little different.
 STYLES = {
     #          screen frames, screen fps, marquee frame time, pulse frame time
-    "racer": dict(frames=24, fps=12, marquee=0.12, pulse=0.14),
+    "racer": dict(frames=24, fps=12, marquee=0.07, pulse=0.14),
     "space": dict(frames=24, fps=12, marquee=0.28, pulse=0.22),
     "puzzle": dict(frames=32, fps=10, marquee=0.18, pulse=0.18),
     "cat": dict(frames=32, fps=8, marquee=0.4, pulse=0.2),
@@ -152,14 +152,15 @@ def _paint_marquee(s, style, label, frame, neon, accent):
 
 def _build_cabinet(style, label, frame, neon, accent, frames=4):
     s = pygame.Surface((W, H), pygame.SRCALPHA)
-    s.fill(Col.CABINET_SIDE, (0, 12, W, H - 12))
-    s.fill(Col.CABINET, (3, 12, W - 6, H - 12))
+    body, side = themes.BODY_COLORS.get(style, (Col.CABINET, Col.CABINET_SIDE))
+    s.fill(side, (0, 12, W, H - 12))
+    s.fill(body, (3, 12, W - 6, H - 12))
     s.fill(neon, (0, 12, 1, H - 12))                 # neon edge strips
     s.fill(neon, (W - 1, 12, 1, H - 12))
     s.fill(scale_color(neon, 0.45), (1, 12, 1, H - 12))
     s.fill(scale_color(neon, 0.45), (W - 2, 12, 1, H - 12))
 
-    s.fill(Col.CABINET, (0, 0, W, 12))               # marquee housing
+    s.fill(body, (0, 0, W, 12))                      # marquee housing
     _paint_marquee(s, style, label, frame, neon, accent)
     s.fill(neon, (0, 0, W, 1))
 

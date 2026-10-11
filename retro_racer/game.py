@@ -486,24 +486,19 @@ class Game:
             options = [(name, desc, self.ai_level.name if self.managers[mode].has_ai_levels else None) for mode, name, desc in MODE_MENU]
             hud.draw_mode_select(scr, options, self.mode_index, self.time)
         elif state is State.CAR_SELECT:
-            self.car_menu.draw(hud, scr, self.time)
-            lock = self.progression.lock_message('car',self.car_menu.selected.key)
-            if lock:
-                hud.text(scr, lock, (S.WIDTH // 2, 130), (255,110,150), hud.small, "center")
+            self.car_menu.draw(hud, scr, self.time, self.progression.lock_message('car', self.car_menu.selected.key))
         elif state is State.TRACK_SELECT:
             size = hud.card_size(min(3, len(self.tracks)))
             if size not in self.track_previews:
                 self.track_previews[size] = tuple(MiniMap.preview(track.build(S.SEGMENT_LENGTH), size)
                                                    for track in self.tracks)
-            cards = [(track.name, preview, track.tagline)
+            cards = [(track.name, preview, track.tagline, not self.progression.owns('track', track.key))
                      for track, preview in zip(self.tracks, self.track_previews[size])]
-            hud.draw_track_select(scr, cards, self.track_index, self.time, self.theme.name)
+            hud.draw_track_select(scr, cards, self.track_index, self.time, self.theme.name,
+                                  self.progression.lock_message('track', self.track.key),
+                                  self.progression.lock_message('scenery', self.theme.key))
             self.scenery_gallery.draw(scr, hud, self.road.route, self.theme_index,
                                       self.manager.uses_markers, self.progression)
-            locks = [self.progression.lock_message(kind,key) for kind,key in
-                     (('track',self.track.key),('scenery',self.theme.key)) if not self.progression.owns(kind,key)]
-            if locks:
-                hud.text(scr, " / ".join(locks), (S.WIDTH // 2, 140), (255,110,150), hud.small, "center")
         else:
             hud.draw_end(scr, self.manager, state, self.time, self.end_time)
 

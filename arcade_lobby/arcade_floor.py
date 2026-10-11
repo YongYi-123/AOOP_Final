@@ -80,10 +80,11 @@ class HighScorePlates:
         return plate
 
     def draw(self, surf):
+        clearance = max((m.art["pad"] for m in self.machines), default=0)    # cat ears, the racer's wing
         for m in self.machines:
             plate = self._plate(m, *self.best(m.game_id))
             surf.blit(plate, (m.rect.centerx - plate.get_width() // 2,
-                              m.rect.y - self.H - 4 - m.art["pad"]))     # above any ears on top of the cabinet
+                              m.rect.y - self.H - 4 - clearance))        # one row of plates above every top
 
 
 class ArcadeFloorScene(BaseRoomScene):

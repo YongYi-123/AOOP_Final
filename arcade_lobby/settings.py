@@ -214,12 +214,12 @@ MACHINES = [
     {
         "id": "retro_racer",
         "name": "Retro Racer",
-        "marquee": "RACE",
+        "marquee": "RETRO RACER",
         "description": "Zoom down neon highways and race the sunrise home. "
                        "Three laps, one tiny car, zero brakes.",
         "x": 36,
-        "neon": (255, 72, 72),
-        "accent": (255, 168, 60),
+        "neon": (255, 64, 80),
+        "accent": (70, 150, 255),
         "screen": "racer",
         "play_cost": 1,
     },

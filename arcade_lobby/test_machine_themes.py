@@ -1,4 +1,4 @@
-"""The CAT TERRITORY and CAT VOLLEYBALL cabinets: their look, layout and hub integration.
+"""The CAT TERRITORY, CAT VOLLEYBALL and RETRO RACER cabinets: their look, layout and hub integration.
 
 Run with:  python -m unittest test_machine_themes
 """
@@ -43,12 +43,15 @@ class CabinetArtTests(unittest.TestCase):
         self.assertEqual(machine_data("cat_minesweeper")["name"], "Cat Territory")
         self.assertEqual(machine_data("pixel_volleyball")["name"], "Cat Volleyball")
         self.assertEqual(machine_data("pixel_volleyball")["marquee"], "CAT VOLLEYBALL")
-        for style in ("cat", "volley"):
+        racer = machine_data("retro_racer")
+        self.assertEqual((racer["screen"], racer["name"], racer["marquee"]), ("racer", "Retro Racer", "RETRO RACER"))
+        self.assertEqual(racer["x"], 36)                                      # position unchanged
+        for style in ("cat", "volley", "racer"):
             self.assertIn(style, STYLES)
 
     def test_collision_and_interaction_use_the_standard_cabinet_box(self):
-        standard = ArcadeMachine(dict(machine_data("retro_racer"), x=100, y=30))
-        for machine_id in ("cat_minesweeper", "pixel_volleyball"):
+        standard = ArcadeMachine(dict(machine_data("space_blaster"), x=100, y=30))
+        for machine_id in ("cat_minesweeper", "pixel_volleyball", "retro_racer"):
             m = self.machine(machine_id)
             self.assertEqual(m.rect.size, (W, H))
             self.assertEqual(m.footprint.size, standard.footprint.size)
@@ -64,7 +67,7 @@ class CabinetArtTests(unittest.TestCase):
         self.assertGreater(pygame.mask.from_surface(ear_rows).count(), 10)       # ears are drawn up there
 
     def test_the_cabinets_animate(self):
-        for machine_id in ("cat_minesweeper", "pixel_volleyball"):
+        for machine_id in ("cat_minesweeper", "pixel_volleyball", "retro_racer"):
             m = self.machine(machine_id)
             screens, marquees = set(), set()
             for _ in range(240):
@@ -74,17 +77,23 @@ class CabinetArtTests(unittest.TestCase):
             self.assertGreater(len(screens), 8, machine_id)         # attract-mode screen moves
             self.assertGreater(len(marquees), 2, machine_id)        # marquee / lights move
 
-    def test_the_volleyball_marquee_scrolls_the_whole_name_and_loops_seamlessly(self):
-        label = "CAT VOLLEYBALL"
-        frames = themes.marquee_frames("volley", label)
-        self.assertGreater(frames, 20)
-        first, again = pygame.Surface((36, 12)), pygame.Surface((36, 12))
-        themes.marquee_volley(first, pygame.Rect(2, 1, 32, 10), label, 0, (0, 0, 0), (0, 0, 0))
-        themes.marquee_volley(again, pygame.Rect(2, 1, 32, 10), label, frames, (0, 0, 0), (0, 0, 0))
-        self.assertEqual(pygame.image.tobytes(first, "RGB"), pygame.image.tobytes(again, "RGB"))
+    def test_the_ticker_marquees_scroll_the_whole_name_and_loop_seamlessly(self):
+        for style, label, painter in (("volley", "CAT VOLLEYBALL", themes.marquee_volley),
+                                      ("racer", "RETRO RACER", themes.marquee_racer)):
+            frames = themes.marquee_frames(style, label)
+            self.assertGreater(frames, 20, style)
+            first, again = pygame.Surface((36, 12)), pygame.Surface((36, 12))
+            painter(first, pygame.Rect(2, 1, 32, 10), label, 0, (0, 0, 0), (0, 0, 0))
+            painter(again, pygame.Rect(2, 1, 32, 10), label, frames, (0, 0, 0), (0, 0, 0))
+            self.assertEqual(pygame.image.tobytes(first, "RGB"), pygame.image.tobytes(again, "RGB"), style)
+
+    def test_the_racer_wing_and_cat_ears_stay_above_the_collision_box(self):
+        racer = self.machine("retro_racer")
+        self.assertGreater(racer.art["pad"], 0)
+        self.assertEqual(racer.rect.size, (W, H))
 
     def test_other_styles_keep_four_marquee_frames(self):
-        for style in ("racer", "space", "puzzle", "cat"):
+        for style in ("space", "puzzle", "cat"):
             self.assertEqual(themes.marquee_frames(style, "X"), 4)
 
 
@@ -113,9 +122,10 @@ class HubIntegrationTests(unittest.TestCase):
         cat = next(m for m in self.room.machines if m.id == "cat_minesweeper")
         surf = pygame.Surface((400, 300))
         self.room.draw_under_sprites(surf)             # must not raise with padded cabinets
-        plate_top = cat.rect.y - self.room.plates.H - 4 - cat.art["pad"]
-        ear_top = cat.rect.y - 1 - cat.art["pad"]
-        self.assertLess(plate_top + self.room.plates.H, ear_top)
+        clearance = max(m.art["pad"] for m in self.room.machines)
+        plate_top = cat.rect.y - self.room.plates.H - 4 - clearance
+        for m in self.room.machines:                       # ears, wings: nothing reaches into the plate row
+            self.assertLess(plate_top + self.room.plates.H, m.rect.y - 1 - m.art["pad"], m.id)
 
     def test_switching_between_the_two_games_and_the_hub_is_stable(self):
         profile = self.game.profile

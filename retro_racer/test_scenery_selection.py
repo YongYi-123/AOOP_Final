@@ -77,19 +77,20 @@ class ScenerySelectionTests(unittest.TestCase):
         self.assertEqual(len(rects), 6)
         for rect, theme in zip(rects, game.themes.themes):
             self.assertTrue(game.screen.get_rect().contains(rect.inflate(6, 6)))
-            self.assertGreater(rect.top, 445)
+            self.assertGreater(rect.top, 400)                      # below the track cards and the info panel
             label = game.hud.small.render(theme.name, False, (255, 255, 255))
-            self.assertLess(rect.bottom + 4 + label.get_height(), 543)
-            self.assertLess(label.get_width(), 128)
+            self.assertLess(rect.bottom + 23 + label.get_height() + 2, 524)    # name and LOCKED rows end above the footer
+            self.assertLess(label.get_width(), 125)
         for a, b in zip(rects, rects[1:]):
             self.assertFalse(a.inflate(6, 6).colliderect(b.inflate(6, 6)))
 
     def test_existing_track_card_pixels_remain_unchanged(self):
         game = self.game
-        area = pygame.Rect(0, 190, 800, 250)
-        with mock.patch.object(game.scenery_gallery, "draw"):
+        area = pygame.Rect(0, 130, 800, 260)               # title, cards and info panel (the gallery is below)
+        with mock.patch("pygame.time.get_ticks", return_value=0):      # the background cars' tyre tread animates by wall time
+            with mock.patch.object(game.scenery_gallery, "draw"):
+                game.render()
+                before = pygame.image.tobytes(game.screen.subsurface(area), "RGB")
             game.render()
-            before = pygame.image.tobytes(game.screen.subsurface(area), "RGB")
-        game.render()
         self.assertEqual(pygame.image.tobytes(game.screen.subsurface(area), "RGB"), before)
         self.assertEqual(len(game.scenery_gallery.renderer._previews), 6)

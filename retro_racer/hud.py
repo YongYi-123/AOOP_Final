@@ -6,8 +6,11 @@ from race import State
 from modes import GameMode
 from endless import fmt_time
 from assets import PixelFont, BLACK, WHITE, YELLOW, ORANGE, RED, CYAN, GREEN
+from menu_layout import (CARD_SIZE, CHECKER_Y, CONTENT, FOOTER, MARGIN, PANEL_HOT, SCREEN, TITLE_Y,
+                         fit_font, mix, panel, pulse)
 
 DIM = (140, 140, 170)
+PINK = (255, 110, 150)          # lock messages
 
 # The key names printed on the screens. An embedding program (the arcade) swaps in
 # the playing player's real keys through Hud.keys; standalone they are the defaults.
@@ -30,6 +33,9 @@ class Hud:
         self._outlined = {}
         self.time = 0.0          # animation clock, set by Game each frame
         self.keys = dict(DEFAULT_KEYS)
+        self.trace = None        # tests set a list here; every text() then records (rect, message)
+        self._dim = pygame.Surface(SCREEN.size, pygame.SRCALPHA)       # darkens the race behind the pause card
+        self._dim.fill((0, 0, 20, 150))
         # Every other scanline darkened: the classic arcade-monitor look, used behind full-screen screens.
         self.scanlines = pygame.Surface((S.WIDTH, S.HEIGHT), pygame.SRCALPHA)
         for y in range(0, S.HEIGHT, 2):
@@ -93,6 +99,8 @@ class Hud:
             img = img.copy()
             img.set_alpha(alpha)
         surf.blit(img, (x - pad, y - pad))
+        if self.trace is not None:
+            self.trace.append((pygame.Rect(x - pad, y - pad, *img.get_size()), msg))
 
     def extruded(self, surf, msg, pos, color, shade, font, depth=6, align="center"):
         """Chunky 3D block lettering: a stack of offset dark copies under the coloured text."""
@@ -186,13 +194,16 @@ class Hud:
         self.text(surf, "GO!", (S.WIDTH // 2, 150), GREEN, self.giant, "center", a)
 
     def draw_pause(self, surf, t):
+        surf.blit(self._dim, (0, 0))
         surf.blit(self.scanlines, (0, 0))
-        cx = S.WIDTH // 2
-        self.extruded(surf, "PAUSED", (cx, 140), YELLOW, (150, 60, 0), self.title, 8)
-        for i, (key, action) in enumerate(((self.keys["resume"], "RESUME"), (self.keys["menu"], "QUIT TO MENU"), (self.keys["quit"], "QUIT GAME"))):
-            self.text(surf, key, (cx - 20, 290 + i * 40), YELLOW, self.font, "right")
-            self.text(surf, action, (cx + 20, 290 + i * 40), WHITE, self.font)
-        self.text(surf, f"ITEM: {self.keys['item_long']}", (cx, 440), CYAN, self.small, "center")
+        k, cx = self.keys, S.WIDTH // 2
+        box = pygame.Rect(0, 0, 600, 290)
+        box.center = (cx, 300)
+        panel(surf, box)
+        self.extruded(surf, "PAUSED", (cx, box.y + 22), YELLOW, (150, 60, 0), self.huge, 3)
+        rows = [(k["resume"], "RESUME"), (k["menu"], "QUIT TO MENU"), (k["quit"], "QUIT GAME")]
+        self.key_table(surf, pygame.Rect(box.x, box.y + 100, box.w, 130), rows)
+        self.text(surf, f"ITEM: {k['item_long']}", (cx, box.bottom - 44), CYAN, self.small, "center")
 
     def draw_toast(self, surf, msg):
         self.text(surf, msg, (S.WIDTH // 2, S.HEIGHT - 110), WHITE, self.font, "center")
@@ -204,138 +215,181 @@ class Hud:
             pygame.draw.rect(surf, WHITE if i % 2 else BLACK, (i * cell, y, cell, cell // 2))
             pygame.draw.rect(surf, BLACK if i % 2 else WHITE, (i * cell, y + cell // 2, cell, cell // 2))
 
-    def select_footer(self):
-        k = self.keys
-        return f"{k['steer']} SELECT     {k['confirm']} OK     {k['back']} BACK"
+    def card_size(self, n=3):
+        """Preview size of a track card (one size for every card, whatever the track count)."""
+        return CARD_SIZE
+
+    def key_table(self, surf, rect, rows, pitch=38):
+        """Rows of (keys, action): keys right-aligned to one column, actions left-aligned to the next,
+        the pair centred in `rect`. Falls back to the small font when a player's key names are long."""
+        for font in (self.font, self.small):
+            kw = max(font.render(k, False, WHITE).get_width() for k, _ in rows)
+            aw = max(font.render(a, False, WHITE).get_width() for _, a in rows)
+            if kw + 28 + aw <= rect.w - 32 or font is self.small:
+                break
+        x0 = rect.centerx - (kw + 28 + aw) // 2
+        for i, (keys, action) in enumerate(rows):
+            y = rect.y + i * pitch
+            self.text(surf, keys, (x0 + kw, y), YELLOW, font, "right")
+            self.text(surf, action, (x0 + kw + 28, y), WHITE, font)
+
+    def footer_hints(self, surf, items):
+        """The footer panel: [(keys, action)] centred as KEYS ACTION, keys in yellow. The player's own
+        key names go in `keys`, so P1 and P2 each see their own."""
+        panel(surf, FOOTER)
+        widths = [(self.small.render(k, False, WHITE).get_width() if k else 0,
+                   self.small.render(a, False, WHITE).get_width()) for k, a in items]
+        sep, gap = 8, 26
+        total = lambda g: sum(kw + (sep if kw else 0) + aw for kw, aw in widths) + g * (len(items) - 1)
+        while gap > 10 and total(gap) > FOOTER.w - 24:
+            gap -= 2
+        x, y = FOOTER.centerx - total(gap) // 2, FOOTER.centery - 8
+        for (keys, action), (kw, aw) in zip(items, widths):
+            if keys:
+                self.text(surf, keys, (x, y), YELLOW, self.small)
+                x += kw + sep
+            self.text(surf, action, (x, y), CYAN, self.small)
+            x += aw + gap
 
     def _prompt(self, surf, t, msg, y):
-        if int(t * 2.5) % 2 == 0:       # (the modes' texts say ENTER; show the player's key instead)
-            self.text(surf, msg.replace("ENTER", self.keys["confirm"]), (S.WIDTH // 2, y), WHITE, self.big, "center")
+        """The primary call to action: a panel whose border and text breathe between white and yellow.
+        (The modes' texts say ENTER; the player's own confirm key is printed instead.)"""
+        msg = msg.replace("ENTER", self.keys["confirm"])
+        font = fit_font((self.big, self.font, self.small), msg, S.WIDTH - 2 * MARGIN - 48)
+        w, h = font.render(msg, False, WHITE).get_size()
+        rect = pygame.Rect(0, y, w + 48, h + 20)
+        rect.centerx = S.WIDTH // 2
+        k = pulse(t)
+        panel(surf, rect, edge=mix((140, 120, 40), PANEL_HOT, k), alpha=230)
+        self.text(surf, msg, (rect.centerx, rect.y + 10), mix(WHITE, YELLOW, k), font, "center")
+        return rect
 
     def draw_start(self, surf, t):
         surf.blit(self.scanlines, (0, 0))
-        cx = S.WIDTH // 2
-        self.extruded(surf, "RETRO", (cx, 36), RED, (110, 0, 20), self.title, 8)
-        self.extruded(surf, "GRAND PRIX", (cx, 118), YELLOW, (150, 60, 0), self.title, 8)
-        self._checker(surf, 210)
-        k = self.keys
+        cx, k = S.WIDTH // 2, self.keys
+        self.extruded(surf, "RETRO", (cx, 20), RED, (110, 0, 20), self.huge, 3)
+        self.extruded(surf, "GRAND PRIX", (cx, 76), YELLOW, (150, 60, 0), self.huge, 3)
+        self._checker(surf, 140)
         rows = [(k["accelerate"], "ACCELERATE"), (k["brake"], "BRAKE"), (k["steer"], "STEER"), (k["back"], "QUIT")]
-        for i, (key, action) in enumerate(rows):
-            self.text(surf, key, (cx - 20, 262 + i * 36), YELLOW, self.font, "right")
-            self.text(surf, action, (cx + 20, 262 + i * 36), WHITE, self.font)
-        self.text(surf, "M = MAP    N = MUTE    [ ] = VOLUME", (cx, 424), CYAN, self.small, "center")
-        self._prompt(surf, t, f"PRESS {self.keys['confirm']} TO START", 480)
+        box = pygame.Rect(0, 176, 500, len(rows) * 38 + 26)
+        box.centerx = cx
+        panel(surf, box)
+        self.key_table(surf, pygame.Rect(box.x, box.y + 14, box.w, box.h - 14), rows)
+        strip = pygame.Rect(0, box.bottom + 12, box.w, 34)          # the secondary shortcuts: smaller, apart
+        strip.centerx = cx
+        panel(surf, strip, alpha=190)
+        self.text(surf, "M = MAP    N = MUTE    [ ] = VOLUME", (cx, strip.y + 9), CYAN, self.small, "center")
+        self._prompt(surf, t, "PRESS ENTER TO START", strip.bottom + 22)
 
-    def menu_frame(self, surf, title, footer):
+    def menu_frame(self, surf, title):
         surf.blit(self.scanlines, (0, 0))
-        self._checker(surf, 30)
-        self.extruded(surf, title, (S.WIDTH // 2, 70), YELLOW, (150, 60, 0), self.huge, 6)
-        self.text(surf, footer, (S.WIDTH // 2, S.HEIGHT - 56), CYAN, self.small, "center")
-
-    def _arrows(self, surf, cx, cy, kind, color):
-        """Little triangle pair: kind 'ud' (up/down) or 'lr' (left/right), centred at (cx, cy)."""
-        d = 7
-        if kind == "ud":
-            pts = (((cx, cy - 12), (cx - d, cy - 3), (cx + d, cy - 3)), ((cx, cy + 12), (cx - d, cy + 3), (cx + d, cy + 3)))
-        else:
-            pts = (((cx - 14, cy), (cx - 5, cy - d), (cx - 5, cy + d)), ((cx + 14, cy), (cx + 5, cy - d), (cx + 5, cy + d)))
-        for tri in pts:
-            pygame.draw.polygon(surf, BLACK, tri, 3)
-            pygame.draw.polygon(surf, color, tri)
-
-    def hint_row(self, surf, y, items):
-        """Centered control hints. items: [(icon 'ud' / 'lr' / None, label)] drawn as [arrows] LABEL."""
-        parts = []
-        for icon, label in items:
-            w = self.small.render(label, False, WHITE).get_width()
-            parts.append((icon, label, w + (32 if icon else 0)))
-        total = sum(p[2] for p in parts) + 34 * (len(parts) - 1)
-        x = (S.WIDTH - total) // 2
-        for icon, label, w in parts:
-            if icon:
-                self._arrows(surf, x + 12, y + 10, icon, YELLOW)
-                self.text(surf, label, (x + 32, y), CYAN, self.small)
-            else:
-                self.text(surf, label, (x, y), CYAN, self.small)
-            x += w + 34
+        self._checker(surf, CHECKER_Y)
+        self.extruded(surf, title, (S.WIDTH // 2, TITLE_Y), YELLOW, (150, 60, 0), self.huge, 3)
 
     def draw_mode_select(self, surf, options, index, t):
         """options: [(name, description, ai level name or None)]. The AI row and its hint appear only
         while a mode that has AI opponents is highlighted."""
-        self.menu_frame(surf, "SELECT MODE", "")
+        k = self.keys
+        self.menu_frame(surf, "SELECT MODE")
         has_ai = options[index][2] is not None
-        hints = [("ud", "MODE")] + ([("lr", "AI LEVEL")] if has_ai else []) + [(None, f"{self.keys['confirm']} SELECT"), (None, f"{self.keys['back']} BACK")]
-        self.hint_row(surf, S.HEIGHT - 60, hints)
+        self.footer_hints(surf, [(f"{k['accelerate']}/{k['brake']}", "MODE")]
+                          + ([(k["steer"], "AI LEVEL")] if has_ai else [])
+                          + [(k["confirm"], "SELECT"), (k["back"], "BACK")])
+        card_h, gap = 132, 24
+        top = CONTENT.y + (CONTENT.h - (len(options) * card_h + (len(options) - 1) * gap)) // 2
         cx = S.WIDTH // 2
         for i, (name, desc, ai) in enumerate(options):
-            y = 165 + i * 160
             on = i == index
-            self.text(surf, name, (cx, y), YELLOW if on else DIM, self.huge, "center")
-            self.text(surf, desc, (cx, y + 62), WHITE if on else (100, 100, 130), self.small, "center")
+            rect = pygame.Rect(0, top + i * (card_h + gap), 560, card_h)
+            rect.centerx = cx
+            panel(surf, rect, edge=mix((120, 100, 40), PANEL_HOT, pulse(t)) if on else None, alpha=228 if on else 150)
+            self.text(surf, name, (cx, rect.y + 10), YELLOW if on else DIM, self.huge, "center")
+            self.text(surf, desc, (cx, rect.y + 72), WHITE if on else (130, 130, 165), self.small, "center")
             if ai and on:
-                self.text(surf, f"AI LEVEL:  < {ai} >", (cx, y + 92), ORANGE, self.font, "center")
+                self.text(surf, f"AI LEVEL:  < {ai} >", (cx, rect.y + 94), ORANGE, self.font, "center")
             if on and int(t * 3) % 2 == 0:
-                self.text(surf, ">", (cx - 250, y), RED, self.huge, "center")
-                self.text(surf, "<", (cx + 250, y), RED, self.huge, "center")
+                self.text(surf, ">", (rect.x + 30, rect.y + 10), RED, self.huge)
+                self.text(surf, "<", (rect.right - 30 - 33, rect.y + 10), RED, self.huge)
 
-    def draw_track_select(self, surf, cards, index, t, scenery=""):
-        """cards: [(name, preview_surface, tagline)]."""
-        k = self.keys
-        self.menu_frame(surf, "SELECT TRACK", f"{k['accelerate']}/{k['brake']} TRACK  {k['steer']} SCENERY  {k['confirm']} OK  {k['back']} BACK")
-        self.text(surf, f"SCENERY: {scenery}", (S.WIDTH // 2, 160), CYAN, self.small, "center")
-        selected_tagline = cards[index][2]
-        if len(cards) > 3:
-            start = min(max(0, index - 1), len(cards) - 3)
-            self.text(surf, f"TRACK {index + 1}/{len(cards)}", (S.WIDTH // 2, 180), DIM, self.small, "center")
-            cards, index = cards[start:start+3], index-start
-        n, gap = len(cards), 16
-        w = cards[0][1].get_width()
-        x0 = (S.WIDTH - (n * w + (n - 1) * gap)) // 2
-        for i, (name, preview, tagline) in enumerate(cards):
-            x, y = x0 + i * (w + gap), 200
-            on = i == index
-            border = (YELLOW if int(t * 4) % 2 == 0 else WHITE) if on else (40, 40, 70)
-            pygame.draw.rect(surf, border, (x - 6, y - 6, preview.get_width() + 12, preview.get_height() + 12))
+    def draw_track_select(self, surf, cards, index, t, scenery="", track_lock="", scenery_lock=""):
+        """cards: [(name, preview_surface, tagline[, locked])]. Three previews (previous, selected, next)
+        with no names under them; the selected track's name, tagline and unlock status go in one info
+        panel. `track_lock` / `scenery_lock` are the lock messages (with price) of the selected items."""
+        k, n, cx = self.keys, len(cards), S.WIDTH // 2
+        self.menu_frame(surf, "SELECT TRACK")
+        self.footer_hints(surf, [(f"{k['accelerate']}/{k['brake']}", "TRACK"), (k["steer"], "SCENERY"),
+                                 (k["confirm"], "OK"), (k["back"], "BACK")])
+        self.text(surf, f"TRACK {index + 1} / {n}", (cx, 112), CYAN, self.small, "center")
+        w, h = CARD_SIZE
+        gap, y = 16, 140
+        offsets = (-1, 0, 1) if n >= 3 else tuple(range(n))
+        total = len(offsets) * w + (len(offsets) - 1) * gap
+        x0 = (S.WIDTH - total) // 2
+        for slot, off in enumerate(offsets):
+            name, preview, tagline, *rest = cards[(index + off) % n]
+            x, on = x0 + slot * (w + gap), off == 0
+            pygame.draw.rect(surf, (YELLOW if int(t * 4) % 2 == 0 else WHITE) if on else (40, 40, 70),
+                             (x - 6, y - 6, w + 12, h + 12))
             surf.blit(preview, (x, y))
             if not on:
-                shade = pygame.Surface(preview.get_size(), pygame.SRCALPHA)
-                shade.fill((0, 0, 20, 120))
+                shade = pygame.Surface((w, h), pygame.SRCALPHA)
+                shade.fill((0, 0, 20, 130))
                 surf.blit(shade, (x, y))
-            self.text(surf, name, (x + w // 2, y + preview.get_height() + 22), YELLOW if on else DIM, self.font, "center")
-        self.text(surf, selected_tagline, (S.WIDTH // 2, 420), CYAN, self.font, "center")
+            if rest and rest[0]:                                        # a small LOCKED tag, top-left
+                tag = pygame.Rect(x + 4, y + 4, 74, 21)
+                pygame.draw.rect(surf, (20, 10, 35), tag)
+                self.text(surf, "LOCKED", (tag.x + 5, tag.y + 2), PINK, self.small, shadow=False)
+        name, _, tagline, *_ = cards[index]
+        info = pygame.Rect(x0 - 6, 284, total + 12, 96)
+        panel(surf, info, edge=PANEL_HOT, alpha=228)
+        self.text(surf, name, (info.x + 18, info.y + 12), YELLOW, fit_font((self.big, self.font), name, info.w - 36 - 190))
+        self.text(surf, track_lock or "UNLOCKED", (info.right - 18, info.y + 22), PINK if track_lock else GREEN,
+                  self.small, "right")
+        self.text(surf, tagline, (info.x + 18, info.y + 58), CYAN, self.small)
+        self.text(surf, f"SCENERY: {scenery}", (info.x, 390), CYAN, self.small)
+        if scenery_lock:
+            self.text(surf, scenery_lock, (info.right, 390), PINK, self.small, "right")
 
     def draw_end(self, surf, manager, state, t, end_t):
         surf.blit(self.scanlines, (0, 0))
-        cx = S.WIDTH // 2
+        cx, k = S.WIDTH // 2, self.keys
         title, rows = manager.summary(state, end_t)
         flash = (YELLOW, WHITE, ORANGE) if state is State.FINISHED else (RED, WHITE, RED)
-        self._checker(surf, 60)
-        self._checker(surf, 500)
-        self.extruded(surf, title, (cx, 96), flash[int(t * 5) % 3], (110, 40, 0),
-                      self.title if len(title) <= 8 else self.huge, 6)
+        self._checker(surf, CHECKER_Y)
+        self.extruded(surf, title, (cx, TITLE_Y), flash[int(t * 5) % 3], (110, 40, 0),
+                      fit_font((self.huge, self.big), title, S.WIDTH - 2 * MARGIN - 20), 3)
         order = manager.standings_lines(state)
+        top = 126
         if order:       # race results: stats on the left, finishing order on the right
+            stats = pygame.Rect(MARGIN, top, 360, 300)
+            board = pygame.Rect(stats.right + 16, top, S.WIDTH - MARGIN - stats.right - 16, 300)
+            panel(surf, stats)
+            panel(surf, board)
             for i, (label, value) in enumerate(rows):
-                y = 190 + i * 50
-                self.text(surf, label, (40, y), CYAN, self.font)
-                self.text(surf, value, (400, y), YELLOW, self.font, "right")
-            self.text(surf, "FINAL ORDER", (450, 158), CYAN, self.small)
+                y = stats.y + 22 + i * 62
+                self.text(surf, label, (stats.x + 18, y), CYAN, self.small)
+                self.text(surf, value, (stats.x + 18, y + 20), YELLOW, self.font)
+            self.text(surf, "FINAL ORDER", (board.x + 18, board.y + 12), CYAN, self.small)
             swatches = manager.standings_colors(state)
             for i, line in enumerate(order):
-                y, mine = 190 + i * 36, line.endswith("PLAYER")
+                y, mine = board.y + 40 + i * 41, line.endswith("PLAYER")
                 if mine:        # highlighted band + arrow so the player's row can't be missed
-                    pygame.draw.rect(surf, (96, 72, 0), (420, y - 5, 372, 38))
-                    pygame.draw.rect(surf, YELLOW, (420, y - 5, 372, 38), 2)
-                    pygame.draw.polygon(surf, YELLOW, ((428, y + 2), (428, y + 22), (442, y + 12)))
+                    band = pygame.Rect(board.x + 10, y - 3, board.w - 20, 38)
+                    pygame.draw.rect(surf, (96, 72, 0), band)
+                    pygame.draw.rect(surf, YELLOW, band, 2)
+                    pygame.draw.polygon(surf, YELLOW, ((band.x + 8, y + 6), (band.x + 8, y + 26), (band.x + 22, y + 16)))
                 if i < len(swatches):
-                    pygame.draw.rect(surf, swatches[i], (452, y + 4, 18, 18))
-                    pygame.draw.rect(surf, YELLOW if mine else (0, 0, 0), (452, y + 4, 18, 18), 2)
-                self.text(surf, line, (480, y), YELLOW if mine else WHITE, self.font)
+                    pygame.draw.rect(surf, swatches[i], (board.x + 34, y + 8, 18, 18))
+                    pygame.draw.rect(surf, YELLOW if mine else (0, 0, 0), (board.x + 34, y + 8, 18, 18), 2)
+                self.text(surf, line, (board.x + 64, y), YELLOW if mine else WHITE, self.font)
         else:
-            step = 56 if len(rows) > 3 else 62
+            box = pygame.Rect(0, top, 520, 300)
+            box.centerx = cx
+            panel(surf, box)
+            step = 62 if len(rows) <= 4 else 52
             for i, (label, value) in enumerate(rows):
-                y = 196 + i * step
-                self.text(surf, label, (150, y), CYAN, self.big)
-                self.text(surf, value, (S.WIDTH - 150, y), YELLOW, self.big, "right")
-        self._prompt(surf, t, manager.again_text, 432)
-        self.text(surf, f"{self.keys['menu']} = MENU", (cx, 470), DIM, self.small, "center")
+                y = box.y + 24 + i * step
+                self.text(surf, label, (box.x + 26, y), CYAN, self.big)
+                self.text(surf, value, (box.right - 26, y), YELLOW, self.big, "right")
+        self._prompt(surf, t, manager.again_text, 446)
+        self.footer_hints(surf, [(k["menu"], "MENU")])
