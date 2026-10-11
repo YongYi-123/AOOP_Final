@@ -261,6 +261,13 @@ MACHINES = [
         "slot": "wall_4", "neon": (176, 96, 255), "accent": (90, 240, 255),
         "screen": "cat", "play_cost": 1,
     },
+    {
+        "id": "galaxy_defender", "name": "Starfall Assault", "marquee": "STARFALL ASSAULT",
+        "description": "Fly your starfighter against endless waves of alien drones. "
+                       "Grab power cores, chain combos and beat the Mothership!",
+        "slot": "wall_1", "neon": (90, 240, 255), "accent": (255, 110, 210),
+        "screen": "galaxy", "play_cost": 1,
+    },
 ]
 
 
