@@ -13,6 +13,7 @@ from settings import BACK_KEYS, CONFIRM_KEYS, VIEW_W, Col
 
 
 class ChanceGameScene(BaseScene):
+    music_id = "lucky_corner"
     AGAIN_DELAY = 0.7       # after a result, before E can deal the next (charged) round
 
     def __init__(self, game, game_cls, player=None):

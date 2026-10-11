@@ -69,9 +69,11 @@ class CardView:
     def __init__(self, card, vis_at, hole=False):
         self.card, self.vis_at, self.hole = card, vis_at, hole
         self.flip_at = None             # when a face-down hole card turns over
+        self.sounded = vis_at < 0       # the deal sound was played (cards restored from a save are silent)
 
 
 class Neon21Scene(BaseScene):
+    music_id = "lucky_corner"
     spectator_corner = "bottomright"
     spectator_offset = (4, 3)
 
@@ -273,6 +275,12 @@ class Neon21Scene(BaseScene):
     # ------------------------------------------------------------ update
     def update(self, dt):
         self.time += dt
+        for view in self.player_views + self.dealer_views:
+            if not view.sounded and self.time >= view.vis_at:
+                view.sounded = True
+                audio = getattr(self.game, "audio", None)
+                if audio is not None:
+                    audio.play("card")
         if self.frozen and self._banner_visible():
             self.frozen = None
         if self._pending_burst and self._banner_visible():

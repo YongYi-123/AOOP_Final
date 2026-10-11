@@ -5,6 +5,7 @@ their own saved profile.
 Run with:  python main.py [--style neon_lofi|lofi|neon] [--debug]
 """
 import argparse
+import os
 import sys
 import time
 
@@ -60,6 +61,7 @@ if __name__ == "__main__":
     try:
         # The old single save (save_data.json) is carried into the profile system once.
         profiles = ProfileManager(SAVES_DIR, legacy_path=SAVE_FILE)
-        Game(style=args.style, debug=args.debug, profiles=profiles).run()
+        Game(style=args.style, debug=args.debug, profiles=profiles,
+             audio_prefs=os.path.join(SAVES_DIR, "audio.json")).run()
     finally:
         lock.release()
