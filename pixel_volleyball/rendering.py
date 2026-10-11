@@ -17,7 +17,7 @@ class VolleyRenderer:
         image = self.font.render_glow(text, color, (35, 20, 65), scale)
         surface.blit(image, image.get_rect(center=center))
 
-    def draw(self, surface, match, effects=None):
+    def draw(self, surface, match, effects=None, hints=None):
         surface.fill((10, 5, 28))
         for y in range(48, 180, 8):
             surface.fill((25 + y // 9, 12, 50 + y // 4), (0, y, 400, 8))
@@ -35,10 +35,16 @@ class VolleyRenderer:
         if effects is not None:
             effects.draw(surface)
         self.yarn.draw(surface, match.ball)
+        if effects is not None:
+            for x, y, age in effects.popups:
+                self.text(surface, "SMASH!", (round(x), round(y - 20 - age * 30)),
+                          YELLOW if age < .3 else PINK)
         self.text(surface, "CAT VOLLEYBALL", (200, 16), PINK, 2)
         self.text(surface, f"P1  {match.points[0]} : {match.points[1]}  {'SANDRA' if match.local_players == 1 else 'P2'}",
                   (200, 39), YELLOW, 2)
-        self.text(surface, "MOVE LEFT/RIGHT  UP JUMP  ITEM SMASH", (200, 280))
+        lines = hints or ("MOVE  JUMP  SMASH (IN AIR)",)
+        for i, line in enumerate(lines):
+            self.text(surface, line, (200, 293 - 10 * (len(lines) - i)))
         self.text(surface, "MENU PAUSE  BACKSPACE RESTART  ESC LOBBY", (200, 293))
         if match.state is MatchState.TITLE:
             self.panel(surface, ("FIRST TO FIVE", "CHALLENGE SANDRA" if match.local_players == 1 else "LOCAL TWO PLAYER", "E / ENTER TO START"))

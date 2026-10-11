@@ -4,9 +4,7 @@ from enum import Enum
 import math
 from .ai import VolleyAI
 from .smash import SmashAttack
-
-WIDTH, HEIGHT, FLOOR, NET_X, NET_TOP = 400, 300, 258, 200, 162
-GRAVITY = 620.0
+from .court import WIDTH, HEIGHT, FLOOR, NET_X, NET_TOP, GRAVITY
 
 
 class MatchState(Enum):
@@ -65,6 +63,7 @@ class VolleyMatch:
         self.elapsed = 0.0
         self.outcome = None
         self.events = []
+        self.impacts = []
         self.ai = VolleyAI()
         self._serve(0)
 
@@ -88,7 +87,7 @@ class VolleyMatch:
                           else MatchState.PLAYING)
 
     def update(self, dt, controls=()):
-        self.events = []
+        self.events, self.impacts = [], []
         if self.state is not MatchState.PLAYING or dt <= 0:
             return
         remaining = min(dt, 0.1)
@@ -184,13 +183,14 @@ class VolleyMatch:
         if spike:
             aim = None
             if player.side == 1 and self.local_players == 1:
-                aim = 45 if self.players[0].x > 105 else 155
+                aim = 60 if self.players[0].x > 120 else 150
             ball.vx, ball.vy = player.attack.velocity(player, ball, aim)
             player.attack.connected = True
             ball.smash_left = .4
         player.hit_flash = .2
         player.hit_cooldown = 0.18
         self.events.append("spike" if spike else "hit")
+        self.impacts.append((ball.x, ball.y, "spike" if spike else "hit", player.side))
 
     def award_point(self, side):
         if self.state is not MatchState.PLAYING:

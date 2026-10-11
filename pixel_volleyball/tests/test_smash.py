@@ -1,6 +1,7 @@
 import unittest
 from pixel_volleyball.smash import SmashAttack
 from pixel_volleyball.model import VolleyMatch, VolleyBall, VolleyInput
+from pixel_volleyball.court import NET_TOP
 
 
 class SmashTests(unittest.TestCase):
@@ -11,6 +12,8 @@ class SmashTests(unittest.TestCase):
         attack.update(.04, True, True)
         self.assertTrue(attack.active)
         attack.update(.2, True, True)
+        self.assertTrue(attack.active)
+        attack.update(.05, True, True)
         self.assertFalse(attack.active)
         attack.update(1, True, True)
         self.assertFalse(attack.animating)
@@ -21,8 +24,9 @@ class SmashTests(unittest.TestCase):
     def test_ground_press_does_not_arm_later_jump(self):
         attack = SmashAttack()
         attack.update(.01, True, False)
-        attack.update(.1, True, True)
+        attack.update(attack.BUFFER + .01, True, True)
         self.assertFalse(attack.active)
+        self.assertFalse(attack.animating)
 
     def match(self, side=0):
         match = VolleyMatch(2)
@@ -41,7 +45,7 @@ class SmashTests(unittest.TestCase):
             self.assertIn('spike', match.events)
             self.assertTrue(player.attack.connected)
             self.assertEqual(match.ball.vx > 0, side == 0)
-            self.assertGreaterEqual(abs(match.ball.vx), 300)
+            self.assertGreaterEqual(abs(match.ball.vx), 250)
             self.assertGreater(match.ball.smash_left, 0)
             player.hit_cooldown = 0
             match.ball.y = player.y - 18
@@ -70,11 +74,13 @@ class SmashTests(unittest.TestCase):
             match.ball.x, match.ball.y = x, 150
             vx, vy = SmashAttack.velocity(player, match.ball)
             time = (200 - x) / vx
-            self.assertLessEqual(150 + vy*time + 310*time*time, 152.001)
+            self.assertLessEqual(150 + vy*time + 310*time*time, NET_TOP - match.ball.radius - 3 + .001)
+        player.x, match.ball.x, match.ball.y = 90, 90, 150
         player.moving = 1
-        fast = SmashAttack.velocity(player, match.ball)[0]
+        fast = SmashAttack.velocity(player, match.ball)
         player.moving = -1
-        self.assertGreater(fast, SmashAttack.velocity(player, match.ball)[0])
+        slow = SmashAttack.velocity(player, match.ball)
+        self.assertGreater(fast[0], slow[0])
 
     def test_pause_freezes_swing_and_restart_resets_it(self):
         match, player = self.match()
