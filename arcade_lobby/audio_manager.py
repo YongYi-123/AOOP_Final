@@ -13,14 +13,35 @@ ASSET_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets")
 # theme -> music file (assets/music/<file>.wav, composed by audio_synth.py). The hub's own
 # theme keeps its old name "lobby". Minigame themes below are short synthesized loops.
 MUSIC_FILES = {"lobby": "arcade_floor", "prize_plaza": "prize_plaza", "lucky_corner": "lucky_corner",
-               "home": "home"}
+               "home": "home",
+               # one theme per minigame (the key is the machine / game id the scene reports)
+               "retro_racer": "retro_racer", "pixel_volleyball": "pixel_volleyball", "cat_minesweeper": "cat_minesweeper",
+               "galaxy_defender": "galaxy_defender", "neon21": "neon21", "lucky_wheel": "lucky_wheel",
+               "high_low": "high_low"}
+# Per-track level so every theme sits at the same perceived loudness (the files are not touched). The room themes
+# were mastered up to 1.7 dB louder than the minigame ones; the racing track sits low so the engine stays on top.
+TRACK_GAIN = {"lobby": .86, "home": .82, "lucky_corner": .87, "prize_plaza": 1.0, "retro_racer": .72}
+SFX_CHANNELS = 4        # mixer channels 0-1 = racer engine, 2-3 = music crossfade; effects use the rest
 SFX_FILES = ("footstep", "confirm", "cancel", "machine", "token", "ticket", "purchase", "card", "equip",
              "pet", "emote", "sit", "meow")
 # some effects are meant to be barely there
-SFX_GAIN = {"footstep": 0.3, "card": 0.7, "confirm": 0.8, "cancel": 0.8, "sit": 0.7, "emote": 0.8, "meow": 0.6}
-MIN_GAP = {"footstep": 0.16, "meow": 1.2}            # seconds between two plays of the same effect (default .06)
+SFX_GAIN = {"footstep": 0.3, "card": 0.7, "confirm": 0.8, "cancel": 0.8, "sit": 0.7, "emote": 0.8, "meow": 0.6,
+            # the shooter fires dozens of these a second of play: keep them a soft texture, not a buzz
+            "laser": 0.3, "boom": 0.75, "point": 0.8, "skid": 0.6, "bounce": 0.8}
+MIN_GAP = {"footstep": 0.16, "meow": 1.2, "laser": 0.14, "boom": 0.09, "point": 0.1, "bounce": 0.08,
+           "hit": 0.07}                              # seconds between two plays of the same effect (default .06)
 DEFAULT_BGM, DEFAULT_SFX = .5, .7      # the music files are mastered at about -14 dB, so .5 is comfortable
-FADE_MS = 700
+FADE_MS = 700           # music crossfade length, driven by game time (not by the audio clock: a stalled device cannot freeze it)
+WATCHDOG_GRACE = .35    # seconds the music may be missing before it is restarted
+REINIT_EVERY = 5.0      # seconds between attempts to open the device again after a failed start
+DUCK_PAUSED = .4        # music level while a game is paused
+
+_SOUND_CACHE = {}       # (path, mixer format) -> Sound: a theme is read from disk once per run
+
+
+THEME_TITLES = {"lobby": "ARCADE FLOOR", "prize_plaza": "PRIZE PLAZA", "lucky_corner": "LUCKY CORNER", "home": "HOME",
+                "retro_racer": "RETRO RACER", "pixel_volleyball": "CAT VOLLEYBALL", "cat_minesweeper": "CAT TERRITORY",
+                "galaxy_defender": "STARFALL ASSAULT", "neon21": "NEON 21", "lucky_wheel": "SPIN", "high_low": "HI-LO"}
 
 
 def _unit(value, default):
@@ -59,6 +80,13 @@ class AudioManager:
         self.enabled, self.active, self.time = False, 0, 0.0
         self.last_effect = {}
         self.music_starts = 0           # how many times a track was (re)started: lets tests see "no restart"
+        self.closed = False             # stop() was called: the watchdog leaves the silence alone
+        self.mix = [0.0, 0.0]           # how far each music channel is faded in (0..1)
+        self.mix_to = [0.0, 0.0]        # where it is heading
+        self.duck = 1.0                 # 1.0 normal; lower while a game is paused
+        self.unhealthy = 0.0            # seconds the current theme has been missing from its channel
+        self.recoveries = 0             # times the watchdog had to restart the music
+        self.retry_in = 0.0
         self.init_error = None          # why the mixer could not start (None: it started)
         self.last_error = None          # the most recent playback / loading problem
         self.load_prefs()
@@ -76,8 +104,8 @@ class AudioManager:
             self.rate, sample_format, self.stereo = pygame.mixer.get_init()
             if sample_format != -16:
                 raise pygame.error(f"unsupported sample format {sample_format}")
-            pygame.mixer.set_num_channels(max(16, pygame.mixer.get_num_channels()))
-            pygame.mixer.set_reserved(4)  # 0/1 engine, 2/3 music crossfade
+            pygame.mixer.set_num_channels(max(24, pygame.mixer.get_num_channels()))
+            pygame.mixer.set_reserved(SFX_CHANNELS)  # 0/1 engine, 2/3 music crossfade
             self.channels = [pygame.mixer.Channel(2), pygame.mixer.Channel(3)]
             self.enabled, self.init_error = True, None
             log.info("audio ready: driver=%s %s", self.driver, pygame.mixer.get_init())
@@ -86,6 +114,7 @@ class AudioManager:
                 self.switch(theme)
         except (pygame.error, TypeError, ValueError) as exc:
             self.init_error = str(exc)
+            self.retry_in = REINIT_EVERY
             log.warning("AUDIO DISABLED - the mixer could not start: %s%s", exc, self.hint())
         return self.enabled
 
@@ -125,7 +154,8 @@ class AudioManager:
         sfx = {n: os.path.isfile(os.path.join(self.asset_dir, "sfx", f"{n}.wav")) for n in SFX_FILES}
         return {"enabled": self.enabled, "mixer": pygame.mixer.get_init(), "driver": self.driver,
                 "init_error": self.init_error, "last_error": self.last_error, "theme": self.theme,
-                "music_playing": self.music_playing(), "muted": self.muted,
+                "music_playing": self.music_playing(), "muted": self.muted, "duck": self.duck,
+                "recoveries": self.recoveries,
                 "music_volume": self.bgm_volume, "effective_music": self._music_level(),
                 "sfx_volume": self.sfx_volume, "effective_sfx": self.effective_sfx,
                 "missing_music": [t for t, ok in files.items() if not ok],
@@ -201,8 +231,12 @@ class AudioManager:
     def _load(self, folder, name):
         """A Sound from assets/<folder>/<name>.wav, or None if the file is missing / unreadable."""
         path = os.path.join(self.asset_dir, folder, f"{name}.wav")
+        key = (path, pygame.mixer.get_init())
+        if key in _SOUND_CACHE:
+            return _SOUND_CACHE[key]
         try:
-            return pygame.mixer.Sound(path)
+            _SOUND_CACHE[key] = sound = pygame.mixer.Sound(path)
+            return sound
         except (pygame.error, FileNotFoundError, OSError) as exc:
             log.warning("missing or unreadable sound file %s (%s) - using a synthesized stand-in", path, exc)
             self.last_error = f"load {folder}/{name}: {exc}"
@@ -220,18 +254,43 @@ class AudioManager:
 
     # ------------------------------------------------------------ volumes / mute
     def _music_level(self):
-        return 0.0 if self.muted else self.bgm_volume
+        return 0.0 if self.muted else self.bgm_volume * self.duck
+
+    def set_duck(self, factor):
+        """Lower (or restore, with 1.0) the music under a pause menu. Takes effect at once."""
+        factor = max(0.0, min(1.0, factor))
+        if factor != self.duck:
+            self.duck = factor
+            self._apply_volumes()
+
+    def _channel_level(self, i):
+        return self._music_level() * math.sin(self.mix[i] * math.pi / 2)        # equal-power fade curve
 
     def _apply_volumes(self):
         if not self.enabled:
             return
         try:
-            for channel in self.channels:
-                channel.set_volume(self._music_level())
+            for i, channel in enumerate(self.channels):
+                channel.set_volume(self._channel_level(i))
             for name, sound in self.sounds.items():
                 sound.set_volume(self.sfx_volume * SFX_GAIN.get(name, 1.0))
         except pygame.error as exc:
-            self._fail("set volume", exc, disable=True)
+            self._fail("set volume", exc)
+
+    def _fade(self, dt):
+        """Move the crossfade along by `dt` seconds of game time; a track that has faded out is stopped for good."""
+        if not self.enabled or self.mix == self.mix_to:
+            return
+        step = dt * 1000.0 / FADE_MS
+        for i in (0, 1):
+            self.mix[i] = min(self.mix_to[i], self.mix[i] + step) if self.mix[i] < self.mix_to[i] \
+                else max(self.mix_to[i], self.mix[i] - step)
+            if self.mix[i] <= 0 and self.mix_to[i] <= 0:
+                try:
+                    self.channels[i].stop()
+                except pygame.error as exc:
+                    self._fail("stop faded-out music", exc)
+        self._apply_volumes()
 
     def set_volumes(self, bgm=None, sfx=None):
         if bgm is not None:
@@ -251,6 +310,11 @@ class AudioManager:
         return self.muted
 
     @property
+    def track_title(self):
+        """The name of the music that is playing, for on-screen readouts."""
+        return THEME_TITLES.get(self.theme, "")
+
+    @property
     def effective_sfx(self):
         """The effect volume games should use right now (0 when muted)."""
         return 0.0 if self.muted else self.sfx_volume
@@ -265,20 +329,81 @@ class AudioManager:
         if theme == self.theme:
             return
         self.theme = theme
-        if not self.enabled:
-            return
+        self.unhealthy = 0.0
+        self.closed = False
+        if self.enabled:
+            self._start_track(theme)
+
+    def _start_track(self, theme):
+        """Start `theme` on the idle music channel and fade the previous one out (see _fade)."""
         try:
             if theme not in self.music:
                 self.music[theme] = self._music_sound(theme)
-            self.channels[self.active].fadeout(FADE_MS)
-            self.active = 1 - self.active
-            channel = self.channels[self.active]
-            channel.set_volume(self._music_level())
-            channel.play(self.music[theme], loops=-1, fade_ms=FADE_MS)
+            self.music[theme].set_volume(TRACK_GAIN.get(theme, 1.0))
+            old, new = self.active, 1 - self.active
+            channel = self.channels[new]
+            if not channel.get_busy():
+                self.mix[new] = 0.0                  # (a channel still fading out keeps its level: no jump)
+            self.mix_to[old], self.mix_to[new] = 0.0, 1.0
+            channel.set_volume(self._channel_level(new))
+            channel.play(self.music[theme], loops=-1)
+            channel.set_volume(self._channel_level(new))          # (playing may reset the channel volume)
+            self.active = new
             self.music_starts += 1
             log.info("music: %s", theme)
         except (pygame.error, MemoryError) as exc:
-            self._fail(f"start music '{theme}'", exc, disable=True)
+            self._fail(f"start music '{theme}'", exc)
+
+    def preload(self):
+        """Read every theme and effect from disk now (and build the stand-in beeps), so
+        nothing is loaded or synthesized in the middle of play."""
+        if not self.enabled:
+            return
+        try:
+            for theme in MUSIC_FILES:
+                if theme not in self.music:
+                    self.music[theme] = self._music_sound(theme)
+            for name in (*SFX_FILES, *self.EFFECTS):
+                if name not in self.sounds:
+                    sound = self._effect_sound(name)
+                    if sound is not None:
+                        self.sounds[name] = sound
+            self._apply_volumes()
+        except (pygame.error, MemoryError) as exc:
+            self._fail("preload", exc)
+
+    def _watch(self, dt):
+        """Self-healing: if the current theme is not actually on its channel (something stopped it, the
+        crossfade was interrupted, the device came back) start it again. Silence cannot last."""
+        if self.closed:
+            return
+        if not self.enabled:
+            self.retry_in -= dt
+            if self.retry_in <= 0:
+                self.retry_in = REINIT_EVERY
+                if pygame.mixer.get_init() is None or self.init_error:
+                    self.init_mixer()
+            return
+        if pygame.mixer.get_init() is None:               # somebody closed the mixer under us
+            log.error("the mixer was closed by another module; reopening it")
+            self.init_mixer()
+            return
+        if not self.theme:
+            return
+        try:
+            channel = self.channels[self.active]
+            alive = channel.get_busy() and channel.get_sound() is self.music.get(self.theme)
+            if alive:
+                self.unhealthy = 0.0
+                return
+            self.unhealthy += dt
+            if self.unhealthy >= WATCHDOG_GRACE:
+                self.unhealthy = 0.0
+                self.recoveries += 1
+                log.warning("music '%s' stopped unexpectedly; restarting it", self.theme)
+                self._start_track(self.theme)
+        except pygame.error as exc:
+            self._fail("music watchdog", exc)
 
     set_track = switch
 
@@ -298,16 +423,21 @@ class AudioManager:
             self.sounds[name].play()
             self.last_effect[name] = self.time
         except pygame.error as exc:
-            self._fail(f"play effect '{name}'", exc, disable=True)
+            self._fail(f"play effect '{name}'", exc)
 
     def update(self, dt):
         self.time += max(0, dt)
+        self._fade(max(0, dt))
+        self._watch(max(0, dt))
 
     def stop(self):
+        """Silence everything (the program is closing); the watchdog will not bring the music back."""
+        self.closed = True
         if self.enabled:
             try:
                 for channel in self.channels:
                     channel.stop()
+                self.mix, self.mix_to = [0.0, 0.0], [0.0, 0.0]
                 for sound in self.sounds.values():
                     sound.stop()
             except pygame.error as exc:
