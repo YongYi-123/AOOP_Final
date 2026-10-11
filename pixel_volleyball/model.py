@@ -194,7 +194,7 @@ class VolleyMatch:
         if spike:
             aim = None
             if player.side == 1 and self.local_players == 1:
-                aim = 60 if self.players[0].x > 120 else 150
+                aim = self.ai.smash_aim(self.players[0].x)
             ball.vx, ball.vy = player.attack.velocity(player, ball, aim)
             player.attack.connected = True
             ball.smash_left = .4

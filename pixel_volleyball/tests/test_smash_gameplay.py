@@ -368,8 +368,8 @@ class SmashAiTests(unittest.TestCase):
         return match, spikes
 
     def test_sandra_smashes_in_solo_play_toward_the_player_court(self):
-        match, spikes = self.solo_rally()
-        self.assertGreaterEqual(len(spikes), 3)
+        match, spikes = self.solo_rally(60)                 # Sandra smashes one offered ball in four
+        self.assertGreaterEqual(len(spikes), 2)
         for _, (x, y, kind, side) in spikes:
             self.assertEqual(side, 1)
             self.assertLess(y, NET_TOP)
@@ -397,6 +397,21 @@ class SmashAiTests(unittest.TestCase):
         self.assertTrue(30 < match.ball.x < 370)
         self.assertGreaterEqual(fly(match)['angle'], 40)
 
+    def test_most_of_sandras_smashes_land_near_the_human_where_they_can_be_returned(self):
+        for p1_x in (60, 100, 150):
+            match = VolleyMatch(1)
+            match.start()
+            match.serve_delay = 0
+            match.players[0].x, match.players[0].y = p1_x, -500
+            sandra = match.players[1]
+            sandra.y = 172
+            sandra.attack.age = .08
+            match.ball = VolleyBall(sandra.x - 6, 154, 0, 0)
+            match.ai.smashes = 0                                 # the first Smash is not the placed one
+            match._player_collision(sandra)
+            self.assertIn('spike', match.events)
+            self.assertLess(abs(fly(match)['land'][0] - p1_x), 45)
+
     def test_ai_aims_away_from_the_player_without_leaving_the_court(self):
         for p1_x in (40, 100, 180):
             match = VolleyMatch(1)
@@ -408,6 +423,7 @@ class SmashAiTests(unittest.TestCase):
             sandra.y = 172
             sandra.attack.age = .08
             match.ball = VolleyBall(sandra.x - 6, 154, 0, 0)
+            match.ai.smashes = VolleyAI.SMASH_AIM_EVERY - 1      # this is the Smash she places away from the human
             match._player_collision(sandra)
             self.assertIn('spike', match.events)
             flight = fly(match)

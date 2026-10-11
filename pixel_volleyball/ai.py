@@ -5,15 +5,16 @@ from .smash import SmashAttack
 
 
 class VolleyAI:
-    """Sandra is a friendly opponent: she re-aims every 200 ms with a visible
-    positioning error, is slow to react to one incoming ball in three (LAPSE_EVERY),
-    and goes for a Smash on one offered ball in three. She uses ordinary player
+    """Sandra is a friendly opponent: she re-aims every 180 ms with a visible
+    positioning error, is caught napping by one incoming ball in four (LAPSE_EVERY),
+    and goes for a Smash on one offered ball in four (SMASH_EVERY). She uses ordinary player
     inputs and the same movement speed as a human."""
-    REACTION = 0.14
-    ERROR = 12
-    LAPSE_EVERY = 4         # every 3rd ball that crosses to her side catches her out
-    LAPSE_DELAY = .22       # extra seconds before she starts moving on that ball
-    SMASH_EVERY = 3         # she smashes one offered ball in three
+    REACTION = .18
+    ERROR = 16
+    LAPSE_EVERY = 4         # every 4th ball struck toward her catches her napping
+    LAPSE_DELAY = .25       # she stands still this long (seconds) on that ball
+    SMASH_EVERY = 4         # she smashes one offered ball in four
+    SMASH_AIM_EVERY = 2     # only every 2nd Smash is placed away from the human; the rest go straight at them
     SMASH_SHOCK = .30       # a Smash coming over costs her this long: it can score, if she is out of position
 
     def __init__(self):
@@ -25,9 +26,18 @@ class VolleyAI:
         self.had_chance = False
         self.going_for_smash = False
         self.prev_incoming = False
+        self.smashes = 0
         self.freeze = 0.0
         self.balls_received = 0
         self.lapse = False
+
+    def smash_aim(self, human_x):
+        """Landing x for Sandra's Smash. Every SMASH_AIM_EVERY-th one is placed away from the
+        human; the others land near where the human is standing, so they can be returned."""
+        self.smashes += 1
+        if self.smashes % self.SMASH_AIM_EVERY == 0:
+            return 60 if human_x > 120 else 150
+        return max(60, min(150, human_x))
 
     @staticmethod
     def predict(ball):

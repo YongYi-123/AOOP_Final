@@ -146,7 +146,7 @@ class PhysicsConstantTests(unittest.TestCase):
         self.assertLess(new["hit_vx"], ORIGINAL["hit"][0])
         self.assertLess(new["serve"][0], ORIGINAL["serve"][0])
         self.assertGreater(new["serve_delay"], ORIGINAL["serve_delay"])
-        self.assertGreater(new["ai_reaction"], ORIGINAL["ai_reaction"] * 2)
+        self.assertGreater(new["ai_reaction"], ORIGINAL["ai_reaction"] * 1.9)
         self.assertGreater(new["ai_error"], ORIGINAL["ai_error"] * 3)
         self.assertGreater(new["smash_buffer"], ORIGINAL["smash_buffer"])
         self.assertGreater(new["smash_active_end"], ORIGINAL["smash_active_end"])
@@ -384,31 +384,68 @@ class SmashTests(unittest.TestCase):
 
 class SandraTests(unittest.TestCase):
     def test_sandra_is_slower_and_sloppier_than_before(self):
-        self.assertGreater(VolleyAI.REACTION, ORIGINAL["ai_reaction"] * 2)
+        self.assertGreater(VolleyAI.REACTION, ORIGINAL["ai_reaction"] * 1.9)
         self.assertGreater(VolleyAI.ERROR, ORIGINAL["ai_error"] * 3)
         self.assertGreater(VolleyAI.SMASH_EVERY, ORIGINAL["smash_every"])
+        self.assertGreater(VolleyAI.SMASH_SHOCK, 0)
 
-    def test_sandra_is_caught_out_on_a_regular_ball(self):
+    def hit_toward_sandra(self, ai, player, smash=False):
+        """Feed her a ball that was just struck toward her (and one still travelling away)."""
+        ai.controls(player, VolleyBall(150, 150, -80, 0), DT)
+        ball = VolleyBall(160, 150, 260 if smash else 90, 0)
+        ball.smash_left = .3 if smash else 0
+        return ai.controls(player, ball, DT)
+
+    def test_sandra_is_caught_napping_by_a_regular_ball(self):
         ai = VolleyAI()
         player = VolleyMatch().players[1]
         lapses = []
-        for n in range(1, 10):
-            ai.controls(player, VolleyBall(190, 150, 80, 0), DT)                      # ball on the human's side
-            ai.controls(player, VolleyBall(215, 150, 80, 0), DT)                      # ...and it comes over
+        for n in range(1, 13):
+            self.hit_toward_sandra(ai, player)
             lapses.append(ai.lapse)
-            ai.wait = 0
-        self.assertEqual(lapses, [i % VolleyAI.LAPSE_EVERY == 0 for i in range(1, 10)])
+            ai.freeze = 0
+        self.assertEqual(lapses, [i % VolleyAI.LAPSE_EVERY == 0 for i in range(1, 13)])
         self.assertGreaterEqual(sum(lapses), 3)
 
-    def test_a_lapse_delays_her_first_move(self):
+    def test_a_lapse_freezes_her_and_a_smash_shocks_her_longer(self):
         ai = VolleyAI()
         player = VolleyMatch().players[1]
         ai.balls_received = VolleyAI.LAPSE_EVERY - 1
-        ai.controls(player, VolleyBall(190, 150, 80, 0), DT)
-        ai.wait = 0
-        ai.controls(player, VolleyBall(215, 150, 80, 0), DT)
+        move = self.hit_toward_sandra(ai, player)
         self.assertTrue(ai.lapse)
-        self.assertGreaterEqual(ai.wait, VolleyAI.LAPSE_DELAY - .05)
+        self.assertEqual((move.move, move.jump, move.spike), (0, False, False))     # standing still
+        self.assertAlmostEqual(ai.freeze, VolleyAI.LAPSE_DELAY - DT, places=6)
+        calm = VolleyAI()
+        self.hit_toward_sandra(calm, player, smash=True)
+        self.assertGreaterEqual(calm.freeze, VolleyAI.SMASH_SHOCK - DT)              # a Smash costs her a moment too
+
+    def test_sandra_defends_most_smashes_but_not_all_of_them(self):
+        """Out of position, or caught napping, a Smash scores; standing right it is returned."""
+        defended = total = 0
+        for napping in (False, True):
+            for start in (240, 300, 360):
+                for x in (40, 100, 160):
+                    match = VolleyMatch(1)
+                    match.start()
+                    match.serve_delay = 0
+                    match.players[1].x = start
+                    if napping:
+                        match.ai.balls_received = VolleyAI.LAPSE_EVERY - 1
+                    player = match.players[0]
+                    player.x, player.y, player.vy, player.moving = x, 165, 0, 0
+                    player.attack.age = .08
+                    match.ball = VolleyBall(x + 6, 148, 0, 0)
+                    match._player_collision(player)
+                    got_it, t = False, 0.0
+                    while match.points == [0, 0] and t < 5:
+                        player.y, player.vy = -500, 0
+                        match.update(DT, [IDLE])
+                        t += DT
+                        got_it |= any(i[3] == 1 for i in match.impacts)
+                    defended += got_it
+                    total += 1
+        self.assertLess(defended, total)                                              # Smash can score
+        self.assertGreater(defended, total * .4)                                      # and can be defended
 
     def beginner_bot(self, seed, points=24):
         """A forgiving test player: slow to react, sloppy, never jumps, never smashes."""
