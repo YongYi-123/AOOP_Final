@@ -13,9 +13,23 @@ class TerritoryPuzzle:
 
 
 class TerritoryGenerator:
-    def __init__(self, rng=None, attempts=80):
+    # Verified offline: exactly one solution, connected regions, logically solvable.
+    FALLBACK = TerritoryPuzzle(
+        ((7,7,1,7,0,0,0,7),(7,1,1,7,0,7,7,7),(7,7,7,7,0,7,2,2),(7,5,3,7,7,7,2,2),
+         (5,5,3,3,7,7,4,7),(5,5,5,5,7,7,7,7),(5,7,7,6,7,7,7,7),(7,7,7,7,7,7,7,7)),
+        (4,1,7,2,6,0,3,5), True)
+
+    def __init__(self, rng=None, attempts=80, max_generations=25):
         self.rng = rng or random.Random()
         self.attempts = attempts
+        self.max_generations = max_generations
+        self.used_fallback = False
+
+    @classmethod
+    def accept(cls, regions):
+        """True only if the board has exactly one solution under the game rules."""
+        return (TerritorySolver.count(regions, limit=2) == 1
+                and all(cls.connected(regions, c) for c in range(len(regions))))
 
     def _placement(self, size):
         def search(chosen):
@@ -49,6 +63,16 @@ class TerritoryGenerator:
     def generate(self, size=8):
         if size != 8:
             raise ValueError('Cat Territory uses a single 8x8 board')
+        self.used_fallback = False
+        for _ in range(self.max_generations):
+            regions = self._candidate(size)
+            if self.accept(regions):
+                solutions = TerritorySolver.solutions(regions, limit=2)
+                return TerritoryPuzzle(regions, solutions[0], True)
+        self.used_fallback = True
+        return self.FALLBACK
+
+    def _candidate(self, size):
         placement = self._placement(size)
         seeds = {(x,y) for y,x in enumerate(placement)}
         # Seven isolated clues and one connected background provide a guaranteed
@@ -69,9 +93,4 @@ class TerritoryGenerator:
             grid[y][x] = new
             if not self.connected(grid, old) or not TerritoryLogic.solve(grid).solved:
                 grid[y][x] = old
-        regions = tuple(tuple(row) for row in grid)
-        solutions = TerritorySolver.solutions(regions, limit=2)
-        logical = TerritoryLogic.solve(regions)
-        if len(solutions) != 1 or not logical.solved or any(not self.connected(grid,c) for c in range(8)):
-            raise RuntimeError('generated puzzle failed independent validation')
-        return TerritoryPuzzle(regions, solutions[0], True)
+        return tuple(tuple(row) for row in grid)

@@ -30,3 +30,8 @@ class TerritorySolver:
                 visit(row+1, columns | {column}, colors | {color}, chosen+[column])
         visit(0, set(), set(), [])
         return found
+
+    @staticmethod
+    def count(regions, limit=2):
+        """Number of valid solutions, capped at ``limit`` (search stops early)."""
+        return len(TerritorySolver.solutions(regions, limit=limit))
