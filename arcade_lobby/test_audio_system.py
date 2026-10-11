@@ -46,9 +46,10 @@ class AssetTests(unittest.TestCase):
             self.assertLess(max(map(abs, data)) / 32767, 0.95, name)              # no clipping
             self.assertLess(abs(data[0] - data[-1]) / 32767, 0.15, name)           # loops without a click
 
-    def test_the_four_themes_are_different_music(self):
-        lengths = {read_wav(os.path.join(am.ASSET_DIR, "music", f"{n}.wav"))[1][:4000] for n in am.MUSIC_FILES.values()}
-        self.assertEqual(len(lengths), 4)
+    def test_every_theme_is_different_music(self):
+        starts = {read_wav(os.path.join(am.ASSET_DIR, "music", f"{n}.wav"))[1][:4000] for n in am.MUSIC_FILES.values()}
+        self.assertEqual(len(starts), len(am.MUSIC_FILES))
+        self.assertEqual(len(am.MUSIC_FILES), 11)           # 4 rooms + 7 minigames
 
     def test_every_effect_file_exists_and_is_short_and_quiet(self):
         for name in am.SFX_FILES:
@@ -123,18 +124,29 @@ class NoDeviceTests(unittest.TestCase):
         a.stop()
         self.assertEqual(a.theme, "home")                    # the wish is remembered: it plays if a device appears
 
-    def test_a_mixer_that_fails_later_turns_audio_off_without_raising(self):
+    def test_a_mixer_that_fails_later_is_logged_and_recovers_without_raising(self):
         pygame.mixer.init()
         a = AudioManager()
         a.switch("lobby")
+
         class Broken:
+            def get_busy(self):
+                return False
+
             def fadeout(self, ms):
                 raise pygame.error("device lost")
 
             set_volume = play = stop = fadeout
+        good = a.channels
         a.channels = [Broken(), Broken()]
-        a.switch("home")
-        self.assertFalse(a.enabled)
+        with self.assertLogs("arcade.audio", "ERROR"):
+            a.switch("home")
+        self.assertTrue(a.enabled)                           # one failed call never switches audio off for good
+        self.assertIn("device lost", a.last_error)
+        a.channels = good
+        for _ in range(60):                                  # the watchdog brings the music back
+            a.update(.02)
+        self.assertTrue(a.music_playing())
         a.play("confirm")
 
     def test_missing_asset_files_fall_back_to_synthesized_sound(self):
@@ -194,6 +206,7 @@ class MusicTransitionTests(unittest.TestCase):
 
     def test_mute_silences_music_and_effects_and_unmute_restores(self):
         self.a.switch("lobby")
+        self.a.update(1.0)                                   # the crossfade has finished
         self.a.set_muted(True)
         self.assertEqual(self.a.channels[self.a.active].get_volume(), 0)
         self.a.play("confirm")
@@ -265,7 +278,7 @@ class GameMusicTests(unittest.TestCase):
         self.frames(20)
         self.game.scenes.push(ChanceGameScene(self.game, LuckyWheelGame, self.game.session.players[0]))
         self.frames(60)
-        self.assertEqual(self.game.audio.theme, "lucky_corner")
+        self.assertEqual(self.game.audio.theme, "lucky_wheel")          # SPIN has its own theme now
         self.game.scenes.pop()
         self.frames(60)
         self.assertEqual(self.game.audio.theme, "prize_plaza")
