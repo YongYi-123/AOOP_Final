@@ -129,8 +129,31 @@ class PuzzleManager(CollisionManager):
                 obj.state.active = powered or obj.latched or bool(occupied)
 
     def update_special(self, dt):
-        pass
+        for obj in self.objects.values():
+            if isinstance(obj, TimedSwitch):
+                obj.state.remaining = max(0, obj.state.remaining - dt)
+                obj.state.active = obj.state.remaining > 0
 
     @property
     def solved(self):
         return all(self.objects[i].state.active for i in self.room['goal'])
+
+class SecretPassage(PuzzleObject):
+    blocking = True
+
+    def interact(self, manager, player, pulse=False):
+        if pulse and not self.state.active:
+            self.state.active = True
+            return True
+        return False
+
+class TimedSwitch(Switch):
+    def interact(self, manager, player, pulse=False):
+        if pulse:
+            return False
+        self.state.remaining = self.data['duration']
+        self.state.active = True
+        return True
+
+FACTORY.update(secret=SecretPassage, timed=TimedSwitch)
+
