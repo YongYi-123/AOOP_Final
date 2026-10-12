@@ -22,3 +22,7 @@ Atlas 依 JSON 的實際出口關係繪製已探索連線，包含第六房到�
 
 既有遊戲回歸：Retro Racer 82、Pixel Volleyball 110、Cat Territory 27、
 Cat Minesweeper 14、Galaxy Defender 78 項均通過（SDL dummy，獨立程序）。
+
+最終回歸：Arcade Lobby 完整 discover 測試成功（exit code 0；同一 discovery
+共 1,361 項），上述其他遊戲合計 311 項亦成功。Puzzle Maze 26 項全部通過。
+最終 Git 差異全部限定 `puzzle_maze/`，原未追蹤檔案不變；未修改 main 或推送。
