@@ -17,13 +17,14 @@ class GameScene(Enum):
     VICTORY=auto()
 
 class Game:
-    def __init__(self,headless=False):
+    def __init__(self,headless=False,embedded=False,audio=None):
         if headless:
             os.environ['SDL_VIDEODRIVER']='dummy';os.environ['SDL_AUDIODRIVER']='dummy'
         pygame.display.init();pygame.font.init()
-        self.screen=pygame.display.set_mode((960,720),pygame.RESIZABLE)
-        pygame.display.set_caption('Puzzle Maze / The Prism Chambers')
-        self.clock=pygame.time.Clock();self.renderer=Renderer();self.audio=AudioManager()
+        self.embedded=embedded
+        self.screen=pygame.display.get_surface() if embedded else pygame.display.set_mode((960,720),pygame.RESIZABLE)
+        if not embedded:pygame.display.set_caption('Puzzle Maze / The Prism Chambers')
+        self.clock=pygame.time.Clock();self.renderer=Renderer();self.audio=audio if audio is not None else AudioManager()
         self.session=GameSession();self.scene=GameScene.MENU;self.previous=GameScene.MENU
         self.selection=0;self.running=True;self.cooldown=0
         self.visual=[float(self.session.player.x),float(self.session.player.y)]
@@ -78,9 +79,10 @@ class Game:
             else:self.notify('Face a mechanism / cracked walls need SPACE',2)
 
     def options(self):
-        if self.scene==GameScene.MENU:return ['New expedition','Continue expedition','Controls','Quit']
-        if self.scene==GameScene.VICTORY:return ['New expedition','Main menu','Quit']
-        return ['Resume','Controls','Reset room','Save and main menu','Quit']
+        exit_label='Return to arcade' if self.embedded else 'Quit'
+        if self.scene==GameScene.MENU:return ['New expedition','Continue expedition','Controls',exit_label]
+        if self.scene==GameScene.VICTORY:return ['New expedition','Main menu',exit_label]
+        return ['Resume','Controls','Reset room','Save and main menu',exit_label]
 
     def choose(self,option):
         self.selection=0
@@ -93,7 +95,7 @@ class Game:
             self.last_solved=self.session.puzzles.solved;self.scene=GameScene.PLAY;self.save()
         elif option in ('Save and main menu','Main menu'):
             self.save();self.scene=GameScene.MENU
-        elif option=='Quit':
+        elif option in ('Quit','Return to arcade'):
             if self.scene!=GameScene.MENU:self.save()
             self.running=False
 
@@ -130,7 +132,7 @@ class Game:
         self.autosave+=dt
         if self.autosave>=15:self.save();self.autosave=0
 
-    def draw(self,dt):
+    def draw(self,dt,target=None):
         r=self.renderer;r.world(self.session,self.visual,dt)
         if self.scene in (GameScene.MENU,GameScene.PAUSE,GameScene.VICTORY):
             title={GameScene.MENU:'PUZZLE MAZE',GameScene.PAUSE:'EXPEDITION PAUSED',GameScene.VICTORY:'PRISM RESTORED'}[self.scene]
@@ -148,9 +150,11 @@ class Game:
                     pygame.draw.rect(r.surface,(18,26,39),(6,6+i*12,308,12));r.text(line,10,8+i*12)
         if self.fade>0:
             shade=pygame.Surface((320,240));shade.fill((11,20,30));shade.set_alpha(int(255*min(1,self.fade/.45)));r.surface.blit(shade,(0,0))
-        w,h=self.screen.get_size();scale=min(w/320,h/240)
+        screen=target if target is not None else self.screen
+        w,h=screen.get_size();scale=min(w/320,h/240)
         size=(max(1,int(320*scale)),max(1,int(240*scale)))
-        self.screen.fill((10,17,27));self.screen.blit(pygame.transform.scale(r.surface,size),((w-size[0])//2,(h-size[1])//2));pygame.display.flip()
+        screen.fill((10,17,27));screen.blit(pygame.transform.scale(r.surface,size),((w-size[0])//2,(h-size[1])//2))
+        if target is None:pygame.display.flip()
 
     def run(self,frames=None):
         count=0

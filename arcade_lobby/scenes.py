@@ -25,6 +25,7 @@ from retro_racer_scene import RetroRacerScene
 from pixel_volleyball_scene import PixelVolleyballScene
 from galaxy_defender_scene import GalaxyDefenderScene
 from cat_territory_scene import CatTerritoryScene
+from puzzle_maze.lobby_scene import PuzzleMazeScene
 from settings import BACK_KEYS, Col, VIEW_H, VIEW_W
 from ui import draw_text, neon_panel, wrap_text
 
@@ -118,7 +119,8 @@ class MinigamePlaceholderScene(MinigameScene):
 MINIGAME_SCENES = {"retro_racer": RetroRacerScene,
                    "pixel_volleyball": PixelVolleyballScene,
                    "cat_minesweeper": CatTerritoryScene,
-                   "galaxy_defender": GalaxyDefenderScene}
+                   "galaxy_defender": GalaxyDefenderScene,
+                   "puzzle_maze": PuzzleMazeScene}
 
 
 # How many local players each minigame supports (anything not listed: 1). The
@@ -130,6 +132,7 @@ MINIGAME_DEFINITIONS = {d.game_id: d for d in (
     MiniGameDefinition("pixel_volleyball", 1, 2),
     MiniGameDefinition("cat_minesweeper", 1, 1),
     MiniGameDefinition("galaxy_defender", 1, 1),
+    MiniGameDefinition("puzzle_maze", 1, 1),
 )}
 
 

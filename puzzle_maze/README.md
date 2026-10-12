@@ -1,7 +1,7 @@
 # Puzzle Maze — The Prism Chambers
 
-獨立 Python + Pygame 俯視解謎遊戲。原創像素繪圖與合成音樂，沒有引用
-Arcade Lobby、Tokens、Tickets、共同存檔或其他遊戲模組。
+獨立 Python + Pygame 俯視解謎遊戲。原創像素繪圖與合成音樂，核心不依賴
+Arcade Lobby、Tokens、Tickets、共同存檔或其他遊戲模組；`lobby_scene.py` 是可選機台介面。
 
 ## 啟動
 
@@ -13,6 +13,21 @@ Arcade Lobby、Tokens、Tickets、共同存檔或其他遊戲模組。
 
 其他環境先安裝 `python3 -m pip install -r puzzle_maze/requirements.txt`，再執行
 `python3 -m puzzle_maze`。請使用 pygame-ce，勿同時安裝另一個 pygame 套件。
+
+## Arcade Lobby 試玩
+
+```bash
+.venv/bin/python arcade_lobby/main.py
+```
+
+到 Arcade Floor，使用中央機台列的 **PUZZLE MAZE**（`island_1`），按 E 開啟
+機台並選 PLAY。此機台免費，不給 Tickets 或分數獎勵；Lobby 的遊玩紀錄仍按
+既有流程記錄。選 New expedition 開始，或 Continue expedition 延續獨立遊戲存檔。
+
+主選單按 Esc 回大廳；遊戲中按 Esc 暫停，選 **Return to arcade** 回大廳。
+單人沿用下列操作；雙人模式使用啟動機台者的 Lobby 移動、互動及道具鍵。
+Tab 與 R 為查看地圖與重置，音樂及音量使用 Lobby 的設定。
+內嵌模式沿用 Lobby 的視窗、背景音樂及音效混音，獨立模式保持原創合成音樂。
 
 ## 操作
 

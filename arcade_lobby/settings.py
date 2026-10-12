@@ -268,6 +268,13 @@ MACHINES = [
         "slot": "wall_1", "neon": (90, 240, 255), "accent": (255, 110, 210),
         "screen": "galaxy", "play_cost": 1,
     },
+    {
+        "id": "puzzle_maze", "name": "Puzzle Maze", "marquee": "PUZZLE MAZE",
+        "description": "Explore eight prism chambers and a hidden archive. Push stones, "
+                       "unlock gates and pulse secret walls. Free playtest!",
+        "slot": "island_1", "neon": (81, 195, 165), "accent": (245, 198, 96),
+        "screen": "puzzle", "play_cost": 0,
+    },
 ]
 
 

@@ -26,3 +26,9 @@ Cat Minesweeper 14、Galaxy Defender 78 項均通過（SDL dummy，獨立程序�
 最終回歸：Arcade Lobby 完整 discover 測試成功（exit code 0；同一 discovery
 共 1,361 項），上述其他遊戲合計 311 項亦成功。Puzzle Maze 26 項全部通過。
 最終 Git 差異全部限定 `puzzle_maze/`，原未追蹤檔案不變；未修改 main 或推送。
+
+使用者後續授權接入 Lobby 試玩：新增中央島列 `island_1` 的免費機台。
+僅修改 Lobby 的 settings.MACHINES 與 scenes 註冊，新增整合測試；可選介面
+位於 puzzle_maze/lobby_scene.py。使用既有參與者輸入、視窗及音訊 API，沒有
+修改音效管理、經濟或其他遊戲。主選單 Esc / 暫停 Return to arcade 可返回。
+獨立模式 26 項測試及 3 項機台整合測試通過，新增測試不寫入玩家存檔。
