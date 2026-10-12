@@ -32,11 +32,13 @@ SFX_STUCK_GRACE = 1.0   # an effect still "playing" this long after it should ha
 # Effect priority inside a scene's one channel: a new effect replaces the playing one unless the playing one matters more.
 PRIORITY = {"footstep": 0, "meow": 1, "card": 1, "sit": 1, "pet": 1, "emote": 1, "bounce": 1, "hit": 1, "laser": 1,
             "skid": 1, "reveal": 1, "flag": 1, "confirm": 2, "cancel": 2, "machine": 2, "token": 2, "ticket": 2,
-            "point": 2, "boom": 2, "purchase": 3, "equip": 3, "spike": 3, "powerup": 3, "win": 4, "loss": 4}
+            "point": 2, "boom": 2, "vend_select": 1, "vend_hum": 1, "vend_drop": 3, "burp": 3, "munch": 3,
+            "rainbow": 3, "squeak": 3, "zap": 3, "mystery": 3, "glitch": 4, "purchase": 3, "equip": 3, "spike": 3, "powerup": 3, "win": 4, "loss": 4}
 SFX_FILES = ("footstep", "confirm", "cancel", "machine", "token", "ticket", "purchase", "card", "equip",
-             "pet", "emote", "sit", "meow")
+             "pet", "emote", "sit", "meow", "vend_hum", "vend_select", "vend_drop", "burp", "munch", "rainbow",
+             "squeak", "zap", "mystery", "glitch")
 # some effects are meant to be barely there
-SFX_GAIN = {"footstep": 0.3, "card": 0.7, "confirm": 0.8, "cancel": 0.8, "sit": 0.7, "emote": 0.8, "meow": 0.6,
+SFX_GAIN = {"footstep": 0.3, "card": 0.7, "confirm": 0.8, "cancel": 0.8, "sit": 0.7, "emote": 0.8, "meow": 0.6, "vend_hum": 0.6, "vend_select": 0.7, "vend_drop": 0.8, "burp": 0.7,
             # the shooter fires dozens of these a second of play: keep them a soft texture, not a buzz
             "laser": 0.3, "boom": 0.75, "point": 0.8, "skid": 0.6, "bounce": 0.8}
 MIN_GAP = {"footstep": 0.16, "meow": 1.2, "laser": 0.14, "boom": 0.09, "point": 0.1, "bounce": 0.08,

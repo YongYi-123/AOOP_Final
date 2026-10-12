@@ -675,9 +675,95 @@ def sfx_meow():
     return m.finish(peak=0.4, fade=0.01)
 
 
+# ---- NEON VEND-O-MATIC (quiet, short)
+def sfx_vend_hum():
+    """The machine's compressor kicking in as its window opens: a low 50 Hz-ish hum with a soft rattle."""
+    m = _sfx(0.7)
+    m.note(0, 0.5, 55, "tri", 0.5, attack=0.12, release=0.18)
+    m.note(0, 0.5, 110, "sine", 0.25, attack=0.12, release=0.18, vibrato=6)
+    m.noise(0.1, 0.4, 0.05, decay=4, bright=0.1, seed=31)
+    return m.finish(peak=0.4, fade=0.02)
+
+
+def sfx_vend_select():
+    m = _sfx(0.1)
+    m.note(0, 0.04, hz(midi("A5")), "p25", 0.4, release=0.03)
+    return m.finish(peak=0.4, fade=0.01)
+
+
+def sfx_vend_drop():
+    """The product falls, thuds into the tray and rocks once."""
+    m = _sfx(0.6)
+    m.note(0, 0.18, 900, "sine", 0.3, release=0.02, slide=-3200)
+    m.noise(0.2, 0.05, 0.6, decay=60, bright=0.35, seed=33)
+    m.note(0.2, 0.08, 90, "sine", 0.6, release=0.06, slide=-200)
+    m.noise(0.31, 0.04, 0.3, decay=70, bright=0.3, seed=34)
+    return m.finish(peak=0.55, fade=0.01)
+
+
+def sfx_burp():
+    m = _sfx(0.55)
+    m.noise(0, 0.2, 0.5, decay=6, bright=0.2, seed=41)
+    m.note(0.0, 0.4, 110, "saw", 0.5, attack=0.03, release=0.1, vibrato=24, slide=-90)
+    return m.finish(lowpass=0.7, peak=0.5, fade=0.01)
+
+
+def sfx_munch():
+    m = _sfx(0.6)
+    for k in range(3):
+        m.noise(k * 0.18, 0.08, 0.5, decay=35, bright=0.4, seed=50 + k)
+        m.note(k * 0.18, 0.06, 180 - 20 * k, "sine", 0.3, release=0.04)
+    return m.finish(peak=0.45, fade=0.01)
+
+
+def sfx_rainbow():
+    m = _sfx(0.6)
+    for k, n in enumerate(("C6", "D6", "E6", "G6", "A6", "C7")):
+        m.note(k * 0.06, 0.05, hz(midi(n)), "bell", 0.25, release=0.2)
+    return m.finish(peak=0.45, fade=0.01)
+
+
+def sfx_squeak():
+    m = _sfx(0.3)
+    m.note(0, 0.08, 1500, "sine", 0.45, attack=0.01, release=0.03, slide=2600)
+    m.note(0.1, 0.1, 2300, "sine", 0.4, attack=0.01, release=0.05, slide=-1800)
+    return m.finish(peak=0.45, fade=0.01)
+
+
+def sfx_zap():
+    m = _sfx(0.45)
+    for k in range(4):
+        m.note(k * 0.09, 0.05, 300 + 220 * (k % 2), "sq", 0.3, release=0.02, slide=900)
+        m.noise(k * 0.09, 0.03, 0.25, decay=80, seed=60 + k)
+    return m.finish(peak=0.45, fade=0.01)
+
+
+def sfx_mystery():
+    m = _sfx(0.5)
+    m.note(0, 0.12, hz(midi("E5")), "tri", 0.4, release=0.05, vibrato=8)
+    m.note(0.14, 0.12, hz(midi("G#5")), "tri", 0.4, release=0.05, vibrato=8)
+    m.note(0.28, 0.16, hz(midi("B4")), "bell", 0.35, release=0.12)
+    return m.finish(peak=0.45, fade=0.01)
+
+
+def sfx_glitch():
+    """The secret: a burst of crushed noise and a falling then jumping tone. Short and dry."""
+    m = _sfx(0.75)
+    m.noise(0, 0.08, 0.5, decay=14, seed=71)
+    m.note(0.0, 0.3, 900, "sq", 0.25, release=0.05, slide=-2400)
+    m.noise(0.22, 0.06, 0.45, decay=20, seed=72)
+    m.note(0.3, 0.1, 140, "saw", 0.3, release=0.05)
+    m.note(0.44, 0.08, 1700, "p12", 0.2, release=0.03, slide=-3000)
+    m.noise(0.5, 0.18, 0.2, decay=10, bright=0.5, seed=73)
+    return m.finish(peak=0.5, fade=0.02)
+
+
 SFX = {"footstep": sfx_footstep, "confirm": sfx_confirm, "cancel": sfx_cancel, "machine": sfx_machine,
        "token": sfx_token, "ticket": sfx_ticket, "purchase": sfx_purchase, "card": sfx_card,
-       "equip": sfx_equip, "meow": sfx_meow, "pet": sfx_pet, "emote": sfx_emote, "sit": sfx_sit}
+       "equip": sfx_equip, "meow": sfx_meow, "pet": sfx_pet, "emote": sfx_emote, "sit": sfx_sit,
+       "vend_hum": sfx_vend_hum, "vend_select": sfx_vend_select, "vend_drop": sfx_vend_drop, "burp": sfx_burp,
+       "munch": sfx_munch, "rainbow": sfx_rainbow, "squeak": sfx_squeak, "zap": sfx_zap, "mystery": sfx_mystery,
+       "glitch": sfx_glitch}
 
 
 def generate(only=None):
