@@ -455,8 +455,7 @@ class BaseRoomScene(BaseScene):
         elif action == "interact" and player.nearby_cat:
             if self.cats.interact(player.nearby_cat, player):
                 self._emit("cat_petted", player)
-                player.play_action("pet", facing_toward(player, player.nearby_cat.feet), emote="heart")
-                self.play_sound("pet")
+                player.play_action("pet", facing_toward(player, player.nearby_cat.feet), emote="heart")   # (the cat answers)
 
     def _emote(self, player):
         """T / '/': wave, then celebrate on the next press. Never while a window is open or
@@ -473,7 +472,7 @@ class BaseRoomScene(BaseScene):
         if any(p is not player and p.sitting and p.seat == seat.seat_pos for p in self.players):
             self.notice.show("SEAT TAKEN", [], Col.YELLOW)
             return
-        player.sit(seat.seat_pos, "down")
+        player.sit(seat.seat_pos, "down", seat.sort_y)
         self.play_sound("sit")
 
     def play_sound(self, name):

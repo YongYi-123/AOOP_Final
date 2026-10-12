@@ -30,6 +30,8 @@ class CatState(Enum):
 
 
 # state -> animation in the sprite sheet
+# which effect files a pet can answer with, by the sound the cat's bubble shows
+PET_SFX = {"meow": ("pet", "pet_b"), "mew": ("pet_b",), "nya": ("pet", "pet_c"), "mrrp": ("pet_c",), "prrr": ("purr",)}
 STATE_ANIM = {CatState.IDLE: "idle", CatState.WALK: "walk", CatState.SIT: "sit",
               CatState.SLEEP: "nap", CatState.FOLLOW: "walk", CatState.PET: "pet"}
 
@@ -55,28 +57,59 @@ class Personality:
     chatter: float = 0                          # seconds between unprompted meows (0 = never)
     phrases: tuple = (("meow!", "meow"),)       # (bubble text, sound kind)
     sleepy_phrases: tuple = (("prrr...", "prrr"),)
+    # how a pet looks (all additive: the older personalities keep the defaults)
+    purr: float = 0.0                           # chance a pet is answered with a purr (after the meow, or instead of it)
+    pet_time: float = 1.0                       # multiplies the length of the pet reaction
+    heart: tuple = (0.9, 1.25)                  # seconds the heart floats (random in this range)
+    hop: int = 0                                # pixels of the happy bounce while being petted
+    sparkle: bool = False                       # a little glint beside the heart (regal)
+    flavor: str = ""                            # one-line vibe, for debug / test output only
 
 
 FRIENDLY = Personality(
     "friendly", choices=(("sit", 3), ("wander", 3), ("visit", 2), ("idle", 1), ("approach", 3)),
-    approach_range=90, follow_after_pet=0.6, chatter=11,
+    approach_range=90, follow_after_pet=0.6, chatter=11, purr=0.6,
     phrases=(("meow!", "meow"), ("mrrp!", "mrrp"), ("nya~", "nya"), ("mew!", "mew")))
 SHY = Personality(
     "shy", prompt="SAY HI", choices=(("sit", 4), ("wander", 2), ("visit", 1), ("idle", 2)),
-    flee_range=34, flee_chance=0.6, follow_after_pet=0.1,
+    flee_range=34, flee_chance=0.6, follow_after_pet=0.1, purr=0.3,
     phrases=(("mew?", "mew"), ("...mrrp", "mrrp"), ("nya~", "nya")))
 LAZY = Personality(
     "lazy", choices=(("sit", 3), ("wander", 1), ("idle", 1), ("sleep", 5)),
     sit_time=(5.0, 9.0), sleep_time=(12.0, 20.0), idle_time=(1.5, 2.5),
-    sleep_after_sit=0.8, speed=18,
+    sleep_after_sit=0.8, speed=18, purr=0.7,
     phrases=(("prrr...", "prrr"), ("mrrrow...", "meow"), ("meow.", "meow")))
 CURIOUS = Personality(
     "curious", choices=(("sit", 2), ("wander", 4), ("visit", 4), ("idle", 2)),
     sit_time=(2.0, 4.0), sleep_after_sit=0.2, speed=34, auto_follow=True,
-    follow_after_pet=0.4, chatter=20,
+    follow_after_pet=0.4, chatter=20, purr=0.3,
     phrases=(("mrrp?", "mrrp"), ("nya~?", "nya"), ("meow!", "meow"), ("mew?", "mew")))
 
-PERSONALITIES = {p.name: p for p in (FRIENDLY, SHY, LAZY, CURIOUS)}
+SLEEPY = Personality(
+    "sleepy", choices=(("sit", 3), ("idle", 1), ("sleep", 6), ("wander", 1)),
+    sit_time=(5.0, 9.0), sleep_time=(14.0, 22.0), idle_time=(1.5, 2.5),
+    sleep_after_sit=0.85, speed=16, purr=0.8, pet_time=1.3, heart=(0.8, 1.1), flavor="yawns; purrs half asleep",
+    phrases=(("*yawn*", "mew"), ("prrr...", "prrr"), ("mrrrow...", "meow")),
+    sleepy_phrases=(("prrr...", "prrr"), ("*yawn*", "mew")))
+PLAYFUL = Personality(
+    "playful", choices=(("wander", 5), ("visit", 4), ("sit", 1), ("idle", 2), ("approach", 1)),
+    sit_time=(1.5, 3.0), idle_time=(0.8, 1.6), sleep_after_sit=0.05, speed=42, approach_range=70,
+    auto_follow=True, follow_after_pet=0.5, chatter=14, purr=0.25, pet_time=1.1, heart=(1.0, 1.4), hop=3,
+    flavor="bouncy; tail flicks and hops",
+    phrases=(("nya!", "nya"), ("mrrp!", "mrrp"), ("meow!", "meow"), ("mew!", "mew")))
+GRUMPY = Personality(
+    "grumpy", choices=(("sit", 5), ("idle", 3), ("wander", 2), ("visit", 1)),
+    sit_time=(4.0, 8.0), speed=24, follow_after_pet=0.0, chatter=0, purr=0.1, pet_time=0.7, heart=(0.6, 0.85),
+    flavor="side-eye; huffs but secretly likes it",
+    phrases=(("hmph.", "mrrp"), ("...nya.", "nya"), ("mrrp.", "mrrp"), ("*huff*", "mew")),
+    sleepy_phrases=(("hmph...", "meow"), ("prr.", "prrr")))
+REGAL = Personality(
+    "regal", prompt="GREET", choices=(("sit", 6), ("idle", 3), ("visit", 1), ("wander", 1)),
+    sit_time=(6.0, 10.0), idle_time=(2.5, 4.0), sleep_after_sit=0.1, speed=22, purr=0.4, pet_time=1.2,
+    heart=(1.0, 1.3), sparkle=True, flavor="poised; accepts adoration graciously",
+    phrases=(("mrrow.", "meow"), ("prrr~", "prrr"), ("meow.", "meow")))
+
+PERSONALITIES = {p.name: p for p in (FRIENDLY, SHY, LAZY, CURIOUS, SLEEPY, PLAYFUL, GRUMPY, REGAL)}
 
 
 @dataclass(frozen=True)
@@ -104,6 +137,19 @@ def _zzz():
     return _ZZZ
 
 
+_GLINT = None
+
+
+def _glint():
+    global _GLINT
+    if _GLINT is None:
+        _GLINT = pygame.Surface((5, 5), pygame.SRCALPHA)
+        _GLINT.fill((255, 236, 150), (2, 0, 1, 5))
+        _GLINT.fill((255, 236, 150), (0, 2, 5, 1))
+        _GLINT.fill((255, 255, 255), (2, 2, 1, 1))
+    return _GLINT
+
+
 class CatNPC(AnimatedSprite):
     FOLLOW_SPEED = 46
     FLEE_SPEED = 52
@@ -114,6 +160,7 @@ class CatNPC(AnimatedSprite):
     FLEE_COOLDOWN = 5.0
     REACH = 16              # stops this far from the player when walking up
     PET_TIME = 1.1          # length of the petting reaction
+    PURR_DELAY = 0.45       # a purr that follows the meow waits for it to finish
     PET_COOLDOWN = 0.4      # after the reaction, before it can be petted again
     WANDER = (40, 26)       # max wander offset from the current spot
     FEET_W, FEET_H = 10, 4
@@ -138,6 +185,7 @@ class CatNPC(AnimatedSprite):
         self.follow_cooldown = self.rng.uniform(3.0, 6.0)
         self.flee_cooldown = 0.0
         self.pet_cooldown = 0.0
+        self.purr_in = None         # seconds until the purr that follows this pet's meow
         self.chat_timer = self._next_chat()
         self.heart_time = 0.0
         self.time = 0.0
@@ -191,7 +239,7 @@ class CatNPC(AnimatedSprite):
                 CatState.SLEEP: self.rng.uniform(*p.sleep_time),
                 CatState.WALK: 6.0,         # walk_to() sets a distance-based one
                 CatState.FOLLOW: self.FOLLOW_TIME,
-                CatState.PET: self.PET_TIME,
+                CatState.PET: self.PET_TIME * p.pet_time,
             }[state]
         self.timer = duration
         if state not in (CatState.WALK, CatState.FOLLOW):
@@ -210,6 +258,7 @@ class CatNPC(AnimatedSprite):
 
     def settle(self):
         """Stop whatever it is doing and sit (used when the hub pauses)."""
+        self.purr_in = None
         if self.state in (CatState.FOLLOW, CatState.PET, CatState.WALK):
             if self.state != CatState.WALK:
                 self.anchor = (self.x, self.y)
@@ -284,12 +333,17 @@ class CatNPC(AnimatedSprite):
         self.set_state(CatState.PET)
         self.heart_time = 1.0
         phrases = self.personality.sleepy_phrases if sleepy else self.personality.phrases
-        self.say(*self.rng.choice(phrases))
+        text, kind = self.rng.choice(phrases)
+        self.heart_time = self.rng.uniform(*self.personality.heart)          # every pet floats its heart a little differently
+        self.say(text, kind, sfx=self.rng.choice(PET_SFX[kind]))
+        self.purr_in = None
+        if kind != "prrr" and self.rng.random() < self.personality.purr:
+            self.purr_in = self.PURR_DELAY
         return True
 
-    def say(self, text, kind, loudness=1.0):
+    def say(self, text, kind, loudness=1.0, sfx=None):
         self.bubble.show(text)
-        self.voice.play(kind, self.time, loudness)
+        self.voice.play(kind, self.time, loudness, sfx)
 
     def make_way(self, world, player):
         """Step aside when the player keeps bumping into this cat."""
@@ -341,6 +395,11 @@ class CatNPC(AnimatedSprite):
         self.chat_timer -= dt
         self.heart_time = max(0.0, self.heart_time - dt)
         self.bubble.update(dt)
+        if self.purr_in is not None:
+            self.purr_in -= dt
+            if self.purr_in <= 0:
+                self.purr_in = None
+                self.voice.follow_up("purr")
         player = world.player
         dist = self.distance_to(player)
 
@@ -414,14 +473,24 @@ class CatNPC(AnimatedSprite):
                 return
 
     # ---------------------------------------------------------------- draw
+    def _hop(self):
+        """Pixels the cat is lifted by its happy bounce (only while being petted)."""
+        hop = self.personality.hop
+        if not hop or self.state != CatState.PET:
+            return 0
+        return round(abs(math.sin(self.time * 11)) * hop)
+
     def draw_under(self, surf):
         surf.blit(self.shadow, (int(self.x) - 7, int(self.y) - 3))
 
     def draw(self, surf):
         frame = self.image
         surf.blit(frame, (int(self.x) - frame.get_width() // 2,
-                          int(self.y) - frame.get_height() + 1))
+                          int(self.y) - frame.get_height() + 1 - self._hop()))
         if self.heart_time > 0:
+            if self.personality.sparkle and self.state == CatState.PET:
+                surf.blit(_glint(), (int(self.x) + (-14 if self.side == "left" else 9),
+                                     int(self.y) - 22 - int((self.time * 6) % 3)))
             # beside the head (the speech bubble sits right above it)
             rise = int((1.0 - self.heart_time) * 8)
             hx = 5 if self.side == "left" else -12

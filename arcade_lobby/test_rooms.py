@@ -30,7 +30,7 @@ from machine import ArcadeMachine, IdleCabinet  # noqa: E402
 from player_profile import PlayerProfile, ProfileStore  # noqa: E402
 from prize_plaza import PrizePlazaScene  # noqa: E402
 from room_scene import BaseRoomScene, RoomExit  # noqa: E402
-from room_testing import goto_room  # noqa: E402
+from room_testing import goto_room, with_placeholder_minigame  # noqa: E402
 from scenes import MinigamePlaceholderScene  # noqa: E402
 from settings import (CATS, MACHINES, PLAYER_START, ROOM_IDS, ROOM_TITLE_TIME,  # noqa: E402
                       SIDE_DOOR_H, SIDE_DOOR_Y, START_ROOM, VIEW_H, VIEW_W)
@@ -417,6 +417,7 @@ class SharedStateTests(HubTest):
         self.assertNotIn(cat, self.game.scenes.current.cats.cats)
 
 
+@with_placeholder_minigame
 class GameplayInRoomsTests(HubTest):
     def go_arcade(self):
         self.dismiss_popup()
@@ -612,10 +613,10 @@ class HudAndLabelTests(HubTest):
             self.frames(5)
             room.draw(self.game.canvas)
 
-    def test_prize_plaza_has_no_cats_arcade_has_one(self):
-        self.assertEqual(len(self.hub.room("prize_plaza").cats), 0)
-        self.assertEqual([c.name for c in self.hub.room("arcade_floor").cats], ["Pixel"])
-        self.assertEqual(len(self.hub.room("home").cats), len(CATS) - 1)
+    def test_each_room_has_its_own_cats(self):
+        self.assertEqual([c.name for c in self.hub.room("prize_plaza").cats], ["Tango", "Duchess"])
+        self.assertEqual([c.name for c in self.hub.room("arcade_floor").cats], ["Pixel", "Dash", "Pepper"])
+        self.assertEqual(len(self.hub.room("home").cats), len(CATS) - 5)
 
 
 class TransitionRegressionTests(HubTest):

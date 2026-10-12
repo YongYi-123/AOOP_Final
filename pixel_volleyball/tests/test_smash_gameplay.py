@@ -83,7 +83,7 @@ class SmashInputTests(unittest.TestCase):
         two.feed(key(pygame.KEYDOWN, pygame.K_SPACE))
         p1, p2 = two.controls(2)
         self.assertEqual((p1.spike, p2.spike), (True, False))
-        for code in (pygame.K_RSHIFT, pygame.K_RCTRL):
+        for code in (pygame.K_RSHIFT, pygame.K_KP0):
             two = VolleyKeyboard()
             two.feed(key(pygame.KEYDOWN, code))
             p1, p2 = two.controls(2)

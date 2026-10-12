@@ -53,6 +53,7 @@ class Game:
         import cat_voice                    # the cats' meows follow the hub's effects volume and mute
         self._cat_gain = cat_voice.master_gain = lambda: self.audio.effective_sfx / DEFAULT_SFX
         self._cat_route = cat_voice.route = lambda sound, volume: self.audio.play_object(sound, "meow", 1, volume)
+        self._cat_sfx = cat_voice.sfx_route = self.audio.play
         if session is None:
             self.audio.switch("lobby")      # the title / profile screens play the hub theme; a session picks its room's
         if not self.audio.enabled:
@@ -165,7 +166,7 @@ class Game:
             out.append((id(scene), (machine.id if machine is not None else name)[:10].upper()))
         return out
 
-    PAUSABLE = ("racer", "volley", "galaxy", "territory")
+    PAUSABLE = ("racer", "volley", "galaxy", "territory", "cat_maze")
 
     @classmethod
     def duck_for(cls, scene):
@@ -235,6 +236,8 @@ class Game:
             import cat_voice
             if cat_voice.master_gain is self._cat_gain:
                 cat_voice.master_gain = lambda: 1.0
+            if cat_voice.sfx_route == self._cat_sfx:
+                cat_voice.sfx_route = None
             if cat_voice.route is self._cat_route:
                 cat_voice.route = None
 

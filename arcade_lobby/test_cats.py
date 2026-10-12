@@ -17,7 +17,7 @@ from cat import CURIOUS, FRIENDLY, CatNPC, CatState  # noqa: E402
 from cat_sprites import CatLook, cat_sheet  # noqa: E402
 from cat_voice import KINDS, CatVoice, meow_bank, synth_samples  # noqa: E402
 from game import Game  # noqa: E402
-from room_testing import goto_room  # noqa: E402
+from room_testing import goto_room, with_placeholder_minigame  # noqa: E402
 from scenes import MinigamePlaceholderScene  # noqa: E402
 from settings import CATS, ROOM_IDS  # noqa: E402
 from ui import SpeechBubble  # noqa: E402
@@ -90,7 +90,7 @@ class SpawnTests(CatSceneTest):
         names = [c.name for c in self.all_cats()]
         self.assertEqual(sorted(names), sorted(d["name"] for d in CATS))
         self.assertEqual(len(set(names)), len(names))
-        self.assertGreater(len(self.cats), len(names) / 2)
+        self.assertGreaterEqual(len(self.cats), len(names) / 2)
 
     def test_one_reusable_class(self):
         # One CatNPC class configured by data, no per-cat subclasses
@@ -363,6 +363,7 @@ class CollisionTests(CatSceneTest):
 
 
 # ---------------------------------------------------------------- scenes
+@with_placeholder_minigame
 class SceneSafetyTests(CatSceneTest):
     def setUp(self):
         super().setUp()

@@ -20,7 +20,7 @@ from machine import ArcadeMachine  # noqa: E402
 from minigame import MinigameScene  # noqa: E402
 from player_profile import PlayerProfile, ProfileStore  # noqa: E402
 from rewards import PlaySession, RewardResult  # noqa: E402
-from room_testing import goto_room  # noqa: E402
+from room_testing import goto_room, with_placeholder_minigame  # noqa: E402
 from scenes import MinigamePlaceholderScene  # noqa: E402
 from settings import (DEBUG_TOKENS, MACHINES, PLACEHOLDER_REWARD_TICKETS,  # noqa: E402
                       STARTING_TOKENS, STARTING_TICKETS)
@@ -218,6 +218,7 @@ class MachineAndSessionTests(unittest.TestCase):
 
 
 # ---------------------------------------------------------------- full game flow
+@with_placeholder_minigame
 class ArcadeFlowTests(TempDirTest):
     """Drives the real Game/SceneManager/ARCADE FLOOR with key events."""
     MACHINE = "puzzle_drop"   # a placeholder minigame (no slow racer load)

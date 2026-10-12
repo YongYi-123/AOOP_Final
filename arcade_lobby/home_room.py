@@ -97,6 +97,7 @@ class HomeRoomScene(BaseRoomScene):
         "mochi": ((80, 234), (112, 214)),                 # napping on the left cat bed
         "luna": ((50, 112), (366, 150), (350, 180)),      # quiet corners
         "bean": ((262, 132), (214, 160), (150, 200)),     # wandering the lounge
+        "nimbus": ((96, 156), (76, 148)),                 # dozing in the quiet middle-left
     }
     music_id = "home"
     hint_rows = (

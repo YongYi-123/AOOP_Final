@@ -171,6 +171,7 @@ class MeowBank:
 
 _bank = None
 master_gain = lambda: 1.0      # noqa: E731 - the hub points this at its effects volume / mute (see Game), 1.0 on its own
+sfx_route = None               # the hub sets this to AudioManager.play: a pet uses its named effect files
 route = None                   # the hub sets this to AudioManager.play_object: meows then share the scene's one effect
                                # channel instead of taking a free mixer channel of their own
 
@@ -195,14 +196,18 @@ class CatVoice:
         self.sound = None
         self.last_time = None
         self.plays = 0   # sounds actually requested (handy for tests)
+        self.follow_ups = 0
 
-    def play(self, kind, now, loudness=1.0):
+    def play(self, kind, now, loudness=1.0, sfx=None):
         """Meow at time `now` (seconds, any monotonic clock). Returns False if
         the cat meowed too recently, True otherwise (even when silent)."""
         if self.last_time is not None and now - self.last_time < self.MIN_GAP:
             return False
         self.last_time = now
         self.plays += 1
+        if sfx and sfx_route is not None:   # a named effect file: the hub's own volume and mute apply
+            sfx_route(sfx)
+            return True
         gain = master_gain()
         if gain <= 0:                       # muted from the hub: the cat still "meows" (the bubble), silently
             return True
@@ -216,6 +221,12 @@ class CatVoice:
                 channel.set_volume(min(1.0, self.volume * loudness * gain))
                 self.channel, self.sound = channel, sound
         return True
+
+    def follow_up(self, sfx):
+        """A named effect that answers the sound just made (a purr after the meow). Not another meow."""
+        self.follow_ups += 1
+        if sfx_route is not None:
+            sfx_route(sfx)
 
     def stop(self):
         # only touch the channel if it is still playing this cat's meow

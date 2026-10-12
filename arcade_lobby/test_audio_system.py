@@ -49,7 +49,7 @@ class AssetTests(unittest.TestCase):
     def test_every_theme_is_different_music(self):
         starts = {read_wav(os.path.join(am.ASSET_DIR, "music", f"{n}.wav"))[1][:4000] for n in am.MUSIC_FILES.values()}
         self.assertEqual(len(starts), len(am.MUSIC_FILES))
-        self.assertEqual(len(am.MUSIC_FILES), 11)           # 4 rooms + 7 minigames
+        self.assertEqual(len(am.MUSIC_FILES), 12)           # 4 rooms + 8 minigames
 
     def test_every_effect_file_exists_and_is_short_and_quiet(self):
         for name in am.SFX_FILES:

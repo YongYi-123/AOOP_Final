@@ -463,6 +463,7 @@ class HubPlayer(AnimatedSprite):
         self.appearance = {}            # cosmetics worn right now ({slot: item id})
         self.action = None              # a short pose (ACTIONS) or "sit"; None = walking / idle
         self.action_time = 0.0
+        self.seat_depth = None          # sort_y while sitting: just in front of the seat it is on
         self.seat = None                # (x, y) feet position drawn while sitting; collision is unchanged
         self.footstep = False           # set when a foot comes down: the room plays the step sound
         self._step_frame = -1
@@ -543,12 +544,14 @@ class HubPlayer(AnimatedSprite):
     def stop_action(self):
         """Back to walking / idle (standing up if sitting)."""
         if self.action is not None:
-            self.action, self.seat = None, None
+            self.action, self.seat, self.seat_depth = None, None, None
             self.anim.play(f"idle_{self.facing}")
 
-    def sit(self, seat, facing="down"):
-        """Sit at `seat` (feet x, y of the drawing); the body's real position stays put."""
+    def sit(self, seat, facing="down", depth=None):
+        """Sit at `seat` (feet x, y of the drawing); the body's real position stays put.
+        `depth`: the seat's own sort_y, so the sitter is painted over it even from behind."""
         self.seat = seat
+        self.seat_depth = None if depth is None else depth + 0.5
         self.play_action("sit", facing)
 
     def _show_action_frame(self):
@@ -580,6 +583,8 @@ class HubPlayer(AnimatedSprite):
 
     @property
     def sort_y(self):
+        if self.sitting and self.seat_depth is not None:
+            return max(self.seat_depth, self.y)
         return self.y
 
     def stop(self):

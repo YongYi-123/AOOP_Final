@@ -30,7 +30,7 @@ DOOR = pygame.Rect(5, 43, 26, 14)
 W_BODY, H_BODY_END = 36, 59      # cabinet width; row below which the kick plate (checkered flag for the racer) starts
 
 
-TICKER_STYLES = ("volley", "racer", "galaxy")      # marquees too long for 32px: they scroll the whole name
+TICKER_STYLES = ("volley", "racer", "galaxy", "maze")      # marquees too long for 32px: they scroll the whole name
 
 
 def marquee_frames(style, label):
@@ -444,10 +444,140 @@ def mix_color(a, b, k):
     return tuple(int(a[i] + (b[i] - a[i]) * k) for i in range(3))
 
 
+# ----------------------------------------------------------------- Neon Cat Maze
+MAZE_CYAN = (70, 235, 255)
+MAZE_PURPLE = (190, 100, 255)
+MAZE_BODY, MAZE_SIDE = (62, 32, 112), (38, 20, 76)
+_MAZE_LOOP = (2, 2, 21, 13)                 # the corridor loop on the 24x16 attract screen: x0, y0, x1, y1
+_MAZE_LAP = 2 * ((21 - 2) + (13 - 2))       # 60 steps round it
+_MAZE_NIP = 49                              # where the catnip sits on the loop (the bottom-left corner)
+
+
+def _maze_pos(d):
+    """The pixel `d` steps along the corridor loop (clockwise from the top-left corner)."""
+    x0, y0, x1, y1 = _MAZE_LOOP
+    w, h = x1 - x0, y1 - y0
+    d %= _MAZE_LAP
+    if d < w:
+        return x0 + d, y0
+    if d < w + h:
+        return x1, y0 + d - w
+    if d < 2 * w + h:
+        return x1 - (d - w - h), y1
+    return x0, y1 - (d - 2 * w - h)
+
+
+def _tiny_cat(s, x, y, glow):
+    s.fill((255, 176, 96), (x - 1, y - 1, 3, 3))
+    s.set_at((x - 1, y - 2), (255, 176, 96))
+    s.set_at((x + 1, y - 2), (255, 176, 96))
+    s.set_at((x, y), (40, 240, 255))
+    if glow:
+        for dx, dy in ((-2, -1), (2, -1), (-2, 1), (2, 1), (0, 2), (0, -3)):
+            s.set_at((x + dx, y + dy), (130, 255, 160))
+
+
+def _tiny_robot(s, x, y, scared, flash):
+    body = (255, 255, 255) if scared and flash else (70, 110, 255) if scared else (255, 70, 110)
+    s.fill(body, (x - 1, y - 1, 3, 3))
+    s.set_at((x, y - 2), body)
+    s.set_at((x, y), (255, 255, 255) if scared and not flash else (255, 240, 120))
+
+
+def screen_maze(s, p, accent, neon):
+    """A tiny maze: the cat runs the corridor eating fish with a robot on its tail, grabs the glowing catnip, the
+    robot turns blue and flees - and gets caught."""
+    s.fill((10, 6, 30))
+    x0, y0, x1, y1 = _MAZE_LOOP
+    wall = scale_color(MAZE_CYAN, 0.55)
+    pygame.draw.rect(s, wall, (x0 - 2, y0 - 2, x1 - x0 + 5, y1 - y0 + 5), 1)           # outer wall
+    pygame.draw.rect(s, wall, (x0 + 2, y0 + 2, x1 - x0 - 3, y1 - y0 - 3), 1)           # the block inside the loop
+    s.fill(wall, (x0 + 7, y0 + 5, 5, 1))
+    cat_d = p * 2 * _MAZE_LAP
+    lap = cat_d % _MAZE_LAP
+    for d in range(3, _MAZE_LAP, 4):                                                    # fish treats along the path
+        if d != _MAZE_NIP and d >= lap:
+            x, y = _maze_pos(d)
+            s.set_at((x, y), PINK_FISH if (d // 4) % 3 else Col.YELLOW)
+    nip = _MAZE_NIP / (2 * _MAZE_LAP)
+    if p < nip:                                                                          # the catnip, pulsing
+        x, y = _maze_pos(_MAZE_NIP)
+        k = (1.0, 0.6)[int(p * 24) % 2]
+        s.fill(scale_color((130, 255, 160), k), (x - 1, y - 1, 3, 3))
+        s.set_at((x, y), (255, 255, 255))
+    glow = p >= nip
+    cx, cy = _maze_pos(cat_d)
+    _tiny_cat(s, cx, cy, glow)
+    if p < nip:
+        rx, ry = _maze_pos(cat_d - 12)
+        _tiny_robot(s, rx, ry, False, False)
+    else:
+        flee = _MAZE_NIP - 12 - (cat_d - _MAZE_NIP)
+        if p < 0.6:
+            rx, ry = _maze_pos(flee)
+            _tiny_robot(s, rx, ry, True, p > 0.52 and int(p * 40) % 2 == 0)
+        elif p < 0.68:                                                                   # caught: a little burst
+            rx, ry = _maze_pos(_MAZE_NIP - 12 - (0.6 * 2 * _MAZE_LAP - _MAZE_NIP))
+            r = int((p - 0.6) * 40)
+            for dx, dy in ((-r, 0), (r, 0), (0, -r), (0, r)):
+                s.set_at((rx + dx, ry + dy), Col.YELLOW)
+
+
+PINK_FISH = (255, 130, 200)
+
+
+def marquee_maze(s, r, label, frame, neon, accent):
+    """A scrolling CAT MAZE in neon cyan, with a purple chase-light rail above and below."""
+    _ticker(s, r, label, frame, "maze", MAZE_CYAN, MAZE_PURPLE, scale_color(MAZE_PURPLE, 0.4))
+
+
+def decorate_maze(s, frame, n, neon, accent):
+    """The lower door is a maze map: a winding path whose LEDs chase along it, glowing fish and a coin slot."""
+    d = DOOR
+    s.fill((14, 8, 36), d)
+    path = [(3, 2), (3, 3), (3, 4), (3, 5), (4, 5), (5, 5), (6, 5), (7, 5), (7, 4), (7, 3), (7, 2), (8, 2), (9, 2), (10, 2),
+            (11, 2), (12, 2), (12, 3), (12, 4), (12, 5), (13, 5), (14, 5), (15, 5), (16, 5), (17, 5), (18, 5), (18, 4),
+            (18, 3), (18, 2), (19, 2), (20, 2), (21, 2), (22, 2)]
+    head = frame * len(path) // n
+    for i, (px, py) in enumerate(path):
+        lit = (i - head) % 8 == 0
+        dist = (i - head) % 8
+        colour = Col.YELLOW if lit else MAZE_CYAN if dist in (1, 7) else scale_color(MAZE_CYAN, 0.28)
+        s.set_at((d.x + px, d.y + py), colour)
+    for fx, fy in ((6, 8), (14, 8), (21, 8)):                                           # glowing fish symbols
+        bright = (frame + fx) % 4 < 2
+        body = PINK_FISH if bright else scale_color(PINK_FISH, 0.5)
+        s.fill(body, (d.x + fx, d.y + fy, 3, 2))
+        s.set_at((d.x + fx + 3, d.y + fy - 1), body)
+        s.set_at((d.x + fx + 3, d.y + fy + 2), body)
+        s.set_at((d.x + fx, d.y + fy), (255, 255, 255) if bright else body)
+    s.fill((6, 4, 14), (d.centerx - 1, d.bottom - 1, 3, 1))
+    s.fill(MAZE_PURPLE, (d.centerx - 2, d.bottom - 2, 5, 1))
+    _bezel_leds(s, frame, n, MAZE_CYAN, MAZE_PURPLE, scale_color(MAZE_PURPLE, 0.5))
+
+
+def headroom_maze(s, pad, frame, neon, accent):
+    """Tall cat ears on the marquee housing: cyan-lined, pink inside, an LED at each tip, one ear flicking now and then."""
+    flick = 1 if frame == 3 else 0
+    for tip_x, base_x0, base_x1, ear_flick in ((5, 1, 11, 0), (30 + flick, 25, 35, flick)):
+        tip_y = pad - 6 + (1 if ear_flick else 0)
+        pts = [(base_x0, pad), (tip_x, tip_y), (base_x1, pad)]
+        pygame.draw.polygon(s, MAZE_BODY, pts)
+        pygame.draw.polygon(s, MAZE_CYAN, pts, 1)
+        inner = [(base_x0 + 3, pad - 1), (tip_x, tip_y + 3), (base_x1 - 3, pad - 1)]
+        pygame.draw.polygon(s, CAT_PINK, inner)
+        s.set_at((tip_x, tip_y), Col.YELLOW if frame % 2 == 0 else (255, 255, 255))
+    s.fill(MAZE_CYAN, (1, pad, 10, 1))
+    s.fill(MAZE_CYAN, (25, pad, 10, 1))
+
+
 # ----------------------------------------------------------------- registry
-SCREEN_PAINTERS = {"cat": screen_cat, "volley": screen_volley, "racer": screen_racer, "galaxy": screen_galaxy}
-MARQUEES = {"cat": marquee_cat, "volley": marquee_volley, "racer": marquee_racer, "galaxy": marquee_galaxy}
+SCREEN_PAINTERS = {"cat": screen_cat, "volley": screen_volley, "racer": screen_racer, "galaxy": screen_galaxy,
+                   "maze": screen_maze}
+MARQUEES = {"cat": marquee_cat, "volley": marquee_volley, "racer": marquee_racer, "galaxy": marquee_galaxy,
+            "maze": marquee_maze}
 BODY_DECORATORS = {"cat": lambda s, f, n, neon, accent: decorate_cat(s, f, neon, accent),
-                   "volley": decorate_volley, "racer": decorate_racer, "galaxy": decorate_galaxy}
-BODY_COLORS = {"racer": (CHARCOAL, CHARCOAL_SIDE)}   # cabinet body / side colours where not the default
-HEADROOM = {"cat": (5, headroom_cat), "racer": (4, headroom_racer)}              # style -> (extra rows above the cabinet, painter)
+                   "volley": decorate_volley, "racer": decorate_racer, "galaxy": decorate_galaxy,
+                   "maze": decorate_maze}
+BODY_COLORS = {"racer": (CHARCOAL, CHARCOAL_SIDE), "maze": (MAZE_BODY, MAZE_SIDE)}   # cabinet body / side colours where not the default
+HEADROOM = {"cat": (5, headroom_cat), "racer": (4, headroom_racer), "maze": (6, headroom_maze)}              # style -> (extra rows above the cabinet, painter)

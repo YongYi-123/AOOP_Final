@@ -26,7 +26,7 @@ class VolleyKeyboard:
                          (pygame.K_w, pygame.K_UP), (pygame.K_SPACE, pygame.K_LSHIFT))]
         else:
             bindings.append(((pygame.K_LEFT,), (pygame.K_RIGHT,), (pygame.K_UP,),
-                             (pygame.K_RSHIFT, pygame.K_RCTRL)))
+                             (pygame.K_RSHIFT, pygame.K_KP0)))
         result = []
         for left, right, jump, spike in bindings:
             down = lambda keys: any(key in self.held for key in keys)

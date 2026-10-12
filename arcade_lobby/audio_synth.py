@@ -456,6 +456,43 @@ def galaxy_defender():
     return m.finish(lowpass=0.34, rms=MINIGAME_RMS)
 
 
+def neon_cat_maze():
+    """NEON CAT MAZE: playful, mysterious chiptune. D minor, 112 BPM. Pizzicato triangle bass, bell arpeggios, a cute staccato
+    pulse-wave tune, a shaker, and a creeping chromatic 'robots are near' line every eighth bar."""
+    bpm, bars = 112, 16
+    beat = 60 / bpm
+    bar = beat * 4
+    m = Mix(bars * bar)
+    prog = ["Dm", "Bb", "Gm", "A7"] * 2 + ["Dm", "F", "Bb", "A7", "Dm", "Bb", "Gm", "A7"]
+    tune = {"Dm": "A5 . D6 F6 . E6 D6 .", "Bb": "D6 . F6 D6 . Bb5 . A5", "Gm": "Bb5 . D6 G6 . F6 D6 .",
+            "A7": "C#6 . E6 A6 . G6 E6 C#6", "F": "C6 . F6 A6 . G6 F6 .",
+            }
+    answer = {"Dm": "F6 . A6 . D7 . C7 .", "Bb": "D7 . C7 . Bb6 . A6 .", "Gm": "G6 . Bb6 . D7 . C7 .", "A7": "E7 . D7 . C#7 . A6 .", "F": "A6 . C7 . F7 . E7 ."}
+    for b in range(bars):
+        t0, sym = b * bar, prog[b]
+        root, tones = chord_tones(sym)
+        r = midi(root + "2")
+        for k, off in enumerate((0, 12, 7, 12, 0, 12, 7, 5)):                 # bouncy pizzicato bass
+            m.note(t0 + k * beat / 2, beat / 2 * 0.55, hz(r + off), "tri", 0.38, release=0.04)
+        for k in range(8):                                                      # sparkling bell arpeggio
+            m.note(t0 + k * beat / 2 + beat / 4, beat * 0.2, hz(midi(root + "4") + tones[k % len(tones)] + (12 if k % 4 == 3 else 0)),
+                   "bell", 0.04, attack=0.003, release=0.14)
+        for k in range(8):                                                      # shaker
+            m.noise(t0 + k * beat / 2, 0.025, 0.05 if k % 2 else 0.08, decay=100, bright=0.9, seed=b * 13 + k)
+        m.kick(t0, 0.3)
+        m.kick(t0 + 2 * beat, 0.24)
+        m.noise(t0 + beat, 0.06, 0.12, decay=45, bright=0.5, seed=b * 3)                 # rim
+        m.noise(t0 + 3 * beat, 0.06, 0.12, decay=45, bright=0.5, seed=b * 3 + 1)
+        if b >= 2:
+            pattern = tune[sym] if b < 8 else (answer[sym] if b % 2 else tune[sym])
+            grid(m, t0, beat / 2, pattern, "p25", 0.1, attack=0.004, release=0.07, vibrato=4)
+        if b in (7, 15):                                                        # something creeps past
+            for k, name in enumerate(("A5", "G#5", "G5", "F#5", "F5", "E5", "D#5", "D5")):
+                m.note(t0 + k * beat / 2, beat / 2 * 0.8, hz(midi(name)), "sq", 0.05, attack=0.01, release=0.06, vibrato=6)
+    signature(m, 0.0, midi("D3"), minor=True, vol=0.12)
+    return m.finish(lowpass=0.24, rms=MINIGAME_RMS)
+
+
 def neon21():
     """NEON 21: smooth electronic casino lounge. A minor 9ths, 90 BPM, electric-piano comping, walking bass, brushes."""
     bpm, bars = 90, 16
@@ -568,7 +605,7 @@ def high_low():
 
 
 MINIGAME_MUSIC = {"retro_racer": retro_racer, "pixel_volleyball": pixel_volleyball, "cat_minesweeper": cat_minesweeper,
-                  "galaxy_defender": galaxy_defender, "neon21": neon21, "lucky_wheel": lucky_wheel, "high_low": high_low}
+                  "galaxy_defender": galaxy_defender, "neon_cat_maze": neon_cat_maze, "neon21": neon21, "lucky_wheel": lucky_wheel, "high_low": high_low}
 
 
 ROOM_MUSIC = {"arcade_floor": arcade_floor, "prize_plaza": prize_plaza, "lucky_corner": lucky_corner, "home": home}
@@ -651,6 +688,39 @@ def sfx_pet():
     m.note(0, 0.12, 520, "sine", 0.4, release=0.06, vibrato=14, slide=400)
     m.note(0.14, 0.18, 760, "sine", 0.35, release=0.12, vibrato=14, slide=-300)
     return m.finish(peak=0.45, fade=0.01)
+
+
+def sfx_pet_b():
+    """A short, high 'mew' chirp (a happier pet)."""
+    m = _sfx(0.3)
+    m.note(0, 0.1, 640, "sine", 0.38, release=0.05, vibrato=10, slide=1100)
+    m.note(0.1, 0.12, 900, "tri", 0.26, release=0.1, vibrato=10, slide=-900)
+    return m.finish(peak=0.42, fade=0.01)
+
+
+def sfx_pet_c():
+    """A two-note 'mrrp?' trill."""
+    m = _sfx(0.34)
+    m.note(0, 0.08, 430, "sine", 0.4, release=0.03, vibrato=26, slide=500)
+    m.note(0.1, 0.14, 640, "sine", 0.34, release=0.1, vibrato=18, slide=400)
+    return m.finish(peak=0.42, fade=0.01)
+
+
+def sfx_purr():
+    """A gentle, clearly audible purr: a buzzy 105 Hz carrier (its harmonics reach ~1 kHz, so small speakers
+    still play it) pulsed about 25 times a second, with a little breath."""
+    m = _sfx(0.76)
+    rng = random.Random(21)
+    f0, breath = 105.0, 0.0
+    for i in range(m.n):
+        t = i / RATE
+        pulse = (0.5 + 0.5 * math.cos(6.283185307 * 25 * t + 3.1)) ** 1.6          # the rumble's beat
+        f = f0 * (1 + 0.02 * math.sin(6.283185307 * 3.1 * t))
+        carrier = sum(math.sin(6.283185307 * f * h * t) / h ** 0.5 for h in range(1, 13))
+        breath += (rng.uniform(-1, 1) - breath) * 0.12
+        env = min(1.0, t / 0.1) * min(1.0, (0.76 - t) / 0.2)
+        m.buf[i] += env * (0.3 + 0.7 * pulse) * (0.5 * carrier + 0.5 * breath)
+    return m.finish(peak=0.62, fade=0.04, rms=-17)
 
 
 def sfx_emote():
@@ -758,12 +828,94 @@ def sfx_glitch():
     return m.finish(peak=0.5, fade=0.02)
 
 
+def sfx_maze_fish():
+    m = _sfx(0.12)
+    m.note(0, 0.04, hz(midi("E6")), "p25", 0.5, release=0.02)
+    m.note(0.04, 0.06, hz(midi("A6")), "p25", 0.45, release=0.05)
+    return m.finish(peak=0.5, fade=0.008)
+
+
+def sfx_maze_fish_b():
+    m = _sfx(0.12)
+    m.note(0, 0.04, hz(midi("G6")), "p25", 0.5, release=0.02)
+    m.note(0.04, 0.06, hz(midi("C7")), "p25", 0.45, release=0.05)
+    return m.finish(peak=0.5, fade=0.008)
+
+
+def sfx_maze_golden():
+    m = _sfx(0.7)
+    for k, name in enumerate(("D6", "F6", "A6", "D7", "F7")):
+        m.note(k * 0.07, 0.12, hz(midi(name)), "bell", 0.42, attack=0.002, release=0.3)
+    m.note(0.36, 0.3, hz(midi("A7")), "sine", 0.18, release=0.25, vibrato=8)
+    return m.finish(peak=0.6, fade=0.01)
+
+
+def sfx_maze_golden_spawn():
+    m = _sfx(0.3)
+    m.note(0, 0.08, hz(midi("A6")), "bell", 0.3, release=0.2)
+    m.note(0.1, 0.1, hz(midi("E7")), "bell", 0.25, release=0.2)
+    return m.finish(peak=0.45, fade=0.01)
+
+
+def sfx_maze_catnip():
+    m = _sfx(0.75)
+    m.note(0, 0.4, 300, "sine", 0.4, release=0.1, slide=1500)                       # a swelling whoosh up
+    for k, name in enumerate(("D5", "F5", "A5", "D6")):
+        m.note(0.22 + k * 0.07, 0.25, hz(midi(name)), "p25", 0.3, release=0.2)
+    m.note(0.45, 0.28, hz(midi("A6")), "bell", 0.4, release=0.3)
+    m.noise(0.0, 0.3, 0.12, decay=6, bright=0.8, seed=21)
+    return m.finish(peak=0.65, fade=0.02)
+
+
+def sfx_maze_catnip_end():
+    m = _sfx(0.35)
+    m.note(0, 0.12, hz(midi("A5")), "p25", 0.35, release=0.08)
+    m.note(0.12, 0.2, hz(midi("D5")), "p25", 0.3, release=0.15)
+    return m.finish(peak=0.45, fade=0.01)
+
+
+def sfx_maze_disable():
+    m = _sfx(0.45)
+    m.note(0, 0.18, 1400, "sq", 0.3, release=0.05, slide=-1100)
+    m.noise(0.0, 0.08, 0.3, decay=40, bright=0.7, seed=31)
+    m.note(0.14, 0.3, hz(midi("E6")), "bell", 0.4, release=0.3)
+    m.note(0.22, 0.2, hz(midi("B6")), "bell", 0.3, release=0.3)
+    return m.finish(peak=0.6, fade=0.01)
+
+
+def sfx_maze_life():
+    m = _sfx(0.75)
+    for k, name in enumerate(("A5", "F5", "D5", "A4")):
+        m.note(k * 0.12, 0.16, hz(midi(name)), "tri", 0.5, release=0.1, vibrato=6)
+    m.note(0.48, 0.24, 300, "saw", 0.2, release=0.12, slide=-200)
+    return m.finish(peak=0.6, fade=0.02)
+
+
+def sfx_maze_clear():
+    m = _sfx(0.78)
+    for k, name in enumerate(("D5", "F5", "A5", "D6", "F6", "A6")):
+        m.note(k * 0.07, 0.1, hz(midi(name)), "p25", 0.38, release=0.08)
+    for off in (0, 4, 7, 12):                                                      # a bright D major chord
+        m.note(0.45, 0.3, hz(midi("D5") + off), "bell", 0.28, release=0.3)
+    return m.finish(peak=0.65, fade=0.03)
+
+
+def sfx_maze_over():
+    m = _sfx(0.78)
+    for k, name in enumerate(("D6", "C6", "Bb5", "A5", "G5", "F5", "D5")):
+        m.note(k * 0.09, 0.14, hz(midi(name)), "tri", 0.5, release=0.1, vibrato=5)
+    m.note(0.6, 0.18, hz(midi("D4")), "saw", 0.22, release=0.15)
+    return m.finish(peak=0.6, fade=0.03)
+
+
 SFX = {"footstep": sfx_footstep, "confirm": sfx_confirm, "cancel": sfx_cancel, "machine": sfx_machine,
        "token": sfx_token, "ticket": sfx_ticket, "purchase": sfx_purchase, "card": sfx_card,
-       "equip": sfx_equip, "meow": sfx_meow, "pet": sfx_pet, "emote": sfx_emote, "sit": sfx_sit,
+       "equip": sfx_equip, "meow": sfx_meow, "pet": sfx_pet, "pet_b": sfx_pet_b, "pet_c": sfx_pet_c, "purr": sfx_purr, "emote": sfx_emote, "sit": sfx_sit,
        "vend_hum": sfx_vend_hum, "vend_select": sfx_vend_select, "vend_drop": sfx_vend_drop, "burp": sfx_burp,
        "munch": sfx_munch, "rainbow": sfx_rainbow, "squeak": sfx_squeak, "zap": sfx_zap, "mystery": sfx_mystery,
-       "glitch": sfx_glitch}
+       "glitch": sfx_glitch, "maze_fish": sfx_maze_fish, "maze_fish_b": sfx_maze_fish_b, "maze_golden": sfx_maze_golden,
+       "maze_golden_spawn": sfx_maze_golden_spawn, "maze_catnip": sfx_maze_catnip, "maze_catnip_end": sfx_maze_catnip_end,
+       "maze_disable": sfx_maze_disable, "maze_life": sfx_maze_life, "maze_clear": sfx_maze_clear, "maze_over": sfx_maze_over}
 
 
 def generate(only=None):

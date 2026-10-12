@@ -94,6 +94,8 @@ class ArcadeFloorScene(BaseRoomScene):
     exits = (RoomExit("right", "home", "left"),)
     cat_spots = {
         "pixel": ((120, 124), (250, 124), (324, 196), (330, 244)),   # curious: patrols the corridor
+        "dash": ((165, 224), (250, 226), (206, 166)),                # playful: hops around the stools
+        "pepper": ((352, 124), (336, 152)),                          # grumpy: guards the vending corner
     }
     action_hint = "PLAY"
     music_id = "lobby"
