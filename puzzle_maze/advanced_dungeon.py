@@ -11,20 +11,22 @@ V4_SAVE=Path(__file__).parent/'save_v4.json'
 
 class AdvancedDungeonSession(DungeonSession):
     def __init__(self,rooms=None):
-        self.rewards=DungeonRewardBag();self.effects=[]
+        self.rewards=DungeonRewardBag();self.effects=[];self.pot_flights=[]
         super().__init__(rooms or load_rooms(MAP_PATH.with_name('dungeon_v4.json')))
     def make_puzzles(self,room):
         manager=AdvancedPuzzleManager(room,self.inventory);manager.grant_treasure=self.grant_treasure;return manager
     def enter(self,name,arrival=None):
         super().enter(name,arrival)
-        self.checkpoint['reward_bag']=self.rewards.capture();self.effects=[]
+        self.checkpoint['reward_bag']=self.rewards.capture();self.effects=[];self.pot_flights=[]
     def tick(self,dt):
         super().tick(dt)
         if self.player.hp<=0:return
+        self.pot_flights=[dict(flight,time=flight['time']-dt) for flight in self.pot_flights if flight['time']>dt]
         self.effects=[(kind,pos,time-dt) for kind,pos,time in self.effects if time>dt]
         for obj in self.puzzles.objects.values():
             if isinstance(obj,OrderedSeal):obj.state.active=self.combat.order_index==len(self.combat.kill_order) and bool(self.combat.kill_order)
-        if self.rooms.current=='r21' and self.combat.cleared:self.inventory.flags.add('warden')
+        flag=self.rooms.data.get('on_clear_flag')
+        if flag and self.combat.cleared:self.inventory.flags.add(flag)
         self.puzzles.update(0,self.player)
     def move(self,dx,dy):
         moved=super().move(dx,dy)
@@ -67,6 +69,7 @@ class AdvancedDungeonSession(DungeonSession):
             enemy=next((e for e in self.combat.enemies if e.hp>0 and e.pos==pos),None)
             if enemy:
                 enemy.receive_damage(self.combat,3,'pot',p);break
+        self.pot_flights.append(dict(start=(p.x,p.y),end=impact,time=.3))
         self.inventory.carried=None;pot.x,pot.y=impact;pot.state.active=True
         for treasure in pot.data.get('loot',[]):self.grant_treasure(pot.id,treasure)
         if pot.data.get('explosive'):self.bombs.bombs.append(Bomb(*impact,fuse=.7))
@@ -87,12 +90,15 @@ class AdvancedDungeonSession(DungeonSession):
         elif kind=='ability':inv.abilities.add(treasure)
         inv.notifications.append((treasure,name));return True
     def transition(self):
+        exit=self.rooms.exit_at(self.player)
+        if exit and exit.get('crystal') and exit['crystal']!=('blue' if 'crystal_blue' in self.inventory.flags else 'red'):return False
         if self.inventory.carried is not None:return False
         moved=super().transition()
         if moved and self.finished:self.rewards.settle(True,self.player.hp>0)
         return moved
     def reset(self):
-        super().reset();self.rewards=DungeonRewardBag.restore(self.checkpoint['reward_bag']);self.effects=[]
+        if self.rewards.claimed:return False
+        super().reset();self.rewards=DungeonRewardBag.restore(self.checkpoint['reward_bag']);self.effects=[];self.pot_flights=[]
     def save_extension(self):return dict(rewards=self.rewards.capture())
     def load_extension(self,data):
         self.rewards=DungeonRewardBag.restore(data['rewards'])

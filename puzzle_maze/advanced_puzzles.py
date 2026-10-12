@@ -65,7 +65,7 @@ class AdvancedPuzzleManager(PuzzleManager):
             index=sum(self.objects[name].state.active for name in group.data['order'])
             if group.data['order'][index]!=fire.id:
                 for name in group.data['order']:self.objects[name].state.active=False
-                group.state.active=False;self.inventory.notifications.append(('powder','WRONG ORDER / TRY AGAIN'));return 'wrong'
+                group.state.active=False;self.inventory.notifications.append(('powder','WRONG ORDER / RETRY'));return 'wrong'
             fire.state.active=True;group.state.active=all(self.objects[name].state.active for name in group.data['order'])
         else:fire.state.active=True
         self.update(0,player);return fire.id

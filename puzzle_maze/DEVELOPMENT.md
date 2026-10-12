@@ -263,3 +263,71 @@ Old 2.1 saves remain separate and playable via `--legacy` / archive continuation
 - `puzzle_maze/themes.py`
 - `puzzle_maze/ui.py`
 - `puzzle_maze/validator.py`
+
+
+## 4.0 — Emberglass Hollow (2026-10-13)
+
+Created `feature/puzzle-maze-v4` from completed v3 `b82fe85`. The unrelated
+`tatus --short` file remains untouched, as do main, backup branches and all other
+modules. Baseline: 108 tests passed.
+
+- Added powder braziers/sequences, refill stands, lift/drop/throw pots, carried
+  weight plates, shared red/blue barriers, ordered enemy resets and safe respawns.
+- Extended the encounter factory with Mirror Mask, Pot Hunter, Crystal Ghost,
+  Elite Guardian and Crystal Warden. Finite Warden summons save their dormant
+  state and awaken at legal positions. Existing Golem gains a final crystal rule.
+- Added four meaningful rooms and multiple bidirectional shortcut loops; the old
+  eighteen chambers retain their solved mechanical layouts with revised art.
+- Added a local reward escrow/receipt with source deduplication, five distinct
+  secret collections and Heart Fragments. No external economy writes or imports.
+- Added original icon assets in code, cached floor compositions, new palettes,
+  animated braziers, crystals, carried/thrown pots, shards, chest lids and motes.
+- Added 4.0 private save and old-campaign archives. Archive navigation and death
+  cannot overwrite a live expedition. Settled receipts cannot be reset.
+
+Validation: 135 tests pass in 17.235 seconds, including a legal complete route visiting all 22
+rooms, all five secrets, Warden, Golem and saved final receipt. Resource search
+has 341 reachable states and 341 winning continuations. The route includes coupled
+player/Mirror Mask state search. Room walking is untimed in the witness, while
+combat/fuses receive explicit ticks; real-time difficulty is not exhaustively
+proven. UI bounds and both tutorial pages are checked at five resolutions.
+
+Headless room/shrine/pot/Warden screenshots reviewed. Cached Warden rendering:
+1.87 ms/frame over 180 frames. This is a render benchmark, not physical-display
+FPS. Manual keyboard feel, boss difficulty, sound and display scaling remain.
+
+### 4.0 file manifest
+
+- `puzzle_maze/.gitignore`
+- `puzzle_maze/DEVELOPMENT.md`
+- `puzzle_maze/README.md`
+- `puzzle_maze/README_V3.md`
+- `puzzle_maze/advanced_dungeon.py`
+- `puzzle_maze/advanced_enemies.py`
+- `puzzle_maze/advanced_puzzles.py`
+- `puzzle_maze/audio.py`
+- `puzzle_maze/build_dungeon_v4.py`
+- `puzzle_maze/combat.py`
+- `puzzle_maze/enemies.py`
+- `puzzle_maze/exploration.py`
+- `puzzle_maze/game.py`
+- `puzzle_maze/icons.py`
+- `puzzle_maze/items.py`
+- `puzzle_maze/maps/dungeon_v4.json`
+- `puzzle_maze/onboarding.py`
+- `puzzle_maze/puzzles.py`
+- `puzzle_maze/render.py`
+- `puzzle_maze/rewards.py`
+- `puzzle_maze/room_art.py`
+- `puzzle_maze/rooms.py`
+- `puzzle_maze/session.py`
+- `puzzle_maze/tests/test_combat.py`
+- `puzzle_maze/tests/test_v4_campaign.py`
+- `puzzle_maze/tests/test_v4_mechanics.py`
+- `puzzle_maze/tests/test_v4_presentation.py`
+- `puzzle_maze/themes.py`
+- `puzzle_maze/validator.py`
+
+Final CLI smoke checks passed for campaigns 4, 3 and 2. The v4 JSON exactly
+matches its deterministic authoring generator. `compileall` and `git diff --check`
+passed. No other tracked module was edited.

@@ -7,6 +7,7 @@ from enum import Enum, auto
 import pygame
 from puzzle_maze.session import GameSession, SAVE_PATH
 from puzzle_maze.dungeon import DungeonSession
+from puzzle_maze.advanced_dungeon import AdvancedDungeonSession
 from puzzle_maze.render import Renderer, GOLD, TEAL
 from puzzle_maze.audio import AudioManager
 from puzzle_maze.onboarding import IntroSequence,TutorialCard
@@ -21,9 +22,10 @@ class GameScene(Enum):
     GAMEOVER=auto()
     INTRO=auto()
     TUTORIAL=auto()
+    ARCHIVE=auto()
 
 class Game:
-    def __init__(self,headless=False,embedded=False,audio=None,legacy=False):
+    def __init__(self,headless=False,embedded=False,audio=None,legacy=False,campaign="4"):
         if headless:
             os.environ['SDL_VIDEODRIVER']='dummy';os.environ['SDL_AUDIODRIVER']='dummy'
         pygame.display.init();pygame.font.init()
@@ -31,7 +33,7 @@ class Game:
         self.screen=pygame.display.get_surface() if embedded else pygame.display.set_mode((960,720),pygame.RESIZABLE)
         if not embedded:pygame.display.set_caption('Puzzle Maze / Clockwork Hollow')
         self.clock=pygame.time.Clock();self.renderer=Renderer();self.audio=audio if audio is not None else AudioManager()
-        self.session_factory=GameSession if embedded or legacy else DungeonSession
+        self.session_factory=GameSession if embedded or legacy or campaign=="2" else DungeonSession if campaign=="3" else AdvancedDungeonSession
         self.session=self.session_factory();self.scene=GameScene.MENU;self.previous=GameScene.MENU
         self.selection=0;self.running=True;self.cooldown=0
         self.visual=[float(self.session.player.x),float(self.session.player.y)]
@@ -40,19 +42,21 @@ class Game:
         self.tool='pulse'
         self.intro=IntroSequence();self.tutorial=TutorialCard()
         self.tutorial.bombs=isinstance(self.session,DungeonSession)
+        self.tutorial.advanced=isinstance(self.session,AdvancedDungeonSession);self.tutorial.page=0
 
     def notify(self,message,seconds=3):
         self.toast=message;self.toast_time=seconds
 
     def save(self):
-        if self.scene in (GameScene.INTRO,GameScene.TUTORIAL):return
+        if self.scene in (GameScene.INTRO,GameScene.TUTORIAL,GameScene.MENU,GameScene.ARCHIVE):return
         try:self.session.save()
         except OSError:self.notify('Save unavailable: progress stays in memory')
 
-    def start(self,continuing=False,onboarding=True,legacy=False):
-        factory=GameSession if legacy else self.session_factory
+    def start(self,continuing=False,onboarding=True,legacy=False,archived=False):
+        factory=GameSession if legacy else DungeonSession if archived else self.session_factory
         self.session=factory.load() if continuing else factory()
         self.tutorial.bombs=isinstance(self.session,DungeonSession)
+        self.tutorial.advanced=isinstance(self.session,AdvancedDungeonSession);self.tutorial.page=0
         self.tool="pulse"
         self.scene=GameScene.GAMEOVER if self.session.player.hp<=0 else GameScene.VICTORY if self.session.finished else GameScene.PLAY
         if not continuing and onboarding:
@@ -76,20 +80,23 @@ class Game:
             elif key==pygame.K_ESCAPE:self.scene=GameScene.MENU
             return
         if self.scene==GameScene.TUTORIAL:
+            if self.tutorial.advanced and key in (pygame.K_LEFT,pygame.K_RIGHT):self.tutorial.page=1-self.tutorial.page
             if key==pygame.K_RETURN:
                 self.scene=GameScene.PLAY;self.cooldown=.2;self.fade=0
                 self.notify(f"Basic Sword ready. {self.tutorial.controls['attack']} attacks. {self.tutorial.controls['interact']} opens chests.")
             elif key==pygame.K_ESCAPE:self.scene=GameScene.MENU
             return
-        if self.scene in (GameScene.MENU,GameScene.PAUSE,GameScene.VICTORY,GameScene.GAMEOVER):
+        if self.scene in (GameScene.MENU,GameScene.PAUSE,GameScene.VICTORY,GameScene.GAMEOVER,GameScene.ARCHIVE):
             options=self.options()
             if key in (pygame.K_DOWN,pygame.K_s):self.selection=(self.selection+1)%len(options)
             if key in (pygame.K_UP,pygame.K_w):self.selection=(self.selection-1)%len(options)
             if key in (pygame.K_RETURN,pygame.K_SPACE):self.choose(options[self.selection])
             if key==pygame.K_ESCAPE and self.scene==GameScene.PAUSE:self.scene=GameScene.PLAY
+            elif key==pygame.K_ESCAPE and self.scene==GameScene.ARCHIVE:self.scene=GameScene.MENU;self.selection=0
             elif key==pygame.K_ESCAPE and self.scene==GameScene.GAMEOVER:self.choose("Main menu")
             return
         if self.scene==GameScene.HELP:
+            if self.tutorial.advanced and key in (pygame.K_LEFT,pygame.K_RIGHT):self.tutorial.page=1-self.tutorial.page
             if key in (pygame.K_ESCAPE,pygame.K_RETURN):self.scene=self.previous
             return
         if key==pygame.K_ESCAPE:
@@ -104,9 +111,18 @@ class Game:
             self.last_solved=self.session.puzzles.solved;self.renderer.particles.clear()
             self.notify('Room restored to entrance checkpoint');self.save();return
         if self.scene!=GameScene.PLAY:return
-        if getattr(event,'repeat',False) and key in (pygame.K_b,pygame.K_j,pygame.K_e,pygame.K_SPACE):return
+        if getattr(event,'repeat',False) and key in (pygame.K_b,pygame.K_j,pygame.K_e,pygame.K_SPACE,pygame.K_p,pygame.K_g):return
         if key==pygame.K_b and hasattr(self.session,'bombs'):
             if not self.session.bombs.place():self.notify('Find powder / wait for placement cooldown',2)
+            return
+        if key==pygame.K_p and hasattr(self.session,'powder'):
+            if not self.session.powder():self.notify('P: face a fire / refill powder',2)
+            return
+        if key==pygame.K_g and hasattr(self.session,'throw_pot'):
+            if not self.session.throw_pot():self.notify('E lifts a pot; G throws it',2)
+            return
+        if key==pygame.K_e and getattr(self.session.inventory,'carried',None):
+            if not self.session.drop_pot():self.notify('Face a clear tile to set down',2)
             return
         if key==pygame.K_j:self.session.attack();return
         if key==pygame.K_h:
@@ -144,8 +160,9 @@ class Game:
         exit_label='Return to arcade' if self.embedded else 'Quit'
         if self.scene==GameScene.MENU:
             options=['New expedition','Quick start (skip tutorial)','Continue expedition']
-            if not self.embedded and SAVE_PATH.exists():options.append('Continue 2.1 archive')
+            if not self.embedded:options.append('Archived expeditions')
             return options+['Controls',exit_label]
+        if self.scene==GameScene.ARCHIVE:return ['3.0 Clockwork Hollow','2.1 Prism Chambers','Main menu']
         if self.scene==GameScene.GAMEOVER:return ['Main menu','Retry room']
         if self.scene==GameScene.VICTORY:return ['New expedition','Main menu',exit_label]
         return ['Resume','Controls','Reset room','Save and main menu',exit_label]
@@ -155,7 +172,9 @@ class Game:
         if option=='New expedition':self.start()
         elif option=='Quick start (skip tutorial)':self.start(onboarding=False)
         elif option=='Continue expedition':self.start(True)
-        elif option=='Continue 2.1 archive':self.start(True,legacy=True)
+        elif option in ('Continue 2.1 archive','2.1 Prism Chambers'):self.start(True,legacy=True)
+        elif option=='3.0 Clockwork Hollow':self.start(True,archived=True)
+        elif option=='Archived expeditions':self.scene=GameScene.ARCHIVE
         elif option=='Controls':self.previous=self.scene;self.scene=GameScene.HELP
         elif option=='Resume':self.scene=GameScene.PLAY
         elif option in ('Reset room','Retry room'):
@@ -213,18 +232,23 @@ class Game:
         r=self.renderer;r.world(self.session,self.visual,dt,self.tool,self.tutorial.controls)
         if self.scene==GameScene.INTRO:self.intro.draw(r,self.tutorial.controls["confirm"])
         elif self.scene==GameScene.TUTORIAL:self.tutorial.draw(r)
-        elif self.scene in (GameScene.MENU,GameScene.PAUSE,GameScene.VICTORY,GameScene.GAMEOVER):
-            title={GameScene.MENU:'PUZZLE MAZE',GameScene.PAUSE:'EXPEDITION PAUSED',GameScene.VICTORY:'HOLLOW AWAKENED',GameScene.GAMEOVER:'GAME OVER'}[self.scene]
+        elif self.scene in (GameScene.MENU,GameScene.PAUSE,GameScene.VICTORY,GameScene.GAMEOVER,GameScene.ARCHIVE):
+            title={GameScene.MENU:'PUZZLE MAZE',GameScene.PAUSE:'EXPEDITION PAUSED',GameScene.VICTORY:'HOLLOW AWAKENED',GameScene.GAMEOVER:'GAME OVER',GameScene.ARCHIVE:'OLD EXPEDITIONS'}[self.scene]
             r.panel(title,self.options(),self.selection)
-            r.text('Clockwork Hollow / original pixel adventure',36,193,(133,163,156))
+            if self.scene==GameScene.VICTORY and hasattr(self.session,'rewards'):
+                bag=self.session.rewards
+                r.text(f'Tokens {bag.tokens} / Tickets {bag.tickets}',36,151,GOLD,max_width=244)
+                r.text(f'Found {len(bag.collections)}/5 / '+('Settled once' if bag.claimed else 'Pending'),36,170,TEAL,max_width=244)
+            r.text('Original pixel dungeon / archived saves kept',36,193,(133,163,156),max_width=244)
         elif self.scene==GameScene.HELP:
             r.panel('FIELD GUIDE',self.tutorial.lines(False))
         elif self.scene==GameScene.MAP:r.map_panel(self.session)
         else:
-            if self.toast_time:
+            boss_room=any(e.kind in ('golem','crystal_warden') for e in self.session.combat.enemies)
+            if self.toast_time and not boss_room:
                 for i,line in enumerate(textwrap.wrap(self.toast,26)):
                     pygame.draw.rect(r.surface,(18,26,39),(6,6+i*16,226,16));r.text(line,10,8+i*16,GOLD,max_width=220)
-            elif self.session.player.x<5:
+            elif self.session.player.x<5 and not boss_room:
                 for i,line in enumerate(textwrap.wrap(self.session.rooms.data['hint'],26)):
                     pygame.draw.rect(r.surface,(18,26,39),(6,6+i*16,226,16));r.text(line,10,8+i*16,max_width=220)
         if self.scene==GameScene.PLAY:r.minimap(self.session)
@@ -249,11 +273,12 @@ class Game:
 
 def main():
     parser=argparse.ArgumentParser(description='Independent Puzzle Maze')
+    parser.add_argument('--campaign',choices=('4','3','2'),default='4',help='Campaign version, each with its own save')
     parser.add_argument('--legacy',action='store_true',help='Play the original 2.1 campaign and save')
     parser.add_argument('--headless',action='store_true');parser.add_argument('--frames',type=int)
     parser.add_argument('--screenshot',help='Write a screenshot after a bounded run')
     args=parser.parse_args()
-    game=Game(args.headless,legacy=args.legacy)
+    game=Game(args.headless,legacy=args.legacy,campaign=args.campaign)
     if args.screenshot:
         game.start(onboarding=False);game.fade=0
         for _ in range(args.frames or 1):game.draw(1/60)

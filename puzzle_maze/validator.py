@@ -12,7 +12,7 @@ class DungeonValidator:
     def __init__(self,rooms):self.rooms=rooms
     def validate(self):
         validate_rooms(self.rooms)
-        if not 16<=len(self.rooms)<=20:raise ValueError('Expected sixteen to twenty chambers')
+        if not 16<=len(self.rooms)<=24:raise ValueError('Expected sixteen to twenty-four chambers')
         if {r.get('floor') for r in self.rooms.values()}!={'1F','B1F'}:raise ValueError('Missing floor')
         grants={};locks={};keys_total=0;cost_total=0
         for room in self.rooms.values():
@@ -29,13 +29,13 @@ class DungeonValidator:
                 rule=obj.get('progression')
                 if (keys or cost) and not rule:raise ValueError('Missing resource access rule')
                 if not rule:continue
-                name=rule['milestone'];needs=set(rule['needs'])
+                name=rule['milestone'];needs=[set(choice) for choice in rule.get('alternatives',[rule['needs']])]
                 if name in grants or name in locks:raise ValueError('Duplicate milestone')
                 if cost:locks[name]=(cost,needs)
                 else:grants[name]=(keys,needs)
         names=set(grants)|set(locks)
         if 'boss_key' not in names:raise ValueError('Missing boss access milestone')
-        if any(not needs<=names for _,needs in list(grants.values())+list(locks.values())):raise ValueError('Unknown milestone dependency')
+        if any(not all(choice<=names for choice in needs) for _,needs in list(grants.values())+list(locks.values())):raise ValueError('Unknown milestone dependency')
         if not any(o.get('boss_key') for r in self.rooms.values() for o in r['objects']):raise ValueError('Missing Boss Key')
         abilities={o.get('ability') for r in self.rooms.values() for o in r['objects']}
         if not {'gloves','boots','mirror','magnet','map','compass'}<=abilities:raise ValueError('Missing ability reward')
@@ -46,9 +46,9 @@ class DungeonValidator:
             if set(locks)<=opened and 'boss_key' in collected:success.add(state)
             out=[]
             for name,(reward,needs) in grants.items():
-                if name not in collected and needs<=available:out.append((collected|{name},opened,keys+reward))
+                if name not in collected and any(choice<=available for choice in needs):out.append((collected|{name},opened,keys+reward))
             for name,(cost,needs) in locks.items():
-                if name not in opened and needs<=available and keys>=cost:out.append((collected,opened|{name},keys-cost))
+                if name not in opened and any(choice<=available for choice in needs) and keys>=cost:out.append((collected,opened|{name},keys-cost))
             for new in out:
                 reverse[new].add(state)
                 if new not in states:states.add(new);queue.append(new)

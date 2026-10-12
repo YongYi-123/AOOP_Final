@@ -25,14 +25,17 @@ def build():
         rooms[f'r{number}']=base(name,theme,atlas,'1F',barrier=number!=22)
         rooms[f'r{number}'].update(floor=floor,layout_revision='4.0',architecture='mosaic',motifs=[dict(kind='medallion',pos=[12,7])])
     rooms['r19']['objects']=[obj('chest','powder',(5,4),ability='powder',powder=12),obj('powder_supply','dust',(4,10)),obj('brazier','dawn',(7,5),mark=1),obj('brazier','noon',(10,5),mark=2),obj('brazier','dusk',(13,5),mark=3),obj('torch_order','flames',(16,4),order=['dawn','noon','dusk']),obj('combat','clear',(16,13)),obj('door','gate',(18,8),requires=['flames','clear']),obj('remote','flame_signal',(23,5),flag='flame',requires=['gate']),obj('brazier','hidden_fire',(22,11),requires=['flames']),obj('chest','disc',(23,11),loot=['music_disc'],requires=['hidden_fire'],hidden=True)]
+    for x in (7,10,13):tile(19,x,4,'#')
     rooms['r19']['enemies']=[dict(id='ghost',type='crystal_ghost',pos=[11,10],torch='dawn')];rooms['r19']['goal']=['flame_signal']
     rooms['r19']['hint']='P lights marked bowls: dawn, noon, dusk. E refills powder.'
     rooms['r20']['objects']=[obj('pot','jar',(6,6),weight=2,renewable=True),obj('pot','jar2',(9,9),weight=2,renewable=True),obj('pot','charm_pot',(12,4),weight=2,loot=['lucky_charm'],inscribed=True),obj('pot','bomb_pot',(6,11),weight=2,explosive=True),obj('pot_supply','pot_rack',(4,4)),obj('weight','load',(13,8),weight=3),obj('combat','clear',(16,13)),obj('relay','flame_ready',(16,5),flags=['flame']),obj('door','gate',(18,8),requires=['load','clear','flame_ready']),obj('chest','cache',(23,5),loot=['bomb_bundle','token_cache'],requires=['gate'])]
+    rooms['r20']['objects'].extend(obj('pot',f'stored_{x}',(x,12),weight=2,renewable=True) for x in (5,7,9))
     rooms['r20']['enemies']=[dict(id='hunter',type='pot_hunter',pos=[14,10])];rooms['r20']['goal']=['cache']
     rooms['r20']['hint']='E lifts a pot. G throws. Carry weight onto the three-dot plate.'
     rooms['r21']['objects']=[obj('crystal_switch','crystal',(5,8)),obj('crystal_barrier','red',(17,8),color='red'),obj('combat','clear',(16,13)),obj('door','gate',(18,8),requires=['clear']),obj('chest','warden_cache',(23,5),loot=['ticket_bundle','heart_recovery'],requires=['gate']),obj('supply','bombs',(4,4)),obj('cracked','sanctuary',(12,13))]
     rooms['r21']['enemies']=[dict(id='warden',type='crystal_warden',pos=[12,8],weak_color='red'),dict(id='spark_slime',type='slime',pos=[15,5],summon_at=3),dict(id='spark_bat',type='bat',pos=[15,11],summon_at=3)]
-    rooms['r21']['goal']=['clear','warden_cache'];rooms['r21']['hint']='J strikes crystal. Red reveals the Warden; blue lowers the exit.'
+    for x,y in ((2,1),(3,1),(4,1),(2,2),(3,2),(23,1),(22,1),(21,1),(23,2),(22,2),(2,13),(3,13),(23,13),(22,13),(23,12)):tile(21,x,y,'#')
+    rooms['r21']['on_clear_flag']='warden';rooms['r21']['goal']=['clear','warden_cache'];rooms['r21']['hint']='J strikes crystal. Red reveals the Warden; blue lowers the exit.'
     rooms['r22']['hidden']=True
     rooms['r22']['objects']=[obj('ordered','sequence',(16,13)),obj('chest','skin',(20,5),loot=['crystal_skin'],requires=['sequence'],hidden=True),obj('relay','sanctuary_ready',(8,4),flags=['flame','warden']),obj('chest','stamp',(8,5),loot=['ancient_stamp'],requires=['sanctuary_ready'],hidden=True),obj('chest','fragment',(19,11),loot=['heart_fragment'],requires=['sequence']),obj('chest','cache',(21,11),loot=['token_cache','ticket_bundle'],requires=['sequence'])]
     rooms['r22']['enemies']=[dict(id='slime',type='slime',pos=[7,5]),dict(id='bat',type='bat',pos=[11,11]),dict(id='mask',type='mirror_mask',pos=[15,8])]
@@ -41,7 +44,8 @@ def build():
     edge(4,20,(8,13),abilities=['gloves']);edge(20,4,(2,8));edge(20,7,(23,8),['gate']);edge(7,20,(12,2),abilities=['gloves'])
     edge(10,21,(12,13),crystal='blue');edge(21,10,(2,8));edge(21,12,(23,8),['gate']);edge(12,21,(12,13),crystal='blue')
     edge(21,22,(12,13),['sanctuary','clear']);edge(22,21,(2,8))
-    add(2,obj('crystal_switch','crystal',(7,10)))
+    add(2,obj('crystal_switch','crystal',(7,10)),obj('crystal_barrier','library_red',(5,3),color='red'),obj('crystal_barrier','watch_blue',(12,2),color='blue'))
+    rooms['r2']['hint']='Blue opens the library; red opens the watch. Three relays power B1F.'
     item(2,'relays')['flags'].append('flame')
     item(2,'lower')['progression']['needs'].append('flame')
     add(10,obj('crystal_switch','crystal',(8,9)))

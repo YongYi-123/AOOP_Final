@@ -53,7 +53,7 @@ class BombManager:
             for obj in s.puzzles.objects.values():
                 if obj.pos in cells and obj.data['type'] in ('cracked','blast_switch'):obj.state.active=True
             for enemy in s.combat.enemies:
-                if enemy.hp>0 and enemy.pos in cells:
+                if enemy.hp>0 and not enemy.dormant and enemy.pos in cells:
                     enemy.receive_damage(s.combat,6 if enemy.id==bomb.swallowed else 2,'bomb',bomb)
             if (s.player.x,s.player.y) in cells:s.combat.damage_player(SimpleNamespace(x=bomb.x,y=bomb.y))
             self.bombs.remove(bomb);self.blasts.append((cells,.45));s.combat.events.append('explosion')

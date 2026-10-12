@@ -78,3 +78,8 @@ class AdvancedMechanicsTests(unittest.TestCase):
         self.assertFalse(s.grant_treasure('0','heart_fragment'));self.assertEqual(s.player.max_hp,6);self.assertEqual(s.player.hp,6)
         with tempfile.TemporaryDirectory() as d:
             path=Path(d)/'save.json';s.save(path);loaded=AdvancedDungeonSession.load(path);self.assertEqual(loaded.player.max_hp,6);self.assertEqual(loaded.player.hp,6)
+
+    def test_pot_hunter_changes_hunt_and_windup_for_carried_pots(self):
+        s=self.s;s.enter('r20');hunter=s.combat.enemies[0];hunter.special_update(s.combat,.01)
+        normal=hunter.speed,hunter.windup;s.inventory.carried='jar';hunter.special_update(s.combat,.01)
+        self.assertLess(hunter.speed,normal[0]);self.assertLess(hunter.windup,normal[1])

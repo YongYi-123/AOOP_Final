@@ -60,6 +60,7 @@ def validate_rooms(rooms):
             x,y=enemy['pos'];sx,sy=room['spawn']
             if not tilemap.walkable(x,y) or (x,y) in occupied or abs(x-sx)+abs(y-sy)<5:
                 raise ValueError(f'{name}: unsafe enemy spawn')
+            if enemy['type']=='crystal_ghost' and enemy.get('torch') not in ids:raise ValueError(f'{name}: missing ghost brazier')
             occupied.add((x,y))
         if room.get('kill_order') and (len(room['kill_order'])!=len(enemy_ids) or set(room['kill_order'])!=enemy_ids):raise ValueError(f'{name}: invalid kill order')
         if room.get('theme','entrance') not in THEMES:raise ValueError(f'{name}: unknown room theme')

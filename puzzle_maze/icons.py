@@ -16,11 +16,27 @@ ICONS={
  'compass':['...sss......','..sgggs.....','.sgtrtgs....','.sgtgtgs....','.sgtbtgs....','..sgggs.....','...sss......'],
  'potion':['....sss.....','....srs.....','...sttts....','...sttts....','...sttts....','....sss.....'],
  'pulse':['....t.......','..t.t.t.....','...ttt......','.tttgttt....','...ttt......','..t.t.t.....','....t.......']}
-PALETTE={'r':(239,102,119),'g':(245,198,96),'s':(205,223,230),'b':(65,85,127),'t':(81,195,165)}
+ICONS.update({
+ 'powder':['....gggg....','...gppppg...','...gppppg...','..gppppppg..','..gppssppg..','..gppssppg..','...gggggg...'],
+ 'pot':['....kkkk....','...kggggk...','..kggggggk..','..kgkkkkgk..','..kggggggk..','...kggggk...','....kkkk....'],
+ 'heart_fragment':['....rr......','...rrrr.....','..rrrsrr....','...rsrr.....','....rr......'],
+ 'heart_recovery':['..rr..rr....','.rrrrrrrr...','.rrrssrrr...','..rssssr....','...rssr.....','....rr......'],
+ 'token_cache':['...ggggg....','..gssgggg...','..gggtggg...','..ggtttgg...','..gggtggg...','...ggggg....'],
+ 'ticket_bundle':['..gggggggg..','..grrrrrrg..','...rrsrrr...','..grrrrrrg..','..grrsrrrg..','..gggggggg..'],
+ 'golden_cat':['..g.....g...','..gg...gg...','..ggggggg...','..gbgggbg...','...ggggg....','...ggggg....','..ggggggg...','..gggggggg..'],
+ 'music_disc':['...ppppp....','..pptttpp...','.pptssstpp..','.ptssbsstp..','.pptssstpp..','..pptttpp...','...ppppp....'],
+ 'crystal_skin':['........t...','.......tt...','......tt....','.....tt.....','..p.tt......','...pp.......','..g.pp......','.gg.........'],
+ 'lucky_charm':['....rrr.....','...rsssr....','...ssgss....','...sgggs....','...sgbgs....','...ssgss....','...rsssr....','....rrr.....'],
+ 'ancient_stamp':['..sssssss...','..sppppps...','..sptptps...','..sptgtps...','..sptptps...','..sppppps...','..sssssss...'],
+ 'bomb_bundle':['..gbb..gbb..','..bbbbb.bbb.','...bbb..bbb.','.....gg.....','....sbbbs...','....sbbbs...','.....sss....'],
+})
+ALIASES={'magic_powder':'powder'}
+PALETTE={'p':(184,123,226),'k':(88,59,53),'r':(239,102,119),'g':(245,198,96),'s':(205,223,230),'b':(65,85,127),'t':(81,195,165)}
 
 class IconAtlas:
     def __init__(self):self.cache={}
     def get(self,kind,enabled=True):
+        kind=ALIASES.get(kind,kind)
         key=kind,enabled
         if key not in self.cache:
             surface=pygame.Surface((12,12),pygame.SRCALPHA)
@@ -34,6 +50,7 @@ class IconHUD:
     def __init__(self):self.atlas=IconAtlas()
     def draw(self,renderer,session,tool,controls):
         s=renderer.surface;inv=session.inventory
+        if hasattr(session,"rewards"):return self.draw_advanced(renderer,session,tool,controls)
         pygame.draw.rect(s,(18,26,39),(0,184,320,56))
         for index in range(session.player.max_hp):s.blit(self.atlas.get('heart',index<session.player.hp),(5+index*12,186))
         s.blit(self.atlas.get('sword'),(73,186))
@@ -60,3 +77,27 @@ class IconHUD:
             pygame.draw.rect(s,(18,26,39),(65,137,190,34));pygame.draw.rect(s,(245,198,96),(65,137,190,34),1)
             s.blit(pygame.transform.scale(self.atlas.get(kind),(24,24)),(72,142+int(math.sin(renderer.time*10)*2)))
             renderer.text(label,102,149,max_width=146)
+
+    def draw_advanced(self,renderer,session,tool,controls):
+        s=renderer.surface;inv=session.inventory;r=pygame.draw
+        r.rect(s,(15,23,35),(0,184,320,56));r.line(s,(90,115,125),(0,184),(320,184))
+        for i in range(session.player.max_hp):s.blit(self.atlas.get('heart',i<session.player.hp),(5+i*12,186))
+        for kind,value,x in (('sword',None,108),('small_key',sum(inv.keys.values()),132),('bomb',inv.bombs,180),('powder',inv.powder,230),('boss_key',None,285)):
+            enabled=inv.boss_key if kind=='boss_key' else 'powder' in inv.abilities if kind=='powder' else True
+            s.blit(self.atlas.get(kind,enabled),(x,186))
+            if value is not None:renderer.text(str(value),x+14,186,max_width=30)
+        for i,kind in enumerate(('gloves','boots','mirror','magnet','map','compass','pulse')):
+            x=5+i*18;s.blit(self.atlas.get(kind,kind=='pulse' or kind in inv.abilities),(x,204))
+            if kind==tool:r.rect(s,(245,198,96),(x-2,202,16,16),1)
+        s.blit(self.atlas.get('pot',inv.carried is not None),(137,204));renderer.text('G' if inv.carried else 'E',152,202,max_width=12)
+        s.blit(self.atlas.get('potion',inv.potions>0),(170,204));renderer.text(str(inv.potions),185,202,max_width=24)
+        s.blit(self.atlas.get('heart_fragment'),(211,204));renderer.text(f'{inv.heart_fragments%4}/4',225,202,max_width=40)
+        s.blit(self.atlas.get('golden_cat'),(272,204));renderer.text(f'{len(session.rewards.collections)}/5',286,202,max_width=28)
+        renderer.text(session.rooms.data['name'],6,222,(245,198,96),max_width=222)
+        renderer.text('BLUE' if 'crystal_blue' in inv.flags else 'RED',234,222,(112,190,241) if 'crystal_blue' in inv.flags else (236,117,113),max_width=44)
+        renderer.text(session.rooms.data.get('floor','1F'),285,222,max_width=30)
+        if session.pickup:
+            kind,label,remaining=session.pickup
+            r.rect(s,(15,23,35),(60,139,202,34));r.rect(s,(245,198,96),(60,139,202,34),1)
+            s.blit(pygame.transform.scale(self.atlas.get(kind),(24,24)),(66,143+int(math.sin(renderer.time*10)*2)))
+            renderer.text(label,95,149,max_width=161)

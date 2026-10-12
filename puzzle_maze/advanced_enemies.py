@@ -22,6 +22,10 @@ class MirrorMask(ArmoredBeetle):
 class PotHunter(Guardian):
     max_hp=4
     speed=.5
+    def special_update(self,manager,dt):
+        carrying=manager.puzzles.inventory.carried is not None
+        self.speed=.32 if carrying else .55;self.windup=.55 if carrying else .8
+        return False
     def receive_damage(self,manager,amount,kind,source):
         if kind=='sword':manager.events.append('shield');return False
         return super().receive_damage(manager,6 if kind=='pot' else amount,kind,source)

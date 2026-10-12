@@ -93,7 +93,7 @@ class GameSession:
         self.dash_cooldown=max(0,self.dash_cooldown-dt)
         self.combat.player=self.player
         self.combat.update(dt)
-        self.puzzles.occupants={e.pos for e in self.combat.enemies if e.hp>0}
+        self.puzzles.occupants={e.pos for e in self.combat.enemies if e.hp>0 and not e.dormant}
         for obj in self.puzzles.objects.values():
             if obj.data['type']=='combat':obj.state.active=self.combat.cleared
         self.puzzles.update(dt,self.player)
@@ -102,13 +102,13 @@ class GameSession:
             self.completed.add(self.rooms.current)
 
     def can_enter(self,x,y):
-        return self.puzzles.can_enter(x,y) and not any(e.hp>0 and e.pos==(x,y) for e in self.combat.enemies)
+        return self.puzzles.can_enter(x,y) and not any(e.hp>0 and not e.dormant and e.pos==(x,y) for e in self.combat.enemies)
 
     def move(self, dx, dy):
         if self.player.hp<=0 or abs(dx)+abs(dy)!=1:return False
         self.player.facing=(dx,dy)
         target=self.player.x+dx,self.player.y+dy
-        occupied={e.pos for e in self.combat.enemies if e.hp>0}
+        occupied={e.pos for e in self.combat.enemies if e.hp>0 and not e.dormant}
         box=next((o for o in self.puzzles.objects.values() if o.data['type']=='box' and o.pos==target),None)
         if target in occupied or box is not None and (box.x+dx,box.y+dy) in occupied:
             self.player.moving=False

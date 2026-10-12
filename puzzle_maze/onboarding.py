@@ -46,10 +46,13 @@ class IntroSequence:
 
 class TutorialCard:
     def __init__(self,controls=None):
-        self.controls=dict(DEFAULT_CONTROLS if controls is None else controls);self.bombs=True
+        self.controls=dict(DEFAULT_CONTROLS if controls is None else controls);self.bombs=True;self.advanced=False;self.page=0
 
     def lines(self,begin=False):
         c=self.controls
+        if self.advanced:
+            if self.page==0:return [f'Move: {c["move"]}',f'{c["attack"]} Sword / E Use / B Bomb','P Powder / E Lift, Drop','G Throw / J Crystal',f'{c["ability"]} Tool / Q Next / F Pull','SHIFT Dash / H Heal',f'RIGHT More / ENTER {"Begin" if begin else "Return"}']
+            return ['TAB Map / R Reset','ESC Pause / H Heal','Powder reveals ghost foes','Pots break hunters and weigh','Crystal changes both floors','Read fire and enemy glyphs',f'LEFT Basics / ENTER {"Begin" if begin else "Return"}']
         return [f"Move: {c['move']}",
                 f"{c['attack']} Sword / {c['interact']} Use"+(" / B Bomb" if self.bombs else ""),
                 f"{c['ability']} Tool / {c['tool']} Next / {c['pull']} Pull",

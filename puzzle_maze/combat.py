@@ -57,7 +57,7 @@ class CombatManager:
     def __init__(self,room,puzzles,player):
         from puzzle_maze import advanced_enemies
         from puzzle_maze import enemies  # Register strategies without import cycles.
-        self.puzzles=puzzles;self.player=player
+        self.room=room;self.puzzles=puzzles;self.player=player
         self.kill_order=room.get('kill_order',[]);self.order_index=0
         self.projectiles=[]
         self.enemies=[ENEMIES[d['type']](d) for d in room.get('enemies',[])]
@@ -70,15 +70,27 @@ class CombatManager:
             self.order_index+=1;self.events.append('order_step')
         else:
             self.enemies=[ENEMIES[e.data['type']](e.data) for e in self.enemies]
+            for foe in self.enemies:self.ensure_spawn(foe)
             self.order_index=0;self.loot=[];self.projectiles=[];self.events.append('order_wrong')
             self.puzzles.inventory.notifications.append(('pulse','WRONG ORDER / RESET'))
+
+    def ensure_spawn(self,enemy):
+        if not self.blocked(enemy.pos,enemy) and enemy.pos!=(self.player.x,self.player.y):return
+        queue=deque([enemy.pos]);seen={enemy.pos}
+        while queue:
+            pos=queue.popleft()
+            if not self.blocked(pos,enemy) and pos!=(self.player.x,self.player.y):enemy.x,enemy.y=pos;return
+            for dx,dy in DIRECTIONS:
+                nxt=pos[0]+dx,pos[1]+dy
+                if nxt not in seen and self.puzzles.tilemap.walkable(*nxt):seen.add(nxt);queue.append(nxt)
+        raise ValueError('No legal encounter reset position')
 
     def fire(self,enemy,spread=False):
         from puzzle_maze.enemies import fire
         fire(self,enemy,spread)
 
     def blocked(self,pos,ignore=None):
-        return not self.puzzles.can_enter(*pos) or any(e is not ignore and e.pos==pos and e.hp>0 for e in self.enemies)
+        return not self.puzzles.can_enter(*pos) or any(e is not ignore and e.pos==pos and e.hp>0 and not e.dormant for e in self.enemies)
 
     def knockback(self,target,source):
         dx=target.x-source.x;dy=target.y-source.y
@@ -136,7 +148,7 @@ class CombatManager:
             e.age+=dt;e.flash=max(0,e.flash-dt)
             if e.dormant:
                 summoner=next((foe for foe in self.enemies if foe.kind=="crystal_warden"),None)
-                if summoner and summoner.hp<=e.data["summon_at"]:e.dormant=False;self.events.append("teleport")
+                if summoner and summoner.hp<=e.data["summon_at"]:e.dormant=False;self.ensure_spawn(e);self.events.append("teleport")
                 else:continue
             if e.state==EnemyState.DEAD:continue
             if e.state==EnemyState.DYING:
@@ -172,7 +184,7 @@ class CombatManager:
 
     @property
     def cleared(self):
-        if any(e.kind=="golem" for e in self.enemies):return all(e.state==EnemyState.DEAD for e in self.enemies)
+        if any(e.kind in ("golem","crystal_warden") for e in self.enemies):return all(e.state==EnemyState.DEAD for e in self.enemies)
         return all(e.hp==0 for e in self.enemies)
 
     def capture(self):return dict(order_index=self.order_index,enemies={e.id:e.capture() for e in self.enemies},loot=self.loot.copy(),projectiles=[vars(b).copy() for b in self.projectiles])

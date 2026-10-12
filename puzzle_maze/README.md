@@ -1,159 +1,205 @@
-# Puzzle Maze 3.0 — Clockwork Hollow
+# Puzzle Maze 4.0 — Emberglass Hollow
 
-An original standalone Python / Pygame dungeon, extending the existing movement,
-room, puzzle, combat and save architecture. Eighteen compact 26×16 rooms form a
-branching dungeon over 1F and B1F. No story, external artwork or new lobby integration.
+An original Python / Pygame dungeon adventure upgraded in place. Twenty-two
+rooms over 1F and B1F combine branch exploration, returning routes, cross-room
+circuits, fire sequences, carried weights, enemy weaknesses and five secret
+collections. No story or new Arcade Lobby integration is included.
 
 ## Run
-
-From the AOOP_Final root:
 
 ```bash
 .venv/bin/python -m puzzle_maze
 ```
 
-For another environment, install `puzzle_maze/requirements.txt`, then run
-`python3 -m puzzle_maze`. The resizable window starts at 960×720. Audio-device
-initialization failure leaves gameplay available with silent sound.
+For another environment install `puzzle_maze/requirements.txt`, then run
+`python3 -m puzzle_maze`. The resizable window starts at 960×720. Sound falls back
+to silence when mixer initialization fails.
 
-New expedition plays the six-second sword/gate introduction. Enter skips to the
-control card; Enter confirms gameplay. Quick start bypasses both. Onboarding,
-pause and the full map freeze enemy AI, bomb fuses and puzzle clocks.
+New expedition plays a six-second introduction; Enter skips to the tutorial.
+Left/Right switch the two tutorial pages and Enter begins. Quick start skips both.
+Continue expedition loads 4.0 without onboarding. Pause, full map and onboarding
+freeze gameplay clocks, enemy AI and bomb fuses.
 
 ## Controls
 
 | Key | Action |
 | --- | --- |
-| WASD / arrows | Move and face; push crates after obtaining Gloves |
-| J | Basic Sword, equipped immediately; one front tile, 0.25 s cooldown |
-| E | Chest, lever, key lock, supply jar or mirror pedestal |
-| B | Place a bomb, 1.6 s fuse; repeat events do not consume another bomb |
-| Q | Cycle pulse, acquired Mirror and acquired Magnet |
-| Space | Selected tool; Magnet repels a faced metal weight |
-| F | Magnetic pull; maximum six tiles |
-| Shift | Three-tile dash, after finding Boots; 1.2 s cooldown |
-| H | Spend a potion to recover up to three hearts |
-| Tab | Full dungeon map |
-| Left / Right in map | Switch 1F / B1F |
-| R | Reset the current room to its entrance checkpoint |
+| WASD / arrows | Move / face; push permitted crates with Gloves |
+| J | Basic Sword, attack a crystal switch, or strike an exposed core |
+| E | Interact; Gloves lift pots; while carrying, place the pot ahead |
+| G | Throw the carried pot up to four tiles; walls stop it |
+| P | Spend Magic Powder on the faced, adjacent unlit brazier |
+| B | Place a bomb, 1.6-second fuse |
+| Q | Cycle pulse / acquired Mirror / acquired Magnet |
+| Space | Selected tool; Magnet repels a metal weight |
+| F | Magnetic pull |
+| Shift | Three-tile dash after Boots, 1.2-second cooldown |
+| H | Spend a potion to heal up to three hearts |
+| Tab | Full map; Left/Right switch floors |
+| R | Reset this room to its entrance checkpoint |
 | Esc | Pause / return |
 | M | Toggle music |
 
-Sword hits flash and knock enemies back. Player damage grants 1.1 seconds of
-invulnerability. Dashes stop at walls and live enemies. Timed dash gates require
-an actual dash; they have a safe return portal on their far side.
+Repeated P/G/B/J/E/Space key events do not double-consume supplies. A carried pot
+must be dropped or thrown before changing rooms; lit bombs must finish first.
+The starting Sword remains available, with a one-tile facing hitbox and 0.25-second
+cooldown. Damage grants 1.1 seconds of invulnerability.
 
-## Dungeon and progression
+## Explore branches and loops
 
-| Room | Purpose |
+The central atrium now has a crystal circuit. Blue opens the library route, red
+opens the watch route. The weight/light branch offers Gloves, while the shrine
+provides Magic Powder and a flame relay. Library and weight/light relays plus the
+flame relay power the lower stairs; two Small Keys unlock them.
+
+You can first explore the glove branch, then the shrine, then Pot Storage for a
+bomb bundle and the workshop shortcut. Alternatively, take the combat-key watch
+route to the workshop. Boots later unlock another return loop. B1F adds Warden /
+prism connections and a circuit shortcut, so returning need not follow the same
+corridor. Small Key costs remain five, with six authored keys available.
+
+The old eighteen rooms retain their working box, light, magnetic and dash puzzles.
+Four new rooms provide distinct mechanics rather than blank space:
+
+| Room | Connected challenges |
 | --- | --- |
-| Stone Vestibule | Basic combat, map chest and lever gate |
-| Relay Atrium | Central branches; two remote relays and a two-key stair lock |
-| Copper Watch | Clear Slime/Bat, reveal two keys, spend one to reach the workshop |
-| Weight and Light | Gloves, heavy crate plate, Mirror beam and west relay |
-| Ancient Library | Lever, Mirror, crate plate, east relay, Compass and branch key |
-| Returning Runner | Return with Boots and the lower prism signal; dash for Boss Key |
-| Powder Workshop | Bomb chest, renewable supply, lever route and cracked secret wall |
-| Hidden Treasury | Optional reward and bomb-activated bonus chest |
-| Boots Trial | Guardian/Beetle combat and a heavy plate unlock Boots |
-| Lower Landing | B1F crossroads, lever gate and restorative chest |
-| Magnetic Foundry | Blink Mage and lever unlock Magnet |
-| Prism Engine | Magnet-only weight, powered beam, Mirror, relay and key |
-| Hungry Portal | Renewable bombs, Bomb Eater, combat key and activated portal |
-| Threefold Circuit | Magnet plate + Mirror receiver + timed dash gate |
-| Sentinel Gallery | Three enemy styles and a two-key lock |
-| Golem Antechamber | Boss Key seal, healing chest and bomb refill |
-| Ancient Golem | Three ability-driven boss phases and death-gated exit |
-| Dawn Reservoir | Treasure and final lever complete the expedition |
+| Torch Shrine | Powder chest/refill, numbered fire sequence, revealed Ghost, flame relay, secret fire |
+| Pot Storage | Gloves, throwable pots, Pot Hunter, carried three-weight plate, flame-controlled gate and shortcut |
+| Crystal Warden | Red/blue circuit, projectile mini-boss, two finite summons, blue exit and cracked sanctuary wall |
+| Hidden Sanctuary | Slime → Bat → Mirror Mask order, hidden skin reward, cross-room relic and optional caches |
 
-Six Small Keys cover five lock costs, leaving one spare. Doors consume keys
-atomically and retain their unlocked state. Boss Key remains owned after opening
-the boss seal. Progress, chests, killed enemies, global relays and exploration
-persist across room and floor changes. Hidden Treasury is optional.
+The Boss Key still requires returning to the earlier dash room, now after the
+Warden challenge as well. The final Boss door also reads the Warden clear flag.
+The graph and minimap read actual RoomManager exits, including stairs and loops.
+Map reveals gray unexplored rooms; Compass marks known treasure and bosses.
+Hidden rooms and conditional secret chests remain concealed until discovered.
 
-Bombs cap at 20. Supply jars refill up to eight and can be used repeatedly; required
-bomb encounters have a jar. Explosions damage the player and enemies, stop at
-permanent walls/closed doors and break marked cracked walls. An active bomb must
-finish before changing rooms. Special enemies can drop bombs.
+## New puzzle rules
 
-Magnet-only crates cannot be pushed manually. Mirror rotation requires ownership.
-Heavy crates require Gloves. The prism relay powers the earlier Boss Key room,
-so returning to the old floor is required.
+Magic Powder caps at 30. P ignites the marked braziers in order 1 → 2 → 3. Wrong
+order extinguishes the group and allows another try. Supply stands repeatedly
+refill up to 12; an already-lit or invalid target consumes nothing. The Ghost
+is attackable only when its linked brazier is lit.
 
-## Enemy weaknesses and boss
+Gloves lift intact pots. A carried pot weighs two plus the player's one, enough
+for a three-weight plate. Putting it down restores collision and enables lighter
+weight plates. G throws it: pots damage enemies, reveal contained treasure or
+release a short-fuse bomb. Renewable pot racks prevent mandatory combat deadlocks.
+Rare pot contents are source-deduplicated and cannot be farmed.
 
-Slime hunts slowly; Bat has periodic bursts; Guardian commits to a visible melee
-windup. Blink Mage blinks along legal clear paths and telegraphs projectiles.
-Armored Beetle blocks frontal sword strikes: flank it, bomb its armor or dash
-into it. Bomb Eater ignores swords and pursues/swallow bombs, taking extra damage.
-All encounters are finite, collision-aware and save their life state.
+J toggles a red/blue crystal circuit shared by both floors. The matching color's
+barriers rise; the other color lowers. Occupied barriers remain down until player,
+enemy or weight leaves. Crystal state persists. Magnetic-only weights still
+require Magnet and cannot be manually pushed around their water slots.
 
-Ancient Golem has 12 HP:
+The sanctuary's carved enemy order is Slime, Bat, then Mirror Mask. A wrong kill
+resets the encounter with safe spawn positions and a visible cue. These foes do
+not drop farmable loot during failed attempts. Room reset remains available.
 
-1. Dash across the inlaid anchor, then sword the exposed core.
-2. Bomb the armor, then sword the core.
-3. Dash the anchor again, bomb the armor, then sword the core.
+## Enemies and bosses
 
-Each phase needs four sword hits. Phase changes close the previous exposure.
-The boss telegraphs attacks; later phases move and fire projectiles, ending with
-four-way volleys. The arena refills bombs. The death animation lasts 1.2 seconds
-before the exit opens. Game Over offers Main menu or Retry room.
+The original Slime, Bat, Guardian, Blink Mage, Armored Beetle and Bomb Eater remain.
 
-## Pixel UI and environment
+- Mirror Mask moves opposite your steps, obeys walls and has frontal armor. Flank
+  it or use a bomb/pot. The campaign witness searches coupled player/mask states.
+- Pot Hunter rushes carried pots and blocks the Basic Sword; a thrown pot inflicts major damage. Bombs
+  can also hurt it, and the room supplies renewable pots.
+- Crystal Ghost stays translucent and protected until its brazier is lit.
+- Elite Guardian combines telegraphed melee/lunging movement with ranged shots,
+  using the original Guardian's HP rather than difficulty through HP inflation.
+- Crystal Warden is a mini-boss: red reveals its core, ranged windups threaten
+  the arena and two pre-authored summons wake at half health. Summons are finite,
+  cannot appear on the player, and persist in saves. Blue lowers the exit.
 
-The original 5×7 bitmap font is drawn at integer pixel sizes on the final output,
-without antialiasing or smoothscale. World art uses nearest-neighbor scaling.
-Original icons display hearts, Sword, Small Key, Boss Key, bombs, Gloves, Boots,
-Mirror, Magnet, Map, Compass, selected tool and potions. Pickups bounce briefly
-with a short name/control label and sound. Gray icons indicate unowned items.
+Ancient Golem reuses the existing three-stage strategy: dash the anchor and sword
+its core, bomb the armor and sword it, then combine dash/bomb/sword again. Its last
+phase additionally requires BLUE crystal state. A local crystal and explosive
+pots support the arena puzzle. Its 1.2-second death animation opens the exit,
+then the final treasury/lever completes the run. Game Over offers Retry room or
+Main menu; zero health rejects gameplay input.
 
-Stone, wood/library, metal, crystal, guard, vault and sanctum materials use cached
-original pixel tiles, wall-mounted decorations, animated lights and shadows.
-B1F has colder palettes. Columns and bookshelf obstacles use actual collision
-terrain; decorative wall overlays never introduce collision. Bombs, projectiles,
-shield exposure, enemy windups, death bursts and dash trails have distinct art.
+## Secret treasures and private rewards
 
-The map reads RoomManager and actual exit data. Without Map it shows visited
-rooms; Map reveals gray unexplored rooms on the selected floor. Secrets remain
-hidden until visited. Compass adds discovered chests and a boss marker when the
-boss room or an adjacent room is known. Stair corners identify floor connections.
+The treasure catalog includes Small Key, Boss Key, Bomb Bundle, Magic Powder,
+Heart Recovery, Heart Fragment, Map, Compass, Token Cache, Ticket Bundle, Golden
+Cat Statue, Secret Music Disc, Crystal Sword Skin and Lucky Cat Charm. All have
+original pixel icons, a brief pickup animation and an English label.
 
-## Saves and the 2.1 archive
+Five collections use different conditions:
 
-3.0 uses `puzzle_maze/save_v3.json`, with atomic temporary-file replacement. It
-never overwrites `save_v2.json`, `save.json` or the 2.0 backup. Invalid saves fall
-back to a new session without editing the invalid file. Dead sessions do not
-replace the last living save; Retry room restores its entrance checkpoint.
+| Collection | Discovery |
+| --- | --- |
+| Golden Cat | Bomb-cracked optional treasury |
+| Secret Music Disc | Correct fire sequence and an extra hidden brazier |
+| Lucky Cat Charm | An inscribed breakable pot |
+| Crystal Sword Skin | Correct sanctuary enemy order |
+| Ancient Star Stamp | The shrine flame and Warden signals combined |
 
-The original campaign remains available:
+Four unique Heart Fragments grant an extra heart and recovery. Capacity and
+fragments save correctly; duplicate treasure sources do not grant another.
+
+DungeonRewardBag escrows Tokens, Tickets and collections for the current run.
+Completing the dungeon turns the bag into one local receipt with a run id and
+records its claimed state. Repeated settlement returns that same receipt without
+adding rewards again. Death or abandoning a run does not pay pending rewards.
+Nothing imports or mutates the Arcade Lobby economy, profiles, tokens or tickets.
+A future external integration must consume/deduplicate the receipt by run id.
+
+## Visual improvements
+
+Room palettes now include Torch Shrine, Pot Storage, Crystal Hall, Underground
+Library, Forgotten Vault, Ancient Workshop, Hidden Sanctuary and Boss Chamber.
+Room-scale mosaics, runners, medallions, broken paving, staggered columns and
+alcoves vary the old repeated structure. Background art is clipped to real floor;
+statues, walls and bookshelves retain real terrain collision.
+
+Original pixel flames, crystal glows, faint dust, shadows, ghost translucency,
+carried pots, thrown pot arcs, shard bursts, opening chest lids and circuit rings
+provide feedback. Boss panels choose a position away from live actors. Pickup
+cards and HUD remain above world art. The original solid-pixel 5×7 font is drawn
+at integer size on final output; world scaling uses nearest neighbor.
+
+HUD shows hearts, sword, keys, bombs, powder, Boss Key, abilities, carried pot,
+potions, fragments, collection count, global crystal color and floor.
+
+## Saves and archives
+
+4.0 uses `puzzle_maze/save_v4.json` with atomic replacement. It leaves `save_v3.json`,
+`save_v2.json`, legacy `save.json` and their backups intact. Invalid saves fall back
+without rewriting the file. Dead sessions do not replace the last living save.
+Room reset restores entry inventory, enemy progress, carried objects and pending
+reward sources. A settled receipt cannot be reset into another claim.
+
+Archived expeditions opens the 3.0 / 2.1 campaign menu without overwriting the
+current save. They are also available directly:
 
 ```bash
-.venv/bin/python -m puzzle_maze --legacy
+.venv/bin/python -m puzzle_maze --campaign 3
+.venv/bin/python -m puzzle_maze --campaign 2
 ```
 
-If an old save exists, the standalone menu also provides Continue 2.1 archive.
-New 3.0 progression is separate because the floor graph and room geometry changed.
-See `README_V21.md` for the original campaign and its 2.0 migration details.
-The pre-existing optional lobby adapter remains on that older campaign.
+See `README_V3.md` and `README_V21.md`. The existing optional lobby adapter stays
+on its old campaign; this upgrade does not integrate 4.0 into it.
 
-## Architecture
+## Architecture and maps
 
-`DungeonSession(GameSession)` composes the existing RoomManager, Player,
-PuzzleManager, CombatManager, Inventory and Exploration with BombManager.
-PuzzleObject subclasses add CrackedWall, BombSupply, DashSwitch, RemoteRelay,
-RemoteSwitch and BlastSwitch through the existing factory. Door/Chest reuse the
-existing condition system for multi-key locks, Boss Key and delayed rewards.
-Enemy subclasses override damage and AI: BlinkMage, ArmoredBeetle, BombEater and
-AncientGolem. GameScene continues to manage onboarding, pause, map, death and
-victory; IconHUD/IconAtlas and the bitmap font provide presentation.
+AdvancedDungeonSession extends DungeonSession and composes AdvancedPuzzleManager,
+existing CombatManager, BombManager and DungeonRewardBag. PuzzleObject factories
+add Brazier, TorchSequence, LiftablePot, WeightPlate, CrystalSwitch, CrystalBarrier,
+OrderedSeal and replenishment stands. Enemy subclasses add separate damage/AI
+strategies while keeping the same encounter lifecycle and persistence.
 
-Editable data is `maps/dungeon_v3.json`. The deterministic authoring script
-`python -m puzzle_maze.build_dungeon` regenerates it. Keep direct JSON changes and
-that authoring script consistent. DungeonValidator reads progression annotations
-on actual reward/door objects, derives quantities/costs and searches resource
-states; there is no separate manually drawn minimap graph.
+Game keeps its scene machine and adds an archive menu and two tutorial pages.
+RoomArt caches presentation-only room layers; IconHUD, Renderer and the bitmap
+font draw feedback. No second collision engine, economy or manually drawn map
+connection system is introduced.
 
-## Validation
+Editable map data is `maps/dungeon_v4.json`; `python -m puzzle_maze.build_dungeon_v4`
+regenerates it from the original authoring script. Keep direct edits and authoring
+consistent. DungeonValidator reads actual costs/rewards and annotated access
+alternatives, and searches all key spending orders in a monotone abstraction.
+
+## Tests and practical limits
 
 ```bash
 .venv/bin/python -m unittest discover -s puzzle_maze/tests -v
@@ -161,19 +207,20 @@ states; there is no separate manually drawn minimap graph.
 .venv/bin/python -m puzzle_maze --headless --screenshot /tmp/puzzle-maze.png
 ```
 
-108 automated tests pass, including the original regression suite, all eighteen
-room visits, the complete victory route, three boss phases, live bomb/save states,
-resource spending orders, box corner deadlocks, floor exploration, input repeats,
-UI bounds at five resolutions and silent audio fallback.
+135 tests pass. They cover all prior regressions, all 22 room visits, the complete
+five-secret victory route, crystals, carried weights, fire/enemy orders, pot combat,
+finite Warden summons, both Bosses, receipt idempotence, death, corrupt/active saves,
+archives and UI bounds at five resolutions. All 341 abstract resource states have
+a winning continuation. Geometry and abilities are separately replayed through
+production movement; coupled mirror movement is searched for a legal approach.
 
-The resource abstraction has 109 reachable states; all 109 can finish. Production
-action witnesses separately verify geometry, interactions, crate pushes, magnetic
-weights, mirrors, timed dashes and combat. These are deterministic witnesses, not
-an exhaustive search over every enemy timing, player input or all crate arrangements.
-Movement steps in the route witness do not advance time; combat/fuses/dash timers
-are advanced explicitly. Real-time difficulty still needs human playtesting.
+This is not exhaustive proof over every enemy timing or crate arrangement. Route
+walking does not advance the clock per movement step; combat and fuses receive
+explicit ticks. Real-time balance still needs human playtesting. Headless image
+review covers the rooms, fire shrine, carried pots, Warden and tutorial.
+A 180-frame cached Warden draw benchmark averaged 1.87 ms/frame here; it measures
+rendering, not full interactive FPS.
 
-Headless screenshots have been reviewed. A cached boss-scene draw benchmark was
-2.56 ms/frame over 180 frames on this environment; this measures rendering only,
-not interactive FPS. Manually check keyboard response, boss readability/difficulty,
-attack and dash feel, audio volume, the smallest window and physical-display FPS.
+Manually check input feel, powder/pot discoverability, real-time Warden/Golem
+balance, audio volume, native display scaling and actual FPS. All 4.0 edits are
+confined to `puzzle_maze/`; no push, pull, merge or backup-branch changes were made.
