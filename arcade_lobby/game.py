@@ -165,7 +165,7 @@ class Game:
             out.append((id(scene), (machine.id if machine is not None else name)[:10].upper()))
         return out
 
-    PAUSABLE = ("racer", "volley", "galaxy", "territory")
+    PAUSABLE = ("racer", "volley", "galaxy", "territory", "cat_maze")
 
     @classmethod
     def duck_for(cls, scene):

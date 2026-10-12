@@ -25,6 +25,7 @@ from retro_racer_scene import RetroRacerScene
 from pixel_volleyball_scene import PixelVolleyballScene
 from galaxy_defender_scene import GalaxyDefenderScene
 from cat_territory_scene import CatTerritoryScene
+from cat_maze_scene import CatMazeScene
 from settings import BACK_KEYS, Col, VIEW_H, VIEW_W
 from ui import draw_text, neon_panel, wrap_text
 
@@ -118,15 +119,16 @@ class MinigamePlaceholderScene(MinigameScene):
 MINIGAME_SCENES = {"retro_racer": RetroRacerScene,
                    "pixel_volleyball": PixelVolleyballScene,
                    "cat_minesweeper": CatTerritoryScene,
-                   "galaxy_defender": GalaxyDefenderScene}
+                   "galaxy_defender": GalaxyDefenderScene,
+                   "puzzle_drop": CatMazeScene}          # the machine id (and so the saves) of the old Puzzle Drop slot
 
 
 # How many local players each minigame supports (anything not listed: 1). The
 # Retro Racer scene embeds a single-player game, so it declares 1 until it
-# really has a two-player mode; the placeholder screens only stand in.
+# really has a two-player mode; the placeholder screens only stand in. (NEON CAT MAZE keeps the id "puzzle_drop" of the machine it replaced.)
 MINIGAME_DEFINITIONS = {d.game_id: d for d in (
     MiniGameDefinition("retro_racer", 1, 1),
-    MiniGameDefinition("puzzle_drop", 1, 1),
+    MiniGameDefinition("puzzle_drop", 1, 1),      # NEON CAT MAZE
     MiniGameDefinition("pixel_volleyball", 1, 2),
     MiniGameDefinition("cat_minesweeper", 1, 1),
     MiniGameDefinition("galaxy_defender", 1, 1),
