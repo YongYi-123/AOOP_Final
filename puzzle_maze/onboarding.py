@@ -12,7 +12,7 @@ class IntroSequence:
         self.elapsed=min(self.duration,self.elapsed+max(0,dt))
         return self.elapsed>=self.duration
 
-    def draw(self,renderer):
+    def draw(self,renderer,confirm='ENTER'):
         from puzzle_maze.render import INK,GOLD,TEAL,WHITE
         s=renderer.surface;r=pygame.draw;renderer.ui.clear();s.fill(INK)
         progress=self.elapsed/self.duration
@@ -36,7 +36,7 @@ class IntroSequence:
         r.rect(s,INK,(12,170,296,60));r.rect(s,(68,99,112),(12,170,296,60),1)
         renderer.text('Basic Sword equipped',24,178,WHITE)
         renderer.text('The dungeon gate is opening.',24,195,TEAL)
-        renderer.text('ENTER: skip animation',24,213,GOLD)
+        renderer.text(f'{confirm}: skip animation',24,213,GOLD)
 
 class TutorialCard:
     def __init__(self,controls=None):self.controls=dict(DEFAULT_CONTROLS if controls is None else controls)

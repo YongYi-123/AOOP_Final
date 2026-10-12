@@ -29,3 +29,18 @@ class BridgeTests(unittest.TestCase):
         scene.handle_event(pygame.event.Event(pygame.KEYDOWN,key=pygame.K_j))
         self.assertEqual(e.hp,1)
         self.assertGreater(p.attack_flash,0)
+
+    def test_full_resolution_text_is_not_upscaled_by_host(self):
+        scene=self.scene();target=pygame.Surface((960,720))
+        scene.draw(target)
+        self.assertTrue(scene.full_resolution)
+        self.assertIn((33,False),scene.maze.renderer.ui.fonts)
+
+    def test_existing_bridge_routes_tools_and_dash(self):
+        scene=self.scene();scene.maze.scene=GameScene.PLAY
+        scene.maze.session.inventory.abilities.update({'boots','magnet'})
+        scene.handle_event(pygame.event.Event(pygame.KEYDOWN,key=pygame.K_q))
+        self.assertEqual(scene.maze.tool,'magnet')
+        scene.maze.session.player.facing=(1,0)
+        scene.handle_event(pygame.event.Event(pygame.KEYDOWN,key=pygame.K_LSHIFT))
+        self.assertEqual(scene.maze.session.player.x,5)

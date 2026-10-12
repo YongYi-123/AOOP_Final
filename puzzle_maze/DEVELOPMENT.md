@@ -121,3 +121,9 @@ Phase B：獨立 INTRO / TUTORIAL 狀態，6 秒拔劍與開門動畫、Enter �
 之後操作說明等待确认。Quick start 可略過全部教學，Continue 不重播。
 IntroSequence / TutorialCard 封裝動畫與操作資料；開場及教學凍結敵人、
 機關與存檔寫入，取消不覆蓋原進度。63 項全套測試通過。
+
+Phase C：全部遊戲 UI 改英文，改用附授權的 DejaVu regular / bold；移除不再
+需要的 CJK 字型。文字在最終輸出解析度繪製，字型原生抗鋸齒而非放大文字
+貼圖；像素場景仍 nearest 整數倍率。既有可選介面 full_resolution=True，
+避免 host 再放大低解析度文字。TutorialCard 作為教學/說明/HUD 的按鍵來源，
+補 Q/F/H/Shift 傳遞並依玩家控制方案顯示按鍵。66 項全套與 UI 回歸通過。

@@ -70,7 +70,7 @@ class Game:
         if self.scene==GameScene.TUTORIAL:
             if key==pygame.K_RETURN:
                 self.scene=GameScene.PLAY;self.cooldown=.2;self.fade=0
-                self.notify('Basic Sword ready. J attacks. E opens chests.')
+                self.notify(f"Basic Sword ready. {self.tutorial.controls['attack']} attacks. {self.tutorial.controls['interact']} opens chests.")
             elif key==pygame.K_ESCAPE:self.scene=GameScene.MENU
             return
         if self.scene in (GameScene.MENU,GameScene.PAUSE,GameScene.VICTORY,GameScene.GAMEOVER):
@@ -190,22 +190,22 @@ class Game:
         if self.autosave>=15:self.save();self.autosave=0
 
     def draw(self,dt,target=None):
-        r=self.renderer;r.world(self.session,self.visual,dt,self.tool)
-        if self.scene==GameScene.INTRO:self.intro.draw(r)
+        r=self.renderer;r.world(self.session,self.visual,dt,self.tool,self.tutorial.controls)
+        if self.scene==GameScene.INTRO:self.intro.draw(r,self.tutorial.controls["confirm"])
         elif self.scene==GameScene.TUTORIAL:self.tutorial.draw(r)
         elif self.scene in (GameScene.MENU,GameScene.PAUSE,GameScene.VICTORY,GameScene.GAMEOVER):
-            title={GameScene.MENU:'PUZZLE MAZE',GameScene.PAUSE:'EXPEDITION PAUSED',GameScene.VICTORY:'PRISM RESTORED',GameScene.GAMEOVER:'GAME OVER / 探索失敗'}[self.scene]
+            title={GameScene.MENU:'PUZZLE MAZE',GameScene.PAUSE:'EXPEDITION PAUSED',GameScene.VICTORY:'PRISM RESTORED',GameScene.GAMEOVER:'GAME OVER'}[self.scene]
             r.panel(title,self.options(),self.selection)
             r.text('The Prism Chambers / original pixel adventure',36,193,(133,163,156))
         elif self.scene==GameScene.HELP:
-            r.panel('FIELD GUIDE / 操作說明',['WASD / 方向鍵 移動 | E 開啟 / 轉鏡','SPACE 脈衝 / 道具 | Q 切換道具','SHIFT 衝刺靴 | F 磁力吸引','TAB: atlas. R: room checkpoint','J 近戰 | H 藥水補血 | ESC 暫停','Gloves / boots / mirror / magnet: chests','Enter / ESC: return'])
+            r.panel('FIELD GUIDE',self.tutorial.lines(False))
         elif self.scene==GameScene.MAP:r.map_panel(self.session)
         else:
             if self.toast_time:
-                for i,line in enumerate(textwrap.wrap(self.toast,36)):
+                for i,line in enumerate(textwrap.wrap(self.toast,32)):
                     pygame.draw.rect(r.surface,(18,26,39),(6,6+i*16,226,16));r.text(line,10,8+i*16,GOLD,max_width=220)
             elif self.session.player.x<5:
-                for i,line in enumerate(textwrap.wrap(self.session.rooms.data['hint'],36)):
+                for i,line in enumerate(textwrap.wrap(self.session.rooms.data['hint'],32)):
                     pygame.draw.rect(r.surface,(18,26,39),(6,6+i*16,226,16));r.text(line,10,8+i*16,max_width=220)
         if self.scene==GameScene.PLAY:r.minimap(self.session)
         if self.fade>0:

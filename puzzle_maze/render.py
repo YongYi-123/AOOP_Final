@@ -13,8 +13,7 @@ INK=(18,26,39); GOLD=(245,198,96); WHITE=(230,237,219); TEAL=(81,195,165)
 class Renderer:
     def __init__(self):
         self.surface=pygame.Surface((320,240))
-        self.font=pygame.font.Font(None,14)
-        self.title=pygame.font.Font(None,32)
+        self.title=object()  # NativeText uses this marker for its heading style.
         self.camera=Camera()
         self.tiles={}
         self.particles=[]
@@ -45,7 +44,9 @@ class Renderer:
             angle=random.random()*math.tau;speed=random.uniform(10,40)
             self.particles.append([x*16+8,y*16+8,math.cos(angle)*speed,math.sin(angle)*speed,random.uniform(.3,.8),color])
 
-    def world(self,session,visual,dt,tool="pulse"):
+    def world(self,session,visual,dt,tool="pulse",controls=None):
+        from puzzle_maze.onboarding import DEFAULT_CONTROLS
+        controls=DEFAULT_CONTROLS if controls is None else controls
         self.ui.clear()
         self.time+=dt;s=self.surface;r=pygame.draw;s.fill(INK)
         room=session.rooms.data;p=session.player
@@ -161,23 +162,23 @@ class Renderer:
             else:r.rect(s,particle[5],(int(particle[0])-cx,int(particle[1])-cy,2,2))
         near=next((o for o in session.puzzles.objects.values() if abs(o.x-p.x)+abs(o.y-p.y)<=1 and isinstance(o,(Switch,Door,SecretPassage,Chest,Reflector)) and not (isinstance(o,(Door,SecretPassage)) and o.state.active)),None)
         if near:
-            self.text('[SPACE] Pulse' if isinstance(near,SecretPassage) else '[E] Interact',int(visual[0]*16)-cx-18,int(visual[1]*16)-cy-12,GOLD)
+            self.text(f"[{controls['ability']}] Pulse" if isinstance(near,SecretPassage) else f"[{controls['interact']}] Interact",int(visual[0]*16)-cx-18,int(visual[1]*16)-cy-12,GOLD)
         s.set_clip(None)
         r.rect(s,INK,(4,190,202,17))
         for heart in range(p.max_hp):
             hx=8+heart*13;hy=195
             color=(239,102,119) if heart<p.hp else (75,66,81)
             r.polygon(s,color,[(hx,hy+2),(hx+2,hy),(hx+4,hy+2),(hx+6,hy),(hx+8,hy+2),(hx+8,hy+5),(hx+4,hy+9),(hx,hy+5)])
-        self.text(f'H Potion {session.inventory.potions} / J Attack',78,193)
+        self.text(f"{controls['heal']} Potion {session.inventory.potions} / {controls['attack']} Sword",78,193)
         r.rect(s,INK,(208,190,108,17))
-        self.text(f'Q {tool} / Dash {session.dash_cooldown:.1f}',211,193)
+        self.text(f"{controls['tool']} {tool} / Dash {session.dash_cooldown:.1f}",211,193)
         r.rect(s,INK,(0,208,320,32));r.line(s,(80,107,112),(0,208),(320,208))
         self.text(f'{session.rooms.current.upper()}  {room["name"]}',7,213,GOLD)
         keys=sum(session.inventory.keys.values())
         self.text(f'Keys {keys}  Sigils {len(session.completed)}/9  Shards {session.inventory.coins}',7,226)
         for i,(ability,label) in enumerate((('gloves','G'),('boots','B'),('mirror','L'),('magnet','M'))):
             self.text(label,228+i*19,213,TEAL if ability in session.inventory.abilities else (75,89,96))
-        self.text('TAB Map  ESC Menu',210,226,(135,161,154))
+        self.text(f"{controls['map']} map | {controls['pause']}",210,226,(135,161,154))
 
     def player(self,pos,facing,moving,cx,cy):
         r=pygame.draw;s=self.surface
@@ -231,7 +232,7 @@ class Renderer:
         self.atlas_graph(session,(242,8,71,46))
 
     def map_panel(self,session):
-        self.panel('DUNGEON ATLAS / 迷宮地圖',[])
+        self.panel('DUNGEON ATLAS',[])
         self.atlas_graph(session,(30,75,260,68))
         known=session.exploration.tiles.get(session.rooms.current,set())
         rows=session.rooms.data['tiles'];w=len(rows[0]);h=len(rows)
