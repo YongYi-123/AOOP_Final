@@ -30,7 +30,7 @@ def validate_rooms(rooms):
             raise ValueError(f'{name}: duplicate object ids')
         occupied = set()
         for obj in room['objects']:
-            if obj['type'] not in ('box', 'plate', 'switch', 'door', 'key', 'secret', 'timed', 'chest', 'light', 'receiver', 'reflector', 'combat'):
+            if obj['type'] not in ('box', 'plate', 'switch', 'door', 'key', 'secret', 'timed', 'chest', 'light', 'receiver', 'reflector', 'combat','cracked','blast_switch','supply','dash_switch','relay','remote'):
                 raise ValueError(f'{name}: unknown object')
             pos = tuple(obj['pos'])
             if not tilemap.walkable(*pos) or pos in occupied or pos == tuple(room['spawn']):
@@ -38,7 +38,7 @@ def validate_rooms(rooms):
             occupied.add(pos)
             if any(req not in ids for req in obj.get('requires', [])):
                 raise ValueError(f'{name}: missing condition')
-            if obj['type']=='chest' and obj.get('ability') not in (None,'gloves','boots','mirror','magnet'):
+            if obj['type']=='chest' and obj.get('ability') not in (None,'gloves','boots','mirror','magnet','map','compass'):
                 raise ValueError(f'{name}: unknown ability')
             if obj['type']=='light' and obj.get('direction') not in ([1,0],[-1,0],[0,1],[0,-1]):
                 raise ValueError(f'{name}: invalid light direction')
@@ -46,7 +46,7 @@ def validate_rooms(rooms):
                 raise ValueError(f'{name}: invalid timer')
         enemy_ids=set()
         for enemy in room.get('enemies',[]):
-            if enemy['id'] in enemy_ids or enemy['type'] not in ('slime','bat','guardian'):
+            if enemy['id'] in enemy_ids or enemy['type'] not in ('slime','bat','guardian','blink_mage','armored_beetle','bomb_eater','golem'):
                 raise ValueError(f'{name}: invalid enemy')
             enemy_ids.add(enemy['id'])
             x,y=enemy['pos'];sx,sy=room['spawn']

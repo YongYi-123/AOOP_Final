@@ -1,6 +1,7 @@
 """Native-resolution text over integer-scaled pixel scenery, with readable bundled English fonts."""
 from pathlib import Path
 import pygame
+from puzzle_maze import pixel_font
 
 FONT_PATH = Path(__file__).parent / 'assets/fonts/DejaVuSans.ttf'
 BOLD_FONT_PATH = FONT_PATH.with_name('DejaVuSans-Bold.ttf')
@@ -38,7 +39,9 @@ class NativeText:
             elif font.size(text)[0]>width:
                 while text and font.size(text+'...')[0]>width:text=text[:-1]
                 text+='...'
-            img=font.render(text,True,color)
+            img=pixel_font.render(text,size,color)
+            while img.get_width()>width and len(text)>1:
+                text=text[:-1];img=pixel_font.render(text,size,color)
             if img.get_height()>target.get_height():continue
             py=min(py,max(0,target.get_height()-img.get_height()))
             rect=img.get_rect(topleft=(px,py))

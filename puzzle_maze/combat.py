@@ -20,6 +20,15 @@ class Enemy:
     @property
     def pos(self):return self.x,self.y
 
+    def receive_damage(self,manager,amount,kind,source):
+        if self.hp<=0:return False
+        self.hp=max(0,self.hp-amount);self.flash=.18
+        if self.hp==0:self.state=EnemyState.DYING;self.attack_timer=.6 if self.kind=='golem' else .35
+        else:manager.knockback(self,source)
+        return True
+
+    def special_update(self,manager,dt):return False
+
     def interval(self):return self.speed
 
     def capture(self):
@@ -44,10 +53,16 @@ DIRECTIONS=((1,0),(-1,0),(0,1),(0,-1))
 
 class CombatManager:
     def __init__(self,room,puzzles,player):
+        from puzzle_maze import enemies  # Register strategies without import cycles.
         self.puzzles=puzzles;self.player=player
+        self.projectiles=[]
         self.enemies=[ENEMIES[d['type']](d) for d in room.get('enemies',[])]
         self.loot=[]
         self.events=[]
+
+    def fire(self,enemy,spread=False):
+        from puzzle_maze.enemies import fire
+        fire(self,enemy,spread)
 
     def blocked(self,pos,ignore=None):
         return not self.puzzles.can_enter(*pos) or any(e is not ignore and e.pos==pos and e.hp>0 for e in self.enemies)
@@ -74,9 +89,7 @@ class CombatManager:
         hit=False
         for e in self.enemies:
             if e.hp>0 and p.weapon.contains((p.x,p.y),e.pos,p.attack_facing):
-                e.hp=max(0,e.hp-p.weapon.damage);e.flash=.18;hit=True
-                if e.hp==0:e.state=EnemyState.DYING;e.attack_timer=.35
-                else:self.knockback(e,p)
+                hit=e.receive_damage(self,p.weapon.damage,"sword",p) or hit
         self.events.append('hit' if hit else 'attack')
         return hit
 
@@ -104,6 +117,8 @@ class CombatManager:
         p.attack_cooldown=max(0,p.attack_cooldown-dt)
         p.attack_flash=max(0,p.attack_flash-dt)
         if p.hp<=0:return
+        from puzzle_maze.enemies import update_projectiles
+        update_projectiles(self,dt)
         for e in self.enemies:
             e.age+=dt;e.flash=max(0,e.flash-dt)
             if e.state==EnemyState.DEAD:continue
@@ -112,9 +127,10 @@ class CombatManager:
                 if e.attack_timer<=0:
                     e.state=EnemyState.DEAD
                     if not e.dropped:
-                        self.loot.append(dict(pos=list(e.pos),heal=1,coins=1));e.dropped=True
+                        self.loot.append(dict(pos=list(e.pos),heal=1,coins=1,bombs=2 if e.kind in ("blink_mage","armored_beetle","bomb_eater") else 0));e.dropped=True
                         self.events.append('defeat')
                 continue
+            if e.special_update(self,dt):continue
             distance=abs(e.x-p.x)+abs(e.y-p.y)
             if e.state==EnemyState.WINDUP:
                 e.attack_timer=max(0,e.attack_timer-dt)
@@ -133,14 +149,21 @@ class CombatManager:
         for drop in self.loot[:]:
             if tuple(drop['pos'])==(p.x,p.y):
                 p.hp=min(p.max_hp,p.hp+drop['heal']);self.puzzles.inventory.coins+=drop['coins']
+                self.puzzles.inventory.supply_bombs(drop.get('bombs',0))
                 self.loot.remove(drop);self.events.append('heal')
 
     @property
     def cleared(self):return all(e.hp==0 for e in self.enemies)
 
-    def capture(self):return dict(enemies={e.id:e.capture() for e in self.enemies},loot=self.loot.copy())
+    def capture(self):return dict(enemies={e.id:e.capture() for e in self.enemies},loot=self.loot.copy(),projectiles=[vars(b).copy() for b in self.projectiles])
 
     def restore(self,snapshot):
+        from puzzle_maze.enemies import Projectile
+        self.projectiles=[]
+        for values in snapshot.get('projectiles',[]):
+            bolt=Projectile(**values)
+            if not self.puzzles.tilemap.walkable(bolt.x,bolt.y) or (bolt.dx,bolt.dy) not in DIRECTIONS or not 0<bolt.steps<=8 or not 0<=bolt.timer<=.16:raise ValueError('Invalid projectile')
+            self.projectiles.append(bolt)
         enemies=snapshot['enemies']
         if set(enemies)!={e.id for e in self.enemies}:raise ValueError('Enemy snapshot mismatch')
         for e in self.enemies:
@@ -155,6 +178,15 @@ class CombatManager:
                 setattr(e,attr,v)
             if type(values['dropped']) is not bool:raise ValueError('Invalid drop flag')
             e.dropped=values['dropped']
+            if e.kind=='armored_beetle':
+                facing=tuple(values.get('facing',(0,1)))
+                if facing not in DIRECTIONS or type(values.get('armor',True)) is not bool:raise ValueError('Invalid armor state')
+                e.facing=facing;e.armor=values.get('armor',True)
+            if e.kind=='golem':
+                for attr in ('exposed','primed'):
+                    value=values.get(attr,0)
+                    if type(value) not in (int,float) or not 0<=value<=6:raise ValueError('Invalid boss state')
+                    setattr(e,attr,value)
         self.loot=[]
         for drop in snapshot['loot']:
             pos=drop['pos']

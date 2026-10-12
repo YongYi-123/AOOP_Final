@@ -4,6 +4,7 @@ import random
 import pygame
 from puzzle_maze.core import Camera
 from puzzle_maze.ui import NativeText
+from puzzle_maze.icons import IconHUD
 from puzzle_maze.combat import EnemyState
 from puzzle_maze.exploration import DungeonAtlas
 from puzzle_maze.environment import EnvironmentPainter
@@ -22,6 +23,7 @@ class Renderer:
         self.time=0
         self.ui=NativeText()
         self.environment=EnvironmentPainter()
+        self.hud=IconHUD()
         self.tiles=self.environment.tiles('entrance')
 
     def text(self,text,x,y,color=WHITE,font=None,max_width=None):
@@ -152,21 +154,7 @@ class Renderer:
             r.rect(s,INK,(int(visual[0]*16)-cx-20,int(visual[1]*16)-cy-13,94,15))
             self.text(f"[{controls['ability']}] Pulse" if isinstance(near,SecretPassage) else f"[{controls['interact']}] Interact",int(visual[0]*16)-cx-18,int(visual[1]*16)-cy-12,GOLD)
         s.set_clip(None)
-        r.rect(s,INK,(4,190,202,17))
-        for heart in range(p.max_hp):
-            hx=8+heart*13;hy=195
-            color=(239,102,119) if heart<p.hp else (75,66,81)
-            r.polygon(s,color,[(hx,hy+2),(hx+2,hy),(hx+4,hy+2),(hx+6,hy),(hx+8,hy+2),(hx+8,hy+5),(hx+4,hy+9),(hx,hy+5)])
-        self.text(f"{controls['heal']} Potion {session.inventory.potions} / {controls['attack']} Sword",78,193)
-        r.rect(s,INK,(208,190,108,17))
-        self.text(f"{controls['tool']} {tool} / Dash {session.dash_cooldown:.1f}",211,193)
-        r.rect(s,INK,(0,208,320,32));r.line(s,(80,107,112),(0,208),(320,208))
-        self.text(f'{session.rooms.current.upper()}  {room["name"]}',7,213,GOLD)
-        keys=sum(session.inventory.keys.values())
-        self.text(f'Keys {keys}  Sigils {len(session.completed)}/9  Shards {session.inventory.coins}',7,226)
-        for i,(ability,label) in enumerate((('gloves','G'),('boots','B'),('mirror','L'),('magnet','M'))):
-            self.text(label,228+i*19,213,TEAL if ability in session.inventory.abilities else (75,89,96))
-        self.text(f"{controls['map']} map | {controls['pause']}",210,226,(135,161,154))
+        self.hud.draw(self,session,tool)
 
     def player(self,pos,facing,moving,cx,cy):
         r=pygame.draw;s=self.surface
