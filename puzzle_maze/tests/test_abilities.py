@@ -39,3 +39,23 @@ class AbilityTests(unittest.TestCase):
             self.assertEqual(loaded.inventory.abilities,{'gloves'})
             self.assertEqual(loaded.inventory.potions,2)
             loaded.reset();self.assertEqual(loaded.inventory.abilities,set())
+
+    def test_blocked_dash_does_not_grant_free_invulnerability(self):
+        s=GameSession();s.inventory.abilities.add('boots');s.player.x=1;s.player.facing=(-1,0)
+        self.assertEqual(s.dash(),0);self.assertEqual(s.player.invulnerable,0)
+
+    def test_light_receiver_needs_power_and_correct_orientation(self):
+        s=GameSession();s.inventory.abilities.add('mirror');s.enter('r5')
+        self.assertFalse(s.puzzles.objects['receiver'].state.active)
+        use(s,(6,4));use(s,(6,10))
+        self.assertFalse(s.puzzles.objects['receiver'].state.active)
+        use(s,(34,10));self.assertTrue(s.puzzles.objects['receiver'].state.active)
+
+    def test_dash_and_combat_timers_survive_save(self):
+        s=GameSession();s.inventory.abilities.add('boots');s.player.facing=(1,0)
+        self.assertEqual(s.dash(),3);s.attack()
+        with tempfile.TemporaryDirectory() as d:
+            path=Path(d)/'save.json';s.save(path);loaded=GameSession.load(path)
+            self.assertAlmostEqual(loaded.dash_cooldown,1.2)
+            self.assertAlmostEqual(loaded.player.invulnerable,.3)
+            self.assertAlmostEqual(loaded.player.attack_cooldown,.25)

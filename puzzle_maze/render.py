@@ -22,8 +22,8 @@ class Renderer:
         self.ui=NativeText()
         for kind in '#.~Og':self.tiles[kind]=self.tile(kind)
 
-    def text(self,text,x,y,color=WHITE,font=None):
-        self.ui.queue(text,x,y,color,font is self.title)
+    def text(self,text,x,y,color=WHITE,font=None,max_width=None):
+        self.ui.queue(text,x,y,color,font is self.title,max_width)
 
     def tile(self,kind):
         s=pygame.Surface((16,16));r=pygame.draw
@@ -45,7 +45,7 @@ class Renderer:
             angle=random.random()*math.tau;speed=random.uniform(10,40)
             self.particles.append([x*16+8,y*16+8,math.cos(angle)*speed,math.sin(angle)*speed,random.uniform(.3,.8),color])
 
-    def world(self,session,visual,dt):
+    def world(self,session,visual,dt,tool="pulse"):
         self.ui.clear()
         self.time+=dt;s=self.surface;r=pygame.draw;s.fill(INK)
         room=session.rooms.data;p=session.player
@@ -162,10 +162,14 @@ class Renderer:
             color=(239,102,119) if heart<p.hp else (75,66,81)
             r.polygon(s,color,[(hx,hy+2),(hx+2,hy),(hx+4,hy+2),(hx+6,hy),(hx+8,hy+2),(hx+8,hy+5),(hx+4,hy+9),(hx,hy+5)])
         self.text(f'H Potion {session.inventory.potions} / J Attack',78,193)
+        r.rect(s,INK,(208,190,108,17))
+        self.text(f'Q {tool} / Dash {session.dash_cooldown:.1f}',211,193)
         r.rect(s,INK,(0,208,320,32));r.line(s,(80,107,112),(0,208),(320,208))
         self.text(f'{session.rooms.current.upper()}  {room["name"]}',7,213,GOLD)
         keys=sum(session.inventory.keys.values())
-        self.text(f'Keys {keys}   Sigils {len(session.completed)}/9',7,226)
+        self.text(f'Keys {keys}  Sigils {len(session.completed)}/9  Shards {session.inventory.coins}',7,226)
+        for i,(ability,label) in enumerate((('gloves','G'),('boots','B'),('mirror','L'),('magnet','M'))):
+            self.text(label,228+i*19,213,TEAL if ability in session.inventory.abilities else (75,89,96))
         self.text('TAB Map  ESC Menu',210,226,(135,161,154))
 
     def player(self,pos,facing,moving,cx,cy):
@@ -183,9 +187,10 @@ class Renderer:
         r.rect(s,GOLD,(x+11 if facing[0]>=0 else x+1,y+9+bob,3,3))
 
     def panel(self,title,lines,selected=None):
+        self.ui.clear()  # Modal text replaces the deferred world HUD.
         overlay=pygame.Surface((320,240),pygame.SRCALPHA);overlay.fill((9,18,29,220));self.surface.blit(overlay,(0,0))
         pygame.draw.rect(self.surface,(70,107,114),(22,22,276,194),1)
-        self.text(title,35,36,GOLD,self.title)
+        self.text(title,35,36,GOLD,self.title,max_width=248)
         y=78
         for i,line in enumerate(lines):
             self.text(('> ' if selected==i else '  ')+line,36,y,TEAL if selected==i else WHITE)
@@ -216,7 +221,7 @@ class Renderer:
         self.atlas_graph(session,(242,8,71,46))
 
     def map_panel(self,session):
-        self.panel('DUNGEON ATLAS',[])
+        self.panel('DUNGEON ATLAS / 迷宮地圖',[])
         self.atlas_graph(session,(30,75,260,68))
         known=session.exploration.tiles.get(session.rooms.current,set())
         rows=session.rooms.data['tiles'];w=len(rows[0]);h=len(rows)

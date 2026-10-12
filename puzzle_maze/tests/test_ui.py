@@ -24,3 +24,9 @@ class NativeUITests(unittest.TestCase):
         self.assertTrue(FONT_PATH.exists())
         font=pygame.font.Font(str(FONT_PATH),24)
         self.assertTrue(all(metric is not None for metric in font.metrics('迷宮生命光之鏡探索')))
+
+    def test_modal_text_does_not_leak_world_hud(self):
+        game=Game(headless=True)
+        for scene in (GameScene.HELP,GameScene.MAP,GameScene.GAMEOVER):
+            game.scene=scene;game.draw(.016)
+            self.assertFalse(any('H Potion' in command[0] or 'Dash 0.0' in command[0] for command in game.renderer.ui.commands))

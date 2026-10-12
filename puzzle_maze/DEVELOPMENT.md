@@ -65,3 +65,46 @@ DungeonAtlas 讀 RoomManager 的出口與 JSON atlas 座標；隱藏房發現前
 排除，發現的門、出口、寶箱與接收器有標記。Exploration 視線被牆及閉門
 阻擋，紀錄跨房間與重置保留並存檔。46 項測試通過，最終解析度截圖檢查
 文字與五顆愛心清楚、小地圖不遮擋提示框。
+
+Phase F：全八房使用真實碰撞 / 推箱搜尋 / 能力 / 戰鬥通關，另驗證秘密房
+往返及第四房步行超時、衝刺成功。新增錯誤條件循環、能力、敵人位置、光線
+方向與探索/戰鬥損毀存檔測試；衝刺及戰鬥冷卻、無敵時間納入讀檔。
+HUD 增加工具、冷卻與晶片；說明與地圖使用繁中 / 英文。截圖發現原生文字
+延遲繪製會透過模態覆蓋 HUD，已修正並加回歸測試；標題及提示受版面寬度
+約束。更新 README 的操作、工具路線、生命、存檔及架構說明。
+
+最終驗證：55 項測試全數通過（16.830 秒）；headless 60 幀、compileall、
+Git diff --check 通過。相對基底 04ec231 的變更全部在 puzzle_maze/。
+
+本次新增 / 修改檔案清單：
+
+- `puzzle_maze/.gitignore`
+- `puzzle_maze/DEVELOPMENT.md`
+- `puzzle_maze/README.md`
+- `puzzle_maze/assets/fonts/NotoSansCJKtc-Regular.otf`
+- `puzzle_maze/assets/fonts/OFL.txt`
+- `puzzle_maze/audio.py`
+- `puzzle_maze/combat.py`
+- `puzzle_maze/core.py`
+- `puzzle_maze/exploration.py`
+- `puzzle_maze/game.py`
+- `puzzle_maze/maps/dungeon.json`
+- `puzzle_maze/puzzles.py`
+- `puzzle_maze/render.py`
+- `puzzle_maze/rooms.py`
+- `puzzle_maze/session.py`
+- `puzzle_maze/solver.py`
+- `puzzle_maze/tests/fixtures/dungeon_v1.json`
+- `puzzle_maze/tests/legacy.py`
+- `puzzle_maze/tests/test_abilities.py`
+- `puzzle_maze/tests/test_campaign.py`
+- `puzzle_maze/tests/test_combat.py`
+- `puzzle_maze/tests/test_exploration.py`
+- `puzzle_maze/tests/test_game.py`
+- `puzzle_maze/tests/test_playthrough.py`
+- `puzzle_maze/tests/test_puzzles.py`
+- `puzzle_maze/tests/test_rooms.py`
+- `puzzle_maze/tests/test_session.py`
+- `puzzle_maze/tests/test_ui.py`
+- `puzzle_maze/tests/test_validation_v2.py`
+- `puzzle_maze/ui.py`

@@ -51,6 +51,18 @@ def validate_rooms(rooms):
             x,y=enemy['pos'];sx,sy=room['spawn']
             if not tilemap.walkable(x,y) or (x,y) in occupied or abs(x-sx)+abs(y-sy)<5:
                 raise ValueError(f'{name}: unsafe enemy spawn')
+            occupied.add((x,y))
+        atlas=room.get('atlas')
+        if atlas is not None and (not isinstance(atlas,list) or len(atlas)!=2 or any(type(v) is not int or v<0 for v in atlas)):
+            raise ValueError(f'{name}: invalid atlas coordinates')
+        dependencies={o['id']:o.get('requires',[]) for o in room['objects']}
+        def visit(node,stack,seen):
+            if node in stack:raise ValueError(f'{name}: cyclic puzzle conditions')
+            if node in seen:return
+            for dep in dependencies[node]:visit(dep,stack|{node},seen)
+            seen.add(node)
+        checked=set()
+        for node in dependencies:visit(node,set(),checked)
         if not room['exits']:
             raise ValueError(f'{name}: missing exits')
         for e in room['exits']:

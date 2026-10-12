@@ -1,105 +1,131 @@
-# Puzzle Maze — The Prism Chambers
+# Puzzle Maze 2.0 — The Prism Chambers
 
-獨立 Python + Pygame 俯視解謎遊戲。原創像素繪圖與合成音樂，核心不依賴
-Arcade Lobby、Tokens、Tickets、共同存檔或其他遊戲模組；`lobby_scene.py` 是可選機台介面。
+在既有 TileMap、RoomManager 與 PuzzleManager 上升級的獨立地下城遊戲。
+八個主要房間各 56×34 格（896×544 像素世界），另保留一間可選秘密房。
+本次只修改 puzzle_maze/；沒有新增劇情、NPC 或擴充其他遊戲及 Lobby。
 
 ## 啟動
 
-從 AOOP_Final 根目錄：
+在 AOOP_Final 根目錄：
 
 ```bash
 .venv/bin/python -m puzzle_maze
 ```
 
-其他環境先安裝 `python3 -m pip install -r puzzle_maze/requirements.txt`，再執行
-`python3 -m puzzle_maze`。請使用 pygame-ce，勿同時安裝另一個 pygame 套件。
-
-## Arcade Lobby 試玩
+其他 Python 環境：
 
 ```bash
-.venv/bin/python arcade_lobby/main.py
+python3 -m pip install -r puzzle_maze/requirements.txt
+python3 -m puzzle_maze
 ```
 
-到 Arcade Floor，使用中央機台列的 **PUZZLE MAZE**（`island_1`），按 E 開啟
-機台並選 PLAY。此機台免費，不給 Tickets 或分數獎勵；Lobby 的遊玩紀錄仍按
-既有流程記錄。選 New expedition 開始，或 Continue expedition 延續獨立遊戲存檔。
-
-主選單按 Esc 回大廳；遊戲中按 Esc 暫停，選 **Return to arcade** 回大廳。
-單人沿用下列操作；雙人模式使用啟動機台者的 Lobby 移動、互動及道具鍵。
-Tab 與 R 為查看地圖與重置，音樂及音量使用 Lobby 的設定。
-內嵌模式沿用 Lobby 的視窗、背景音樂及音效混音，獨立模式保持原創合成音樂。
+使用 pygame-ce，請勿同時安裝原版 pygame。預設 960×720，可調整視窗大小。
+像素場景採 nearest 整數倍率；英文及繁中文本在最終解析度繪製。
+內附 Noto Sans CJK TC 及 SIL OFL 授權於 assets/fonts/，不需系統中文字型。
 
 ## 操作
 
 | 按鍵 | 功能 |
 | --- | --- |
-| WASD / 方向鍵 | 四方向移動，接觸箱子時推動 |
-| E | 操作相鄰開關、以對應鑰匙解鎖門；優先面朝物件 |
-| Space | 脈衝能力，打開有裂紋與青苔箭頭的秘密牆 |
-| Tab | 已探索房間地圖，開啟時暫停機關時間 |
-| Esc | 暫停；選單使用上下鍵及 Enter |
-| R | 恢復目前房間進入時的物件、位置與鑰匙檢查點 |
-| M | 切換背景音樂 |
+| WASD / 方向鍵 | 移動；取得手套後可推動重箱 |
+| E | 開寶箱、開關、解鎖相鄰門；取得鏡後可旋轉鏡台 |
+| Space | 使用目前工具：脈衝開裂牆、轉鏡、磁力排斥 |
+| Q | 在脈衝與已取得的鏡、磁力工具間切換 |
+| F | 磁力吸引面朝方向的金屬箱（需先取得磁力裝置） |
+| Shift | 三格衝刺，逐格檢查碰撞；1.2 秒冷卻，短暫閃避無敵 |
+| J | 面朝方向近戰；0.25 秒攻擊間隔 |
+| H | 消耗一瓶藥水，恢復最多 3 HP |
+| Tab | 完整迷宮關係圖、當房探索迷霧與已發現標記 |
+| R | 還原當房入口檢查點的物件、生命、敵人及補給 |
+| Esc | 暫停；選單使用上下鍵 / Enter |
+| M | 背景音樂開關 |
 
-沿東側入口探索八個主要房間；西側傳送點可以返回。第六房另有隱藏入口，
-通往可選的 Moss Archive。抵達第八房東側出口即通關。
+HUD 顯示五顆愛心、藥水、目前工具、衝刺冷卻及晶片。G / B / L / M 分別
+代表手套、靴子、鏡與磁力裝置；取得後變青色。脈衝是原有能力，起始可用。
 
-普通門的全部條件成立後會保持開啟；限時門只在時鐘有效時開啟。
-門格有玩家或箱子時延後關閉，離開後才關閉。未解鎖的門不會消耗錯誤鑰匙。
-箱子可推入死角，R 可撤回到入口檢查點。重訪已完成房間會保留其狀態。
+R 會撤回本房新取得的工具、鑰匙、掉落及寶箱，避免重複領取；前房取得的
+工具保留。重訪房間以重訪時狀態建立檢查點。探索迷霧不因 R 退回。
+重置會還原該檢查點的敵人；一般切房或讀檔不會讓已死敵人重新生成。
 
-## 房間
+## 房間與成長
 
-| 房間 | 目標 |
+每房保留原核心謎題，結合東翼封印、岔路、回頭路與裂牆寶庫。
+八房主要出口都檢查具名完成條件，且實體牆與門阻擋繞路。
+
+| 房間 | 複合目標 |
 | --- | --- |
-| Lantern Courtyard | 操作黃銅開關並通過東側迷宮 |
-| Weight of Stone | 踩住單一壓力板，鎖定門的開啟狀態 |
-| Twin Foundations | 將兩個木箱推到兩塊壓力板 |
-| Amber Lock | 找到琥珀鑰匙，解鎖門 |
-| Signal Garden | 啟動南北兩個開關 |
-| Whispering Wall | 從裂紋與青苔箭頭推理出脈衝通道 |
-| A Fleeting Bridge | 啟動時鐘，於 4.5 秒內通過門 |
-| The Prism Vault | 雙箱、鑰匙、秘密牆、開關與限時門的綜合謎題 |
-| Hidden Moss Archive | 第六房的可選隱藏房間，點亮兩座機關取得額外印記 |
+| Lantern Courtyard | 開關 → 東翼鑰匙鎖；先在南側寶箱取得手套 |
+| Weight of Stone | 踩板開入口 → 用手套推重箱壓東翼板 |
+| Twin Foundations | 雙箱雙板 → 東翼鑰匙封印；探索水景取得衝刺靴 |
+| Amber Lock | 琥珀鑰匙門 → 訊號開關與 0.65 秒封印，需衝刺通過 |
+| Signal Garden | 南北訊號 → 光源；找鏡、轉向北方接收器，再推重物啟動封印 |
+| Whispering Wall | 脈衝通道 → 磁力遠端重物；取得磁力裝置，另找秘密房入口 |
+| A Fleeting Bridge | 限時入口 → 光束反射與磁力壓板組合 |
+| The Prism Vault | 雙箱、鑰匙 / 脈衝 / 計時、鏡 / 磁力，再擊敗南側三守衛 |
+| Hidden Moss Archive | 可選秘密房；兩座訊號解封印，西側出口返回第六房 |
 
-## 存檔
+普通門條件滿足後鎖定開啟；限時門在倒數結束時關閉。玩家、箱子或活敵人
+在門格時延後關閉。通過限時門的紀錄可供下一階段機關使用，不把原門永久
+打開。裂牆有青苔箭頭與金色裂紋。各房可選寶庫提供兩瓶藥水。
 
-只寫入 `puzzle_maze/save.json`，已由資料夾自己的 `.gitignore` 排除。
-每 15 秒、房間切換、暫停及退出時自動存檔。原子替換避免半寫入；
-缺少、損毀或不相容存檔會開啟新遊戲，存檔寫入失敗不會終止遊戲。
-倒數在離開房間、暫停及地圖時停止。選 New expedition 建立新進度，
-下一次自動存檔會取代本遊戲舊存檔。
+光源、鏡台與接收器沿格子追蹤光線，牆及重物阻擋光束。
+金屬遠端槽位隔水可見，面向槽位使用三次排斥把金屬箱放到壓力板；
+磁力最多作用六格，不能穿牆或把重物移到障礙與玩家身上。
 
-## 架構
+## 戰鬥與死亡
 
-- `Game` / `GameScene`：事件迴圈、選單及場景 State。
-- `Player`、`TileMap`、`CollisionManager`、`Camera`：獨立於 Pygame 的座標與碰撞。
-- `RoomManager`：讀取 JSON、驗證地圖、房間出口。
-- `PuzzleManager`：組合 Inventory 與 PuzzleObject；物件 Factory 依 type 建立實例。
-- `PuzzleObject` → `PushableBox`、`PressurePlate`、`Switch`、`Door`、`Key`、
-  `SecretPassage`、`TimedSwitch`：繼承與多型互動。門每次更新觀察具名條件。
-- `PuzzleState` / `Inventory`：物件狀態與分類鑰匙計數。
-- `GameSession`：房間快照、入口檢查點、完成紀錄、存檔。
-- `Renderer` / `AudioManager`：原創程式化像素素材、四方向動畫、粒子、Camera、
-  水面動畫、復古音樂與音效。音訊裝置失敗時靜音運作。
-- `solver.py`：推箱狀態 BFS，以玩家可達區域合併重複狀態，排除靜態角落死局。
+- Slime：2 HP，慢速追蹤與短前搖。
+- Bat：1 HP，快移動、週期間歇衝刺。
+- Guardian：4 HP，較慢，攻擊前有紅框及 0.7 秒前搖。
 
-地圖位於 `maps/dungeon.json`。`#` 牆、`.` 地板、`g` 草地、`~` 水、`O` 石塊。
-新增物件類型需註冊 `FACTORY` 並更新合法性檢查及 Renderer。
-門的 `requires` 為 AND；`key` 另外要求對應鑰匙。出口附目標房與到達座標。
+受傷後 1.1 秒無敵，玩家閃爍並在合法地格內擊退。敵人尋路不穿牆、水、
+閉門或箱子。死亡後短動畫，掉一顆生命 / 晶片，拾取後消失，不重複生成。
+前期一隻慢敵，中期加入 Bat，後期三種類混合；終房戰鬥為必要條件。
+HP 歸零停止移動與能力，顯示 GAME OVER，Enter / Esc 回 Puzzle Maze 主選單。
+不會關閉整個程式。死亡存檔 Continue 仍顯示 GAME OVER，可選新遊戲再開始。
+
+## 小地圖與存檔
+
+右上小地圖直接讀 RoomManager 與 JSON 的 atlas / exits，顯示房間連接。
+金色為當房，青色為完成，已訪房正常色、未訪灰色；秘密房發現前完全隱藏。
+Tab 顯示同一張關係圖及當房逐格迷霧，門、出口、寶箱、接收器在看見後標記。
+視線被牆及閉門阻擋。地圖、暫停及離開房間時，該房的倒數和敵人停止更新。
+
+只使用 puzzle_maze/save_v2.json，已在資料夾自己的 .gitignore 排除；
+原版 save.json 保留，2.0 不覆寫或自動轉換它。舊版地圖快照與新版房間不相容，
+2.0 請從 New expedition 開始。存檔包含工具、鑰匙、生命、敵人、補給、
+房間機關、入口檢查點與探索。每 15 秒、切房、暫停、死亡及退出時原子保存。
+損毀或不相容存檔會安全開新遊戲，寫入失敗保留記憶體中的進度。
+
+本次以獨立模式驗證。先前的可選 lobby_scene.py 保留，本次未擴充其輸入介面。
+
+## OOP 架構
+
+- Game / GameScene：事件與場景 State，含 MENU、PLAY、PAUSE、MAP、GAMEOVER。
+- Player / TileMap / CollisionManager / Camera：座標、生命與碰撞，沿用原核心。
+- RoomManager：JSON 房間、起點、出口與合法性。
+- PuzzleManager 組合 Inventory / PuzzleState；FACTORY 建立 PuzzleObject 子類。
+- PushableBox、PressurePlate、Switch、Door、Key、SecretPassage、TimedSwitch：原機關。
+- Chest、LightSource、Reflector、Receiver、CombatSeal：工具成長、光束與戰鬥條件。
+- CombatManager 組合 Enemy；Slime / Bat / Guardian 以繼承設定行為，EnemyState
+  控制 HUNT / WINDUP / DYING / DEAD。
+- GameSession：機關、戰鬥、工具、探索與檢查點的組合及存檔。
+- Exploration / DungeonAtlas：視線迷霧與資料驅動的地圖，沒有另一份手動房間圖。
+- Renderer / NativeText / AudioManager：像素場景、最終解析度文字、原創音樂音效。
+- solver.py：推箱 BFS 合併可達區域，依階段求解、排除靜態角落死局。
 
 ## 驗證
 
 ```bash
 .venv/bin/python -m unittest discover -s puzzle_maze/tests -v
 .venv/bin/python -m puzzle_maze --headless --frames 60
-.venv/bin/python -m puzzle_maze --headless --screenshot /tmp/puzzle-maze.png
+.venv/bin/python -m puzzle_maze --headless --screenshot /tmp/puzzle-maze-v2.png
 ```
 
-測試包括移動、碰撞、Camera、推箱、壓力板、多開關、鑰匙、秘密牆、倒數、
-門格佔用、房間切換、重置、存檔容錯、音訊失敗、選單與所有房間渲染。
-推箱關卡透過狀態搜尋產生解答，並使用真正的遊戲移動重播；通關測試以
-每步 0.13 秒的遊戲時間走完八房，另測試秘密房進出。
+原版 fixtures 保留引擎回歸；生產地圖另以真實移動、求解器推箱重播、
+光束、磁力、限時衝刺及戰鬥完成八房。測試也包含秘密房往返、步行超時 / 衝刺
+成功、未取得工具限制、敵人 AI / 前搖 / 無敵 / 掉落 / 死亡存檔、探索保存、
+損毀資料、出口防繞過、音訊失敗、中英字形與五種視窗尺寸。
 
-仍需真人驗證：實際鍵盤手感、四方向動畫、全程解謎難度、真實音訊裝置音量，
-以及不同桌面大小下的視覺可讀性。Headless 測試不能替代這些檢查。
+仍需真人驗證：長時間鍵盤手感、解謎提示是否足夠、戰鬥難度與音量，以及
+實際螢幕上的字體大小與視窗調整體驗。模擬通關只證明合法路線存在。

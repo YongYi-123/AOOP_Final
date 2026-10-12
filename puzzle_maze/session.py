@@ -127,7 +127,7 @@ class GameSession:
     def save(self, path=SAVE_PATH):
         self.encounters[self.rooms.current]=copy.deepcopy(self.combat.capture())
         self.snapshots[self.rooms.current]=self.capture()
-        data=dict(version=2, explored=self.exploration.capture(), hp=self.player.hp, encounters=self.encounters, abilities=sorted(self.inventory.abilities), potions=self.inventory.potions, coins=self.inventory.coins, room=self.rooms.current, player=[self.player.x,self.player.y],
+        data=dict(version=2, dash_cooldown=self.dash_cooldown, player_status={k:getattr(self.player,k) for k in ('invulnerable','attack_cooldown','attack_flash')}, explored=self.exploration.capture(), hp=self.player.hp, encounters=self.encounters, abilities=sorted(self.inventory.abilities), potions=self.inventory.potions, coins=self.inventory.coins, room=self.rooms.current, player=[self.player.x,self.player.y],
                   inventory=self.inventory.keys, snapshots=self.snapshots,
                   completed=sorted(self.completed), visited=sorted(self.visited),
                   finished=self.finished, checkpoint=self.checkpoint)
@@ -207,6 +207,12 @@ class GameSession:
             cls.validate_position(data['player'], PuzzleManager(candidate.rooms.rooms[data['room']]).tilemap)
             candidate.enter(data['room'],data['player'])
             candidate.player.hp=hp
+            status=data.get('player_status',{})
+            if not isinstance(status,dict):raise ValueError('Invalid player timers')
+            for name in ('invulnerable','attack_cooldown','attack_flash','dash_cooldown'):
+                value=data.get(name,0) if name=='dash_cooldown' else status.get(name,0)
+                if type(value) not in (int,float) or not math.isfinite(value) or not 0<=value<=10:raise ValueError('Invalid player timer')
+                setattr(candidate if name=='dash_cooldown' else candidate.player,name,value)
             if candidate.puzzles.blocked(*data['player']):
                 raise ValueError('Blocked player')
             checkpoint = data['checkpoint']

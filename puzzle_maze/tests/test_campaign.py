@@ -109,3 +109,23 @@ class CampaignTests(unittest.TestCase):
             s.enter(name);s.player.x,s.player.y=53,17
             self.assertFalse(s.transition())
             self.assertGreaterEqual(len(room['objects']),6)
+
+    def test_upgraded_secret_archive_roundtrip(self):
+        s=GameSession();s.enter('r6')
+        use(s,(13,7),True);use(s,(28,11),True)
+        walk(s,(29,14));self.assertTrue(s.transition())
+        self.assertEqual(s.rooms.current,'r9')
+        use(s,(6,4));use(s,(6,10));walk(s,(18,7))
+        self.assertTrue(s.puzzles.solved)
+        walk(s,(1,7));self.assertTrue(s.transition())
+        self.assertEqual(s.rooms.current,'r6')
+
+    def test_short_clock_fails_on_foot_and_succeeds_with_dash(self):
+        s=GameSession();s.inventory.abilities.add('boots');s.enter('r4')
+        walk(s,(7,5));use(s,(13,7));use(s,(33,13));use(s,(34,17))
+        walk(s,(39,17))
+        self.assertFalse(s.puzzles.can_enter(40,17))
+        use(s,(34,17));s.player.facing=(1,0)
+        self.assertEqual(s.dash(),3)
+        walk(s,(41,17))
+        self.assertTrue(s.puzzles.objects['seal'].latched)
