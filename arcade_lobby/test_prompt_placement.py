@@ -197,7 +197,7 @@ class SoloHubTests(HubBase):
         self.assertEqual(labels, {"PLAY"})
         lucky = self.room("prize_plaza")
         self.assertEqual(sorted(t.prompt_label for t in lucky.interactables if hasattr(t, "kind")),
-                         ["PLAY HI-LO", "PLAY NEON 21", "PLAY SPIN"])
+                         ["PLAY COIN PUSHER", "PLAY HI-LO", "PLAY NEON 21", "PLAY SPIN"])
 
     def test_cat_volleyball_keeps_its_player_facing_name(self):
         machine = next(m for m in MACHINES if m["id"] == "pixel_volleyball")

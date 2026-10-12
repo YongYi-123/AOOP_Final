@@ -90,7 +90,7 @@ class HubBase(unittest.TestCase):
 
 
 class LuckyCornerLayoutTests(HubBase):
-    def test_arrangement_is_spin_hilo_neon21_and_two_soon_bays(self):
+    def test_arrangement_is_spin_hilo_neon21_then_coin_pusher_and_one_soon_bay(self):
         room = self.plaza()
         cabinets = sorted((p for p in room.props if isinstance(p, (ChanceStation, Neon21Station))),
                           key=lambda p: (p.rect.y, p.rect.x))
@@ -98,10 +98,13 @@ class LuckyCornerLayoutTests(HubBase):
         self.assertEqual([c.rect.topleft for c in cabinets],
                          [(LUCKY_POS[0] + 40 * i, LUCKY_POS[1]) for i in range(3)])
         soon = [p for p in room.props if isinstance(p, SoonStation)]
-        self.assertEqual(len(soon), 2)
-        self.assertTrue(all(p.rect.y > LUCKY_POS[1] + 40 for p in soon))
+        self.assertEqual(len(soon), 1)                          # the FIRST spare bay became NEON COIN PUSHER
+        self.assertEqual(soon[0].rect.topleft, (LUCKY_POS[0] + 40, LUCKY_POS[1] + 70))
         for s in soon:
             self.assertNotIn(s, room.interactables)
+        pusher = next(p for p in room.props if p.__class__.__name__ == "CoinPusherStation")
+        self.assertEqual(pusher.rect.topleft, (LUCKY_POS[0], LUCKY_POS[1] + 70))
+        self.assertEqual(pusher.prompt_label, "PLAY COIN PUSHER")
 
     def test_spin_and_hilo_keep_their_games(self):
         room = self.plaza()
@@ -131,7 +134,7 @@ class LuckyCornerLayoutTests(HubBase):
     def test_every_lucky_cabinet_has_its_own_look(self):
         from lucky_cabinets import KINDS, build_cabinet
         images = {k: pygame.image.tobytes(build_cabinet(k), "RGBA") for k in KINDS}
-        self.assertEqual(len(set(images.values())), 3)
+        self.assertEqual(len(set(images.values())), 4)
         self.assertTrue(all(build_cabinet(k).get_size() == (28, 40) for k in KINDS))
 
     def test_every_animation_frame_draws(self):
