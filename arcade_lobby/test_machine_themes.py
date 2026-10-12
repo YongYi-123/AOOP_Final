@@ -93,7 +93,7 @@ class CabinetArtTests(unittest.TestCase):
         self.assertEqual(racer.rect.size, (W, H))
 
     def test_other_styles_keep_four_marquee_frames(self):
-        for style in ("space", "puzzle", "cat"):
+        for style in ("space", "cat"):
             self.assertEqual(themes.marquee_frames(style, "X"), 4)
 
 

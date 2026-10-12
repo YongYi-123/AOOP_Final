@@ -28,10 +28,10 @@ STYLES = {
     #          screen frames, screen fps, marquee frame time, pulse frame time
     "racer": dict(frames=24, fps=12, marquee=0.07, pulse=0.14),
     "space": dict(frames=24, fps=12, marquee=0.28, pulse=0.22),
-    "puzzle": dict(frames=32, fps=10, marquee=0.18, pulse=0.18),
     "cat": dict(frames=32, fps=8, marquee=0.4, pulse=0.2),
     "volley": dict(frames=32, fps=12, marquee=0.07, pulse=0.12),
     "galaxy": dict(frames=32, fps=12, marquee=0.07, pulse=0.12),
+    "maze": dict(frames=40, fps=12, marquee=0.07, pulse=0.16),
 }
 
 
@@ -76,29 +76,7 @@ def _screen_space(s, p, accent, neon):
     s.fill(Col.YELLOW, (sx, 10 - int(t * 32) % 16, 1, 2))
 
 
-_CANDY = (Col.MAGENTA, Col.YELLOW, Col.CYAN, Col.GREEN)
-
-
-def _screen_puzzle(s, p, accent, neon):
-    s.fill((30, 14, 50))
-    for x in range(0, 24, 3):
-        s.fill((40, 22, 66), (x, 0, 1, 16))
-    stack = ("0212301", "3102102", "2130231")
-    for row, pattern in enumerate(stack):
-        y = 16 - 3 * (row + 1)
-        flash = row == 0 and p > 0.8 and int(p * 20) % 2 == 0
-        for col, ch in enumerate(pattern):
-            c = (255, 255, 255) if flash else _CANDY[int(ch)]
-            s.fill(c, (1 + col * 3, y, 3, 3))
-            s.fill(shade(c, -0.35), (1 + col * 3, y + 2, 3, 1))
-    fall = min(1.0, p / 0.8)
-    y = int(fall * 4)
-    s.fill(accent, (10, y, 3, 3))
-    s.fill(accent, (13, y, 3, 3))
-    s.fill(shade(accent, -0.35), (10, y + 2, 6, 1))
-
-
-_SCREEN_PAINTERS = {"racer": _screen_racer, "space": _screen_space, "puzzle": _screen_puzzle,
+_SCREEN_PAINTERS = {"racer": _screen_racer, "space": _screen_space,
                     **themes.SCREEN_PAINTERS}
 
 
@@ -143,12 +121,6 @@ def _paint_marquee(s, style, label, frame, neon, accent):
         k = (1.0, 0.8, 0.6, 0.8)[frame]
         s.fill(scale_color(neon, 0.35 * k), r.inflate(-2, -2))
         s.blit(font.render(label, lerp_color(neon, accent, k)), (tx, ty))
-    else:                           # rainbow letters cycling
-        x = tx
-        for i, ch in enumerate(label):
-            glyph = font.render(ch, _CANDY[(i + frame) % 4])
-            s.blit(glyph, (x, ty))
-            x += glyph.get_width() + 1
 
 
 def _build_cabinet(style, label, frame, neon, accent, frames=4):

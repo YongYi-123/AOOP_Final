@@ -236,15 +236,15 @@ MACHINES = [
         "play_cost": 1,
     },
     {
-        "id": "puzzle_drop",
-        "name": "Puzzle Drop",
-        "marquee": "DROP",
-        "description": "Stack the falling candies and clear full rows "
-                       "before the sweet jar overflows.",
+        "id": "puzzle_drop",         # the id stays: saves, high scores and daily tasks key off it (it was Puzzle Drop)
+        "name": "Neon Cat Maze",
+        "marquee": "CAT MAZE",
+        "description": "Guide a neon cat through the maze, eat every fish and dodge "
+                       "the security robots. Catnip turns the tables!",
         "x": 148,
-        "neon": (170, 80, 255),
-        "accent": (255, 110, 210),
-        "screen": "puzzle",
+        "neon": (70, 235, 255),
+        "accent": (190, 100, 255),
+        "screen": "maze",
         "play_cost": 1,
     },
     {
