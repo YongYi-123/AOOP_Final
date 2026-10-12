@@ -9,7 +9,7 @@ class LobbyAudio:
         self.manager=manager
 
     def play(self,name):
-        self.manager.play({'step':'footstep','use':'confirm','key':'equip','solve':'win','pulse':'confirm'}.get(name,'confirm'))
+        self.manager.play({'step':'footstep','use':'confirm','key':'equip','solve':'win','pulse':'confirm','attack':'hit','hit':'hit','hurt':'loss','heal':'powerup','defeat':'win'}.get(name,'confirm'))
 
     def toggle(self):
         pass  # M is handled by the lobby's audio controls.
@@ -34,7 +34,10 @@ class PuzzleMazeScene(MinigameScene):
         canonical={'up':pygame.K_UP,'down':pygame.K_DOWN,'left':pygame.K_LEFT,
                    'right':pygame.K_RIGHT,'back':pygame.K_ESCAPE,'menu':pygame.K_ESCAPE,
                    'pause':pygame.K_ESCAPE,'item':pygame.K_SPACE,'confirm':pygame.K_RETURN}
-        if action=='interact':
+        # Combat is a Maze action absent from the lobby's generic schemes.
+        attack_key=pygame.K_k if self.input.scheme.name=='P2' else pygame.K_j
+        if event.key==attack_key:key=pygame.K_j
+        elif action=='interact':
             key=pygame.K_e if self.maze.scene==GameScene.PLAY else pygame.K_RETURN
         elif action in canonical:key=canonical[action]
         elif event.key in (pygame.K_TAB,pygame.K_r):key=event.key

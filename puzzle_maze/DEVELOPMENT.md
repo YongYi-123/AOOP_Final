@@ -108,3 +108,11 @@ Git diff --check 通過。相對基底 04ec231 的變更全部在 puzzle_maze/�
 - `puzzle_maze/tests/test_ui.py`
 - `puzzle_maze/tests/test_validation_v2.py`
 - `puzzle_maze/ui.py`
+
+## Puzzle Maze 2.1
+
+基底 2d594de，沿用 feature/puzzle-maze，原未追蹤 tatus -sb 保留。
+Phase A：Player 預設 BasicSword，Weapon 封裝面向、距離、傷害、冷卻與動畫。
+揮劍只判定一次，正前方一格，敵人閃爍 / 擊退 / hit 音效。補上既有可選
+puzzle_maze/lobby_scene.py 丟棄 J 的輸入問題，不改 host 模組。舊 v2 存檔
+缺少武器欄位會自動補基礎劍。59 項全套與新增 1 項橋接攻擊測試通過。

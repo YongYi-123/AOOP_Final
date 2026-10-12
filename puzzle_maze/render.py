@@ -147,7 +147,14 @@ class Renderer:
         if p.invulnerable<=0 or int(self.time*15)%2==0:self.player(visual,p.facing,p.moving,cx,cy)
         if p.attack_flash>0:
             sx,sy=int(visual[0]*16+8)-cx,int(visual[1]*16+8)-cy
-            dx,dy=p.facing;r.circle(s,WHITE,(sx+dx*13,sy+dy*13),7,2)
+            dx,dy=p.attack_facing
+            progress=1-p.attack_flash/p.weapon.swing_duration
+            angle=math.atan2(dy,dx)-.8+progress*1.6
+            for offset,color in ((-.3,(70,111,134)),(-.15,TEAL),(0,WHITE)):
+                a=angle+offset;end=(int(sx+math.cos(a)*20),int(sy+math.sin(a)*20))
+                r.line(s,color,(sx,sy),end,2 if offset else 3)
+            hilt=(int(sx+math.cos(angle)*5),int(sy+math.sin(angle)*5))
+            r.circle(s,GOLD,hilt,2)
         for particle in self.particles[:]:
             particle[0]+=particle[2]*dt;particle[1]+=particle[3]*dt;particle[4]-=dt
             if particle[4]<=0:self.particles.remove(particle)
@@ -184,7 +191,10 @@ class Renderer:
         if facing[1]>=0:
             for ex in ((5,10) if facing[0]==0 else ((10,) if facing[0]>0 else (5,))):r.rect(s,INK,(x+ex,y+5+bob,1,2))
         if facing[1]<0:r.rect(s,(49,53,67),(x+4,y+3+bob,8,4))
-        r.rect(s,GOLD,(x+11 if facing[0]>=0 else x+1,y+9+bob,3,3))
+        # Equipped sword remains visible at the belt outside its swing.
+        sword_x=x+12 if facing[0]>=0 else x+2
+        r.line(s,(158,195,203),(sword_x,y+7+bob),(sword_x,y+14+bob),2)
+        r.line(s,GOLD,(sword_x-2,y+9+bob),(sword_x+2,y+9+bob))
 
     def panel(self,title,lines,selected=None):
         self.ui.clear()  # Modal text replaces the deferred world HUD.

@@ -1,5 +1,6 @@
 """Deterministic, renderer-independent movement and tile collision."""
 from dataclasses import dataclass, field
+from puzzle_maze.weapons import BasicSword, Weapon
 
 @dataclass
 class Player:
@@ -12,6 +13,8 @@ class Player:
     invulnerable: float = 0
     attack_cooldown: float = 0
     attack_flash: float = 0
+    weapon: Weapon = field(default_factory=BasicSword)
+    attack_facing: tuple = (0,1)
 
 @dataclass
 class TileMap:

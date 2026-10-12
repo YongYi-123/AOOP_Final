@@ -69,15 +69,15 @@ class CombatManager:
     def attack(self):
         p=self.player
         if p.hp<=0 or p.attack_cooldown>0:return False
-        p.attack_cooldown=.25;p.attack_flash=.16
-        dx,dy=p.facing;hit=False
+        p.attack_cooldown=p.weapon.cooldown;p.attack_flash=p.weapon.swing_duration
+        p.attack_facing=p.facing
+        hit=False
         for e in self.enemies:
-            ex,ey=e.x-p.x,e.y-p.y
-            if e.hp>0 and abs(ex)+abs(ey)<=1 and ex*dx+ey*dy>=0:
-                e.hp=max(0,e.hp-1);e.flash=.18;hit=True
+            if e.hp>0 and p.weapon.contains((p.x,p.y),e.pos,p.attack_facing):
+                e.hp=max(0,e.hp-p.weapon.damage);e.flash=.18;hit=True
                 if e.hp==0:e.state=EnemyState.DYING;e.attack_timer=.35
                 else:self.knockback(e,p)
-        self.events.append('attack')
+        self.events.append('hit' if hit else 'attack')
         return hit
 
     def heal(self):

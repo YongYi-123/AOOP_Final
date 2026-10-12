@@ -6,6 +6,7 @@ from pathlib import Path
 from puzzle_maze.rooms import RoomManager
 from puzzle_maze.combat import CombatManager
 from puzzle_maze.exploration import Exploration
+from puzzle_maze.weapons import WEAPONS
 from puzzle_maze.puzzles import PuzzleManager, Inventory, Door
 
 SAVE_PATH = Path(__file__).parent / 'save_v2.json'
@@ -40,9 +41,11 @@ class GameSession:
         self.puzzles.update(0,self.player)
 
     def enter(self, name, arrival=None):
+        weapon=self.player.weapon if hasattr(self,"player") else WEAPONS["basic_sword"]()
         health=self.player.hp if hasattr(self,"player") else 5
         self.player=self.rooms.enter(name,arrival)
         self.player.hp=health
+        self.player.weapon=weapon
         self.puzzles=PuzzleManager(self.rooms.data,self.inventory)
         if name in self.snapshots:
             self.restore(self.snapshots[name])
@@ -127,7 +130,7 @@ class GameSession:
     def save(self, path=SAVE_PATH):
         self.encounters[self.rooms.current]=copy.deepcopy(self.combat.capture())
         self.snapshots[self.rooms.current]=self.capture()
-        data=dict(version=2, dash_cooldown=self.dash_cooldown, player_status={k:getattr(self.player,k) for k in ('invulnerable','attack_cooldown','attack_flash')}, explored=self.exploration.capture(), hp=self.player.hp, encounters=self.encounters, abilities=sorted(self.inventory.abilities), potions=self.inventory.potions, coins=self.inventory.coins, room=self.rooms.current, player=[self.player.x,self.player.y],
+        data=dict(version=2, weapon=self.player.weapon.id, dash_cooldown=self.dash_cooldown, player_status={k:getattr(self.player,k) for k in ('invulnerable','attack_cooldown','attack_flash')}, explored=self.exploration.capture(), hp=self.player.hp, encounters=self.encounters, abilities=sorted(self.inventory.abilities), potions=self.inventory.potions, coins=self.inventory.coins, room=self.rooms.current, player=[self.player.x,self.player.y],
                   inventory=self.inventory.keys, snapshots=self.snapshots,
                   completed=sorted(self.completed), visited=sorted(self.visited),
                   finished=self.finished, checkpoint=self.checkpoint)
@@ -207,6 +210,9 @@ class GameSession:
             cls.validate_position(data['player'], PuzzleManager(candidate.rooms.rooms[data['room']]).tilemap)
             candidate.enter(data['room'],data['player'])
             candidate.player.hp=hp
+            weapon=data.get("weapon","basic_sword")
+            if weapon not in WEAPONS:raise ValueError("Unknown weapon")
+            candidate.player.weapon=WEAPONS[weapon]()
             status=data.get('player_status',{})
             if not isinstance(status,dict):raise ValueError('Invalid player timers')
             for name in ('invulnerable','attack_cooldown','attack_flash','dash_cooldown'):
