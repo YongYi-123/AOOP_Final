@@ -128,6 +128,21 @@ class VolleyballLobbyTests(unittest.TestCase):
         self.frames(1, pygame.K_SPACE)
         self.assertTrue(player.attack.animating)
 
+    def test_simultaneous_p1_p2_keys_stay_on_their_own_side(self):
+        self.make_game(True)
+        self.frames(1, pygame.K_e)
+        match = self.scene.volley.match
+        for player in match.players:
+            player.y, player.vy = 174, -40
+        x0 = [p.x for p in match.players]
+        for key in (pygame.K_d, pygame.K_LEFT, pygame.K_LSHIFT, pygame.K_KP0):
+            self.frames(1, key)
+        self.frames(5)
+        self.assertGreater(match.players[0].x, x0[0])      # P1 moved right on D
+        self.assertLess(match.players[1].x, x0[1])         # P2 moved left on LEFT
+        self.assertTrue(match.players[0].attack.animating)  # LEFT SHIFT is P1's
+        self.assertTrue(match.players[1].attack.animating)  # KP0 is P2's
+
     def test_two_players_can_swing_independently(self):
         self.make_game(True)
         self.frames(1, pygame.K_e)
