@@ -58,7 +58,8 @@ class PlayerProfile:
                  lifetime_tokens_spent=0, chance_games_played=0, cats_petted=0,
                  daily=None, daily_tasks=None, history=(), clock=None, inventory=None,
                  home_decorations=None, profile_id=None, display_name=None, racing_selection=None,
-                 neon21=None, appearance=None, collection_display=None, basic_appearance=None):
+                 neon21=None, appearance=None, collection_display=None, basic_appearance=None,
+                 secrets=None):
         # Who this profile is. The id is the save identity (never the name);
         # both are None for a bare profile that is not managed by a ProfileManager.
         self.profile_id = profile_id
@@ -93,6 +94,9 @@ class PlayerProfile:
         # ownership; an older save without it keeps the original look.
         self._basic = (basic_appearance if isinstance(basic_appearance, BasicAppearance)
                        else BasicAppearance.from_dict(basic_appearance))
+        # Easter eggs this player found: {flag: True}. Pure bookkeeping for future story systems;
+        # a flag never grants anything. Absent from the save until the first discovery.
+        self._secrets = {k: True for k, v in (secrets or {}).items() if isinstance(k, str) and v is True}
         # Collectible ids pinned on the HOME display shelf, in order.
         self._collection_display = [i for i in (collection_display or []) if isinstance(i, str)]
         self._racing_selection = {k:v for k,v in (racing_selection or {}).items()
@@ -143,6 +147,23 @@ class PlayerProfile:
     def inventory(self):
         """The player's Inventory (change it with its add_item / remove_item;\n        the profile autosaves when it changes)."""
         return self._inventory
+
+    @property
+    def secrets(self):
+        """Easter eggs found so far, as a copy: {flag: True}. Read with has_secret()."""
+        return dict(self._secrets)
+
+    def has_secret(self, flag):
+        return self._secrets.get(flag) is True
+
+    def discover_secret(self, flag):
+        """Remember that this player found `flag`. Returns True only the first time (so a
+        caller can tell a discovery from a revisit); it never changes anything else."""
+        if not isinstance(flag, str) or not flag or flag in self._secrets:
+            return False
+        self._secrets[flag] = True
+        self._notify("secrets", 0, 0)
+        return True
 
     @property
     def home_decorations(self):
@@ -525,6 +546,7 @@ class PlayerProfile:
             "appearance": dict(self._appearance),
             "basic_appearance": self._basic.to_dict(),
             "collection_display": list(self._collection_display),
+            **({"secrets": dict(self._secrets)} if self._secrets else {}),
             "neon21": {"date": self._neon21_date, "tickets": self._neon21_tickets,
                        **({"pending": dict(self._neon21_pending)} if self._neon21_pending else {})},
         }
@@ -571,6 +593,7 @@ class PlayerProfile:
             appearance=data.get("appearance") if isinstance(data.get("appearance"), dict) else {},
             basic_appearance=BasicAppearance.from_dict(data.get("basic_appearance")),
             collection_display=data.get("collection_display") if isinstance(data.get("collection_display"), list) else [],
+            secrets=data.get("secrets") if isinstance(data.get("secrets"), dict) else {},
             profile_id=data["profile_id"] if isinstance(data.get("profile_id"), str) else None,
             display_name=data["display_name"] if isinstance(data.get("display_name"), str) else None,
         )
