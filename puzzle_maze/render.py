@@ -3,6 +3,7 @@ import math
 import random
 import pygame
 from puzzle_maze.core import Camera
+from puzzle_maze.ui import NativeText
 from puzzle_maze.puzzles import PushableBox, PressurePlate, Door, Key, SecretPassage, TimedSwitch, Switch
 
 INK=(18,26,39); GOLD=(245,198,96); WHITE=(230,237,219); TEAL=(81,195,165)
@@ -16,10 +17,11 @@ class Renderer:
         self.tiles={}
         self.particles=[]
         self.time=0
+        self.ui=NativeText()
         for kind in '#.~Og':self.tiles[kind]=self.tile(kind)
 
     def text(self,text,x,y,color=WHITE,font=None):
-        self.surface.blit((font or self.font).render(text,False,color),(x,y))
+        self.ui.queue(text,x,y,color,font is self.title)
 
     def tile(self,kind):
         s=pygame.Surface((16,16));r=pygame.draw
@@ -42,6 +44,7 @@ class Renderer:
             self.particles.append([x*16+8,y*16+8,math.cos(angle)*speed,math.sin(angle)*speed,random.uniform(.3,.8),color])
 
     def world(self,session,visual,dt):
+        self.ui.clear()
         self.time+=dt;s=self.surface;r=pygame.draw;s.fill(INK)
         room=session.rooms.data;p=session.player
         proxy=type('Position',(),dict(x=visual[0],y=visual[1]))()

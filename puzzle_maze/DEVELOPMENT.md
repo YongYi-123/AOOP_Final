@@ -32,3 +32,11 @@ Cat Minesweeper 14、Galaxy Defender 78 項均通過（SDL dummy，獨立程序�
 位於 puzzle_maze/lobby_scene.py。使用既有參與者輸入、視窗及音訊 API，沒有
 修改音效管理、經濟或其他遊戲。主選單 Esc / 暫停 Return to arcade 可返回。
 獨立模式 26 項測試及 3 項機台整合測試通過，新增測試不寫入玩家存檔。
+
+## Puzzle Maze 2.0
+
+基底 `04ec231`，沿用 feature/puzzle-maze；原未追蹤 tatus -sb 保留。
+本次只修改 puzzle_maze/，不擴充或更動 Lobby 介面及其他遊戲。
+
+Phase A：字體改到最終視窗解析度繪製；像素场景整數倍率 nearest 縮放。
+附 Noto Sans CJK TC（SIL OFL）及授權檔，驗證繁中文字形與五種視窗尺寸。

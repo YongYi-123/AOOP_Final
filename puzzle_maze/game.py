@@ -1,5 +1,6 @@
 """Pygame scene state machine; no lobby or shared save dependencies."""
 import argparse
+import math
 import os
 import textwrap
 from enum import Enum, auto
@@ -152,8 +153,10 @@ class Game:
             shade=pygame.Surface((320,240));shade.fill((11,20,30));shade.set_alpha(int(255*min(1,self.fade/.45)));r.surface.blit(shade,(0,0))
         screen=target if target is not None else self.screen
         w,h=screen.get_size();scale=min(w/320,h/240)
+        scale=math.floor(scale) if scale>=1 else scale
         size=(max(1,int(320*scale)),max(1,int(240*scale)))
         screen.fill((10,17,27));screen.blit(pygame.transform.scale(r.surface,size),((w-size[0])//2,(h-size[1])//2))
+        self.renderer.ui.present(screen,((w-size[0])//2,(h-size[1])//2),scale)
         if target is None:pygame.display.flip()
 
     def run(self,frames=None):
@@ -174,5 +177,5 @@ def main():
     if args.screenshot:
         game.start();game.fade=0
         for _ in range(args.frames or 1):game.draw(1/60)
-        pygame.image.save(game.renderer.surface,args.screenshot);pygame.quit()
+        pygame.image.save(game.screen,args.screenshot);pygame.quit()
     else:game.run(args.frames)
