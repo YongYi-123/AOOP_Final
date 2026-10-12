@@ -215,7 +215,7 @@ class WardrobeScene(MenuScene):
             owned = self.is_look or item is None or self.service.owns(item)
             on = item == worn
             self.draw_row_bg(surf, rect, i == self.index, owned=on)
-            self.hit(rect, lambda i=i: self._click(i))
+            self.hit(rect, lambda i=i: self._click_row(i))
             if self.is_look:
                 colour = swatch_color(self.field, option(self.field, item))
                 if colour is not None:
@@ -246,7 +246,7 @@ class WardrobeScene(MenuScene):
                 draw_text(surf, "OWNED", (rect.right - 5, rect.y + 5), Col.CYAN, anchor="topright")
         self.draw_scrollbar(surf, LIST, self.first, self.VISIBLE, len(rows))
 
-    def _click(self, i):
+    def _click_row(self, i):
         if i == self.index:
             self.activate()
         else:

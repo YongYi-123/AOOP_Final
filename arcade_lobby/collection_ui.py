@@ -90,7 +90,7 @@ class CollectionScene(MenuScene):
             self.say(f"THE CASE HOLDS {DISPLAY_SLOTS}. UNPIN ONE FIRST", Col.YELLOW, 3.0)
             self.play("cancel")
 
-    def _click(self, i):
+    def _click_row(self, i):
         if i == self.index:
             self.activate()
         else:
@@ -123,7 +123,7 @@ class CollectionScene(MenuScene):
             row, col = divmod(i, COLS)
             rect = pygame.Rect(GRID.x + col * (CELL_W + GAP), GRID.y + row * (CELL_H + GAP) + 8, CELL_W, CELL_H)
             self.draw_row_bg(surf, rect, i == self.index, owned=owned)
-            self.hit(rect, lambda i=i: self._click(i))
+            self.hit(rect, lambda i=i: self._click_row(i))
             icon = item_icon(definition)
             image = scaled(icon if owned else silhouette(icon), 2)
             surf.blit(image, image.get_rect(midtop=(rect.centerx, rect.y + 3)))
