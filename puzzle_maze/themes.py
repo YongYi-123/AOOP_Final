@@ -31,3 +31,15 @@ for _name in ('observatory','mechanism','crystal','vault','guard','sanctum'):
         floor=tuple(max(0,c-13)+(8 if i==2 else 0) for i,c in enumerate(_theme.floor)),
         wall=tuple(max(0,c-18)+(12 if i==2 else 0) for i,c in enumerate(_theme.wall)),
         light=(105,166,229))
+
+THEMES.update({
+ 'stone_garden':RoomTheme((54,70,66),(104,125,114),(22,38,39),(167,183,119),(242,187,105),'stone','torch'),
+ 'torch_shrine':RoomTheme((74,47,43),(143,91,69),(36,25,33),(245,180,93),(255,160,78),'inlay','torch'),
+ 'pot_storage':RoomTheme((83,63,45),(155,116,80),(39,31,30),(220,169,115),(233,180,118),'clay','gear'),
+ 'crystal_hall':RoomTheme((39,48,80),(93,129,170),(20,25,50),(93,225,211),(118,204,248),'crystal','crystal'),
+ 'underground_library':RoomTheme((52,51,57),(103,83,88),(27,26,38),(193,160,131),(162,174,236),'wood','books'),
+ 'forgotten_vault':RoomTheme((39,43,55),(83,91,112),(17,22,32),(211,185,109),(137,201,186),'inlay','sigil'),
+ 'ancient_workshop':RoomTheme((56,59,65),(121,122,112),(27,34,41),(213,155,92),(227,157,96),'metal','gear'),
+ 'hidden_sanctuary':RoomTheme((42,58,67),(97,118,120),(22,29,46),(197,205,143),(156,209,238),'star','crystal'),
+ 'boss_chamber':RoomTheme((54,44,69),(112,100,126),(23,20,40),(236,168,113),(177,147,244),'slate','banner'),
+})

@@ -87,11 +87,14 @@ class AncientGolem(Guardian):
         if self.phase==1:self.exposed=6
     def receive_damage(self,manager,amount,kind,source):
         if self.hp<=0:return False
+        if self.phase==3 and self.data.get('crystal_color'):
+            color='blue' if 'crystal_blue' in manager.puzzles.inventory.flags else 'red'
+            if color!=self.data['crystal_color']:manager.events.append('shield');return False
         if kind=='bomb':
             if self.phase==2 or self.phase==3 and self.primed>0:
                 self.exposed=5;self.flash=.4;manager.events.append('hit');return True
             manager.events.append('shield');return False
-        if kind!='sword' or self.exposed<=0:
+        if kind not in ('sword','pot') or self.exposed<=0:
             manager.events.append('shield');return False
         phase=self.phase
         # Arena anchor is immune to knockback; exposure requires abilities again after each phase.

@@ -9,9 +9,16 @@ class Inventory:
     potions: int = 0
     coins: int = 0
     bombs: int = 0
+    powder: int = 0
+    heart_fragments: int = 0
+    carried: str | None = None
     boss_key: bool = False
     flags: set = field(default_factory=set)
     notifications: list = field(default_factory=list)
+
+    def supply_powder(self,amount):
+        before=self.powder;self.powder=min(30,self.powder+amount)
+        if self.powder>before:self.notifications.append(("powder",f"POWDER +{self.powder-before} / P"))
 
     def supply_bombs(self,amount):
         before=self.bombs;self.bombs=min(20,self.bombs+amount)
@@ -229,11 +236,14 @@ class Chest(PuzzleObject):
         ability=self.data.get('ability')
         if ability:
             manager.inventory.abilities.add(ability)
-            manager.inventory.notifications.append((ability,{"boots":"DASH BOOTS / SHIFT","gloves":"GLOVES / PUSH","mirror":"MIRROR / E","magnet":"MAGNET / F, SPACE","map":"DUNGEON MAP / TAB","compass":"COMPASS / TAB"}[ability]))
+            manager.inventory.notifications.append((ability,{"boots":"DASH BOOTS / SHIFT","gloves":"GLOVES / PUSH","mirror":"MIRROR / E","magnet":"MAGNET / F, SPACE","map":"DUNGEON MAP / TAB","compass":"COMPASS / TAB","powder":"MAGIC POWDER / P"}[ability]))
         manager.inventory.supply_bombs(self.data.get("bombs",0))
         for _ in range(self.data.get("small_keys",0)):manager.inventory.add("small")
         if self.data.get("boss_key"):
             manager.inventory.boss_key=True;manager.inventory.notifications.append(("boss_key","BOSS KEY"))
+        manager.inventory.supply_powder(self.data.get('powder',0))
+        for treasure in self.data.get('loot',[]):
+            if hasattr(manager,'grant_treasure'):manager.grant_treasure(self.id,treasure)
         manager.inventory.potions+=self.data.get('potions',0)
         manager.inventory.coins+=self.data.get('coins',0)
         self.state.active=True

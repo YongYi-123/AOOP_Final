@@ -13,7 +13,7 @@ class Enemy:
     speed=.65
     windup=.3
     def __init__(self,data):
-        self.id=data['id'];self.kind=data['type'];self.x,self.y=data['pos']
+        self.data=data;self.dormant=bool(data.get('summon_at'));self.id=data['id'];self.kind=data['type'];self.x,self.y=data['pos']
         self.hp=self.max_hp;self.state=EnemyState.HUNT
         self.move_timer=self.speed;self.attack_timer=0;self.flash=0;self.age=0;self.dropped=False
 
@@ -23,7 +23,9 @@ class Enemy:
     def receive_damage(self,manager,amount,kind,source):
         if self.hp<=0:return False
         self.hp=max(0,self.hp-amount);self.flash=.18
-        if self.hp==0:self.state=EnemyState.DYING;self.attack_timer=.6 if self.kind=='golem' else .35
+        if self.hp==0:
+            self.state=EnemyState.DYING;self.attack_timer=.6 if self.kind=='golem' else .35
+            manager.record_defeat(self)
         else:manager.knockback(self,source)
         return True
 
@@ -32,7 +34,7 @@ class Enemy:
     def interval(self):return self.speed
 
     def capture(self):
-        return dict(pos=list(self.pos),hp=self.hp,state=self.state.value,move_timer=self.move_timer,attack_timer=self.attack_timer,flash=self.flash,age=self.age,dropped=self.dropped)
+        return dict(pos=list(self.pos),hp=self.hp,state=self.state.value,move_timer=self.move_timer,attack_timer=self.attack_timer,flash=self.flash,age=self.age,dropped=self.dropped,dormant=self.dormant)
 
 class Slime(Enemy):
     pass
@@ -53,12 +55,23 @@ DIRECTIONS=((1,0),(-1,0),(0,1),(0,-1))
 
 class CombatManager:
     def __init__(self,room,puzzles,player):
+        from puzzle_maze import advanced_enemies
         from puzzle_maze import enemies  # Register strategies without import cycles.
         self.puzzles=puzzles;self.player=player
+        self.kill_order=room.get('kill_order',[]);self.order_index=0
         self.projectiles=[]
         self.enemies=[ENEMIES[d['type']](d) for d in room.get('enemies',[])]
         self.loot=[]
         self.events=[]
+
+    def record_defeat(self,enemy):
+        if not self.kill_order:return
+        if enemy.id==self.kill_order[self.order_index]:
+            self.order_index+=1;self.events.append('order_step')
+        else:
+            self.enemies=[ENEMIES[e.data['type']](e.data) for e in self.enemies]
+            self.order_index=0;self.loot=[];self.projectiles=[];self.events.append('order_wrong')
+            self.puzzles.inventory.notifications.append(('pulse','WRONG ORDER / RESET'))
 
     def fire(self,enemy,spread=False):
         from puzzle_maze.enemies import fire
@@ -88,7 +101,7 @@ class CombatManager:
         p.attack_facing=p.facing
         hit=False
         for e in self.enemies:
-            if e.hp>0 and p.weapon.contains((p.x,p.y),e.pos,p.attack_facing):
+            if not e.dormant and e.hp>0 and p.weapon.contains((p.x,p.y),e.pos,p.attack_facing):
                 hit=e.receive_damage(self,p.weapon.damage,"sword",p) or hit
         self.events.append('hit' if hit else 'attack')
         return hit
@@ -121,13 +134,18 @@ class CombatManager:
         update_projectiles(self,dt)
         for e in self.enemies:
             e.age+=dt;e.flash=max(0,e.flash-dt)
+            if e.dormant:
+                summoner=next((foe for foe in self.enemies if foe.kind=="crystal_warden"),None)
+                if summoner and summoner.hp<=e.data["summon_at"]:e.dormant=False;self.events.append("teleport")
+                else:continue
             if e.state==EnemyState.DEAD:continue
             if e.state==EnemyState.DYING:
                 e.attack_timer=max(0,e.attack_timer-dt)
                 if e.attack_timer<=0:
                     e.state=EnemyState.DEAD
                     if not e.dropped:
-                        self.loot.append(dict(pos=list(e.pos),heal=1,coins=1,bombs=2 if e.kind in ("blink_mage","armored_beetle","bomb_eater") else 0));e.dropped=True
+                        if not self.kill_order:self.loot.append(dict(pos=list(e.pos),heal=1,coins=1,bombs=2 if e.kind in ("blink_mage","armored_beetle","bomb_eater") else 0))
+                        e.dropped=True
                         self.events.append('defeat')
                 continue
             if e.special_update(self,dt):continue
@@ -157,7 +175,7 @@ class CombatManager:
         if any(e.kind=="golem" for e in self.enemies):return all(e.state==EnemyState.DEAD for e in self.enemies)
         return all(e.hp==0 for e in self.enemies)
 
-    def capture(self):return dict(enemies={e.id:e.capture() for e in self.enemies},loot=self.loot.copy(),projectiles=[vars(b).copy() for b in self.projectiles])
+    def capture(self):return dict(order_index=self.order_index,enemies={e.id:e.capture() for e in self.enemies},loot=self.loot.copy(),projectiles=[vars(b).copy() for b in self.projectiles])
 
     def restore(self,snapshot):
         from puzzle_maze.enemies import Projectile
@@ -166,6 +184,8 @@ class CombatManager:
             bolt=Projectile(**values)
             if not self.puzzles.tilemap.walkable(bolt.x,bolt.y) or (bolt.dx,bolt.dy) not in DIRECTIONS or not 0<bolt.steps<=8 or not 0<=bolt.timer<=.16:raise ValueError('Invalid projectile')
             self.projectiles.append(bolt)
+        self.order_index=snapshot.get('order_index',0)
+        if type(self.order_index) is not int or not 0<=self.order_index<=len(self.kill_order):raise ValueError('Invalid kill order')
         enemies=snapshot['enemies']
         if set(enemies)!={e.id for e in self.enemies}:raise ValueError('Enemy snapshot mismatch')
         for e in self.enemies:
@@ -180,7 +200,9 @@ class CombatManager:
                 setattr(e,attr,v)
             if type(values['dropped']) is not bool:raise ValueError('Invalid drop flag')
             e.dropped=values['dropped']
-            if e.kind=='armored_beetle':
+            if type(values.get('dormant',False)) is not bool:raise ValueError('Invalid summon state')
+            e.dormant=values.get('dormant',False)
+            if e.kind in ('armored_beetle','mirror_mask'):
                 facing=tuple(values.get('facing',(0,1)))
                 if facing not in DIRECTIONS or type(values.get('armor',True)) is not bool:raise ValueError('Invalid armor state')
                 e.facing=facing;e.armor=values.get('armor',True)

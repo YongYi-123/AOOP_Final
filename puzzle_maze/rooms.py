@@ -12,6 +12,7 @@ def load_rooms(path=MAP_PATH):
     return rooms
 
 def validate_rooms(rooms):
+    from puzzle_maze import advanced_puzzles
     if len(rooms) < 8:
         raise ValueError('At least eight rooms required')
     for name, room in rooms.items():
@@ -30,7 +31,7 @@ def validate_rooms(rooms):
             raise ValueError(f'{name}: duplicate object ids')
         occupied = set()
         for obj in room['objects']:
-            if obj['type'] not in ('box', 'plate', 'switch', 'door', 'key', 'secret', 'timed', 'chest', 'light', 'receiver', 'reflector', 'combat','cracked','blast_switch','supply','dash_switch','relay','remote'):
+            if obj['type'] not in ('box', 'plate', 'switch', 'door', 'key', 'secret', 'timed', 'chest', 'light', 'receiver', 'reflector', 'combat','cracked','blast_switch','supply','dash_switch','relay','remote','brazier','torch_order','weight','crystal_switch','crystal_barrier','pot','powder_supply','pot_supply','ordered'):
                 raise ValueError(f'{name}: unknown object')
             pos = tuple(obj['pos'])
             if not tilemap.walkable(*pos) or pos in occupied or pos == tuple(room['spawn']):
@@ -38,21 +39,29 @@ def validate_rooms(rooms):
             occupied.add(pos)
             if any(req not in ids for req in obj.get('requires', [])):
                 raise ValueError(f'{name}: missing condition')
-            if obj['type']=='chest' and obj.get('ability') not in (None,'gloves','boots','mirror','magnet','map','compass'):
+            if obj['type']=='chest' and obj.get('ability') not in (None,'gloves','boots','mirror','magnet','map','compass','powder'):
                 raise ValueError(f'{name}: unknown ability')
             if obj['type']=='light' and obj.get('direction') not in ([1,0],[-1,0],[0,1],[0,-1]):
                 raise ValueError(f'{name}: invalid light direction')
             if obj['type'] == 'timed' and obj.get('duration', 0) <= 0:
                 raise ValueError(f'{name}: invalid timer')
+            if obj['type']=='torch_order' and (not obj.get('order') or len(obj['order'])!=len(set(obj['order'])) or any(i not in ids for i in obj['order'])):raise ValueError(f'{name}: invalid torch sequence')
+            if obj['type']=='crystal_barrier' and obj.get('color') not in ('red','blue'):raise ValueError(f'{name}: invalid crystal barrier')
+            if obj['type'] in ('weight','pot') and (type(obj.get('weight',2)) is not int or not 1<=obj.get('weight',2)<=6):raise ValueError(f'{name}: invalid weight')
+            if obj.get('loot'):
+                from puzzle_maze.rewards import TREASURES
+                if any(t not in TREASURES for t in obj['loot']):raise ValueError(f'{name}: unknown treasure')
+
         enemy_ids=set()
         for enemy in room.get('enemies',[]):
-            if enemy['id'] in enemy_ids or enemy['type'] not in ('slime','bat','guardian','blink_mage','armored_beetle','bomb_eater','golem'):
+            if enemy['id'] in enemy_ids or enemy['type'] not in ('slime','bat','guardian','blink_mage','armored_beetle','bomb_eater','golem','mirror_mask','pot_hunter','crystal_ghost','elite_guardian','crystal_warden'):
                 raise ValueError(f'{name}: invalid enemy')
             enemy_ids.add(enemy['id'])
             x,y=enemy['pos'];sx,sy=room['spawn']
             if not tilemap.walkable(x,y) or (x,y) in occupied or abs(x-sx)+abs(y-sy)<5:
                 raise ValueError(f'{name}: unsafe enemy spawn')
             occupied.add((x,y))
+        if room.get('kill_order') and (len(room['kill_order'])!=len(enemy_ids) or set(room['kill_order'])!=enemy_ids):raise ValueError(f'{name}: invalid kill order')
         if room.get('theme','entrance') not in THEMES:raise ValueError(f'{name}: unknown room theme')
         for decoration in room.get('decorations',[]):
             x,y=decoration['pos']
