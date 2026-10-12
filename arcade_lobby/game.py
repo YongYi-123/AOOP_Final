@@ -12,6 +12,7 @@ import sys
 
 import pygame
 
+from display import DisplayManager
 from audio_settings_ui import AudioSettingsScene, draw_debug_hud
 from audio_manager import DEFAULT_SFX, DUCK_PAUSED, AudioManager
 from game_clock import GameClock
@@ -27,7 +28,7 @@ from settings import (DEBUG, FPS, SAVE_FILE, SCREEN_H, SCREEN_W, TITLE, VIEW_H,
 
 class Game:
     def __init__(self, style=None, save_path=SAVE_FILE, debug=DEBUG, clock=None,
-                 profiles=None, session=None, audio_prefs=None):
+                 profiles=None, session=None, audio_prefs=None, display_prefs=None):
         self.debug = debug
         self.clock = clock or GameClock()
         self.profiles = profiles            # ProfileManager, when the startup flow is used
@@ -42,8 +43,7 @@ class Game:
             session = LocalSession([profile])
 
         pygame.init()
-        pygame.display.set_caption(TITLE)
-        self.screen = pygame.display.set_mode((SCREEN_W, SCREEN_H))
+        self.display = DisplayManager(prefs_path=display_prefs, caption=TITLE)   # the window, resizing, fullscreen
         self.canvas = pygame.Surface((VIEW_W, VIEW_H))  # low-res pixel canvas
         self.clock = pygame.time.Clock()
         self.running = True
@@ -67,6 +67,11 @@ class Game:
             self.startup.begin()
 
     @property
+    def screen(self):
+        """The presentation surface every scene draws its final frame on (always 4:3; see display.py)."""
+        return self.display.screen
+
+    @property
     def profile(self):
         """P1's profile (the only one in a one-player game); None until players are chosen."""
         return self.session.primary.profile if self.session else None
@@ -84,6 +89,16 @@ class Game:
             if event.type == pygame.QUIT:
                 self.quit()
             else:
+                if self.display.handle_event(event):             # resize / maximise / minimise: dealt with once
+                    continue
+                event = self.display.convert_mouse(event)        # window pixels -> scene pixels; bars reject clicks
+                if event is None:
+                    continue
+                if event.type == pygame.KEYDOWN and (
+                        event.key == pygame.K_F11 or
+                        (event.key in (pygame.K_RETURN, pygame.K_KP_ENTER) and event.mod & pygame.KMOD_ALT)):
+                    self.display.toggle_fullscreen()             # Alt+Enter / F11
+                    continue
                 if event.type == pygame.KEYDOWN:
                     actor = self.session.player_for_key(event.key) if self.session else None
                     action = actor.controls.action_for(event.key) if actor else None
@@ -209,5 +224,6 @@ class Game:
         while self.running:
             dt = min(self.clock.tick(FPS) / 1000.0, 0.05)
             self.step(pygame.event.get(), dt)
-            pygame.display.flip()
+            self.display.present()
+        self.display.save()
         pygame.quit()
