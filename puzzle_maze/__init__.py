@@ -1,0 +1,1 @@
+"""Independent Puzzle Maze game."""
