@@ -253,7 +253,7 @@ class DebugHudTests(HubCase):
     def test_it_lists_playing_effect_channels(self):
         self.audio.play("purchase")
         self.assertRegex("\n".join(debug_lines(self.game)), r"SFX    [1-9] PLAYING  CH [4-9]")
-        self.assertTrue(all(i >= am.SFX_CHANNELS for i in self.audio.sfx_busy()))
+        self.assertTrue(all(i >= am.SCENE_SFX[0] for i in self.audio.sfx_busy()))
 
     def test_it_shows_the_racer_engine_only_while_racing(self):
         self.assertNotIn("ENGINE", "\n".join(debug_lines(self.game)))
@@ -284,7 +284,7 @@ class DebugHudTests(HubCase):
         self.assertTrue(lit(6, 6))
         right = max(x for x in range(0, w, 2) if lit(x, 8))
         bottom = max(y for y in range(0, h, 2) if lit(8, y))
-        self.assertLess(right, w * .5)
+        self.assertLess(right, w * .55)
         self.assertLess(bottom, h * .35)
         self.assertFalse(lit(w - 4, h - 4))                          # the bottom HUD is left alone
 

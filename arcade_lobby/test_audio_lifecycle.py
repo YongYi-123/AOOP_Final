@@ -490,17 +490,20 @@ class SettingsTests(HubCase):
         sound = Mock()
         bank = Mock(get=Mock(return_value=sound))
         cat = cat_voice.CatVoice(bank=bank)
-        self.audio.set_volumes(sfx=am.DEFAULT_SFX)
-        cat.play("meow", 0)
-        self.assertAlmostEqual(sound.play.return_value.set_volume.call_args[0][0], cat.volume, places=2)
-        self.audio.set_muted(True)
-        sound.reset_mock()
-        self.assertTrue(cat.play("meow", 10))                # still "meows" (the speech bubble) ...
-        sound.play.assert_not_called()                       # ... but makes no sound
-        self.audio.set_muted(False)
-        self.audio.set_volumes(sfx=.35)
-        cat.play("meow", 20)
-        self.assertAlmostEqual(sound.play.return_value.set_volume.call_args[0][0], cat.volume / 2, places=2)
+        played = []
+        with patch.object(self.audio, "play_object", lambda snd, label, priority, volume: played.append((label, volume)) or True):
+            self.audio.set_volumes(sfx=am.DEFAULT_SFX)
+            cat.play("meow", 0)
+            self.assertEqual(len(played), 1)
+            self.assertAlmostEqual(played[-1][1], cat.volume, places=2)
+            self.audio.set_muted(True)
+            self.assertTrue(cat.play("meow", 10))                # still "meows" (the speech bubble) ...
+            self.assertEqual(len(played), 1)                     # ... but makes no sound
+            self.audio.set_muted(False)
+            self.audio.set_volumes(sfx=.35)
+            cat.play("meow", 20)
+            self.assertAlmostEqual(played[-1][1], cat.volume / 2, places=2)
+        sound.play.assert_not_called()                           # meows never take a mixer channel of their own
 
     def test_the_readout_names_the_music_that_is_playing(self):
         self.frames(5)

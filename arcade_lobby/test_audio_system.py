@@ -350,8 +350,8 @@ class DiagnosticsTests(unittest.TestCase):
 
     def test_a_playback_error_is_logged_and_kept(self):
         a = AudioManager()
-        a.sounds["confirm"] = unittest.mock.Mock(play=unittest.mock.Mock(side_effect=pygame.error("boom")))
-        with self.assertLogs("arcade.audio", "ERROR"):
+        with patch.object(a, "_play_on_scene_channel", side_effect=pygame.error("boom")), \
+                self.assertLogs("arcade.audio", "ERROR"):
             a.play("confirm")
         self.assertIn("boom", a.last_error)
 

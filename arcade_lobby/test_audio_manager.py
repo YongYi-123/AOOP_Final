@@ -44,8 +44,8 @@ class AudioTests(unittest.TestCase):
         bus.play('hit', 10)
         self.assertEqual(audio.last_effect['hit'], previous)
         audio.update(.1)
-        bus.play('hit')
-        self.assertGreater(audio.last_effect['hit'], previous)
+        bus.play('point')                                  # (a 'hit' would lose to the 'point' that is still sounding)
+        self.assertGreater(audio.last_effect['point'], previous)
 
     def test_lobby_minigame_return_and_volume_keys(self):
         os.environ.setdefault('SDL_VIDEODRIVER', 'dummy')
