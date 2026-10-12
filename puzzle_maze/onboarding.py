@@ -2,7 +2,7 @@
 import math
 import pygame
 
-DEFAULT_CONTROLS=dict(move='WASD / ARROWS',attack='J',interact='E',ability='SPACE',tool='Q',dash='SHIFT',pull='F',heal='H',map='TAB',reset='R',pause='ESC',confirm='ENTER')
+DEFAULT_CONTROLS=dict(move='WASD / ARROWS',attack='J',interact='E',ability='SPACE',tool='Q',dash='SHIFT',pull='F',heal='H',map='TAB',reset='R',pause='ESC',confirm='ENTER',pages='LEFT / RIGHT')
 
 class IntroSequence:
     duration=6.0
@@ -18,7 +18,7 @@ class IntroSequence:
         progress=self.elapsed/self.duration
         return 9.5,8.5-min(1,max(0,(progress-.6)/.4))*2
 
-    def draw(self,renderer,confirm='ENTER'):
+    def draw(self,renderer,confirm='ENTER',pages='LEFT / RIGHT'):
         from puzzle_maze.render import INK,GOLD,TEAL,WHITE
         s=renderer.surface;r=pygame.draw;renderer.ui.clear();s.fill(INK)
         progress=self.elapsed/self.duration
@@ -45,16 +45,20 @@ class IntroSequence:
         renderer.text(f'{confirm}: skip | ESC: menu',24,213,GOLD)
 
 class TutorialCard:
-    def __init__(self,controls=None):self.controls=dict(DEFAULT_CONTROLS if controls is None else controls)
+    def __init__(self,controls=None):
+        self.controls=dict(DEFAULT_CONTROLS if controls is None else controls);self.bombs=True;self.advanced=False;self.page=0
 
     def lines(self,begin=False):
         c=self.controls
+        if self.advanced:
+            if self.page==0:return [f'Move: {c["move"]}',f'{c["attack"]} Sword / {c["interact"]} Use / B Bomb',f'P Dust / {c["interact"]} Lift, Drop',f'G Throw / {c["attack"]} Crystal',f'{c["ability"]} Tool / Q Next / F Pull',f'{c["dash"]} Dash / H Heal',f'{c["pages"]} / {c["confirm"]} {"Begin" if begin else "Return"}']
+            return ['TAB Map / R Reset','ESC Pause / H Heal','Powder reveals ghost foes','Pots break hunters and weigh','Crystal changes both floors','Read fire and enemy glyphs',f'{c["pages"]} / {c["confirm"]} {"Begin" if begin else "Return"}']
         return [f"Move: {c['move']}",
-                f"Sword: {c['attack']} | Interact: {c['interact']}",
-                f"Tool: {c['ability']} | Select: {c['tool']} | Pull: {c['pull']}",
-                f"Dash: {c['dash']} (boots) | Heal: {c['heal']}",
-                f"Map: {c['map']} | Reset room: {c['reset']}",
-                f"Pause: {c['pause']} | Basic Sword ready",
-                f"{c['confirm']}: {'begin' if begin else 'return'} | ESC: {'main menu' if begin else 'return'}"]
+                f"{c['attack']} Sword / {c['interact']} Use"+(" / B Bomb" if self.bombs else ""),
+                f"{c['ability']} Tool / {c['tool']} Next / {c['pull']} Pull",
+                f"{c['dash']} Dash (boots) / {c['heal']} Heal",
+                f"{c['map']} Map / {c['reset']} Reset",
+                f"{c['pause']} Pause / Sword ready",
+                f"{c['confirm']} {'Begin' if begin else 'Return'} / ESC {'Menu' if begin else 'Return'}"]
 
     def draw(self,renderer):renderer.panel('HOW TO PLAY',self.lines(True))

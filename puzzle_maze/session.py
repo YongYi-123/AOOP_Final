@@ -26,6 +26,12 @@ class GameSession:
         self.exploration=Exploration()
         self.enter('r1')
 
+    def make_puzzles(self,room):
+        return PuzzleManager(room,self.inventory)
+
+    def save_extension(self):return {}
+    def load_extension(self,data):pass
+
     def capture(self):
         return {name: dict(pos=list(o.pos), active=o.state.active,
                            remaining=o.state.remaining,
@@ -46,14 +52,15 @@ class GameSession:
         weapon=self.player.weapon if hasattr(self,"player") else WEAPONS["basic_sword"]()
         health=self.player.hp if hasattr(self,"player") else 5
         self.player=self.rooms.enter(name,arrival)
-        self.player.hp=health
+        self.player.max_hp=5+min(3,self.inventory.heart_fragments//4)
+        self.player.hp=min(health,self.player.max_hp)
         self.player.weapon=weapon
-        self.puzzles=PuzzleManager(self.rooms.data,self.inventory)
+        self.puzzles=self.make_puzzles(self.rooms.data)
         if name in self.snapshots:
             self.restore(self.snapshots[name])
         self.combat=CombatManager(self.rooms.data,self.puzzles,self.player)
         if name in self.encounters:self.combat.restore(self.encounters[name])
-        self.checkpoint = dict(hp=self.player.hp, combat=copy.deepcopy(self.combat.capture()),inventory=copy.deepcopy(self.inventory.keys), abilities=sorted(self.inventory.abilities), potions=self.inventory.potions, coins=self.inventory.coins, objects=self.capture(), pos=[self.player.x,self.player.y])
+        self.checkpoint = dict(hp=self.player.hp, combat=copy.deepcopy(self.combat.capture()),inventory=copy.deepcopy(self.inventory.keys), abilities=sorted(self.inventory.abilities), potions=self.inventory.potions, coins=self.inventory.coins, powder=self.inventory.powder,heart_fragments=self.inventory.heart_fragments,carried=self.inventory.carried,bombs=self.inventory.bombs,boss_key=self.inventory.boss_key,flags=sorted(self.inventory.flags),objects=self.capture(), pos=[self.player.x,self.player.y])
         self.visited.add(name)
         self.exploration.reveal(name,self.puzzles,self.player)
 
@@ -62,6 +69,14 @@ class GameSession:
         self.inventory.abilities=set(self.checkpoint['abilities'])
         self.inventory.potions=self.checkpoint['potions']
         self.inventory.coins=self.checkpoint['coins']
+        self.inventory.powder=self.checkpoint.get('powder',0)
+        self.inventory.heart_fragments=self.checkpoint.get('heart_fragments',0)
+        self.inventory.carried=self.checkpoint.get('carried')
+        self.player.max_hp=5+min(3,self.inventory.heart_fragments//4)
+        self.inventory.bombs=self.checkpoint.get('bombs',0)
+        self.inventory.boss_key=self.checkpoint.get('boss_key',False)
+        self.inventory.flags=set(self.checkpoint.get('flags',[]))
+        self.inventory.notifications.clear()
         self.dash_cooldown=0
         self.player.hp=self.checkpoint['hp']
         self.player.invulnerable=0
@@ -78,7 +93,7 @@ class GameSession:
         self.dash_cooldown=max(0,self.dash_cooldown-dt)
         self.combat.player=self.player
         self.combat.update(dt)
-        self.puzzles.occupants={e.pos for e in self.combat.enemies if e.hp>0}
+        self.puzzles.occupants={e.pos for e in self.combat.enemies if e.hp>0 and not e.dormant}
         for obj in self.puzzles.objects.values():
             if obj.data['type']=='combat':obj.state.active=self.combat.cleared
         self.puzzles.update(dt,self.player)
@@ -87,13 +102,13 @@ class GameSession:
             self.completed.add(self.rooms.current)
 
     def can_enter(self,x,y):
-        return self.puzzles.can_enter(x,y) and not any(e.hp>0 and e.pos==(x,y) for e in self.combat.enemies)
+        return self.puzzles.can_enter(x,y) and not any(e.hp>0 and not e.dormant and e.pos==(x,y) for e in self.combat.enemies)
 
     def move(self, dx, dy):
         if self.player.hp<=0 or abs(dx)+abs(dy)!=1:return False
         self.player.facing=(dx,dy)
         target=self.player.x+dx,self.player.y+dy
-        occupied={e.pos for e in self.combat.enemies if e.hp>0}
+        occupied={e.pos for e in self.combat.enemies if e.hp>0 and not e.dormant}
         box=next((o for o in self.puzzles.objects.values() if o.data['type']=='box' and o.pos==target),None)
         if target in occupied or box is not None and (box.x+dx,box.y+dy) in occupied:
             self.player.moving=False
@@ -142,7 +157,7 @@ class GameSession:
     def save(self, path=SAVE_PATH):
         self.encounters[self.rooms.current]=copy.deepcopy(self.combat.capture())
         self.snapshots[self.rooms.current]=self.capture()
-        data=dict(version=2, facing=list(self.player.facing), attack_facing=list(self.player.attack_facing), map_revision=self.rooms.revision, weapon=self.player.weapon.id, dash_cooldown=self.dash_cooldown, player_status={k:getattr(self.player,k) for k in ('invulnerable','attack_cooldown','attack_flash')}, explored=self.exploration.capture(), hp=self.player.hp, encounters=self.encounters, abilities=sorted(self.inventory.abilities), potions=self.inventory.potions, coins=self.inventory.coins, room=self.rooms.current, player=[self.player.x,self.player.y],
+        data=dict(extension=self.save_extension(),powder=self.inventory.powder,heart_fragments=self.inventory.heart_fragments,carried=self.inventory.carried,bombs=self.inventory.bombs,boss_key=self.inventory.boss_key,flags=sorted(self.inventory.flags),bomb_state=self.bombs.capture() if hasattr(self,"bombs") else {},version=2, facing=list(self.player.facing), attack_facing=list(self.player.attack_facing), map_revision=self.rooms.revision, weapon=self.player.weapon.id, dash_cooldown=self.dash_cooldown, player_status={k:getattr(self.player,k) for k in ('invulnerable','attack_cooldown','attack_flash')}, explored=self.exploration.capture(), hp=self.player.hp, encounters=self.encounters, abilities=sorted(self.inventory.abilities), potions=self.inventory.potions, coins=self.inventory.coins, room=self.rooms.current, player=[self.player.x,self.player.y],
                   inventory=self.inventory.keys, snapshots=self.snapshots,
                   completed=sorted(self.completed), visited=sorted(self.visited),
                   finished=self.finished, checkpoint=self.checkpoint)
@@ -160,10 +175,14 @@ class GameSession:
     @staticmethod
     def validate_growth(data):
         abilities=data['abilities']
-        if not isinstance(abilities,list) or not all(isinstance(a,str) and a in ('gloves','boots','mirror','magnet') for a in abilities):
+        if not isinstance(abilities,list) or not all(isinstance(a,str) and a in ('gloves','boots','mirror','magnet','map','compass','powder') for a in abilities):
             raise ValueError('Unknown ability')
         if any(type(data[k]) is not int or data[k]<0 for k in ('potions','coins')):
             raise ValueError('Invalid supplies')
+        bombs=data.get('bombs',0);boss_key=data.get('boss_key',False);flags=data.get('flags',[])
+        if type(data.get('powder',0)) is not int or not 0<=data.get('powder',0)<=30 or type(data.get('heart_fragments',0)) is not int or not 0<=data.get('heart_fragments',0)<=100 or data.get('carried') is not None and not isinstance(data['carried'],str):raise ValueError('Invalid advanced inventory')
+        if type(bombs) is not int or not 0<=bombs<=20 or type(boss_key) is not bool or not isinstance(flags,list) or any(not isinstance(f,str) for f in flags):
+            raise ValueError('Invalid dungeon checkpoint supplies')
 
     @staticmethod
     def validate_inventory(keys):
@@ -191,7 +210,7 @@ class GameSession:
         for name, obj in manager.objects.items():
             values = snapshot[name]
             cls.validate_position(values['pos'], manager.tilemap)
-            if obj.data['type'] != 'box' and values['pos'] != obj.data['pos']:
+            if obj.data['type'] not in ('box','pot') and values['pos'] != obj.data['pos']:
                 raise ValueError('Moved static object')
             for flag in ('active', 'unlocked', 'latched'):
                 if type(values[flag]) is not bool:
@@ -220,7 +239,12 @@ class GameSession:
             if data['version'] != 2 or data['room'] not in candidate.rooms.rooms:
                 raise ValueError('Unsupported save')
             candidate.exploration.restore(data.get('explored',{}),candidate.rooms.rooms)
+            candidate.inventory.powder=data.get('powder',0);candidate.inventory.heart_fragments=data.get('heart_fragments',0);candidate.inventory.carried=data.get('carried')
             candidate.inventory.keys=data['inventory']
+            bombs=data.get('bombs',0);boss_key=data.get('boss_key',False);flags=data.get('flags',[])
+            if type(data.get('powder',0)) is not int or not 0<=data.get('powder',0)<=30 or type(data.get('heart_fragments',0)) is not int or not 0<=data.get('heart_fragments',0)<=100 or data.get('carried') is not None and not isinstance(data['carried'],str):raise ValueError('Invalid advanced inventory')
+            if type(bombs) is not int or not 0<=bombs<=20 or type(boss_key) is not bool or not isinstance(flags,list) or any(not isinstance(f,str) for f in flags):raise ValueError('Invalid dungeon supplies')
+            candidate.inventory.bombs=bombs;candidate.inventory.boss_key=boss_key;candidate.inventory.flags=set(flags)
             candidate.inventory.abilities=set(data['abilities'])
             candidate.inventory.potions=data['potions'];candidate.inventory.coins=data['coins']
             cls.validate_growth(data)
@@ -228,7 +252,7 @@ class GameSession:
             candidate.snapshots=data['snapshots']
             candidate.encounters=data.get('encounters',{})
             hp=data.get('hp',5)
-            if type(hp) is not int or not 0<=hp<=5:raise ValueError('Invalid HP')
+            if type(hp) is not int or not 0<=hp<=5+min(3,candidate.inventory.heart_fragments//4):raise ValueError('Invalid HP')
             for room,snapshot in candidate.encounters.items():
                 if room not in candidate.rooms.rooms:raise ValueError('Invalid encounter room')
                 CombatManager(candidate.rooms.rooms[room],PuzzleManager(candidate.rooms.rooms[room]),candidate.player).restore(snapshot)
@@ -272,10 +296,12 @@ class GameSession:
                 obj.state.active = values['active']
             if check_manager.blocked(*checkpoint['pos']):
                 raise ValueError('Blocked checkpoint')
-            if type(checkpoint['hp']) is not int or not 0<=checkpoint['hp']<=5:raise ValueError('Invalid checkpoint HP')
+            if type(checkpoint['hp']) is not int or not 0<=checkpoint['hp']<=5+min(3,checkpoint.get('heart_fragments',0)//4):raise ValueError('Invalid checkpoint HP')
             CombatManager(candidate.rooms.data, candidate.puzzles, candidate.player).restore(checkpoint['combat'])
             candidate.checkpoint=checkpoint
             candidate.finished=bool(data['finished'])
+            candidate.load_extension(data.get('extension',{}))
+            if hasattr(candidate,'bombs'):candidate.bombs.restore(data.get('bomb_state',{}))
             return candidate
         except (OSError,ValueError,KeyError,TypeError,IndexError,AttributeError):
             return cls()

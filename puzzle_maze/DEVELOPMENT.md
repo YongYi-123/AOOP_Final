@@ -193,3 +193,158 @@ Dummy driver 的 180 幀純繪製平均 1.51 ms（0.272 秒），為 headless �
 - `A puzzle_maze/themes.py`
 - `M puzzle_maze/ui.py`
 - `A puzzle_maze/weapons.py`
+
+
+## 3.0 — Clockwork Hollow (2026-10-13)
+
+Continued from `5f3de80` on `feature/puzzle-maze-v3`, without merging main or
+changing `backup/puzzle-maze-recovery`. The unrelated root Git-log text file
+was left untouched. All new edits are confined to `puzzle_maze/`.
+
+- Foundation: original bitmap font and live icon HUD; bounded bombs, cracked
+  walls, renewable supply, multi-key/Boss Key locks and enemy strategies.
+- Campaign: eighteen connected rooms over two floors, branch relays, optional
+  secret treasure, ability backtracking, optical/magnetic/timed combinations.
+- Boss: dash exposure, bomb armor, combined final phase, telegraphed projectiles,
+  finite death animation, exit unlock and retry without overwriting living saves.
+- Polish: cold B1F palettes, meaningful columns/bookshelves, floor-aware atlas,
+  Compass markers, concise tutorial, native bitmap text and pickup bounce.
+- Save regression fixed: the active dash anchor now declares its six-second
+  duration, allowing a primed boss encounter to load successfully.
+- Bypass regression fixed: magnetic-only weights reject manual pushing.
+- Validator derives resource rewards and costs from annotated JSON objects;
+  all 109 abstract resource states have a winning continuation. Removing the
+  spare sixth key remains solvable; removing necessary combat keys is rejected.
+
+Baseline: 80 tests passed. Final: 108 tests passed in 18.552 seconds, including
+complete production-action victory, all eighteen room visits, enemy weaknesses,
+boss phases, active bomb/anchor saves and UI bounds at 240×180 through 1000×700.
+`compileall` and `git diff --check` passed. Screenshot review covered all rooms,
+boss HUD and tutorial. Render-only benchmark: 2.56 ms/frame, 180 draws.
+
+The first v3 foundation commit accidentally preceded review of one failing legacy
+assertion that expected exactly three enemy kinds. That assertion was updated
+for the seven supported kinds; subsequent complete suites passed. No history was
+rewritten. New tests use temporary saves or mock the game save method.
+
+Automated campaign traversal uses collision-aware moves with explicit combat and
+fuse ticks. It does not exhaustively prove every real-time enemy trajectory or
+crate arrangement. Actual input feel, audio and graphical FPS need human checks.
+Old 2.1 saves remain separate and playable via `--legacy` / archive continuation.
+
+### 3.0 file manifest
+
+- `puzzle_maze/.gitignore`
+- `puzzle_maze/DEVELOPMENT.md`
+- `puzzle_maze/README.md`
+- `puzzle_maze/README_V21.md`
+- `puzzle_maze/audio.py`
+- `puzzle_maze/build_dungeon.py`
+- `puzzle_maze/combat.py`
+- `puzzle_maze/dungeon.py`
+- `puzzle_maze/enemies.py`
+- `puzzle_maze/environment.py`
+- `puzzle_maze/exploration.py`
+- `puzzle_maze/game.py`
+- `puzzle_maze/icons.py`
+- `puzzle_maze/items.py`
+- `puzzle_maze/maps/dungeon_v3.json`
+- `puzzle_maze/onboarding.py`
+- `puzzle_maze/pixel_font.py`
+- `puzzle_maze/puzzles.py`
+- `puzzle_maze/render.py`
+- `puzzle_maze/rooms.py`
+- `puzzle_maze/session.py`
+- `puzzle_maze/tests/test_combat.py`
+- `puzzle_maze/tests/test_game.py`
+- `puzzle_maze/tests/test_v3_campaign.py`
+- `puzzle_maze/tests/test_v3_presentation.py`
+- `puzzle_maze/tests/test_v3_systems.py`
+- `puzzle_maze/themes.py`
+- `puzzle_maze/ui.py`
+- `puzzle_maze/validator.py`
+
+
+## 4.0 — Emberglass Hollow (2026-10-13)
+
+Created `feature/puzzle-maze-v4` from completed v3 `b82fe85`. The unrelated
+`tatus --short` file remains untouched, as do main, backup branches and all other
+modules. Baseline: 108 tests passed.
+
+- Added powder braziers/sequences, refill stands, lift/drop/throw pots, carried
+  weight plates, shared red/blue barriers, ordered enemy resets and safe respawns.
+- Extended the encounter factory with Mirror Mask, Pot Hunter, Crystal Ghost,
+  Elite Guardian and Crystal Warden. Finite Warden summons save their dormant
+  state and awaken at legal positions. Existing Golem gains a final crystal rule.
+- Added four meaningful rooms and multiple bidirectional shortcut loops; the old
+  eighteen chambers retain their solved mechanical layouts with revised art.
+- Added a local reward escrow/receipt with source deduplication, five distinct
+  secret collections and Heart Fragments. No external economy writes or imports.
+- Added original icon assets in code, cached floor compositions, new palettes,
+  animated braziers, crystals, carried/thrown pots, shards, chest lids and motes.
+- Added 4.0 private save and old-campaign archives. Archive navigation and death
+  cannot overwrite a live expedition. Settled receipts cannot be reset.
+
+Validation: 135 tests pass in 17.235 seconds, including a legal complete route visiting all 22
+rooms, all five secrets, Warden, Golem and saved final receipt. Resource search
+has 341 reachable states and 341 winning continuations. The route includes coupled
+player/Mirror Mask state search. Room walking is untimed in the witness, while
+combat/fuses receive explicit ticks; real-time difficulty is not exhaustively
+proven. UI bounds and both tutorial pages are checked at five resolutions.
+
+Headless room/shrine/pot/Warden screenshots reviewed. Cached Warden rendering:
+1.87 ms/frame over 180 frames. This is a render benchmark, not physical-display
+FPS. Manual keyboard feel, boss difficulty, sound and display scaling remain.
+
+### 4.0 file manifest
+
+- `puzzle_maze/.gitignore`
+- `puzzle_maze/DEVELOPMENT.md`
+- `puzzle_maze/README.md`
+- `puzzle_maze/README_V3.md`
+- `puzzle_maze/advanced_dungeon.py`
+- `puzzle_maze/advanced_enemies.py`
+- `puzzle_maze/advanced_puzzles.py`
+- `puzzle_maze/audio.py`
+- `puzzle_maze/build_dungeon_v4.py`
+- `puzzle_maze/combat.py`
+- `puzzle_maze/enemies.py`
+- `puzzle_maze/exploration.py`
+- `puzzle_maze/game.py`
+- `puzzle_maze/icons.py`
+- `puzzle_maze/items.py`
+- `puzzle_maze/maps/dungeon_v4.json`
+- `puzzle_maze/onboarding.py`
+- `puzzle_maze/puzzles.py`
+- `puzzle_maze/render.py`
+- `puzzle_maze/rewards.py`
+- `puzzle_maze/room_art.py`
+- `puzzle_maze/rooms.py`
+- `puzzle_maze/session.py`
+- `puzzle_maze/tests/test_combat.py`
+- `puzzle_maze/tests/test_v4_campaign.py`
+- `puzzle_maze/tests/test_v4_mechanics.py`
+- `puzzle_maze/tests/test_v4_presentation.py`
+- `puzzle_maze/themes.py`
+- `puzzle_maze/validator.py`
+
+Final CLI smoke checks passed for campaigns 4, 3 and 2. The v4 JSON exactly
+matches its deterministic authoring generator. `compileall` and `git diff --check`
+passed. No other tracked module was edited.
+
+
+## Existing cabinet upgraded to 4.0
+
+User authorized replacing the old cabinet entrance after playing the archived
+2.1 campaign by mistake. `PuzzleMazeScene` now explicitly selects campaign 4 while
+sharing the host window/audio. Embedded games without an explicit campaign keep
+the old default for compatibility. B/P/G reach the live bomb/powder/pot actions.
+Tutorial and nearby prompts use participant-specific sword/interact/dash keys.
+Menu title/footer show the active campaign version. No host module or economy
+was modified. The private result still has no player payouts.
+
+Bridge regressions include a real two-player lobby session launched by P2,
+onboarding, powder input and safe return with identical token/ticket balances.
+
+Cabinet follow-up validation: all 137 Puzzle Maze tests passed in 18.186 seconds;
+`compileall` and `git diff --check` passed. Only Puzzle Maze files were changed.

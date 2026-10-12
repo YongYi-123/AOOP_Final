@@ -8,9 +8,25 @@ class Inventory:
     abilities: set = field(default_factory=set)
     potions: int = 0
     coins: int = 0
+    bombs: int = 0
+    powder: int = 0
+    heart_fragments: int = 0
+    carried: str | None = None
+    boss_key: bool = False
+    flags: set = field(default_factory=set)
+    notifications: list = field(default_factory=list)
+
+    def supply_powder(self,amount):
+        before=self.powder;self.powder=min(30,self.powder+amount)
+        if self.powder>before:self.notifications.append(("powder",f"POWDER +{self.powder-before} / P"))
+
+    def supply_bombs(self,amount):
+        before=self.bombs;self.bombs=min(20,self.bombs+amount)
+        if self.bombs>before:self.notifications.append(("bomb",f"BOMB +{self.bombs-before} / B"))
 
     def add(self, color):
         self.keys[color] = self.keys.get(color, 0) + 1
+        self.notifications.append(("small_key","KEY +1"))
 
     def consume(self, color):
         if self.keys.get(color, 0) <= 0:
@@ -63,7 +79,13 @@ class Door(PuzzleObject):
     def interact(self, manager, player, pulse=False):
         if pulse or self.unlocked:
             return False
-        if manager.inventory.consume(self.data['key']):
+        cost=self.data.get('cost',1)
+        key=self.data['key']
+        if key=='boss':
+            if not manager.inventory.boss_key:return False
+            self.unlocked=True;return True
+        if manager.inventory.keys.get(key,0)>=cost:
+            manager.inventory.keys[key]-=cost
             self.unlocked = True
             return True
         return False
@@ -96,6 +118,8 @@ class PuzzleManager(CollisionManager):
         dest = player.x + dx, player.y + dy
         box = next((o for o in self.objects.values() if isinstance(o, PushableBox) and o.pos == dest), None)
         if box:
+            if box.data.get('magnetic_only'):
+                player.moving=False;return False
             if box.data.get('heavy') and 'gloves' not in self.inventory.abilities:
                 player.moving=False
                 return False
@@ -120,8 +144,8 @@ class PuzzleManager(CollisionManager):
 
     def update(self, dt, player):
         for obj in self.objects.values():
-            if isinstance(obj, Key) and player and obj.pos == (player.x, player.y) and not obj.state.active:
-                self.inventory.add(obj.data['color'])
+            if isinstance(obj, Key) and player and obj.pos == (player.x, player.y) and not obj.state.active and all(self.condition(i) for i in obj.data.get("requires",[])):
+                for _ in range(obj.data.get("amount",1)):self.inventory.add(obj.data['color'])
                 obj.state.active = True
             if isinstance(obj, PressurePlate):
                 obj.state.active = (player is not None and obj.pos == (player.x, player.y)) or any(isinstance(b, PushableBox) and b.pos == obj.pos for b in self.objects.values())
@@ -141,6 +165,7 @@ class PuzzleManager(CollisionManager):
 
     def update_special(self, dt):
         for obj in self.objects.values():
+            if isinstance(obj, RemoteRelay):obj.state.active=all(i in self.inventory.flags for i in obj.data.get("flags",[]))
             if isinstance(obj, TimedSwitch):
                 obj.state.remaining = max(0, obj.state.remaining - dt)
                 obj.state.active = obj.state.remaining > 0
@@ -206,10 +231,19 @@ FACTORY.update(secret=SecretPassage, timed=TimedSwitch)
 
 class Chest(PuzzleObject):
     def interact(self, manager, player, pulse=False):
-        if pulse or self.state.active:
+        if pulse or self.state.active or not all(manager.condition(i) for i in self.data.get("requires",[])):
             return False
         ability=self.data.get('ability')
-        if ability:manager.inventory.abilities.add(ability)
+        if ability:
+            manager.inventory.abilities.add(ability)
+            manager.inventory.notifications.append((ability,{"boots":"DASH BOOTS / SHIFT","gloves":"GLOVES / PUSH","mirror":"MIRROR / E","magnet":"MAGNET / F, SPACE","map":"DUNGEON MAP / TAB","compass":"COMPASS / TAB","powder":"MAGIC POWDER / P"}[ability]))
+        manager.inventory.supply_bombs(self.data.get("bombs",0))
+        for _ in range(self.data.get("small_keys",0)):manager.inventory.add("small")
+        if self.data.get("boss_key"):
+            manager.inventory.boss_key=True;manager.inventory.notifications.append(("boss_key","BOSS KEY"))
+        manager.inventory.supply_powder(self.data.get('powder',0))
+        for treasure in self.data.get('loot',[]):
+            if hasattr(manager,'grant_treasure'):manager.grant_treasure(self.id,treasure)
         manager.inventory.potions+=self.data.get('potions',0)
         manager.inventory.coins+=self.data.get('coins',0)
         self.state.active=True
@@ -233,3 +267,28 @@ class CombatSeal(PuzzleObject):
     pass
 
 FACTORY['combat']=CombatSeal
+
+
+class CrackedWall(PuzzleObject):
+    blocking=True
+
+class BlastSwitch(PuzzleObject):
+    pass
+
+class BombSupply(PuzzleObject):
+    def interact(self,manager,player,pulse=False):
+        if pulse or manager.inventory.bombs>=8:return False
+        manager.inventory.supply_bombs(8-manager.inventory.bombs);return True
+
+class DashSwitch(PuzzleObject):
+    def interact(self,manager,player,pulse=False):return False
+
+class RemoteRelay(PuzzleObject):
+    pass
+
+class RemoteSwitch(Switch):
+    def interact(self,manager,player,pulse=False):
+        if pulse or self.state.active or not all(manager.condition(i) for i in self.data.get("requires",[])):return False
+        self.state.active=True;manager.inventory.flags.add(self.data['flag']);return True
+
+FACTORY.update(cracked=CrackedWall,blast_switch=BlastSwitch,supply=BombSupply,dash_switch=DashSwitch,relay=RemoteRelay,remote=RemoteSwitch)
