@@ -17,6 +17,7 @@ daily tasks (DailyTaskManager), so one save file holds everything.
 import json
 import os
 import random
+import copy
 from collections import deque, namedtuple
 from contextlib import contextmanager
 from dataclasses import replace
@@ -27,7 +28,7 @@ from daily_tasks import DailyTaskManager
 from game_clock import GameClock
 from inventory import Inventory
 from rewards import RewardService
-from settings import (NEON21_DAILY_TICKET_CAP, STARTING_TICKETS, STARTING_TOKENS,
+from settings import (COIN_PUSHER_DAILY_TICKET_CAP, NEON21_DAILY_TICKET_CAP, STARTING_TICKETS, STARTING_TOKENS,
                       TRANSACTION_HISTORY_SIZE)
 
 # field: "tokens", "tickets", "games_played", "high_score", "daily", "tasks",
@@ -59,7 +60,7 @@ class PlayerProfile:
                  daily=None, daily_tasks=None, history=(), clock=None, inventory=None,
                  home_decorations=None, profile_id=None, display_name=None, racing_selection=None,
                  neon21=None, appearance=None, collection_display=None, basic_appearance=None,
-                 secrets=None):
+                 secrets=None, coin_pusher=None):
         # Who this profile is. The id is the save identity (never the name);
         # both are None for a bare profile that is not managed by a ProfileManager.
         self.profile_id = profile_id
@@ -108,6 +109,13 @@ class PlayerProfile:
         self._neon21_tickets = _count(neon21.get("tickets"), 0)
         pending = neon21.get("pending")
         self._neon21_pending = dict(pending) if isinstance(pending, dict) else None
+        # NEON COIN PUSHER: tickets won per calendar day (the daily cap) plus this profile's own
+        # machine board (see coin_pusher_table.py). The board is never shared between profiles.
+        pusher = coin_pusher if isinstance(coin_pusher, dict) else {}
+        self._pusher_date = pusher.get("date") if isinstance(pusher.get("date"), str) else ""
+        self._pusher_tickets = _count(pusher.get("tickets"), 0)
+        self._pusher_state = {k: copy.deepcopy(pusher[k]) for k in ("seed", "stock", "board")
+                              if k in pusher} if isinstance(pusher.get("board"), dict) else None
         self._tasks.ensure_current(self.clock.today(), eligible=self._task_eligible)
 
     # ------------------------------------------------------------ read-only
@@ -381,6 +389,35 @@ class PlayerProfile:
         self._neon21_pending = dict(data) if data else None
         self._notify("neon21", 0, 0)
 
+    # ------------------------------------------------------------ NEON COIN PUSHER
+    def pusher_tickets_today(self):
+        return self._pusher_tickets if self._pusher_date == self.clock.today().isoformat() else 0
+
+    def pusher_ticket_room(self):
+        return max(0, COIN_PUSHER_DAILY_TICKET_CAP - self.pusher_tickets_today())
+
+    def award_pusher_tickets(self, amount):
+        """Pay coin-pusher Tickets: like NEON 21's, these are winnings, not 'earned', and they count
+        against the daily cap. False (nothing paid) if the cap would be exceeded."""
+        _check_amount(amount)
+        if amount > self.pusher_ticket_room():
+            return False
+        if amount:
+            self._pusher_tickets = self.pusher_tickets_today() + amount
+            self._pusher_date = self.clock.today().isoformat()
+            self._tickets += amount
+            self._notify(self.TICKET, amount, self._tickets)
+        return True
+
+    @property
+    def pusher_state(self):
+        """This profile's saved machine board {seed, stock, board}, or None before the first visit."""
+        return copy.deepcopy(self._pusher_state) if self._pusher_state else None
+
+    def set_pusher_state(self, state):
+        self._pusher_state = copy.deepcopy(state) if state else None
+        self._notify("coin_pusher", 0, 0)
+
     # ------------------------------------------------------------ daily login
     def daily_status(self, today=None):
         """DailyStatus for `today` (default: the clock's date)."""
@@ -549,6 +586,9 @@ class PlayerProfile:
             **({"secrets": dict(self._secrets)} if self._secrets else {}),
             "neon21": {"date": self._neon21_date, "tickets": self._neon21_tickets,
                        **({"pending": dict(self._neon21_pending)} if self._neon21_pending else {})},
+            **({"coin_pusher": {"date": self._pusher_date, "tickets": self._pusher_tickets,
+                                **(copy.deepcopy(self._pusher_state) or {})}}
+               if self._pusher_state or self._pusher_tickets else {}),
         }
 
     @classmethod
@@ -590,6 +630,7 @@ class PlayerProfile:
             home_decorations=decorations,
             racing_selection=data.get("racing_selection") if isinstance(data.get("racing_selection"),dict) else {},
             neon21=data.get("neon21"),
+            coin_pusher=data.get("coin_pusher"),
             appearance=data.get("appearance") if isinstance(data.get("appearance"), dict) else {},
             basic_appearance=BasicAppearance.from_dict(data.get("basic_appearance")),
             collection_display=data.get("collection_display") if isinstance(data.get("collection_display"), list) else [],
