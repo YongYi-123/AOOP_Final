@@ -3,14 +3,17 @@ from pathlib import Path
 import unittest
 from puzzle_maze.session import GameSession
 from puzzle_maze.core import Player
-from test_playthrough import walk,use
+from test_playthrough import walk as original_walk,use as original_use
+
+def walk(s,pos):return original_walk(s,s.rooms.legacy_position(pos))
+def use(s,pos,pulse=False):return original_use(s,s.rooms.legacy_position(pos),pulse)
 
 class AbilityTests(unittest.TestCase):
     def test_gloves_are_required_and_found_in_chest(self):
-        s=GameSession();s.enter('r2');s.player=Player(31,17)
+        s=GameSession();s.enter('r2');s.player=Player(*s.rooms.legacy_position((31,17)))
         self.assertFalse(s.move(1,0))
         s.enter('r1');use(s,(9,11));self.assertIn('gloves',s.inventory.abilities)
-        s.enter('r2');s.player=Player(31,17);self.assertTrue(s.move(1,0))
+        s.enter('r2');s.player=Player(*s.rooms.legacy_position((31,17)));self.assertTrue(s.move(1,0))
 
     def test_dash_cooldown_and_wall_collision(self):
         s=GameSession();self.assertEqual(s.dash(),0)
@@ -20,14 +23,14 @@ class AbilityTests(unittest.TestCase):
         s.tick(1.3);self.assertEqual(s.dash(),3)
 
     def test_mirror_and_magnet_require_tools(self):
-        s=GameSession();s.enter('r6');s.player=Player(30,17,(1,0))
+        s=GameSession();s.enter('r6');s.player=Player(*s.rooms.legacy_position((30,17)),(1,0))
         self.assertIsNone(s.puzzles.magnet(s.player))
         s.inventory.abilities.add('magnet')
         for _ in range(3):self.assertEqual(s.puzzles.magnet(s.player),'relay_box')
         self.assertTrue(s.puzzles.objects['relay_plate'].state.active)
         self.assertIsNone(s.puzzles.magnet(s.player)) # The end wall blocks a fourth push.
         self.assertEqual(s.puzzles.magnet(s.player,True),'relay_box')
-        s.enter('r5');s.player=Player(34,10,(1,0))
+        s.enter('r5');s.player=Player(*s.rooms.legacy_position((34,10)),(1,0))
         self.assertIsNone(s.puzzles.interact(s.player))
         s.inventory.abilities.add('mirror')
         self.assertEqual(s.puzzles.interact(s.player),'prism')

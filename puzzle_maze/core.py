@@ -21,7 +21,7 @@ class TileMap:
     rows: list[str]
 
     def walkable(self, x, y):
-        return 0 <= y < len(self.rows) and 0 <= x < len(self.rows[0]) and self.rows[y][x] not in '#~O'
+        return 0 <= y < len(self.rows) and 0 <= x < len(self.rows[0]) and self.rows[y][x] not in '#~Ov'
 
 class CollisionManager:
     def __init__(self, tilemap):

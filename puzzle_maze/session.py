@@ -7,6 +7,7 @@ from puzzle_maze.rooms import RoomManager
 from puzzle_maze.combat import CombatManager
 from puzzle_maze.exploration import Exploration
 from puzzle_maze.weapons import WEAPONS
+from puzzle_maze.migration import LayoutMigration
 from puzzle_maze.puzzles import PuzzleManager, Inventory, Door
 
 SAVE_PATH = Path(__file__).parent / 'save_v2.json'
@@ -19,6 +20,7 @@ class GameSession:
         self.completed = set()
         self.visited = {'r1'}
         self.finished = False
+        self.migration_notice=""
         self.dash_cooldown = 0
         self.encounters = {}
         self.exploration=Exploration()
@@ -130,11 +132,18 @@ class GameSession:
     def save(self, path=SAVE_PATH):
         self.encounters[self.rooms.current]=copy.deepcopy(self.combat.capture())
         self.snapshots[self.rooms.current]=self.capture()
-        data=dict(version=2, weapon=self.player.weapon.id, dash_cooldown=self.dash_cooldown, player_status={k:getattr(self.player,k) for k in ('invulnerable','attack_cooldown','attack_flash')}, explored=self.exploration.capture(), hp=self.player.hp, encounters=self.encounters, abilities=sorted(self.inventory.abilities), potions=self.inventory.potions, coins=self.inventory.coins, room=self.rooms.current, player=[self.player.x,self.player.y],
+        data=dict(version=2, map_revision=self.rooms.revision, weapon=self.player.weapon.id, dash_cooldown=self.dash_cooldown, player_status={k:getattr(self.player,k) for k in ('invulnerable','attack_cooldown','attack_flash')}, explored=self.exploration.capture(), hp=self.player.hp, encounters=self.encounters, abilities=sorted(self.inventory.abilities), potions=self.inventory.potions, coins=self.inventory.coins, room=self.rooms.current, player=[self.player.x,self.player.y],
                   inventory=self.inventory.keys, snapshots=self.snapshots,
                   completed=sorted(self.completed), visited=sorted(self.visited),
                   finished=self.finished, checkpoint=self.checkpoint)
-        path=Path(path); tmp=path.with_suffix(path.suffix+'.tmp')
+        path=Path(path)
+        if path.exists() and self.rooms.revision=='2.1':
+            try:old=json.loads(path.read_text())
+            except (ValueError,OSError):old={}
+            if old.get('version')==2 and old.get('map_revision','2.0')=='2.0':
+                backup=path.with_name(path.name+'.v20.bak')
+                if not backup.exists():backup.write_bytes(path.read_bytes())
+        tmp=path.with_suffix(path.suffix+'.tmp')
         tmp.write_text(json.dumps(data,indent=2)+'\n')
         tmp.replace(path)
 
@@ -184,6 +193,13 @@ class GameSession:
         try:
             data=json.loads(Path(path).read_text())
             candidate=cls()
+            revision=data.get('map_revision','2.0')
+            if revision!=candidate.rooms.revision:
+                if revision!='2.0' or candidate.rooms.revision!='2.1':raise ValueError('Unsupported map revision')
+                from puzzle_maze.rooms import load_rooms, MAP_PATH
+                legacy=load_rooms(MAP_PATH.with_name('dungeon_v20.json'))
+                data=LayoutMigration(candidate.rooms.rooms,legacy).apply(data)
+                candidate.migration_notice='Loaded 2.0 progress into compact 2.1 chambers.'
             if data['version'] != 2 or data['room'] not in candidate.rooms.rooms:
                 raise ValueError('Unsupported save')
             candidate.exploration.restore(data.get('explored',{}),candidate.rooms.rooms)

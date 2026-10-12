@@ -15,10 +15,10 @@ class ExplorationTests(unittest.TestCase):
 
     def test_fog_reveals_nearby_not_through_walls(self):
         s=GameSession();known=s.exploration.tiles['r1']
-        self.assertIn((2,7),known);self.assertNotIn((33,13),known)
-        s.player.x,s.player.y=13,7;s.tick(0)
-        self.assertIn((14,7),s.exploration.tiles['r1'])
-        self.assertNotIn((15,7),s.exploration.tiles['r1'])
+        self.assertIn(tuple(s.rooms.data["spawn"]),known);self.assertNotIn((33,13),known)
+        s.player.x,s.player.y=s.rooms.legacy_position((13,7));s.tick(0)
+        self.assertIn(tuple(s.rooms.legacy_position((14,7))),s.exploration.tiles['r1'])
+        self.assertNotIn(tuple(s.rooms.legacy_position((15,7))),s.exploration.tiles['r1'])
         self.assertTrue(any(kind=='door' for kind,pos in DungeonAtlas(s.rooms).discovered_markers(s)))
 
     def test_exploration_save_and_reset(self):

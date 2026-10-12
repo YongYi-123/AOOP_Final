@@ -19,13 +19,14 @@ class Renderer:
         self.particles=[]
         self.time=0
         self.ui=NativeText()
-        for kind in '#.~Og':self.tiles[kind]=self.tile(kind)
+        for kind in '#.~Ogv':self.tiles[kind]=self.tile(kind)
 
     def text(self,text,x,y,color=WHITE,font=None,max_width=None):
         self.ui.queue(text,x,y,color,font is self.title,max_width)
 
     def tile(self,kind):
         s=pygame.Surface((16,16));r=pygame.draw
+        if kind=='v':s.fill(INK);return s
         if kind=='#':
             s.fill((37,48,61));r.rect(s,(79,96,100),(0,0,16,11));r.line(s,(111,127,122),(1,1),(14,1));r.line(s,(45,63,71),(0,7),(15,7));r.line(s,(45,63,71),(8,0),(8,6));r.line(s,(45,63,71),(3,8),(3,11));r.line(s,(23,34,48),(0,15),(15,15))
         elif kind=='~':

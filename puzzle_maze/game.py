@@ -54,7 +54,7 @@ class Game:
             self.intro=IntroSequence();self.scene=GameScene.INTRO
         self.visual=[float(self.session.player.x),float(self.session.player.y)]
         self.fade=.5;self.cooldown=.2;self.last_solved=self.session.puzzles.solved
-        self.notify(self.session.rooms.data['name'])
+        self.notify(self.session.migration_notice or self.session.rooms.data['name'])
 
     def event(self,event):
         if event.type==pygame.QUIT:

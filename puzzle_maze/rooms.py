@@ -18,7 +18,7 @@ def validate_rooms(rooms):
         if not rows or len(set(map(len, rows))) != 1:
             raise ValueError(f'{name}: non-rectangular map')
         tilemap = TileMap(rows)
-        if any(c not in '#.~Og' for row in rows for c in row):
+        if any(c not in '#.~Ogv' for row in rows for c in row):
             raise ValueError(f'{name}: unknown terrain')
         if any(c != '#' for c in rows[0] + rows[-1]) or any(row[0] != '#' or row[-1] != '#' for row in rows):
             raise ValueError(f'{name}: unsealed border')
@@ -88,6 +88,7 @@ class RoomManager:
     def __init__(self, rooms=None):
         self.rooms = rooms or load_rooms()
         self.current = next(iter(self.rooms))
+        self.revision=self.data.get("layout_revision","2.0")
 
     @property
     def data(self):
@@ -96,6 +97,10 @@ class RoomManager:
     def enter(self, name, arrival=None):
         self.current = name
         return Player(*(arrival or self.data['spawn']))
+
+    def legacy_position(self,pos):
+        from puzzle_maze.migration import CoordinateTransform
+        return CoordinateTransform(self.data).point(pos)
 
     def exit_at(self, player):
         return next((e for e in self.data['exits'] if tuple(e['pos']) == (player.x, player.y)), None)

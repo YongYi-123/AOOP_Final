@@ -6,7 +6,8 @@ from puzzle_maze.solver import solve_boxes
 from collections import deque
 from test_playthrough import DIRECTIONS
 
-def walk(session,target):
+def walk(session,target,legacy=True):
+    target=session.rooms.legacy_position(target) if legacy else target
     for _ in range(600):
         start=(session.player.x,session.player.y)
         if start==tuple(target):return
@@ -35,7 +36,7 @@ def boxes(session,ids,plates):
     solution=solve_boxes(session.rooms.data,ids,plates,(session.player.x,session.player.y),open_ids)
     if solution is None:raise AssertionError('No push-state solution')
     for behind,delta in solution:
-        walk(session,behind)
+        walk(session,behind,legacy=False)
         if not session.move(*delta):raise AssertionError('Invalid solver push')
         session.tick(.13)
 
@@ -50,13 +51,13 @@ def fight_encounter(s):
             candidates=[(enemy.x-1,enemy.y),(enemy.x+1,enemy.y),(enemy.x,enemy.y-1),(enemy.x,enemy.y+1)]
             for target in candidates:
                 if s.puzzles.can_enter(*target):
-                    walk(s,target);break
+                    walk(s,target,legacy=False);break
             delta=enemy.x-s.player.x,enemy.y-s.player.y
             if abs(delta[0])+abs(delta[1])<=1:
                 s.player.facing=delta
                 s.attack();s.tick(.26)
             if s.player.hp<=0:raise AssertionError('Player died during combat witness')
-        s.tick(.4);walk(s,enemy.pos)
+        s.tick(.4);walk(s,enemy.pos,legacy=False)
 
 
 def solve_room(s):
@@ -105,8 +106,8 @@ class CampaignTests(unittest.TestCase):
     def test_forward_portals_enforce_conditions(self):
         s=GameSession()
         for name,room in list(s.rooms.rooms.items())[:8]:
-            self.assertEqual((len(room['tiles'][0]),len(room['tiles'])),(56,34))
-            s.enter(name);s.player.x,s.player.y=53,17
+            self.assertEqual((len(room['tiles'][0]),len(room['tiles'])),(40,26))
+            s.enter(name);s.player.x,s.player.y=s.rooms.legacy_position((53,17))
             self.assertFalse(s.transition())
             self.assertGreaterEqual(len(room['objects']),6)
 
@@ -124,8 +125,9 @@ class CampaignTests(unittest.TestCase):
         s=GameSession();s.inventory.abilities.add('boots');s.enter('r4')
         walk(s,(7,5));use(s,(13,7));use(s,(33,13));use(s,(34,17))
         walk(s,(39,17))
-        self.assertFalse(s.puzzles.can_enter(40,17))
+        self.assertFalse(s.puzzles.can_enter(*s.rooms.legacy_position((40,17))))
         use(s,(34,17));s.player.facing=(1,0)
         self.assertEqual(s.dash(),3)
-        walk(s,(41,17))
+        door=s.puzzles.objects['seal']
+        walk(s,(door.x+1,door.y),legacy=False)
         self.assertTrue(s.puzzles.objects['seal'].latched)

@@ -22,4 +22,4 @@ class RoomTests(unittest.TestCase):
         e = manager.exit_at(p)
         p = manager.enter(e['target'], e['arrival'])
         self.assertEqual(manager.current, 'r2')
-        self.assertEqual((p.x, p.y), (2, 7))
+        self.assertEqual((p.x, p.y), tuple(manager.data["spawn"]))
