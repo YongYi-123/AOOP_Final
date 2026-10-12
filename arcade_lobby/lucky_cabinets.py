@@ -22,7 +22,9 @@ KINDS = {
     "spin": {"neon": (255, 70, 200), "accent": GOLD, "label": "SPIN"},
     "hilo": {"neon": (80, 240, 255), "accent": (90, 255, 150), "label": "HI-LO"},
     "neon21": {"neon": GOLD, "accent": EMERALD, "label": "NEON"},
+    "pusher": {"neon": (255, 110, 214), "accent": (80, 240, 255), "label": "COIN"},
 }
+EAR_PINK = (255, 140, 200)
 
 
 def build_cabinet(kind):
@@ -30,8 +32,8 @@ def build_cabinet(kind):
     neon, accent = spec["neon"], spec["accent"]
     w, h = SIZE
     s = pygame.Surface(SIZE, pygame.SRCALPHA)
-    body = (16, 8, 30) if kind == "neon21" else Col.CABINET
-    side = (30, 18, 52) if kind == "neon21" else Col.CABINET_SIDE
+    body = {"neon21": (16, 8, 30), "pusher": (20, 16, 58)}.get(kind, Col.CABINET)         # navy-violet casing
+    side = {"neon21": (30, 18, 52), "pusher": (44, 32, 104)}.get(kind, Col.CABINET_SIDE)
     s.fill(side, (0, 8, w, h - 8))
     s.fill(body, (3, 8, w - 6, h - 8))
     s.fill(neon, (0, 8, 1, h - 8))
@@ -68,6 +70,17 @@ def build_cabinet(kind):
                 pts = [(x, y + 2), (x + 2, y + 2), (x + 1, y)] if up else [(x, y), (x + 2, y), (x + 1, y + 2)]
                 pygame.draw.polygon(s, neon, pts)
         s.fill(neon, (3, 0, w - 6, 1))
+    elif kind == "pusher":
+        for x, y in ((0, 0), (0, 1), (1, 1), (0, 2), (1, 2), (2, 2),                # pink cat ears on the marquee box
+                     (w - 1, 0), (w - 1, 1), (w - 2, 1), (w - 1, 2), (w - 2, 2), (w - 3, 2)):
+            s.set_at((x, y), EAR_PINK)
+        pygame.draw.circle(s, (255, 214, 90), (14, 28), 2)             # a big gold DROP button
+        s.set_at((13, 27), (255, 250, 200))
+        for x, c in ((6, (80, 240, 255)), (20, (255, 110, 214))):
+            s.fill(c, (x, 28, 2, 1))
+        for y in range(11, 36, 4):                                     # cyan glass-edge piping
+            s.fill((80, 240, 255), (2, y, 1, 2))
+            s.fill((80, 240, 255), (w - 3, y, 1, 2))
     else:                                                              # neon21
         for i, suit in enumerate("SHDC"):                              # the suit motif on the panel
             color = EMERALD if suit in "SC" else RED_SUIT
@@ -104,7 +117,8 @@ def draw_marquee(surf, kind, origin, t):
 
 def draw_screen(surf, kind, origin, t):
     inner = INNER.move(origin)
-    {"spin": _screen_spin, "hilo": _screen_hilo, "neon21": _screen_neon21}[kind](surf, inner, t)
+    {"spin": _screen_spin, "hilo": _screen_hilo, "neon21": _screen_neon21,
+     "pusher": _screen_pusher}[kind](surf, inner, t)
 
 
 def _screen_spin(surf, inner, t):
@@ -181,3 +195,21 @@ def _screen_neon21(surf, inner, t):
         surf.fill(c, (inner.right - 3, inner.bottom - 2 - i * 2, 2, 1))
     if int(t * 2) % 2:
         surf.set_at((inner.right - 2, inner.top + 2), shade(GOLD, 0.5))   # twinkle
+
+
+def _screen_pusher(surf, inner, t):
+    """A tiny pusher: a moving bar shoving a row of gold coins towards the tray, one drops in."""
+    surf.fill((12, 8, 44), inner)
+    surf.fill((20, 60, 84), (inner.x, inner.bottom - 2, inner.w, 2))               # the cyan tray
+    push = (math.sin(t * 1.6 - math.pi / 2) + 1) / 2                               # 0 back .. 1 forward
+    bar_y = inner.y + 2 + int(push * 3)
+    surf.fill((200, 120, 255), (inner.x, bar_y - 1, inner.w, 2))
+    surf.fill((255, 170, 255), (inner.x, bar_y - 1, inner.w, 1))
+    for i in range(4):                                                             # coins ride in front of the bar
+        cx = inner.x + 3 + i * 4 + (1 if i % 2 else 0)
+        cy = bar_y + 2 + (i % 2) * 2 + int(push * 2)
+        gold = i == 2 and int(t / 3.2) % 2 == 0
+        surf.fill((255, 140, 200) if gold else (255, 214, 90), (cx, cy, 3, 2))
+        surf.fill((255, 250, 210), (cx, cy, 1, 1))
+    k = (t * 0.9) % 1.0                                                            # a coin dropping from the chute
+    surf.fill((255, 214, 90), (inner.x + 4 + int(((t * 0.9) // 1) * 5) % (inner.w - 8), inner.y + int(k * 3), 2, 1))
