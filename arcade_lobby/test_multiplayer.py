@@ -36,7 +36,7 @@ from player_profile import PlayerProfile  # noqa: E402
 from profile_manager import ProfileManager  # noqa: E402
 from rewards import PlaySession, RewardBundle, RewardService  # noqa: E402
 from room_scene import ENTRIES  # noqa: E402
-from room_testing import goto_room  # noqa: E402
+from room_testing import goto_room, with_placeholder_minigame  # noqa: E402
 from scenes import (MINIGAME_DEFINITIONS, MinigamePlaceholderScene,  # noqa: E402
                     create_minigame_scene, minigame_definition)
 from settings import (MACHINES, MAX_LOCAL_PLAYERS, PLACEHOLDER_REWARD_TICKETS,  # noqa: E402
@@ -357,6 +357,7 @@ class HubTests(TwoPlayerTest):
         self.assertEqual(hud.slot, 0)
 
 
+@with_placeholder_minigame
 class OwnershipTests(TwoPlayerTest):
     def test_p1_playing_spends_p1_tokens_only(self):
         room = self.arcade()
@@ -715,6 +716,7 @@ class DailyTaskTests(TwoPlayerTest):
         self.frames(1, [key(pygame.K_ESCAPE)])
 
 
+@with_placeholder_minigame
 class MiniGameTests(TwoPlayerTest):
     def test_the_definitions(self):
         d = MiniGameDefinition("x", 1, 2)
@@ -984,6 +986,7 @@ class HomeOwnershipTests(TwoPlayerTest):
         self.assertEqual(self.b.home_decorations, {"rug": "rug_other"})
 
 
+@with_placeholder_minigame
 class SavingTests(TwoPlayerTest):
     def test_each_players_changes_land_in_their_own_file(self):
         self.a.add_tickets(11)

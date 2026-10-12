@@ -23,7 +23,7 @@ from minigame import PlayerResult  # noqa: E402
 from player_profile import PlayerProfile  # noqa: E402
 from rewards import PlaySession, RewardBundle, RewardService  # noqa: E402
 from retro_racer_scene import RetroRacerScene  # noqa: E402
-from room_testing import goto_room  # noqa: E402
+from room_testing import goto_room, with_placeholder_minigame  # noqa: E402
 from scenes import MinigamePlaceholderScene, minigame_definition  # noqa: E402
 from stations import ChanceStation, DailyBoard  # noqa: E402
 from test_multiplayer import DAY1, DT, TwoPlayerTest, key  # noqa: E402
@@ -228,6 +228,7 @@ class RetroIsolationTests(TwoPlayerTest):
         self.assertEqual((self.a.tokens, self.b.tokens), (self.P1_TOKENS, self.P2_TOKENS - 1))
 
 
+@with_placeholder_minigame
 class SpectatorTests(TwoPlayerTest):
     def play_puzzle(self, starter, other):
         room = self.arcade()
@@ -615,6 +616,7 @@ class JoinFlowTests(TwoPlayerTest):
         self.assertEqual([p.profile for p, _ in room.active_plays], [self.b, self.a])
 
 
+@with_placeholder_minigame
 class ResultOwnershipTests(TwoPlayerTest):
     def play_two(self):
         room = self.arcade()

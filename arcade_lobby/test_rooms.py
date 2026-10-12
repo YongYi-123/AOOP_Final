@@ -30,7 +30,7 @@ from machine import ArcadeMachine, IdleCabinet  # noqa: E402
 from player_profile import PlayerProfile, ProfileStore  # noqa: E402
 from prize_plaza import PrizePlazaScene  # noqa: E402
 from room_scene import BaseRoomScene, RoomExit  # noqa: E402
-from room_testing import goto_room  # noqa: E402
+from room_testing import goto_room, with_placeholder_minigame  # noqa: E402
 from scenes import MinigamePlaceholderScene  # noqa: E402
 from settings import (CATS, MACHINES, PLAYER_START, ROOM_IDS, ROOM_TITLE_TIME,  # noqa: E402
                       SIDE_DOOR_H, SIDE_DOOR_Y, START_ROOM, VIEW_H, VIEW_W)
@@ -417,6 +417,7 @@ class SharedStateTests(HubTest):
         self.assertNotIn(cat, self.game.scenes.current.cats.cats)
 
 
+@with_placeholder_minigame
 class GameplayInRoomsTests(HubTest):
     def go_arcade(self):
         self.dismiss_popup()

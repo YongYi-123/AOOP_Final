@@ -27,7 +27,7 @@ from minigame import MinigameScene  # noqa: E402
 from player_profile import PlayerProfile, ProfileStore  # noqa: E402
 from rewards import (PlaySession, RewardBundle, RewardGrantResult,  # noqa: E402
                      RewardResult, RewardService)
-from room_testing import goto_room  # noqa: E402
+from room_testing import goto_room, with_placeholder_minigame  # noqa: E402
 from scenes import MinigamePlaceholderScene  # noqa: E402
 from settings import MACHINES, PLACEHOLDER_REWARD_TICKETS  # noqa: E402
 
@@ -277,6 +277,7 @@ class CouponMachineTests(unittest.TestCase):
 
 
 # ---------------------------------------------------------------- in the arcade
+@with_placeholder_minigame
 class CouponFlowTests(unittest.TestCase):
     MACHINE = "puzzle_drop"          # a placeholder minigame (no slow racer load)
 
