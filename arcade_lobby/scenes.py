@@ -25,6 +25,7 @@ from retro_racer_scene import RetroRacerScene
 from pixel_volleyball_scene import PixelVolleyballScene
 from galaxy_defender_scene import GalaxyDefenderScene
 from cat_territory_scene import CatTerritoryScene
+from puzzle_maze.lobby_scene import PuzzleMazeScene
 from cat_maze_scene import CatMazeScene
 from settings import BACK_KEYS, Col, VIEW_H, VIEW_W
 from ui import draw_text, neon_panel, wrap_text
@@ -120,7 +121,8 @@ MINIGAME_SCENES = {"retro_racer": RetroRacerScene,
                    "pixel_volleyball": PixelVolleyballScene,
                    "cat_minesweeper": CatTerritoryScene,
                    "galaxy_defender": GalaxyDefenderScene,
-                   "puzzle_drop": CatMazeScene}          # the machine id (and so the saves) of the old Puzzle Drop slot
+                   "puzzle_maze": PuzzleMazeScene,
+                   "puzzle_drop": CatMazeScene}          # retain the old cabinet id for saves
 
 
 # How many local players each minigame supports (anything not listed: 1). The
@@ -132,6 +134,7 @@ MINIGAME_DEFINITIONS = {d.game_id: d for d in (
     MiniGameDefinition("pixel_volleyball", 1, 2),
     MiniGameDefinition("cat_minesweeper", 1, 1),
     MiniGameDefinition("galaxy_defender", 1, 1),
+    MiniGameDefinition("puzzle_maze", 1, 1),
 )}
 
 
