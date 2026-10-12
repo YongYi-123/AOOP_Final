@@ -7,8 +7,10 @@ ESC closes. Mouse: click or drag a slider, click a button, wheel over a slider.
 """
 import pygame
 
+from display import screen_to_canvas
 from font import LINE_H, get_font
 from gfx import scale_color, shade
+from display_settings_ui import DisplayPage
 from scene_base import BaseScene
 from settings import BACK_KEYS, CONFIRM_KEYS, VIEW_H, VIEW_W, Col
 from ui import draw_text, neon_panel
@@ -36,6 +38,8 @@ class AudioSettingsScene(BaseScene):
         self.dragging = None            # 0 / 1: the slider under the mouse
         self.message, self.message_time = "", 0.0
         self.rects = {}                 # row index -> clickable Rect, rebuilt every draw
+        self.tab = 0                    # 0 AUDIO, 1 DISPLAY
+        self.display_page = DisplayPage(self)
 
     # ------------------------------------------------------------ model
     def value(self, row):
@@ -81,12 +85,41 @@ class AudioSettingsScene(BaseScene):
         self.message, self.message_time, self.message_color = text, 2.5, color
 
     def close(self):
+        if self.display_page.confirming:
+            self.display_page.revert()                # leaving mid-countdown puts the old display back
         self.audio.play("cancel")
         self.audio.save_prefs()
         self.game.scenes.pop()
 
     # ------------------------------------------------------------ input
+    TAB_NAMES = ("AUDIO", "DISPLAY")
+
+    def tab_rect(self, i):
+        return pygame.Rect(236 + i * 76, 14, 70, 14)
+
+    def set_tab(self, tab):
+        self.tab = tab
+        self.dragging = None
+        if tab == 1:
+            self.display_page.sync()
+
     def handle_event(self, event):
+        page = self.display_page
+        if page.confirming:                           # the KEEP / REVERT box owns every key and click
+            page.handle_event(event)
+            return
+        if event.type == pygame.KEYDOWN and event.key == pygame.K_TAB:
+            self.set_tab(1 - self.tab)
+            return
+        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+            pos = self.mouse_pos(event.pos)
+            for i in range(2):
+                if self.tab_rect(i).collidepoint(pos):
+                    self.set_tab(i)
+                    return
+        if self.tab == 1:
+            page.handle_event(event)
+            return
         if event.type == pygame.KEYDOWN:
             key = event.key
             if key in BACK_KEYS or key == pygame.K_F4:
@@ -113,8 +146,7 @@ class AudioSettingsScene(BaseScene):
                 self.adjust(self.row, 1 if event.y > 0 else -1)
 
     def mouse_pos(self, pos):
-        w, h = self.game.screen.get_size()
-        return int(pos[0] * VIEW_W / w), int(pos[1] * VIEW_H / h)
+        return screen_to_canvas(pos, self.game.screen.get_size())
 
     def slider_rect(self, row):
         return pygame.Rect(SLIDER_X, ROW_Y + row * ROW_H + 9, SLIDER_W, 8)
@@ -141,6 +173,7 @@ class AudioSettingsScene(BaseScene):
     def update(self, dt):
         self.time += dt
         self.message_time = max(0.0, self.message_time - dt)
+        self.display_page.update(dt)
 
     def draw(self, surf):
         a = self.audio
@@ -148,7 +181,19 @@ class AudioSettingsScene(BaseScene):
         for y in range(0, VIEW_H, 12):
             pygame.draw.line(surf, (24, 15, 46), (0, y), (VIEW_W, y))
         surf.blit(neon_panel(FRAME.w, FRAME.h, GOLD, ROSE, 235), FRAME.topleft)
-        draw_text(surf, "AUDIO SETTINGS", (16, 12), shade(GOLD, 0.4), 2, glow=scale_color(ROSE, 0.8))
+        draw_text(surf, "DISPLAY SETTINGS" if self.tab else "AUDIO SETTINGS", (16, 12), shade(GOLD, 0.4), 2,
+                  glow=scale_color(ROSE, 0.8))
+        for i, name in enumerate(self.TAB_NAMES):
+            rect = self.tab_rect(i)
+            surf.fill(scale_color(GOLD, 0.35) if i == self.tab else (26, 18, 52), rect)
+            if i == self.tab:
+                surf.fill(GOLD, (rect.x, rect.bottom - 1, rect.w, 1))
+            draw_text(surf, name, rect.center, Col.TEXT if i == self.tab else Col.TEXT_MUTED, anchor="center")
+        if self.tab == 1:
+            self._draw_footer(surf, ("UP/DOWN SELECT   LEFT/RIGHT CHANGE   E OK   ESC BACK",
+                                     "TAB: AUDIO / DISPLAY   ALT+ENTER OR F11: FULLSCREEN"))
+            self.display_page.draw(surf)
+            return
         if not a.enabled:
             draw_text(surf, "NO AUDIO DEVICE - RUN audio_diagnostics.py", (16, 32), Col.MAGENTA)
         else:
@@ -171,15 +216,17 @@ class AudioSettingsScene(BaseScene):
                 draw_text(surf, "MUTED" if on else "SOUND ON", box.center, Col.TEXT, anchor="center")
             else:
                 draw_text(surf, name, rect.center, Col.TEXT if selected else Col.TEXT_MUTED, anchor="center")
-        box = pygame.Rect(14, 238, FRAME.w - 16, 14)
+        self._draw_footer(surf, ("UP/DOWN SELECT   LEFT/RIGHT CHANGE   E OK   ESC BACK   TAB DISPLAY",
+                                 "ANYWHERE: F6/F7 MUSIC   F8/F9 SFX   M MUTE   F10 DEBUG"))
+
+    def _draw_footer(self, surf, hints):
+        box = pygame.Rect(14, 244, FRAME.w - 16, 12)
         surf.fill((16, 10, 36), box)
         pygame.draw.rect(surf, scale_color(GOLD, 0.4), box, 1)
         if self.message_time > 0:
             draw_text(surf, self.message, box.center, self.message_color, anchor="center")
-        hints = ("UP/DOWN SELECT   LEFT/RIGHT CHANGE   E OK   ESC BACK",
-                 "ANYWHERE: F6/F7 MUSIC   F8/F9 SFX   M MUTE   F10 DEBUG")
         for i, line in enumerate(hints):
-            draw_text(surf, line, (VIEW_W // 2, 256 + i * (LINE_H + 2)), scale_color(Col.TEXT_MUTED, 0.9), anchor="midtop")
+            draw_text(surf, line, (VIEW_W // 2, 260 + i * (LINE_H + 2)), scale_color(Col.TEXT_MUTED, 0.9), anchor="midtop")
 
     def _draw_slider(self, surf, row, name, selected):
         rect, track = self.row_rect(row), self.slider_rect(row)
