@@ -1,7 +1,7 @@
 {
   "r1": {
     "name": "Entrance Hall",
-    "hint": "Use E beside the brass switch. Cross the eastern gate. Then explore the east wing and align the final seal. Cracked moss alcoves hide optional caches. Find the glove chest south of the switch.",
+    "hint": "Basic Sword: J. Find the Gloves chest, open the switch gate, then unlock the eastern seal.",
     "spawn": [
       2,
       5
@@ -213,11 +213,109 @@
         31,
         33
       ]
-    }
+    },
+    "decorations": [
+      {
+        "kind": "torch",
+        "pos": [
+          3,
+          0
+        ],
+        "phase": 0.0
+      },
+      {
+        "kind": "torch",
+        "pos": [
+          9,
+          0
+        ],
+        "phase": 0.73
+      },
+      {
+        "kind": "torch",
+        "pos": [
+          18,
+          0
+        ],
+        "phase": 1.46
+      },
+      {
+        "kind": "torch",
+        "pos": [
+          24,
+          0
+        ],
+        "phase": 2.19
+      },
+      {
+        "kind": "torch",
+        "pos": [
+          30,
+          0
+        ],
+        "phase": 2.92
+      },
+      {
+        "kind": "torch",
+        "pos": [
+          0,
+          3
+        ],
+        "phase": 3.65
+      },
+      {
+        "kind": "torch",
+        "pos": [
+          33,
+          3
+        ],
+        "phase": 4.38
+      },
+      {
+        "kind": "torch",
+        "pos": [
+          25,
+          4
+        ],
+        "phase": 5.109999999999999
+      },
+      {
+        "kind": "torch",
+        "pos": [
+          15,
+          6
+        ],
+        "phase": 5.84
+      },
+      {
+        "kind": "torch",
+        "pos": [
+          0,
+          9
+        ],
+        "phase": 6.57
+      },
+      {
+        "kind": "torch",
+        "pos": [
+          12,
+          9
+        ],
+        "phase": 7.3
+      },
+      {
+        "kind": "torch",
+        "pos": [
+          33,
+          9
+        ],
+        "phase": 8.03
+      }
+    ]
   },
   "r2": {
     "name": "Mechanism Room",
-    "hint": "Stand on the diamond plate. The gate latches when powered. Then explore the east wing and align the final seal. Cracked moss alcoves hide optional caches. Heavy stones need gloves.",
+    "hint": "Stand on the entrance plate. Push the heavy crate onto the relay plate to open the final seal.",
     "spawn": [
       2,
       5
@@ -438,11 +536,109 @@
         31,
         33
       ]
-    }
+    },
+    "decorations": [
+      {
+        "kind": "torch",
+        "pos": [
+          3,
+          0
+        ],
+        "phase": 0.0
+      },
+      {
+        "kind": "gear",
+        "pos": [
+          9,
+          0
+        ],
+        "phase": 0.73
+      },
+      {
+        "kind": "gear",
+        "pos": [
+          18,
+          0
+        ],
+        "phase": 1.46
+      },
+      {
+        "kind": "torch",
+        "pos": [
+          24,
+          0
+        ],
+        "phase": 2.19
+      },
+      {
+        "kind": "gear",
+        "pos": [
+          30,
+          0
+        ],
+        "phase": 2.92
+      },
+      {
+        "kind": "gear",
+        "pos": [
+          0,
+          3
+        ],
+        "phase": 3.65
+      },
+      {
+        "kind": "torch",
+        "pos": [
+          33,
+          3
+        ],
+        "phase": 4.38
+      },
+      {
+        "kind": "gear",
+        "pos": [
+          25,
+          4
+        ],
+        "phase": 5.109999999999999
+      },
+      {
+        "kind": "gear",
+        "pos": [
+          15,
+          6
+        ],
+        "phase": 5.84
+      },
+      {
+        "kind": "torch",
+        "pos": [
+          0,
+          9
+        ],
+        "phase": 6.57
+      },
+      {
+        "kind": "gear",
+        "pos": [
+          12,
+          9
+        ],
+        "phase": 7.3
+      },
+      {
+        "kind": "gear",
+        "pos": [
+          33,
+          9
+        ],
+        "phase": 8.03
+      }
+    ]
   },
   "r3": {
     "name": "Ruined Library",
-    "hint": "Push both stones onto matching diamond plates. R restores stones. Then explore the east wing and align the final seal. Cracked moss alcoves hide optional caches. Find the boots in the eastern library alcove.",
+    "hint": "Weight both plates. Find the Boots chest and the seal key. A cracked alcove hides supplies.",
     "spawn": [
       2,
       5
@@ -700,11 +896,109 @@
         31,
         33
       ]
-    }
+    },
+    "decorations": [
+      {
+        "kind": "torch",
+        "pos": [
+          3,
+          0
+        ],
+        "phase": 0.0
+      },
+      {
+        "kind": "books",
+        "pos": [
+          9,
+          0
+        ],
+        "phase": 0.73
+      },
+      {
+        "kind": "books",
+        "pos": [
+          18,
+          0
+        ],
+        "phase": 1.46
+      },
+      {
+        "kind": "torch",
+        "pos": [
+          24,
+          0
+        ],
+        "phase": 2.19
+      },
+      {
+        "kind": "books",
+        "pos": [
+          30,
+          0
+        ],
+        "phase": 2.92
+      },
+      {
+        "kind": "books",
+        "pos": [
+          0,
+          3
+        ],
+        "phase": 3.65
+      },
+      {
+        "kind": "torch",
+        "pos": [
+          15,
+          3
+        ],
+        "phase": 4.38
+      },
+      {
+        "kind": "books",
+        "pos": [
+          33,
+          3
+        ],
+        "phase": 5.109999999999999
+      },
+      {
+        "kind": "books",
+        "pos": [
+          25,
+          4
+        ],
+        "phase": 5.84
+      },
+      {
+        "kind": "torch",
+        "pos": [
+          0,
+          9
+        ],
+        "phase": 6.57
+      },
+      {
+        "kind": "books",
+        "pos": [
+          12,
+          9
+        ],
+        "phase": 7.3
+      },
+      {
+        "kind": "books",
+        "pos": [
+          33,
+          9
+        ],
+        "phase": 8.03
+      }
+    ]
   },
   "r4": {
     "name": "Guard Room",
-    "hint": "Collect the amber key, then press E beside the lock. Then explore the east wing and align the final seal. Cracked moss alcoves hide optional caches. The final clock needs a three-tile dash (SHIFT).",
+    "hint": "Use the amber key. Set the relay signal, start the short clock, and dash through its gate.",
     "spawn": [
       2,
       5
@@ -933,11 +1227,109 @@
         31,
         33
       ]
-    }
+    },
+    "decorations": [
+      {
+        "kind": "torch",
+        "pos": [
+          3,
+          0
+        ],
+        "phase": 0.0
+      },
+      {
+        "kind": "rack",
+        "pos": [
+          9,
+          0
+        ],
+        "phase": 0.73
+      },
+      {
+        "kind": "rack",
+        "pos": [
+          18,
+          0
+        ],
+        "phase": 1.46
+      },
+      {
+        "kind": "torch",
+        "pos": [
+          24,
+          0
+        ],
+        "phase": 2.19
+      },
+      {
+        "kind": "rack",
+        "pos": [
+          30,
+          0
+        ],
+        "phase": 2.92
+      },
+      {
+        "kind": "rack",
+        "pos": [
+          0,
+          3
+        ],
+        "phase": 3.65
+      },
+      {
+        "kind": "torch",
+        "pos": [
+          15,
+          3
+        ],
+        "phase": 4.38
+      },
+      {
+        "kind": "rack",
+        "pos": [
+          33,
+          3
+        ],
+        "phase": 5.109999999999999
+      },
+      {
+        "kind": "rack",
+        "pos": [
+          25,
+          4
+        ],
+        "phase": 5.84
+      },
+      {
+        "kind": "torch",
+        "pos": [
+          0,
+          9
+        ],
+        "phase": 6.57
+      },
+      {
+        "kind": "rack",
+        "pos": [
+          12,
+          9
+        ],
+        "phase": 7.3
+      },
+      {
+        "kind": "rack",
+        "pos": [
+          33,
+          9
+        ],
+        "phase": 8.03
+      }
+    ]
   },
   "r5": {
     "name": "Crystal Chamber",
-    "hint": "Both brass switches must glow. Activate each with E. Then explore the east wing and align the final seal. Cracked moss alcoves hide optional caches. Find the mirror chest. Rotate the prism so light travels north.",
+    "hint": "Find the Mirror. Power both signals, turn light north, and weight the relay plate.",
     "spawn": [
       2,
       5
@@ -1217,11 +1609,109 @@
         31,
         33
       ]
-    }
+    },
+    "decorations": [
+      {
+        "kind": "torch",
+        "pos": [
+          3,
+          0
+        ],
+        "phase": 0.0
+      },
+      {
+        "kind": "crystal",
+        "pos": [
+          9,
+          0
+        ],
+        "phase": 0.73
+      },
+      {
+        "kind": "crystal",
+        "pos": [
+          18,
+          0
+        ],
+        "phase": 1.46
+      },
+      {
+        "kind": "torch",
+        "pos": [
+          24,
+          0
+        ],
+        "phase": 2.19
+      },
+      {
+        "kind": "crystal",
+        "pos": [
+          30,
+          0
+        ],
+        "phase": 2.92
+      },
+      {
+        "kind": "crystal",
+        "pos": [
+          0,
+          3
+        ],
+        "phase": 3.65
+      },
+      {
+        "kind": "torch",
+        "pos": [
+          15,
+          3
+        ],
+        "phase": 4.38
+      },
+      {
+        "kind": "crystal",
+        "pos": [
+          33,
+          3
+        ],
+        "phase": 5.109999999999999
+      },
+      {
+        "kind": "crystal",
+        "pos": [
+          25,
+          4
+        ],
+        "phase": 5.84
+      },
+      {
+        "kind": "torch",
+        "pos": [
+          0,
+          9
+        ],
+        "phase": 6.57
+      },
+      {
+        "kind": "crystal",
+        "pos": [
+          12,
+          9
+        ],
+        "phase": 7.3
+      },
+      {
+        "kind": "crystal",
+        "pos": [
+          33,
+          9
+        ],
+        "phase": 8.03
+      }
+    ]
   },
   "r6": {
     "name": "Mosswork Vault",
-    "hint": "Moss forms an arrow toward a cracked wall. Use your pulse (Space). Then explore the east wing and align the final seal. Cracked moss alcoves hide optional caches. Find the magnet chest. Face the metal lane from the west and repel three times.",
+    "hint": "Pulse the cracked passage. Find the Magnet, then repel the metal weight across its slot.",
     "spawn": [
       2,
       5
@@ -1477,11 +1967,109 @@
         31,
         33
       ]
-    }
+    },
+    "decorations": [
+      {
+        "kind": "torch",
+        "pos": [
+          3,
+          0
+        ],
+        "phase": 0.0
+      },
+      {
+        "kind": "sigil",
+        "pos": [
+          9,
+          0
+        ],
+        "phase": 0.73
+      },
+      {
+        "kind": "sigil",
+        "pos": [
+          18,
+          0
+        ],
+        "phase": 1.46
+      },
+      {
+        "kind": "torch",
+        "pos": [
+          24,
+          0
+        ],
+        "phase": 2.19
+      },
+      {
+        "kind": "sigil",
+        "pos": [
+          30,
+          0
+        ],
+        "phase": 2.92
+      },
+      {
+        "kind": "sigil",
+        "pos": [
+          0,
+          3
+        ],
+        "phase": 3.65
+      },
+      {
+        "kind": "torch",
+        "pos": [
+          33,
+          3
+        ],
+        "phase": 4.38
+      },
+      {
+        "kind": "sigil",
+        "pos": [
+          25,
+          4
+        ],
+        "phase": 5.109999999999999
+      },
+      {
+        "kind": "sigil",
+        "pos": [
+          15,
+          6
+        ],
+        "phase": 5.84
+      },
+      {
+        "kind": "torch",
+        "pos": [
+          0,
+          9
+        ],
+        "phase": 6.57
+      },
+      {
+        "kind": "sigil",
+        "pos": [
+          12,
+          9
+        ],
+        "phase": 7.3
+      },
+      {
+        "kind": "sigil",
+        "pos": [
+          27,
+          9
+        ],
+        "phase": 8.03
+      }
+    ]
   },
   "r7": {
     "name": "Star Observatory",
-    "hint": "E starts the clock. Reach the eastern gate before the light fades. Then explore the east wing and align the final seal. Cracked moss alcoves hide optional caches. Combine mirror reflection and magnetic weight.",
+    "hint": "Cross the clock gate. Reflect light north and move the remote metal weight onto its plate.",
     "spawn": [
       2,
       5
@@ -1752,11 +2340,109 @@
         31,
         33
       ]
-    }
+    },
+    "decorations": [
+      {
+        "kind": "torch",
+        "pos": [
+          3,
+          0
+        ],
+        "phase": 0.0
+      },
+      {
+        "kind": "crystal",
+        "pos": [
+          9,
+          0
+        ],
+        "phase": 0.73
+      },
+      {
+        "kind": "crystal",
+        "pos": [
+          18,
+          0
+        ],
+        "phase": 1.46
+      },
+      {
+        "kind": "torch",
+        "pos": [
+          24,
+          0
+        ],
+        "phase": 2.19
+      },
+      {
+        "kind": "crystal",
+        "pos": [
+          30,
+          0
+        ],
+        "phase": 2.92
+      },
+      {
+        "kind": "crystal",
+        "pos": [
+          0,
+          3
+        ],
+        "phase": 3.65
+      },
+      {
+        "kind": "torch",
+        "pos": [
+          15,
+          3
+        ],
+        "phase": 4.38
+      },
+      {
+        "kind": "crystal",
+        "pos": [
+          33,
+          3
+        ],
+        "phase": 5.109999999999999
+      },
+      {
+        "kind": "crystal",
+        "pos": [
+          25,
+          4
+        ],
+        "phase": 5.84
+      },
+      {
+        "kind": "torch",
+        "pos": [
+          0,
+          9
+        ],
+        "phase": 6.57
+      },
+      {
+        "kind": "crystal",
+        "pos": [
+          12,
+          9
+        ],
+        "phase": 7.3
+      },
+      {
+        "kind": "crystal",
+        "pos": [
+          33,
+          9
+        ],
+        "phase": 8.03
+      }
+    ]
   },
   "r8": {
     "name": "Prism Sanctum",
-    "hint": "Weight both plates, find the prism key and pulse the cracked wall. Activate signal, then clock and unlock the final gate. Then explore the east wing and align the final seal. Cracked moss alcoves hide optional caches. Combine every tool to align the prism vault. Defeat the three southern sentries to unlock the last seal.",
+    "hint": "Use all four tools to align the seals. Defeat the three southern guards to open the last gate.",
     "spawn": [
       2,
       5
@@ -2099,11 +2785,109 @@
         31,
         33
       ]
-    }
+    },
+    "decorations": [
+      {
+        "kind": "torch",
+        "pos": [
+          3,
+          0
+        ],
+        "phase": 0.0
+      },
+      {
+        "kind": "banner",
+        "pos": [
+          15,
+          0
+        ],
+        "phase": 0.73
+      },
+      {
+        "kind": "banner",
+        "pos": [
+          21,
+          0
+        ],
+        "phase": 1.46
+      },
+      {
+        "kind": "torch",
+        "pos": [
+          27,
+          0
+        ],
+        "phase": 2.19
+      },
+      {
+        "kind": "banner",
+        "pos": [
+          0,
+          3
+        ],
+        "phase": 2.92
+      },
+      {
+        "kind": "banner",
+        "pos": [
+          33,
+          3
+        ],
+        "phase": 3.65
+      },
+      {
+        "kind": "torch",
+        "pos": [
+          25,
+          4
+        ],
+        "phase": 4.38
+      },
+      {
+        "kind": "banner",
+        "pos": [
+          0,
+          9
+        ],
+        "phase": 5.109999999999999
+      },
+      {
+        "kind": "banner",
+        "pos": [
+          12,
+          9
+        ],
+        "phase": 5.84
+      },
+      {
+        "kind": "torch",
+        "pos": [
+          33,
+          9
+        ],
+        "phase": 6.57
+      },
+      {
+        "kind": "banner",
+        "pos": [
+          19,
+          10
+        ],
+        "phase": 7.3
+      },
+      {
+        "kind": "banner",
+        "pos": [
+          25,
+          10
+        ],
+        "phase": 8.03
+      }
+    ]
   },
   "r9": {
     "name": "Hidden Vault",
-    "hint": "An optional secret chamber. Two lanterns reveal the archive sigil. Return through the western portal.",
+    "hint": "Activate both lantern switches. Open the vault chest beyond the gate, then return west.",
     "spawn": [
       2,
       5
@@ -2152,6 +2936,17 @@
           "north",
           "south"
         ]
+      },
+      {
+        "id": "vault_reward",
+        "type": "chest",
+        "pos": [
+          14,
+          5
+        ],
+        "potions": 2,
+        "coins": 3,
+        "optional": true
       }
     ],
     "exits": [
@@ -2215,6 +3010,96 @@
         16,
         17
       ]
-    }
+    },
+    "decorations": [
+      {
+        "kind": "torch",
+        "pos": [
+          3,
+          0
+        ],
+        "phase": 0.0
+      },
+      {
+        "kind": "sigil",
+        "pos": [
+          9,
+          0
+        ],
+        "phase": 0.73
+      },
+      {
+        "kind": "sigil",
+        "pos": [
+          15,
+          0
+        ],
+        "phase": 1.46
+      },
+      {
+        "kind": "torch",
+        "pos": [
+          0,
+          3
+        ],
+        "phase": 2.19
+      },
+      {
+        "kind": "sigil",
+        "pos": [
+          18,
+          3
+        ],
+        "phase": 2.92
+      },
+      {
+        "kind": "sigil",
+        "pos": [
+          0,
+          9
+        ],
+        "phase": 3.65
+      },
+      {
+        "kind": "torch",
+        "pos": [
+          12,
+          9
+        ],
+        "phase": 4.38
+      },
+      {
+        "kind": "sigil",
+        "pos": [
+          18,
+          9
+        ],
+        "phase": 5.109999999999999
+      },
+      {
+        "kind": "sigil",
+        "pos": [
+          1,
+          13
+        ],
+        "phase": 5.84
+      },
+      {
+        "kind": "torch",
+        "pos": [
+          7,
+          13
+        ],
+        "phase": 6.57
+      },
+      {
+        "kind": "sigil",
+        "pos": [
+          13,
+          13
+        ],
+        "phase": 7.3
+      }
+    ]
   }
 }

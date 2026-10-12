@@ -2,6 +2,7 @@
 import json
 from pathlib import Path
 from puzzle_maze.core import TileMap, Player
+from puzzle_maze.themes import THEMES,DECOR_KINDS
 
 MAP_PATH = Path(__file__).parent / 'maps' / 'dungeon.json'
 
@@ -52,6 +53,12 @@ def validate_rooms(rooms):
             if not tilemap.walkable(x,y) or (x,y) in occupied or abs(x-sx)+abs(y-sy)<5:
                 raise ValueError(f'{name}: unsafe enemy spawn')
             occupied.add((x,y))
+        if room.get('theme','entrance') not in THEMES:raise ValueError(f'{name}: unknown room theme')
+        for decoration in room.get('decorations',[]):
+            x,y=decoration['pos']
+            if decoration['kind'] not in DECOR_KINDS or not (0<=y<len(rows) and 0<=x<len(rows[0])) or rows[y][x]!='#':
+                raise ValueError(f'{name}: decoration must be mounted on an existing wall')
+            if any(abs(x-o['pos'][0])+abs(y-o['pos'][1])<2 for o in room['objects']):raise ValueError(f'{name}: decoration hides mechanism')
         atlas=room.get('atlas')
         if atlas is not None and (not isinstance(atlas,list) or len(atlas)!=2 or any(type(v) is not int or v<0 for v in atlas)):
             raise ValueError(f'{name}: invalid atlas coordinates')

@@ -211,6 +211,7 @@ class Chest(PuzzleObject):
         ability=self.data.get('ability')
         if ability:manager.inventory.abilities.add(ability)
         manager.inventory.potions+=self.data.get('potions',0)
+        manager.inventory.coins+=self.data.get('coins',0)
         self.state.active=True
         return True
 

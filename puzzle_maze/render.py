@@ -6,6 +6,8 @@ from puzzle_maze.core import Camera
 from puzzle_maze.ui import NativeText
 from puzzle_maze.combat import EnemyState
 from puzzle_maze.exploration import DungeonAtlas
+from puzzle_maze.environment import EnvironmentPainter
+from puzzle_maze.themes import THEMES
 from puzzle_maze.puzzles import PushableBox, PressurePlate, Door, Key, SecretPassage, TimedSwitch, Switch, Chest, LightSource, Receiver, Reflector
 
 INK=(18,26,39); GOLD=(245,198,96); WHITE=(230,237,219); TEAL=(81,195,165)
@@ -19,28 +21,14 @@ class Renderer:
         self.particles=[]
         self.time=0
         self.ui=NativeText()
-        for kind in '#.~Ogv':self.tiles[kind]=self.tile(kind)
+        self.environment=EnvironmentPainter()
+        self.tiles=self.environment.tiles('entrance')
 
     def text(self,text,x,y,color=WHITE,font=None,max_width=None):
         self.ui.queue(text,x,y,color,font is self.title,max_width)
 
-    def tile(self,kind):
-        s=pygame.Surface((16,16));r=pygame.draw
-        if kind=='v':s.fill(INK);return s
-        if kind=='#':
-            s.fill((37,48,61));r.rect(s,(79,96,100),(0,0,16,11));r.line(s,(111,127,122),(1,1),(14,1));r.line(s,(45,63,71),(0,7),(15,7));r.line(s,(45,63,71),(8,0),(8,6));r.line(s,(45,63,71),(3,8),(3,11));r.line(s,(23,34,48),(0,15),(15,15))
-        elif kind=='~':
-            s.fill((30,74,107));r.line(s,(60,127,148),(1,4),(7,4));r.line(s,(81,160,169),(8,10),(14,10))
-        else:
-            s.fill((53,66,67));r.rect(s,(62,75,73),(1,1,14,14));r.line(s,(71,83,77),(2,2),(13,2));r.line(s,(42,55,58),(0,15),(15,15));r.rect(s,(80,88,77),(4,9,2,1))
-            if kind=='g':
-                s.fill((39,76,64))
-                for x,y in [(2,6),(7,12),(12,4),(13,13)]:r.lines(s,(79,126,83),False,[(x-1,y-2),(x,y),(x+1,y-3)])
-            if kind=='O':
-                r.ellipse(s,(23,34,42),(1,8,14,7));r.polygon(s,(126,135,124),[(2,10),(4,3),(11,2),(14,8),(10,13),(4,13)]);r.line(s,(171,172,145),(5,4),(10,3));r.line(s,(84,100,98),(11,5),(12,10))
-        return s
-
     def burst(self,x,y,color=GOLD,count=18):
+        if len(self.particles)>120:self.particles=self.particles[-120:]
         for _ in range(count):
             angle=random.random()*math.tau;speed=random.uniform(10,40)
             self.particles.append([x*16+8,y*16+8,math.cos(angle)*speed,math.sin(angle)*speed,random.uniform(.3,.8),color])
@@ -51,6 +39,8 @@ class Renderer:
         self.ui.clear()
         self.time+=dt;s=self.surface;r=pygame.draw;s.fill(INK)
         room=session.rooms.data;p=session.player
+        theme_name=room.get("theme","entrance");theme=THEMES[theme_name]
+        self.tiles=self.environment.tiles(theme_name)
         proxy=type('Position',(),dict(x=visual[0],y=visual[1]))()
         self.camera.follow(proxy,len(room['tiles'][0]),len(room['tiles']))
         cx,cy=int(self.camera.x),int(self.camera.y)
@@ -59,7 +49,7 @@ class Renderer:
             for x,kind in enumerate(row):
                 sx,sy=x*16-cx,y*16-cy
                 if -16<sx<320 and -16<sy<208:
-                    s.blit(self.tiles[kind],(sx,sy))
+                    s.blit(self.environment.tile(theme_name,kind,(x*37+y*17)%13),(sx,sy))
                     if kind == '~':
                         offset=int(self.time*3+x+y)%8
                         r.line(s,(83,159,174),(sx+offset,sy+6),(sx+min(15,offset+5),sy+6))
@@ -68,14 +58,7 @@ class Renderer:
                     elif kind == '#' and (x+3*y)%11==0:
                         r.line(s,(60,112,82),(sx+2,sy+3),(sx+2,sy+8))
                         r.rect(s,(78,131,88),(sx+3,sy+4,2,2))
-        # Lantern sconces give each room landmarks and a warm flickering glow.
-        for tx,ty in ((3,2),(11,2),(3,15),(11,15)):
-            sx,sy=tx*16-cx,ty*16-cy
-            r.rect(s,(30,39,47),(sx+5,sy+5,7,9))
-            r.rect(s,(188,128,69),(sx+6,sy+6,5,6),1)
-            flicker=int(math.sin(self.time*9+tx)*1.5)
-            r.rect(s,GOLD,(sx+7,sy+7+flicker,3,3))
-            r.rect(s,(255,226,142),(sx+8,sy+8+flicker,1,2))
+        self.environment.decorations(s,room,(cx,cy),self.time)
         # Inlaid entrance compass; authored art remains entirely local.
         sx,sy=2*16-cx,7*16-cy
         r.circle(s,(98,134,123),(sx+8,sy+8),7,1)
@@ -107,6 +90,8 @@ class Renderer:
                 r.rect(s,(133,112,158),(sx+3,sy+3,10,10));r.circle(s,GOLD,(sx+8,sy+8),3)
             elif isinstance(o,PushableBox):
                 r.rect(s,(28,36,44),(sx+1,sy+3,14,13));r.rect(s,(117,147,166) if o.data.get('metal') else (145,98,59),(sx+2,sy+1,12,12));r.rect(s,(211,162,92),(sx+3,sy+2,10,10),1);r.line(s,(211,162,92),(sx+4,sy+3),(sx+11,sy+10));r.line(s,(211,162,92),(sx+11,sy+3),(sx+4,sy+10))
+                if o.data.get("metal"):
+                    for ox,oy in ((3,2),(11,2),(3,10),(11,10)):r.rect(s,WHITE,(sx+ox,sy+oy,1,1))
             elif isinstance(o,PressurePlate):
                 c=TEAL if o.state.active else (153,137,108)
                 r.polygon(s,(28,40,49),[(sx+8,sy+1),(sx+15,sy+8),(sx+8,sy+15),(sx+1,sy+8)])
@@ -115,7 +100,7 @@ class Renderer:
                 if o.state.active:
                     r.rect(s,TEAL,(sx,sy,2,16));r.rect(s,TEAL,(sx+14,sy,2,16))
                 else:
-                    r.rect(s,(23,31,44),(sx,sy,16,16));r.rect(s,(141,128,94),(sx+1,sy+1,14,14),1)
+                    r.rect(s,(23,31,44),(sx,sy,16,16));r.rect(s,theme.wall,(sx,sy,3,16));r.rect(s,theme.wall,(sx+13,sy,3,16));r.line(s,theme.accent,(sx+1,sy),(sx+14,sy),2)
                     for i in (4,8,12):r.line(s,GOLD,(sx+i,sy+2),(sx+i,sy+13))
                     if not o.unlocked:r.rect(s,(232,157,77),(sx+6,sy+6,5,5))
             elif isinstance(o,Key):
@@ -163,6 +148,7 @@ class Renderer:
             else:r.rect(s,particle[5],(int(particle[0])-cx,int(particle[1])-cy,2,2))
         near=next((o for o in session.puzzles.objects.values() if abs(o.x-p.x)+abs(o.y-p.y)<=1 and isinstance(o,(Switch,Door,SecretPassage,Chest,Reflector)) and not (isinstance(o,(Door,SecretPassage)) and o.state.active)),None)
         if near:
+            r.rect(s,INK,(int(visual[0]*16)-cx-20,int(visual[1]*16)-cy-13,94,15))
             self.text(f"[{controls['ability']}] Pulse" if isinstance(near,SecretPassage) else f"[{controls['interact']}] Interact",int(visual[0]*16)-cx-18,int(visual[1]*16)-cy-12,GOLD)
         s.set_clip(None)
         r.rect(s,INK,(4,190,202,17))
@@ -239,7 +225,7 @@ class Renderer:
         rows=session.rooms.data['tiles'];w=len(rows[0]);h=len(rows)
         tile=min(120/w,66/h);x0,y0=32,151
         for x,y in known:
-            color=(93,114,107) if rows[y][x] not in '#~O' else (38,64,83) if rows[y][x]=='~' else (62,73,89)
+            color=(93,114,107) if rows[y][x] not in '#~Ov' else (38,64,83) if rows[y][x]=='~' else (62,73,89)
             pygame.draw.rect(self.surface,color,(int(x0+x*tile),int(y0+y*tile),max(1,int(tile)),max(1,int(tile))))
         for kind,(x,y) in DungeonAtlas(session.rooms).discovered_markers(session):
             color=GOLD if kind=='exit' else TEAL if kind in ('chest','receiver') else (198,136,113)

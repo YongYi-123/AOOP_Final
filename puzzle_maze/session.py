@@ -165,6 +165,13 @@ class GameSession:
         if not isinstance(pos, list) or len(pos) != 2 or any(type(v) is not int for v in pos) or not tilemap.walkable(*pos):
             raise ValueError('Invalid position')
 
+    @staticmethod
+    def add_optional_objects(room,snapshot):
+        if not isinstance(snapshot,dict):return
+        for obj in room['objects']:
+            if obj['id'] not in snapshot and obj.get('optional') and obj['type']=='chest':
+                snapshot[obj['id']]=dict(pos=list(obj['pos']),active=False,remaining=0,unlocked=False,latched=False)
+
     @classmethod
     def validate_snapshot(cls, room, snapshot):
         manager = PuzzleManager(room)
@@ -222,6 +229,7 @@ class GameSession:
             for room,snapshot in candidate.snapshots.items():
                 if room not in candidate.rooms.rooms:
                     raise ValueError('Unknown room')
+                cls.add_optional_objects(candidate.rooms.rooms[room],snapshot)
                 cls.validate_snapshot(candidate.rooms.rooms[room], snapshot)
             cls.validate_position(data['player'], PuzzleManager(candidate.rooms.rooms[data['room']]).tilemap)
             candidate.enter(data['room'],data['player'])
@@ -240,6 +248,7 @@ class GameSession:
             checkpoint = data['checkpoint']
             cls.validate_inventory(checkpoint['inventory'])
             cls.validate_growth(checkpoint)
+            cls.add_optional_objects(candidate.rooms.data,checkpoint['objects'])
             cls.validate_snapshot(candidate.rooms.data, checkpoint['objects'])
             cls.validate_position(checkpoint['pos'], candidate.puzzles.tilemap)
             check_manager = PuzzleManager(candidate.rooms.data)

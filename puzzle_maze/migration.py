@@ -46,13 +46,17 @@ class LayoutMigration:
 
     def snapshot(self,name,snapshot):
         room=self.rooms[name];objects={o['id']:o for o in room['objects']}
-        if set(objects)!=set(snapshot):raise ValueError('Unsupported old object set')
+        if set(snapshot)!={o['id'] for o in self.legacy[name]['objects']}:raise ValueError('Unsupported old object set')
         result=copy.deepcopy(snapshot);blocked=set()
+        for key,obj in objects.items():
+            if key not in result:
+                if not obj.get('optional'):raise ValueError('Missing required object')
+                result[key]=dict(pos=list(obj['pos']),active=False,remaining=0,unlocked=False,latched=False)
         for key,values in result.items():
             obj=objects[key]
             if obj['type']!='box':
-                old_obj=next(o for o in self.legacy[name]['objects'] if o['id']==key)
-                if values['pos']!=old_obj['pos']:raise ValueError('Moved old static object')
+                old_obj=next((o for o in self.legacy[name]['objects'] if o['id']==key),None)
+                if old_obj is not None and values['pos']!=old_obj['pos']:raise ValueError('Moved old static object')
                 values['pos']=list(obj['pos'])
             if obj['type']=='timed':values['remaining']=min(values['remaining'],obj['duration'])
             if obj['type'] in ('door','secret') and not values['active']:blocked.add(tuple(values['pos']))
