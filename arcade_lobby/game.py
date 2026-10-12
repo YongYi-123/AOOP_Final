@@ -52,6 +52,7 @@ class Game:
         self.audio.preload()
         import cat_voice                    # the cats' meows follow the hub's effects volume and mute
         self._cat_gain = cat_voice.master_gain = lambda: self.audio.effective_sfx / DEFAULT_SFX
+        self._cat_route = cat_voice.route = lambda sound, volume: self.audio.play_object(sound, "meow", 1, volume)
         if session is None:
             self.audio.switch("lobby")      # the title / profile screens play the hub theme; a session picks its room's
         if not self.audio.enabled:
@@ -126,6 +127,7 @@ class Game:
                 self.scenes.handle_event(event)
         self.scenes.update(dt)
         self.audio.update(dt)
+        self.audio.sync_scenes(self.scene_keys())
         self.audio.switch(self.music_for(self.scenes.stack))
         self.audio.set_duck(self.duck_for(self.scenes.current))
         racer = getattr(self.scenes.current, "racer", None)
@@ -152,6 +154,16 @@ class Game:
             if theme:
                 return theme
         return None
+
+    def scene_keys(self):
+        """[(key, label)] of the scenes on the stack, bottom first: what the audio manager needs to give each scene
+        one effect channel of its own and to free it when the scene leaves."""
+        out = []
+        for scene in self.scenes.stack:
+            machine = getattr(scene, "machine", None)
+            name = type(scene).__name__.replace("Scene", "")
+            out.append((id(scene), (machine.id if machine is not None else name)[:10].upper()))
+        return out
 
     PAUSABLE = ("racer", "volley", "galaxy", "territory")
 
@@ -219,6 +231,8 @@ class Game:
             import cat_voice
             if cat_voice.master_gain is self._cat_gain:
                 cat_voice.master_gain = lambda: 1.0
+            if cat_voice.route is self._cat_route:
+                cat_voice.route = None
 
     def run(self):
         while self.running:
