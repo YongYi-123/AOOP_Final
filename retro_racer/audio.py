@@ -13,7 +13,7 @@ RATE = 22050
 ENGINE_LOOP = 4410            # 0.2 s; every engine pitch has a whole number of cycles in it -> seamless loop
 ENGINE_CYCLES = [6, 8, 12, 16, 20, 24, 30, 36, 44, 52, 60]   # 30 .. 300 Hz
 LOW_EXTRA, BASE_SPAN = 1, 7   # the original 8 pitches are loops 1..8; 0 (lower) and 9-10 (higher) give cars room to shift
-RESERVED = 4                  # mixer channels 0-3 are never handed out to effects (engine 0-1, hub music 2-3)
+RESERVED = 8                  # mixer channels 0-7 are never handed out to effects (engine 0-1, hub music 2-3, hub scene effects 4-7)
 ENGINE_BASE, ENGINE_SLOPE = 0.45, 0.5                # engine gain = BASE + SLOPE * speed fraction
 
 
