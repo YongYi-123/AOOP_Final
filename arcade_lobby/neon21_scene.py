@@ -31,6 +31,7 @@ from neon21 import TICKETS, TOKENS, Neon21Table
 from neon21_art import (CARD_H, CARD_W, CHIP, EMERALD, GOLD, card_surface,
                         chip_surface, chips_for, suit_icon)
 from scene_base import BaseScene
+from display import screen_to_canvas
 from settings import (BACK_KEYS, CONFIRM_KEYS, NEON21_DAILY_TICKET_CAP,
                       NEON21_WAGERS, PIXEL_SCALE, VIEW_H, VIEW_W, Col)
 
@@ -158,7 +159,7 @@ class Neon21Scene(BaseScene):
                 self._press(action)
 
     def _button_at(self, pos):
-        x, y = pos[0] // PIXEL_SCALE, pos[1] // PIXEL_SCALE
+        x, y = screen_to_canvas(pos, self.game.screen.get_size())
         for name, (rect, _label, enabled) in self.buttons.items():
             if enabled and rect.collidepoint(x, y):
                 return name
@@ -349,9 +350,9 @@ class Neon21Scene(BaseScene):
 
     def _draw_header(self, surf):
         tokens, tickets = self._balance()
-        surf.blit(self.icon, (8, 6))
-        self.text(surf, f"TOKENS {tokens}", 18, 6, Col.YELLOW, anchor="topleft")
-        self.text(surf, f"TICKETS {tickets}", 18, 16, Col.MAGENTA, anchor="topleft")
+        surf.blit(self.icon, (8, 3))
+        self.text(surf, f"TOKENS {tokens}", 18, 3, Col.YELLOW, anchor="topleft")
+        self.text(surf, f"TICKETS {tickets}", 18, 12, Col.MAGENTA, anchor="topleft")       # (clear of the felt, which starts at y=22)
         pulse = 0.75 + 0.25 * math.sin(self.time * 3)
         glow = scale_color(GOLD, 0.45 * pulse)
         r = self.text(surf, "NEON 21", VIEW_W // 2, 4, GOLD, 2, glow=glow)

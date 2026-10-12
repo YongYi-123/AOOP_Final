@@ -21,6 +21,7 @@ from gfx import scale_color, shade
 from menus import MenuScene, draw_centered
 from player import styled_sheet
 from preview_art import pedestal, scaled
+from display import screen_to_canvas
 from settings import BACK_KEYS, CONFIRM_KEYS, VIEW_H, VIEW_W, Col
 from ui import draw_text, neon_panel
 
@@ -117,8 +118,7 @@ class CharacterCreatorScene(MenuScene):
                 self.confirm()
 
     def mouse_pos(self, pos):
-        w, h = self.game.screen.get_size()
-        return int(pos[0] * VIEW_W / w), int(pos[1] * VIEW_H / h)
+        return screen_to_canvas(pos, self.game.screen.get_size())
 
     def hit(self, rect, callback):
         self._hit.append((pygame.Rect(rect), callback))

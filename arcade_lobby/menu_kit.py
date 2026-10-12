@@ -17,6 +17,7 @@ from font import LINE_H, get_font
 from gfx import scale_color, shade
 from input_router import PlayerInput
 from scene_base import BaseScene
+from display import screen_to_canvas
 from settings import VIEW_H, VIEW_W, Col
 from ui import dim_screen, draw_text, neon_panel
 
@@ -87,8 +88,7 @@ class MenuScene(BaseScene):
             audio.play(sound)
 
     def mouse_pos(self, pos):
-        w, h = self.game.screen.get_size()
-        return int(pos[0] * VIEW_W / w), int(pos[1] * VIEW_H / h)
+        return screen_to_canvas(pos, self.game.screen.get_size())
 
     def update(self, dt):
         self.time += dt
