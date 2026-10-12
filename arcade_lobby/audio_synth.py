@@ -908,6 +908,61 @@ def sfx_maze_over():
     return m.finish(peak=0.6, fade=0.03)
 
 
+def sfx_coin_drop():
+    """A coin dropped into the chute: a bright ping and a short tumble onto the stage."""
+    m = _sfx(0.4)
+    m.note(0, 0.03, 2400, "sine", 0.45, release=0.02)
+    m.note(0.0, 0.18, 3100, "bell", 0.3, release=0.16)
+    m.noise(0.25, 0.05, 0.25, decay=80, bright=0.8, seed=41)
+    m.note(0.26, 0.05, 1500, "bell", 0.28, release=0.1)
+    return m.finish(peak=0.5, fade=0.01)
+
+
+def sfx_coin_clink():
+    """Two coins touching: a very soft metallic tick (it plays a lot, so it stays quiet)."""
+    m = _sfx(0.12)
+    m.note(0, 0.02, 3300, "bell", 0.3, release=0.07)
+    m.noise(0, 0.015, 0.2, decay=140, bright=0.8, seed=43)
+    return m.finish(peak=0.4, fade=0.01)
+
+
+def sfx_coin_tray():
+    """A coin falling over the edge and rattling into the tray."""
+    m = _sfx(0.35)
+    m.note(0, 0.1, 1700, "bell", 0.3, release=0.1, slide=-1500)
+    for k, hz_ in enumerate((2200, 2800, 2400)):
+        m.note(0.12 + k * 0.05, 0.03, hz_, "bell", 0.35, release=0.08)
+    m.noise(0.12, 0.1, 0.2, decay=40, bright=0.7, seed=44)
+    return m.finish(peak=0.5, fade=0.01)
+
+
+def sfx_coin_win():
+    """A small reward: a rising two-step chime."""
+    m = _sfx(0.5)
+    for k, name in enumerate(("E6", "A6", "C#7")):
+        m.note(k * 0.07, 0.08, hz(midi(name)), "p25", 0.3, release=0.12)
+    m.note(0.22, 0.2, hz(midi("E7")), "bell", 0.3, release=0.25)
+    return m.finish(peak=0.55, fade=0.02)
+
+
+def sfx_coin_gold():
+    """The Golden Cat Coin: a bell run up and a sparkly 'meow' glide on top."""
+    m = _sfx(0.78)
+    for k, name in enumerate(("C6", "E6", "G6", "C7", "E7", "G7")):
+        m.note(k * 0.06, 0.1, hz(midi(name)), "bell", 0.32, release=0.2)
+    m.note(0.4, 0.3, 880, "sine", 0.3, release=0.2, vibrato=10, slide=500)
+    m.note(0.4, 0.3, 1320, "bell", 0.2, release=0.25)
+    return m.finish(peak=0.6, fade=0.03)
+
+
+def sfx_pusher_hum():
+    """The pusher motor starting its forward stroke: a low, soft hum."""
+    m = _sfx(0.6)
+    m.note(0, 0.45, 70, "tri", 0.4, attack=0.1, release=0.15)
+    m.note(0, 0.45, 140, "sine", 0.18, attack=0.1, release=0.15, vibrato=5)
+    return m.finish(peak=0.3, fade=0.03)
+
+
 SFX = {"footstep": sfx_footstep, "confirm": sfx_confirm, "cancel": sfx_cancel, "machine": sfx_machine,
        "token": sfx_token, "ticket": sfx_ticket, "purchase": sfx_purchase, "card": sfx_card,
        "equip": sfx_equip, "meow": sfx_meow, "pet": sfx_pet, "pet_b": sfx_pet_b, "pet_c": sfx_pet_c, "purr": sfx_purr, "emote": sfx_emote, "sit": sfx_sit,
@@ -915,7 +970,9 @@ SFX = {"footstep": sfx_footstep, "confirm": sfx_confirm, "cancel": sfx_cancel, "
        "munch": sfx_munch, "rainbow": sfx_rainbow, "squeak": sfx_squeak, "zap": sfx_zap, "mystery": sfx_mystery,
        "glitch": sfx_glitch, "maze_fish": sfx_maze_fish, "maze_fish_b": sfx_maze_fish_b, "maze_golden": sfx_maze_golden,
        "maze_golden_spawn": sfx_maze_golden_spawn, "maze_catnip": sfx_maze_catnip, "maze_catnip_end": sfx_maze_catnip_end,
-       "maze_disable": sfx_maze_disable, "maze_life": sfx_maze_life, "maze_clear": sfx_maze_clear, "maze_over": sfx_maze_over}
+       "maze_disable": sfx_maze_disable, "maze_life": sfx_maze_life, "maze_clear": sfx_maze_clear, "maze_over": sfx_maze_over,
+       "coin_drop": sfx_coin_drop, "coin_clink": sfx_coin_clink, "coin_tray": sfx_coin_tray, "coin_win": sfx_coin_win,
+       "coin_gold": sfx_coin_gold, "pusher_hum": sfx_pusher_hum}
 
 
 def generate(only=None):
