@@ -1,10 +1,10 @@
 import tempfile
 import unittest
 from pathlib import Path
-from puzzle_maze.session import GameSession
+from legacy import GameSession
 from puzzle_maze.core import Player
 from puzzle_maze.puzzles import PuzzleManager
-from puzzle_maze.rooms import load_rooms
+from legacy import load_rooms
 
 class SessionTests(unittest.TestCase):
     def test_secret_requires_pulse(self):

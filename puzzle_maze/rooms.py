@@ -42,6 +42,8 @@ def validate_rooms(rooms):
         if not room['exits']:
             raise ValueError(f'{name}: missing exits')
         for e in room['exits']:
+            if any(req not in ids for req in e.get('requires', [])):
+                raise ValueError(f'{name}: missing exit condition')
             if not tilemap.walkable(*e['pos']) or e['target'] not in rooms:
                 raise ValueError(f'{name}: invalid exit')
             if not TileMap(rooms[e['target']]['tiles']).walkable(*e['arrival']):

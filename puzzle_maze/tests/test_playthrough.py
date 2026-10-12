@@ -1,8 +1,8 @@
 """Execute solver output and complete every room via production movement."""
 import unittest
 from collections import deque
-from puzzle_maze.rooms import load_rooms
-from puzzle_maze.session import GameSession
+from legacy import load_rooms
+from legacy import GameSession
 from puzzle_maze.solver import solve_boxes
 
 DIRECTIONS=((1,0),(-1,0),(0,1),(0,-1))

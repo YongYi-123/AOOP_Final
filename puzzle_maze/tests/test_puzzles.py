@@ -1,6 +1,6 @@
 import unittest
 from puzzle_maze.core import Player
-from puzzle_maze.rooms import load_rooms
+from legacy import load_rooms
 from puzzle_maze.puzzles import PuzzleManager, Inventory
 
 class PuzzleTests(unittest.TestCase):

@@ -2,11 +2,11 @@
 from collections import deque
 from puzzle_maze.core import TileMap
 
-def solve_boxes(room):
+def solve_boxes(room, box_ids=None, plate_ids=None, start=None, open_ids=()):
     tilemap=TileMap(room['tiles'])
-    boxes=frozenset(tuple(o['pos']) for o in room['objects'] if o['type']=='box')
-    goals=frozenset(tuple(o['pos']) for o in room['objects'] if o['type']=='plate')
-    barriers={tuple(o['pos']) for o in room['objects'] if o['type'] in ('door','secret')}
+    boxes=frozenset(tuple(o['pos']) for o in room['objects'] if o['type']=='box' and (box_ids is None or o['id'] in box_ids))
+    goals=frozenset(tuple(o['pos']) for o in room['objects'] if o['type']=='plate' and (plate_ids is None or o['id'] in plate_ids))
+    barriers={tuple(o['pos']) for o in room['objects'] if o['type'] in ('door','secret') and o['id'] not in open_ids}
     directions=((1,0),(-1,0),(0,1),(0,-1))
 
     def region(start,stones):
@@ -19,7 +19,7 @@ def solve_boxes(room):
                     reachable.add(p);stack.append(p)
         return reachable
 
-    initial=tuple(room['spawn'])
+    initial=tuple(start or room['spawn'])
     queue=deque([(initial,boxes,[])])
     seen={(min(region(initial,boxes)),boxes)}
     while queue:

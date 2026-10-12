@@ -120,13 +120,15 @@ class PuzzleManager(CollisionManager):
         self.update_special(dt)
         for obj in self.objects.values():
             if isinstance(obj, Door):
-                powered = all(self.objects[i].state.active for i in obj.data.get('requires', [])) and obj.unlocked
+                powered = all(self.objects[i].state.active or (isinstance(self.objects[i], Door) and self.objects[i].latched) for i in obj.data.get('requires', [])) and obj.unlocked
                 # Non-timed doors latch: the introductory player plate remains fair.
                 timed = any(self.objects[i].data['type'] == 'timed' for i in obj.data.get('requires', []))
                 if powered and not timed:
                     obj.latched = True
+                if timed and player is not None and player.x > obj.x:
+                    obj.latched = True  # Crossing memory powers later stages, without holding this gate open.
                 occupied = player is not None and obj.pos == (player.x, player.y) or any(isinstance(b, PushableBox) and b.pos == obj.pos for b in self.objects.values())
-                obj.state.active = powered or obj.latched or bool(occupied)
+                obj.state.active = powered or (obj.latched and not timed) or bool(occupied)
 
     def update_special(self, dt):
         for obj in self.objects.values():

@@ -9,8 +9,8 @@ from puzzle_maze.puzzles import PuzzleManager, Inventory, Door
 SAVE_PATH = Path(__file__).parent / 'save.json'
 
 class GameSession:
-    def __init__(self):
-        self.rooms = RoomManager()
+    def __init__(self, rooms=None):
+        self.rooms = RoomManager(rooms)
         self.inventory = Inventory()
         self.snapshots = {}
         self.completed = set()
@@ -64,6 +64,8 @@ class GameSession:
     def transition(self):
         e=self.rooms.exit_at(self.player)
         if e is None:
+            return False
+        if e.get('requires') and self.rooms.current not in self.completed and not all(self.puzzles.objects[i].state.active for i in e['requires']):
             return False
         if e.get('finish'):
             if not self.puzzles.solved and self.rooms.current not in self.completed:

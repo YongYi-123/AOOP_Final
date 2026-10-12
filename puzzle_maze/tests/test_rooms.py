@@ -18,7 +18,7 @@ class RoomTests(unittest.TestCase):
 
     def test_transition(self):
         manager = RoomManager()
-        p = manager.enter('r1', [33, 7])
+        p = manager.enter('r1', manager.data['exits'][0]['pos'])
         e = manager.exit_at(p)
         p = manager.enter(e['target'], e['arrival'])
         self.assertEqual(manager.current, 'r2')
