@@ -180,6 +180,16 @@ class Neon21Station(LuckyCabinet):
         scene.open_neon21()
 
 
+class CoinPusherStation(LuckyCabinet):
+    """NEON COIN PUSHER - KITTY FORTUNE. Opening it is free; the coins cost Tokens."""
+
+    def __init__(self, pos):
+        super().__init__(pos, "pusher", "COIN PUSHER")
+
+    def interact(self, scene):
+        scene.open_coin_pusher()
+
+
 class LuckySign(Prop):
     """The glowing LUCKY CORNER plaque above the machines. Decoration only:
     it is not solid and has no prompt."""
