@@ -30,7 +30,7 @@ SCENE_SFX = (4, 5, 6, 7)   # one dedicated effect channel per scene on the stack
 ORPHAN_GRACE = 0.6      # a scene that left may let its last effect finish this long (then the channel is stopped and freed)
 SFX_STUCK_GRACE = 1.0   # an effect still "playing" this long after it should have ended means the device is not consuming
 # Effect priority inside a scene's one channel: a new effect replaces the playing one unless the playing one matters more.
-PRIORITY = {"footstep": 0, "meow": 1, "card": 1, "sit": 1, "pet": 1, "emote": 1, "bounce": 1, "hit": 1, "laser": 1,
+PRIORITY = {"footstep": 0, "meow": 1, "card": 1, "sit": 1, "pet": 1, "pet_b": 1, "pet_c": 1, "purr": 2, "emote": 1, "bounce": 1, "hit": 1, "laser": 1,
             "skid": 1, "reveal": 1, "flag": 1, "confirm": 2, "cancel": 2, "machine": 2, "token": 2, "ticket": 2,
             "point": 2, "boom": 2, "vend_select": 1, "vend_hum": 1, "vend_drop": 3, "burp": 3, "munch": 3,
             "rainbow": 3, "squeak": 3, "zap": 3, "mystery": 3, "glitch": 4, "purchase": 3, "equip": 3, "spike": 3, "powerup": 3, "win": 4, "loss": 4,
@@ -38,16 +38,16 @@ PRIORITY = {"footstep": 0, "meow": 1, "card": 1, "sit": 1, "pet": 1, "emote": 1,
             "maze_fish": 0, "maze_fish_b": 0, "maze_catnip_end": 1, "maze_golden_spawn": 2, "maze_golden": 3,
             "maze_catnip": 3, "maze_disable": 3, "maze_life": 4, "maze_clear": 4, "maze_over": 4}
 SFX_FILES = ("footstep", "confirm", "cancel", "machine", "token", "ticket", "purchase", "card", "equip",
-             "pet", "emote", "sit", "meow", "vend_hum", "vend_select", "vend_drop", "burp", "munch", "rainbow",
+             "pet", "pet_b", "pet_c", "purr", "emote", "sit", "meow", "vend_hum", "vend_select", "vend_drop", "burp", "munch", "rainbow",
              "squeak", "zap", "mystery", "glitch",
              "maze_fish", "maze_fish_b", "maze_golden", "maze_golden_spawn", "maze_catnip", "maze_catnip_end",
              "maze_disable", "maze_life", "maze_clear", "maze_over")
 # some effects are meant to be barely there
-SFX_GAIN = {"footstep": 0.3, "card": 0.7, "confirm": 0.8, "cancel": 0.8, "sit": 0.7, "emote": 0.8, "meow": 0.6, "vend_hum": 0.6, "vend_select": 0.7, "vend_drop": 0.8, "burp": 0.7,
+SFX_GAIN = {"footstep": 0.3, "card": 0.7, "confirm": 0.8, "cancel": 0.8, "sit": 0.7, "emote": 0.8, "meow": 0.6, "purr": 1.0, "vend_hum": 0.6, "vend_select": 0.7, "vend_drop": 0.8, "burp": 0.7,
             # the shooter fires dozens of these a second of play: keep them a soft texture, not a buzz
             "laser": 0.3, "boom": 0.75, "point": 0.8, "skid": 0.6, "bounce": 0.8,
             "maze_fish": 0.55, "maze_fish_b": 0.55, "maze_catnip_end": 0.8}
-MIN_GAP = {"footstep": 0.16, "meow": 1.2, "laser": 0.14, "boom": 0.09, "point": 0.1, "bounce": 0.08,
+MIN_GAP = {"footstep": 0.16, "pet": 0.35, "pet_b": 0.35, "pet_c": 0.35, "purr": 0.35, "meow": 1.2, "laser": 0.14, "boom": 0.09, "point": 0.1, "bounce": 0.08,
            "hit": 0.07}                              # seconds between two plays of the same effect (default .06)
 DEFAULT_BGM, DEFAULT_SFX = .5, .7      # the music files are mastered at about -14 dB, so .5 is comfortable
 FADE_MS = 700           # music crossfade length, driven by game time (not by the audio clock: a stalled device cannot freeze it)

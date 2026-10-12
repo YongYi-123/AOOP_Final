@@ -690,6 +690,39 @@ def sfx_pet():
     return m.finish(peak=0.45, fade=0.01)
 
 
+def sfx_pet_b():
+    """A short, high 'mew' chirp (a happier pet)."""
+    m = _sfx(0.3)
+    m.note(0, 0.1, 640, "sine", 0.38, release=0.05, vibrato=10, slide=1100)
+    m.note(0.1, 0.12, 900, "tri", 0.26, release=0.1, vibrato=10, slide=-900)
+    return m.finish(peak=0.42, fade=0.01)
+
+
+def sfx_pet_c():
+    """A two-note 'mrrp?' trill."""
+    m = _sfx(0.34)
+    m.note(0, 0.08, 430, "sine", 0.4, release=0.03, vibrato=26, slide=500)
+    m.note(0.1, 0.14, 640, "sine", 0.34, release=0.1, vibrato=18, slide=400)
+    return m.finish(peak=0.42, fade=0.01)
+
+
+def sfx_purr():
+    """A gentle, clearly audible purr: a buzzy 105 Hz carrier (its harmonics reach ~1 kHz, so small speakers
+    still play it) pulsed about 25 times a second, with a little breath."""
+    m = _sfx(0.76)
+    rng = random.Random(21)
+    f0, breath = 105.0, 0.0
+    for i in range(m.n):
+        t = i / RATE
+        pulse = (0.5 + 0.5 * math.cos(6.283185307 * 25 * t + 3.1)) ** 1.6          # the rumble's beat
+        f = f0 * (1 + 0.02 * math.sin(6.283185307 * 3.1 * t))
+        carrier = sum(math.sin(6.283185307 * f * h * t) / h ** 0.5 for h in range(1, 13))
+        breath += (rng.uniform(-1, 1) - breath) * 0.12
+        env = min(1.0, t / 0.1) * min(1.0, (0.76 - t) / 0.2)
+        m.buf[i] += env * (0.3 + 0.7 * pulse) * (0.5 * carrier + 0.5 * breath)
+    return m.finish(peak=0.62, fade=0.04, rms=-17)
+
+
 def sfx_emote():
     m = _sfx(0.25)
     m.note(0, 0.08, hz(midi("G5")), "p25", 0.4, release=0.05)
@@ -877,7 +910,7 @@ def sfx_maze_over():
 
 SFX = {"footstep": sfx_footstep, "confirm": sfx_confirm, "cancel": sfx_cancel, "machine": sfx_machine,
        "token": sfx_token, "ticket": sfx_ticket, "purchase": sfx_purchase, "card": sfx_card,
-       "equip": sfx_equip, "meow": sfx_meow, "pet": sfx_pet, "emote": sfx_emote, "sit": sfx_sit,
+       "equip": sfx_equip, "meow": sfx_meow, "pet": sfx_pet, "pet_b": sfx_pet_b, "pet_c": sfx_pet_c, "purr": sfx_purr, "emote": sfx_emote, "sit": sfx_sit,
        "vend_hum": sfx_vend_hum, "vend_select": sfx_vend_select, "vend_drop": sfx_vend_drop, "burp": sfx_burp,
        "munch": sfx_munch, "rainbow": sfx_rainbow, "squeak": sfx_squeak, "zap": sfx_zap, "mystery": sfx_mystery,
        "glitch": sfx_glitch, "maze_fish": sfx_maze_fish, "maze_fish_b": sfx_maze_fish_b, "maze_golden": sfx_maze_golden,
