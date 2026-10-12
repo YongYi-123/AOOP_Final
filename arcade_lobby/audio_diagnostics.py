@@ -85,7 +85,7 @@ def main(argv=None):
         print("\nPlaying test chord ...")
         audio.test_tone()
         time.sleep(0.9)
-        print(f"Playing the hub theme for {args.seconds:g}s ...")
+        print(f"Playing the hub theme for {args.seconds:g}s (use --seconds 30 to also exercise the device-stall check) ...")
         audio.switch("lobby")
         end = time.time() + args.seconds
         playing = False
@@ -94,6 +94,13 @@ def main(argv=None):
             playing = playing or audio.music_playing()
             time.sleep(0.05)
         print(f"Mixer reports music channel busy: {playing}   current track: {audio.theme}")
+        st2 = audio.status()
+        print(f"Device liveness (silent probe): {st2['device_state']}  last probe {st2['probe_ms']} ms  "
+              f"stalls {st2['device_stalls']}  mixer reopens {st2['reopens']}")
+        if st2["device_stalls"]:
+            problems.append("AUDIO DEVICE STALLS: the sound device stopped consuming samples while the mixer still reported "
+                            "playback; the game reopens the mixer to recover. On WSL this is the WSLg audio bridge: run "
+                            "'wsl --update', then 'wsl --shutdown' from Windows, and check the Windows output device.")
         if args.all:
             for theme in MUSIC_FILES:
                 audio.switch(theme)

@@ -253,22 +253,42 @@ def debug_lines(game):
     st = a.status()
     mixer = st["mixer"]
     lines = [f"SCENE  {name}",
-             f"MUSIC  {a.theme or '-'}  {'PLAYING' if st['music_playing'] else 'SILENT'}  {a.fade_state}",
+             f"MUSIC  {a.theme or '-'}  {('PLAYING' + (' (MUTED)' if a.muted else '')) if st['music_playing'] else 'SILENT'}  {a.fade_state}",
              f"VOL    MUSIC {round(a.bgm_volume * 100)}  SFX {round(a.sfx_volume * 100)}  "
              f"{'MUTED' if a.muted else 'ON'}",
-             f"FADE   A {a.mix[0]:.2f}>{a.mix_to[0]:.0f}  B {a.mix[1]:.2f}>{a.mix_to[1]:.0f}  DUCK {round(a.duck * 100)}"]
+             f"FADE   A {a.mix[0]:.2f}>{a.mix_to[0]:.0f}  B {a.mix[1]:.2f}>{a.mix_to[1]:.0f}  DUCK {round(a.duck * 100)}"
+             + ("  STUCK AT 0!" if st["fade_stuck"] else "")]
+    from game import Game
+    want = Game.music_for(game.scenes.stack)
+    if want and a.theme and want != a.theme:
+        lines.append(f"TRACK  WANT {want}  GOT {a.theme}  WRONG!")
     if mixer:
         lines.append(f"MIXER  {st['driver'] or '?'} {mixer[0]}HZ {'ST' if mixer[2] == 2 else 'MONO'}")
     else:
         lines.append(f"MIXER  UNAVAILABLE  {(st['init_error'] or '')[:34]}")
+    if mixer:
+        if st["device_state"] == "STALLED":
+            lines.append(f"DEVICE STALLED!  REOPENS {st['reopens']}")
+        else:
+            probe = f"{st['probe_ms']}MS" if st["probe_ms"] is not None else "..."
+            lines.append(f"DEVICE {st['device_state']} {probe}  STALLS {st['device_stalls']} REOPEN {st['reopens']}")
+    if st["missing_music"] or st["missing_sfx"]:
+        lines.append(f"FILES  MISSING {len(st['missing_music'])} MUSIC {len(st['missing_sfx'])} SFX")
     busy = a.sfx_busy()
     lines.append(f"SFX    {len(busy)} PLAYING" + (f"  CH {','.join(map(str, busy[:8]))}" if busy else ""))
+    owners = a.sfx_owners()
+    lines.append("OWNER  " + (" ".join(f"{ch}={who}" + (f":{fx}" if fx else "") for ch, who, fx in owners[:3]) if owners else "-")
+                 + (f"  STUCK {st['stuck_sfx']}" if st["stuck_sfx"] else ""))
+    others = [c for c in busy if c not in {o[0] for o in owners}]
+    if others:
+        lines.append(f"OTHER  CH {','.join(map(str, others[:8]))} (VOICES/RACER)")
     racer = getattr(scene, "racer", None)
     if racer is not None and hasattr(racer, "audio"):
         ra = racer.audio
         if mixer and getattr(ra, "enabled", False):
             ch = [(pygame.mixer.Channel(i).get_busy(), pygame.mixer.Channel(i).get_volume()) for i in (0, 1)]
-            lines.append("ENGINE " + ("RUNNING " if any(b for b, _ in ch) else "OFF ") +
+            racing = getattr(getattr(racer, "state", None), "name", "") in ("PLAYING", "COUNTDOWN") and not racer.paused
+            lines.append("ENGINE " + ("RUNNING " if any(b for b, _ in ch) else ("STOPPED! " if racing else "OFF ")) +
                          " ".join(f"{v:.2f}" for _, v in ch) + f"  BOOST {ra.engine_boost:.1f}")
         else:
             lines.append("ENGINE UNAVAILABLE")
