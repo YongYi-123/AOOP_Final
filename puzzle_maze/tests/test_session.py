@@ -55,3 +55,15 @@ class SessionTests(unittest.TestCase):
         m.interact(Player(18,10));m.interact(Player(19,5))
         self.assertFalse(m.solved)
         m.interact(Player(23,7));self.assertTrue(m.solved)
+
+    def test_corrupt_snapshots_and_checkpoint_fall_back(self):
+        import json
+        s=GameSession()
+        with tempfile.TemporaryDirectory() as d:
+            path=Path(d)/'save.json';s.save(path)
+            original=json.loads(path.read_text())
+            for field,value in [('player',[0,0]),('inventory',{'amber':-1}),('checkpoint',{}),('snapshots',{'r1':{}})]:
+                data=dict(original);data[field]=value;path.write_text(json.dumps(data))
+                loaded=GameSession.load(path)
+                self.assertEqual((loaded.player.x,loaded.player.y),(2,7))
+                loaded.reset()

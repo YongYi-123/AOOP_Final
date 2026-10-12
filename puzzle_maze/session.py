@@ -1,6 +1,7 @@
 """Session owns room snapshots, checkpoint reset, and private atomic saves."""
 import copy
 import json
+import math
 from pathlib import Path
 from puzzle_maze.rooms import RoomManager
 from puzzle_maze.puzzles import PuzzleManager, Inventory, Door
@@ -83,6 +84,39 @@ class GameSession:
         tmp.write_text(json.dumps(data,indent=2)+'\n')
         tmp.replace(path)
 
+    @staticmethod
+    def validate_inventory(keys):
+        if not isinstance(keys, dict) or any(not isinstance(k, str) or type(v) is not int or v < 0 for k, v in keys.items()):
+            raise ValueError('Invalid inventory')
+
+    @staticmethod
+    def validate_position(pos, tilemap):
+        if not isinstance(pos, list) or len(pos) != 2 or any(type(v) is not int for v in pos) or not tilemap.walkable(*pos):
+            raise ValueError('Invalid position')
+
+    @classmethod
+    def validate_snapshot(cls, room, snapshot):
+        manager = PuzzleManager(room)
+        if not isinstance(snapshot, dict) or set(snapshot) != set(manager.objects):
+            raise ValueError('Incomplete snapshot')
+        occupied = set()
+        for name, obj in manager.objects.items():
+            values = snapshot[name]
+            cls.validate_position(values['pos'], manager.tilemap)
+            if obj.data['type'] != 'box' and values['pos'] != obj.data['pos']:
+                raise ValueError('Moved static object')
+            for flag in ('active', 'unlocked', 'latched'):
+                if type(values[flag]) is not bool:
+                    raise ValueError('Invalid state')
+            timer = values['remaining']
+            if not isinstance(timer, (int, float)) or not math.isfinite(timer) or timer < 0 or timer > obj.data.get('duration', 0):
+                raise ValueError('Invalid timer')
+            if obj.blocking and not values['active']:
+                pos = tuple(values['pos'])
+                if pos in occupied:
+                    raise ValueError('Overlapping obstacles')
+                occupied.add(pos)
+
     @classmethod
     def load(cls,path=SAVE_PATH):
         try:
@@ -91,8 +125,7 @@ class GameSession:
             if data['version'] != 1 or data['room'] not in candidate.rooms.rooms:
                 raise ValueError('Unsupported save')
             candidate.inventory.keys=data['inventory']
-            if any(not isinstance(v,int) or v<0 for v in candidate.inventory.keys.values()):
-                raise ValueError('Invalid inventory')
+            cls.validate_inventory(candidate.inventory.keys)
             candidate.snapshots=data['snapshots']
             candidate.completed=set(data['completed']); candidate.visited=set(data['visited'])
             if not (candidate.completed | candidate.visited) <= candidate.rooms.rooms.keys():
@@ -101,14 +134,23 @@ class GameSession:
             for room,snapshot in candidate.snapshots.items():
                 if room not in candidate.rooms.rooms:
                     raise ValueError('Unknown room')
-                candidate.enter(room)
-                for obj in candidate.puzzles.objects.values():
-                    if not candidate.puzzles.tilemap.walkable(*obj.pos):
-                        raise ValueError('Invalid object position')
+                cls.validate_snapshot(candidate.rooms.rooms[room], snapshot)
+            cls.validate_position(data['player'], PuzzleManager(candidate.rooms.rooms[data['room']]).tilemap)
             candidate.enter(data['room'],data['player'])
             if candidate.puzzles.blocked(*data['player']):
                 raise ValueError('Blocked player')
-            candidate.checkpoint=data['checkpoint']
+            checkpoint = data['checkpoint']
+            cls.validate_inventory(checkpoint['inventory'])
+            cls.validate_snapshot(candidate.rooms.data, checkpoint['objects'])
+            cls.validate_position(checkpoint['pos'], candidate.puzzles.tilemap)
+            check_manager = PuzzleManager(candidate.rooms.data)
+            for name, values in checkpoint['objects'].items():
+                obj = check_manager.objects[name]
+                obj.x, obj.y = values['pos']
+                obj.state.active = values['active']
+            if check_manager.blocked(*checkpoint['pos']):
+                raise ValueError('Blocked checkpoint')
+            candidate.checkpoint=checkpoint
             candidate.finished=bool(data['finished'])
             return candidate
         except (OSError,ValueError,KeyError,TypeError,IndexError,AttributeError):

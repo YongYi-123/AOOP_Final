@@ -5,7 +5,7 @@ from puzzle_maze.rooms import load_rooms, validate_rooms, RoomManager
 class RoomTests(unittest.TestCase):
     def test_all_maps_and_exits(self):
         rooms = load_rooms()
-        self.assertEqual(len(rooms), 8)
+        self.assertEqual(len(rooms), 9)
         for room in rooms.values():
             self.assertTrue(room['objects'])
             self.assertTrue(room['goal'])
