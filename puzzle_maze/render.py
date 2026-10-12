@@ -71,6 +71,7 @@ class Renderer:
         # Hidden passage clue: moss and luminous cracks converge at the wall.
         for o in sorted(session.puzzles.objects.values(), key=lambda obj: 0 if isinstance(obj,PressurePlate) else 1):
             sx,sy=o.x*16-cx,o.y*16-cy
+            if not (-16<sx<320 and -16<sy<208):continue
             if isinstance(o,SecretPassage):
                 if not o.state.active:
                     s.blit(self.tiles['#'],(sx,sy));r.lines(s,GOLD,False,[(sx+8,sy+2),(sx+5,sy+7),(sx+10,sy+9),(sx+7,sy+14)])

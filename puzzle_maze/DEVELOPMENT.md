@@ -141,3 +141,55 @@ Phase E：RoomTheme / EnvironmentPainter 原創程式像素美術；八種材質
 不改碰撞。紋理/光暈快取，粒子數量受限。隱藏寶庫增加一次性補給箱；
 缺少此可選物件的舊快照補預設狀態，其他缺少物件仍拒絕。精簡房間提示。
 72 項全套及最後材質/版面回歸通過；已檢查入口的最終解析度截圖。
+
+Phase F：78 項測試全部通過（10.073 秒），含初始劍、單次命中、前兩房敵人、
+教學等待與重複鍵、兩玩家按鍵一致性、全八房搜尋/能力/戰鬥通關、秘密寶庫
+獎勵一次性、舊存檔及新增可選物件。補持久化面向與鎖定揮劍方向，限制存檔
+冷卻值，排除鏡頭外物件文字。已查看房間主題、英文教學與 Game Over 截圖。
+Dummy driver 的 180 幀純繪製平均 1.51 ms（0.272 秒），為 headless 繪製容量，
+不等同實際硬體 FPS。修正字型授權檔末端空白，保留完整授權文字。
+人工待驗證：J 揮劍手感 / 音量、完整關卡難度、真實螢幕字體及縮放、實際 FPS。
+
+最終再檢查：開場角色被字幕板遮住，已移至字幕上方並加可見範圍測試。
+近戰接觸改為朝敵人轉向但不重疊，避免貼身後劍無法命中；箱子/衝刺也不會
+落在活敵人上，通關模擬以實際攻擊處理阻路敵人。最終 80 項全部通過
+（11.244 秒），含所有九房、開場/教學與死亡流程；全部變更仍只在 puzzle_maze/。
+
+2.1 檔案變更清單（A 新增 / M 修改 / D 移除；相對 2d594de）：
+
+- `M puzzle_maze/.gitignore`
+- `M puzzle_maze/DEVELOPMENT.md`
+- `M puzzle_maze/README.md`
+- `A puzzle_maze/assets/fonts/DejaVu-LICENSE.txt`
+- `A puzzle_maze/assets/fonts/DejaVuSans-Bold.ttf`
+- `A puzzle_maze/assets/fonts/DejaVuSans.ttf`
+- `D puzzle_maze/assets/fonts/NotoSansCJKtc-Regular.otf`
+- `D puzzle_maze/assets/fonts/OFL.txt`
+- `M puzzle_maze/audio.py`
+- `M puzzle_maze/combat.py`
+- `M puzzle_maze/core.py`
+- `A puzzle_maze/environment.py`
+- `M puzzle_maze/game.py`
+- `M puzzle_maze/lobby_scene.py`
+- `M puzzle_maze/maps/dungeon.json`
+- `A puzzle_maze/maps/dungeon_v20.json`
+- `A puzzle_maze/migration.py`
+- `A puzzle_maze/onboarding.py`
+- `M puzzle_maze/puzzles.py`
+- `M puzzle_maze/render.py`
+- `M puzzle_maze/rooms.py`
+- `M puzzle_maze/session.py`
+- `M puzzle_maze/tests/test_abilities.py`
+- `A puzzle_maze/tests/test_bridge.py`
+- `M puzzle_maze/tests/test_campaign.py`
+- `A puzzle_maze/tests/test_environment.py`
+- `M puzzle_maze/tests/test_exploration.py`
+- `M puzzle_maze/tests/test_game.py`
+- `A puzzle_maze/tests/test_migration.py`
+- `A puzzle_maze/tests/test_onboarding.py`
+- `M puzzle_maze/tests/test_rooms.py`
+- `A puzzle_maze/tests/test_sword.py`
+- `M puzzle_maze/tests/test_ui.py`
+- `A puzzle_maze/themes.py`
+- `M puzzle_maze/ui.py`
+- `A puzzle_maze/weapons.py`

@@ -18,11 +18,12 @@ def walk(session,target,legacy=True):
             if pos==tuple(target):step=first;break
             for dx,dy in DIRECTIONS:
                 nxt=pos[0]+dx,pos[1]+dy
-                if nxt not in seen and session.puzzles.can_enter(*nxt):
+                if nxt not in seen and session.puzzles.can_enter(*nxt) and (session.can_enter(*nxt) or nxt==tuple(target)):
                     seen.add(nxt);queue.append((nxt,first or (dx,dy)))
         if step is None:raise AssertionError(f'No route to {target}')
-        if not session.move(*step):raise AssertionError('Movement disabled')
-        session.tick(.13)
+        if not session.move(*step):
+            session.attack();session.tick(.26)
+        else:session.tick(.13)
     raise AssertionError('Movement witness did not converge')
 
 def use(session,pos,pulse=False):
@@ -50,7 +51,7 @@ def fight_encounter(s):
             if safety>12:raise AssertionError('Combat route failed')
             candidates=[(enemy.x-1,enemy.y),(enemy.x+1,enemy.y),(enemy.x,enemy.y-1),(enemy.x,enemy.y+1)]
             for target in candidates:
-                if s.puzzles.can_enter(*target):
+                if s.can_enter(*target):
                     walk(s,target,legacy=False);break
             delta=enemy.x-s.player.x,enemy.y-s.player.y
             if abs(delta[0])+abs(delta[1])<=1:
@@ -131,3 +132,10 @@ class CampaignTests(unittest.TestCase):
         door=s.puzzles.objects['seal']
         walk(s,(door.x+1,door.y),legacy=False)
         self.assertTrue(s.puzzles.objects['seal'].latched)
+
+    def test_hidden_vault_reward_only_once(self):
+        s=GameSession();s.enter('r9')
+        use(s,(6,4));use(s,(6,10));use(s,(18,6))
+        self.assertEqual((s.inventory.potions,s.inventory.coins),(2,3))
+        self.assertFalse(s.puzzles.interact(s.player))
+        self.assertEqual((s.inventory.potions,s.inventory.coins),(2,3))

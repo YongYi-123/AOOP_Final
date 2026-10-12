@@ -63,6 +63,7 @@ class Game:
         if event.type!=pygame.KEYDOWN:return
         key=event.key
         if key==pygame.K_m:self.audio.toggle()
+        if self.scene in (GameScene.INTRO,GameScene.TUTORIAL) and getattr(event,"repeat",False):return
         if self.scene==GameScene.INTRO:
             if key==pygame.K_RETURN:self.scene=GameScene.TUTORIAL;self.fade=0
             elif key==pygame.K_ESCAPE:self.scene=GameScene.MENU

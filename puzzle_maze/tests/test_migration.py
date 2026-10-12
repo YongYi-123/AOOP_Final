@@ -49,3 +49,21 @@ class CompactMigrationTests(unittest.TestCase):
         for name,room in load_rooms().items():
             water=[(x,y) for y,row in enumerate(room['tiles']) for x,t in enumerate(row) if t=='~']
             self.assertEqual(len(water),1 if name in ('r6','r7','r8') else 0)
+
+    def test_legacy_secret_room_gains_optional_chest_without_losing_progress(self):
+        old=GameSession(rooms=load_rooms(MAP_PATH.with_name('dungeon_v20.json')))
+        old.enter('r9');old.puzzles.objects['north'].state.active=True
+        with tempfile.TemporaryDirectory() as d:
+            path=Path(d)/'save.json';old.save(path);loaded=GameSession.load(path)
+            self.assertEqual(loaded.rooms.current,'r9')
+            self.assertTrue(loaded.puzzles.objects['north'].state.active)
+            self.assertFalse(loaded.puzzles.objects['vault_reward'].state.active)
+
+    def test_compact_chambers_reduce_traversal_and_preserve_endpoints(self):
+        legacy=load_rooms(MAP_PATH.with_name('dungeon_v20.json'))
+        for name,room in list(load_rooms().items())[:8]:
+            old=legacy[name]
+            walkable=lambda r:sum(c not in '#~Ov' for row in r['tiles'] for c in row)
+            self.assertLess(walkable(room),walkable(old)*.4)
+            self.assertEqual(tuple(room['spawn']),(2,5))
+            self.assertEqual(next(e['pos'] for e in room['exits'] if e.get('finish') or e.get('requires')),[38,13])

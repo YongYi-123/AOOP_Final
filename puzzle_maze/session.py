@@ -86,8 +86,18 @@ class GameSession:
         if self.puzzles.solved:
             self.completed.add(self.rooms.current)
 
+    def can_enter(self,x,y):
+        return self.puzzles.can_enter(x,y) and not any(e.hp>0 and e.pos==(x,y) for e in self.combat.enemies)
+
     def move(self, dx, dy):
-        if self.player.hp<=0:return False
+        if self.player.hp<=0 or abs(dx)+abs(dy)!=1:return False
+        self.player.facing=(dx,dy)
+        target=self.player.x+dx,self.player.y+dy
+        occupied={e.pos for e in self.combat.enemies if e.hp>0}
+        box=next((o for o in self.puzzles.objects.values() if o.data['type']=='box' and o.pos==target),None)
+        if target in occupied or box is not None and (box.x+dx,box.y+dy) in occupied:
+            self.player.moving=False
+            return False
         moved=self.puzzles.move(self.player,dx,dy)
         self.tick(0)
         return moved
@@ -98,7 +108,7 @@ class GameSession:
         dx,dy=self.player.facing
         moved=0
         for _ in range(3):
-            if not self.puzzles.can_enter(self.player.x+dx,self.player.y+dy):break
+            if not self.can_enter(self.player.x+dx,self.player.y+dy):break
             self.player.x+=dx;self.player.y+=dy;moved+=1
             self.puzzles.update(0,self.player)
         if moved:
@@ -132,7 +142,7 @@ class GameSession:
     def save(self, path=SAVE_PATH):
         self.encounters[self.rooms.current]=copy.deepcopy(self.combat.capture())
         self.snapshots[self.rooms.current]=self.capture()
-        data=dict(version=2, map_revision=self.rooms.revision, weapon=self.player.weapon.id, dash_cooldown=self.dash_cooldown, player_status={k:getattr(self.player,k) for k in ('invulnerable','attack_cooldown','attack_flash')}, explored=self.exploration.capture(), hp=self.player.hp, encounters=self.encounters, abilities=sorted(self.inventory.abilities), potions=self.inventory.potions, coins=self.inventory.coins, room=self.rooms.current, player=[self.player.x,self.player.y],
+        data=dict(version=2, facing=list(self.player.facing), attack_facing=list(self.player.attack_facing), map_revision=self.rooms.revision, weapon=self.player.weapon.id, dash_cooldown=self.dash_cooldown, player_status={k:getattr(self.player,k) for k in ('invulnerable','attack_cooldown','attack_flash')}, explored=self.exploration.capture(), hp=self.player.hp, encounters=self.encounters, abilities=sorted(self.inventory.abilities), potions=self.inventory.potions, coins=self.inventory.coins, room=self.rooms.current, player=[self.player.x,self.player.y],
                   inventory=self.inventory.keys, snapshots=self.snapshots,
                   completed=sorted(self.completed), visited=sorted(self.visited),
                   finished=self.finished, checkpoint=self.checkpoint)
@@ -237,11 +247,15 @@ class GameSession:
             weapon=data.get("weapon","basic_sword")
             if weapon not in WEAPONS:raise ValueError("Unknown weapon")
             candidate.player.weapon=WEAPONS[weapon]()
+            for name in ('facing','attack_facing'):
+                direction=data.get(name,[0,1])
+                if direction not in ([1,0],[-1,0],[0,1],[0,-1]):raise ValueError('Invalid facing')
+                setattr(candidate.player,name,tuple(direction))
             status=data.get('player_status',{})
             if not isinstance(status,dict):raise ValueError('Invalid player timers')
             for name in ('invulnerable','attack_cooldown','attack_flash','dash_cooldown'):
                 value=data.get(name,0) if name=='dash_cooldown' else status.get(name,0)
-                if type(value) not in (int,float) or not math.isfinite(value) or not 0<=value<=10:raise ValueError('Invalid player timer')
+                if type(value) not in (int,float) or not math.isfinite(value) or not 0<=value<={"invulnerable":1.1,"attack_cooldown":candidate.player.weapon.cooldown,"attack_flash":candidate.player.weapon.swing_duration,"dash_cooldown":1.2}[name]:raise ValueError('Invalid player timer')
                 setattr(candidate if name=='dash_cooldown' else candidate.player,name,value)
             if candidate.puzzles.blocked(*data['player']):
                 raise ValueError('Blocked player')

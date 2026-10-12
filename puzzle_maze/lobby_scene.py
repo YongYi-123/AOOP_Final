@@ -54,7 +54,7 @@ class PuzzleMazeScene(MinigameScene):
         elif action in canonical:key=canonical[action]
         elif event.key in (pygame.K_TAB,pygame.K_r):key=event.key
         else:return
-        self.maze.event(pygame.event.Event(pygame.KEYDOWN,key=key))
+        self.maze.event(pygame.event.Event(pygame.KEYDOWN,key=key,repeat=getattr(event,"repeat",False)))
         if not self.maze.running:self.leave()
 
     def update(self,dt):

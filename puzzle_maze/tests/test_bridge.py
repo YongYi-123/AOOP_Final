@@ -44,3 +44,20 @@ class BridgeTests(unittest.TestCase):
         scene.maze.session.player.facing=(1,0)
         scene.handle_event(pygame.event.Event(pygame.KEYDOWN,key=pygame.K_LSHIFT))
         self.assertEqual(scene.maze.session.player.x,5)
+
+    def test_second_player_bindings_match_tutorial_and_attack(self):
+        from controls import P2_CONTROLS
+        from input_router import PlayerInput
+        class Participant:
+            profile=SimpleNamespace(profile_id='test_p2')
+        scene=self.scene()
+        scene.game.session=SimpleNamespace(input=SimpleNamespace(input_for=lambda p:PlayerInput(P2_CONTROLS)))
+        scene.attach_players([Participant()])
+        c=scene.maze.tutorial.controls
+        self.assertEqual((c['attack'],c['ability'],c['dash']),('K','KP0','RSHIFT'))
+        scene.maze.scene=GameScene.PLAY;e=scene.maze.session.combat.enemies[0];p=scene.maze.session.player
+        p.x,p.y=e.x-1,e.y;p.facing=(1,0)
+        scene.handle_event(pygame.event.Event(pygame.KEYDOWN,key=pygame.K_j))
+        self.assertEqual(e.hp,2)
+        scene.handle_event(pygame.event.Event(pygame.KEYDOWN,key=pygame.K_k))
+        self.assertEqual(e.hp,1)

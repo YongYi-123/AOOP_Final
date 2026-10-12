@@ -38,3 +38,15 @@ class OnboardingTests(unittest.TestCase):
         with patch('puzzle_maze.game.GameSession.load',return_value=self.game.session):
             self.game.start(continuing=True)
         self.assertEqual(self.game.scene,GameScene.PLAY)
+
+    def test_repeat_key_cannot_skip_confirmation(self):
+        self.game.start();self.key(pygame.K_RETURN)
+        self.game.event(pygame.event.Event(pygame.KEYDOWN,key=pygame.K_RETURN,repeat=True))
+        self.assertEqual(self.game.scene,GameScene.TUTORIAL)
+        self.key(pygame.K_RETURN);self.assertEqual(self.game.scene,GameScene.PLAY)
+
+    def test_intro_actor_is_not_covered_by_caption_panel(self):
+        for elapsed in (0,1.5,3,5.5,6):
+            self.game.intro.elapsed=elapsed
+            x,y=self.game.intro.actor_position
+            self.assertLessEqual(y*16+16,self.game.intro.caption_top)

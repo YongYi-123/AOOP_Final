@@ -43,3 +43,22 @@ class SwordTests(unittest.TestCase):
             data=json.loads(path.read_text());data.pop('weapon');path.write_text(json.dumps(data))
             loaded=GameSession.load(path)
             self.assertEqual(loaded.player.weapon.id,'basic_sword')
+
+    def test_swing_direction_survives_save_and_room_entry(self):
+        s=GameSession();s.player.facing=(1,0);s.attack();s.player.facing=(0,-1)
+        with tempfile.TemporaryDirectory() as d:
+            path=Path(d)/'save.json';s.save(path);loaded=GameSession.load(path)
+            self.assertEqual(loaded.player.facing,(0,-1))
+            self.assertEqual(loaded.player.attack_facing,(1,0))
+            self.assertIsInstance(loaded.player.weapon,BasicSword)
+            loaded.enter('r2');self.assertIsInstance(loaded.player.weapon,BasicSword)
+
+    def test_walking_toward_enemy_turns_without_overlapping_and_enables_attack(self):
+        s=GameSession();e=s.combat.enemies[0]
+        s.player.x,s.player.y=e.x-1,e.y;s.player.facing=(0,-1)
+        original=s.player.x,s.player.y
+        self.assertFalse(s.move(1,0))
+        self.assertEqual((s.player.x,s.player.y),original)
+        self.assertEqual(s.player.facing,(1,0))
+        self.assertTrue(s.attack())
+        self.assertEqual(e.hp,1)
