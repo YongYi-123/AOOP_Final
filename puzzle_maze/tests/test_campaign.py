@@ -17,6 +17,9 @@ def boxes(session,ids,plates):
 
 def solve_room(s):
     name=s.rooms.current
+    if name=='r1':use(s,(9,11))
+    if name=='r5':use(s,(9,11))
+    if name=='r6':use(s,(11,10))
     if name=='r1':use(s,(4,7))
     elif name=='r2':walk(s,(7,7))
     elif name in ('r3','r8'):
@@ -29,10 +32,18 @@ def solve_room(s):
     elif name=='r6':use(s,(13,7),True)
     elif name=='r7':use(s,(9,7))
     walk(s,(16 if name!='r8' else 26,7))
+    if name=='r3':use(s,(26,10))
+    if name in ('r5','r7','r8'):use(s,(34,10))
     if name in ('r1','r3'):
         walk(s,(33,13));use(s,(39,17))
     elif name=='r4':
         use(s,(33,13));use(s,(34,17))
+        s.player.facing=(1,0)
+        if not s.dash():raise AssertionError('Boots dash required')
+    elif name in ('r6','r7','r8'):
+        walk(s,(30,17));s.player.facing=(1,0)
+        for _ in range(3):
+            if s.puzzles.magnet(s.player) is None:raise AssertionError('Magnet route blocked')
     else:boxes(s,['relay_box'],['relay_plate'])
     walk(s,(53,17))
 

@@ -31,6 +31,7 @@ class Game:
         self.visual=[float(self.session.player.x),float(self.session.player.y)]
         self.toast='';self.toast_time=0;self.fade=0;self.autosave=0
         self.last_solved=False
+        self.tool='pulse'
 
     def notify(self,message,seconds=3):
         self.toast=message;self.toast_time=seconds
@@ -72,12 +73,32 @@ class Game:
             self.last_solved=self.session.puzzles.solved;self.renderer.particles.clear()
             self.notify('Room restored to entrance checkpoint');self.save();return
         if self.scene!=GameScene.PLAY:return
+        if key==pygame.K_q:
+            tools=['pulse']+[a for a in ('mirror','magnet') if a in self.session.inventory.abilities]
+            self.tool=tools[(tools.index(self.tool)+1)%len(tools)] if self.tool in tools else 'pulse'
+            self.notify('Tool: '+self.tool);return
+        if key in (pygame.K_LSHIFT,pygame.K_RSHIFT):
+            if self.session.dash():
+                self.renderer.burst(self.session.player.x,self.session.player.y,TEAL)
+                self.audio.play('pulse');self.cooldown=.13
+                if self.session.transition():
+                    self.visual=[float(self.session.player.x),float(self.session.player.y)]
+                    self.fade=.45;self.save()
+            else:self.notify('Find boots / dash recharging',2)
+            return
+        if key==pygame.K_f or key==pygame.K_SPACE and self.tool=='magnet':
+            result=self.session.puzzles.magnet(self.session.player,key==pygame.K_f)
+            if result:self.renderer.burst(self.session.player.x,self.session.player.y,TEAL);self.audio.play('pulse')
+            else:self.notify('Face metal: SPACE repels, F attracts',2)
+            return
         if key in (pygame.K_e,pygame.K_SPACE):
             obj=self.session.puzzles.interact(self.session.player,key==pygame.K_SPACE)
             if obj:
                 self.audio.play('pulse' if key==pygame.K_SPACE else 'use')
                 self.renderer.burst(self.session.player.x,self.session.player.y,TEAL)
-            else:self.notify('Face a mechanism / cracked walls need SPACE',2)
+                obj_data=self.session.puzzles.objects[obj].data
+                if obj_data.get('ability'):self.notify('Acquired: '+obj_data['ability'])
+            else:self.notify('E: chest / mechanism. Q: tool. SPACE: pulse.',2)
 
     def options(self):
         exit_label='Return to arcade' if self.embedded else 'Quit'
@@ -140,15 +161,15 @@ class Game:
             r.panel(title,self.options(),self.selection)
             r.text('The Prism Chambers / original pixel adventure',36,193,(133,163,156))
         elif self.scene==GameScene.HELP:
-            r.panel('FIELD GUIDE',['WASD / arrows: move and push stones','E: switch or unlock adjacent gate','SPACE: pulse cracked walls','TAB: atlas   R: entrance checkpoint','ESC: pause   M: toggle music','Doors glow teal when open.','Enter / ESC: return'])
+            r.panel('FIELD GUIDE',['WASD / arrows: move. E: open / rotate','SPACE: pulse / selected tool. Q: tool','SHIFT: dash (boots). F: magnet pull','TAB: atlas. R: room checkpoint','ESC: pause. M: music','Gloves / boots / mirror / magnet: chests','Enter / ESC: return'])
         elif self.scene==GameScene.MAP:r.map_panel(self.session)
         else:
             if self.toast_time:
                 for i,line in enumerate(textwrap.wrap(self.toast,53)):
-                    pygame.draw.rect(r.surface,(18,26,39),(6,6+i*12,308,12));r.text(line,10,8+i*12,GOLD)
+                    pygame.draw.rect(r.surface,(18,26,39),(6,6+i*16,308,16));r.text(line,10,8+i*16,GOLD)
             elif self.session.player.x<5:
                 for i,line in enumerate(textwrap.wrap(self.session.rooms.data['hint'],52)):
-                    pygame.draw.rect(r.surface,(18,26,39),(6,6+i*12,308,12));r.text(line,10,8+i*12)
+                    pygame.draw.rect(r.surface,(18,26,39),(6,6+i*16,308,16));r.text(line,10,8+i*16)
         if self.fade>0:
             shade=pygame.Surface((320,240));shade.fill((11,20,30));shade.set_alpha(int(255*min(1,self.fade/.45)));r.surface.blit(shade,(0,0))
         screen=target if target is not None else self.screen

@@ -1,7 +1,7 @@
 {
   "r1": {
     "name": "Lantern Courtyard",
-    "hint": "Use E beside the brass switch. Cross the eastern gate. Then explore the east wing and align the final seal. Cracked moss alcoves hide optional caches.",
+    "hint": "Use E beside the brass switch. Cross the eastern gate. Then explore the east wing and align the final seal. Cracked moss alcoves hide optional caches. Find the glove chest south of the switch.",
     "spawn": [
       2,
       7
@@ -72,12 +72,12 @@
       },
       {
         "id": "cache",
-        "type": "key",
-        "color": "cache_1",
+        "type": "chest",
         "pos": [
           35,
           25
-        ]
+        ],
+        "potions": 2
       },
       {
         "id": "seal_key",
@@ -96,9 +96,19 @@
           17
         ],
         "requires": [
-          "gate"
+          "gate",
+          "tool_chest"
         ],
         "key": "seal_1"
+      },
+      {
+        "id": "tool_chest",
+        "type": "chest",
+        "pos": [
+          9,
+          12
+        ],
+        "ability": "gloves"
       }
     ],
     "exits": [
@@ -131,7 +141,7 @@
   },
   "r2": {
     "name": "Weight of Stone",
-    "hint": "Stand on the diamond plate. The gate latches when powered. Then explore the east wing and align the final seal. Cracked moss alcoves hide optional caches.",
+    "hint": "Stand on the diamond plate. The gate latches when powered. Then explore the east wing and align the final seal. Cracked moss alcoves hide optional caches. Heavy stones need gloves.",
     "spawn": [
       2,
       7
@@ -202,12 +212,12 @@
       },
       {
         "id": "cache",
-        "type": "key",
-        "color": "cache_2",
+        "type": "chest",
         "pos": [
           35,
           25
-        ]
+        ],
+        "potions": 2
       },
       {
         "id": "relay_box",
@@ -215,7 +225,8 @@
         "pos": [
           32,
           17
-        ]
+        ],
+        "heavy": true
       },
       {
         "id": "relay_plate",
@@ -279,7 +290,7 @@
   },
   "r3": {
     "name": "Twin Foundations",
-    "hint": "Push both stones onto matching diamond plates. R restores stones. Then explore the east wing and align the final seal. Cracked moss alcoves hide optional caches.",
+    "hint": "Push both stones onto matching diamond plates. R restores stones. Then explore the east wing and align the final seal. Cracked moss alcoves hide optional caches. Find the boots in the eastern water garden.",
     "spawn": [
       2,
       7
@@ -327,7 +338,8 @@
         "pos": [
           5,
           5
-        ]
+        ],
+        "heavy": true
       },
       {
         "id": "plate1",
@@ -343,7 +355,8 @@
         "pos": [
           5,
           9
-        ]
+        ],
+        "heavy": true
       },
       {
         "id": "plate2",
@@ -375,12 +388,12 @@
       },
       {
         "id": "cache",
-        "type": "key",
-        "color": "cache_3",
+        "type": "chest",
         "pos": [
           35,
           25
-        ]
+        ],
+        "potions": 2
       },
       {
         "id": "seal_key",
@@ -399,9 +412,19 @@
           17
         ],
         "requires": [
-          "gate"
+          "gate",
+          "tool_chest"
         ],
         "key": "seal_3"
+      },
+      {
+        "id": "tool_chest",
+        "type": "chest",
+        "pos": [
+          27,
+          10
+        ],
+        "ability": "boots"
       }
     ],
     "exits": [
@@ -445,7 +468,7 @@
   },
   "r4": {
     "name": "Amber Lock",
-    "hint": "Collect the amber key, then press E beside the lock. Then explore the east wing and align the final seal. Cracked moss alcoves hide optional caches.",
+    "hint": "Collect the amber key, then press E beside the lock. Then explore the east wing and align the final seal. Cracked moss alcoves hide optional caches. The final clock needs a three-tile dash (SHIFT).",
     "spawn": [
       2,
       7
@@ -515,12 +538,12 @@
       },
       {
         "id": "cache",
-        "type": "key",
-        "color": "cache_4",
+        "type": "chest",
         "pos": [
           35,
           25
-        ]
+        ],
+        "potions": 2
       },
       {
         "id": "relay_clock",
@@ -529,7 +552,7 @@
           35,
           17
         ],
-        "duration": 4.5
+        "duration": 0.65
       },
       {
         "id": "relay_signal",
@@ -594,7 +617,7 @@
   },
   "r5": {
     "name": "Signal Garden",
-    "hint": "Both brass switches must glow. Activate each with E. Then explore the east wing and align the final seal. Cracked moss alcoves hide optional caches.",
+    "hint": "Both brass switches must glow. Activate each with E. Then explore the east wing and align the final seal. Cracked moss alcoves hide optional caches. Find the mirror chest. Rotate the prism so light travels north.",
     "spawn": [
       2,
       7
@@ -610,7 +633,7 @@
       "#..................#.....#..............#.....#........#",
       "#.............#..........#..............#.....#........#",
       "#.............#..........#.....#........#..............#",
-      "#.............#....#...........#........#..............#",
+      "#.............#....#....................#..............#",
       "#.............#....#...........#........#.....#........#",
       "#..gggg...O...#....#.....#.....#........#.....#........#",
       "#..gggg.......#....#.....#.....#........#.....#........#",
@@ -674,12 +697,12 @@
       },
       {
         "id": "cache",
-        "type": "key",
-        "color": "cache_5",
+        "type": "chest",
         "pos": [
           35,
           25
-        ]
+        ],
+        "potions": 2
       },
       {
         "id": "relay_box",
@@ -687,7 +710,8 @@
         "pos": [
           32,
           17
-        ]
+        ],
+        "heavy": true
       },
       {
         "id": "relay_plate",
@@ -706,7 +730,49 @@
         ],
         "requires": [
           "gate",
-          "relay_plate"
+          "relay_plate",
+          "tool_chest",
+          "receiver"
+        ]
+      },
+      {
+        "id": "tool_chest",
+        "type": "chest",
+        "pos": [
+          10,
+          11
+        ],
+        "ability": "mirror"
+      },
+      {
+        "id": "beam",
+        "type": "light",
+        "pos": [
+          30,
+          10
+        ],
+        "direction": [
+          1,
+          0
+        ],
+        "requires": [
+          "gate"
+        ]
+      },
+      {
+        "id": "prism",
+        "type": "reflector",
+        "pos": [
+          35,
+          10
+        ]
+      },
+      {
+        "id": "receiver",
+        "type": "receiver",
+        "pos": [
+          35,
+          6
         ]
       }
     ],
@@ -751,7 +817,7 @@
   },
   "r6": {
     "name": "Whispering Wall",
-    "hint": "Moss forms an arrow toward a cracked wall. Use your pulse (Space). Then explore the east wing and align the final seal. Cracked moss alcoves hide optional caches.",
+    "hint": "Moss forms an arrow toward a cracked wall. Use your pulse (Space). Then explore the east wing and align the final seal. Cracked moss alcoves hide optional caches. Find the magnet chest. Face the metal lane from the west and repel three times.",
     "spawn": [
       2,
       7
@@ -773,9 +839,9 @@
       "#..gggg.......#....#.....##gggggg#......#.....#........#",
       "#..gggg.......#....#.....##gggggg#......#.....#........#",
       "#.###.####.#..#....#.....##gggggg#......#.....#........#",
-      "#.............#...........########......#.....#........#",
-      "#.............#...............................#........#",
-      "#.............#......#.......#..........#.....#........#",
+      "#.............#...........###########...#.....#........#",
+      "#.............#................~....#.........#........#",
+      "#.............#......#.......#.######...#.....#........#",
       "#.............#......#.......#..........#.....#........#",
       "#.............#......#..................#.....#........#",
       "#.............#......#..................#.....#........#",
@@ -819,12 +885,12 @@
       },
       {
         "id": "cache",
-        "type": "key",
-        "color": "cache_6",
+        "type": "chest",
         "pos": [
           35,
           25
-        ]
+        ],
+        "potions": 2
       },
       {
         "id": "relay_box",
@@ -832,7 +898,9 @@
         "pos": [
           32,
           17
-        ]
+        ],
+        "heavy": true,
+        "metal": true
       },
       {
         "id": "relay_plate",
@@ -851,8 +919,18 @@
         ],
         "requires": [
           "cracked",
-          "relay_plate"
+          "relay_plate",
+          "tool_chest"
         ]
+      },
+      {
+        "id": "tool_chest",
+        "type": "chest",
+        "pos": [
+          11,
+          11
+        ],
+        "ability": "magnet"
       }
     ],
     "exits": [
@@ -907,7 +985,7 @@
   },
   "r7": {
     "name": "A Fleeting Bridge",
-    "hint": "E starts the clock. Reach the eastern gate before the light fades. Then explore the east wing and align the final seal. Cracked moss alcoves hide optional caches.",
+    "hint": "E starts the clock. Reach the eastern gate before the light fades. Then explore the east wing and align the final seal. Cracked moss alcoves hide optional caches. Combine mirror reflection and magnetic weight.",
     "spawn": [
       2,
       7
@@ -923,15 +1001,15 @@
       "#.......................................#.....#........#",
       "#.............#.........................#.....#........#",
       "#.............#....#.....#.....#........#..............#",
-      "#.............#....#.....#.....#........#..............#",
+      "#.............#....#.....#..............#..............#",
       "#.............#....#.....#.....#........#.....#........#",
       "#..gggg...O...#....#.....#.....#........#.....#........#",
       "#..gggg.......#....#.....#.....#........#.....#........#",
       "#..gggg.......#....#.....#.....#........#.....#........#",
       "#.##.####.##..#....#.....#.....#........#.....#........#",
-      "#.............#.........................#.....#........#",
-      "#.............#...............................#........#",
-      "#.............#......#.......#..........#.....#........#",
+      "#.............#................######...#.....#........#",
+      "#.............#................~....#.........#........#",
+      "#.............#......#.......#.######...#.....#........#",
       "#.............#......#.......#..........#.....#........#",
       "#.............#......#..................#.....#........#",
       "#.............#......#..................#.....#........#",
@@ -979,12 +1057,12 @@
       },
       {
         "id": "cache",
-        "type": "key",
-        "color": "cache_7",
+        "type": "chest",
         "pos": [
           35,
           25
-        ]
+        ],
+        "potions": 2
       },
       {
         "id": "relay_box",
@@ -992,7 +1070,9 @@
         "pos": [
           32,
           17
-        ]
+        ],
+        "heavy": true,
+        "metal": true
       },
       {
         "id": "relay_plate",
@@ -1011,7 +1091,39 @@
         ],
         "requires": [
           "gate",
-          "relay_plate"
+          "relay_plate",
+          "receiver"
+        ]
+      },
+      {
+        "id": "beam",
+        "type": "light",
+        "pos": [
+          30,
+          10
+        ],
+        "direction": [
+          1,
+          0
+        ],
+        "requires": [
+          "gate"
+        ]
+      },
+      {
+        "id": "prism",
+        "type": "reflector",
+        "pos": [
+          35,
+          10
+        ]
+      },
+      {
+        "id": "receiver",
+        "type": "receiver",
+        "pos": [
+          35,
+          6
         ]
       }
     ],
@@ -1056,7 +1168,7 @@
   },
   "r8": {
     "name": "The Prism Vault",
-    "hint": "Weight both plates, find the prism key and pulse the cracked wall. Activate signal, then clock and unlock the final gate. Then explore the east wing and align the final seal. Cracked moss alcoves hide optional caches.",
+    "hint": "Weight both plates, find the prism key and pulse the cracked wall. Activate signal, then clock and unlock the final gate. Then explore the east wing and align the final seal. Cracked moss alcoves hide optional caches. Combine every tool to align the prism vault.",
     "spawn": [
       2,
       7
@@ -1072,15 +1184,15 @@
       "#.......................................#.....#........#",
       "#.............#.........#...............#.....#........#",
       "#.............#.........##.....#........#..............#",
-      "#.............#.........##.....#........#..............#",
+      "#.............#.........##..............#..............#",
       "#.............#.........##.....#........#.....#........#",
       "#..gggg...O...#.........##.....#........#.....#........#",
       "#..gggg.......#.........##.....#........#.....#........#",
       "#..gggg.......#.........##.....#........#.....#........#",
       "#.#.####.###..#.........##.....#........#.....#........#",
-      "#.............#.........#...............#.....#........#",
-      "#.............#.........#.....................#........#",
-      "#.............#......#..#....#..........#.....#........#",
+      "#.............#.........#......######...#.....#........#",
+      "#.............#.........#......~....#.........#........#",
+      "#.............#......#..#....#.######...#.....#........#",
       "#.............#......#..#....#..........#.....#........#",
       "#.............#......#..#...............#.....#........#",
       "#.............#......#..#...............#.....#........#",
@@ -1104,7 +1216,8 @@
         "pos": [
           5,
           5
-        ]
+        ],
+        "heavy": true
       },
       {
         "id": "plate1",
@@ -1120,7 +1233,8 @@
         "pos": [
           5,
           9
-        ]
+        ],
+        "heavy": true
       },
       {
         "id": "plate2",
@@ -1189,12 +1303,12 @@
       },
       {
         "id": "cache",
-        "type": "key",
-        "color": "cache_8",
+        "type": "chest",
         "pos": [
           35,
           25
-        ]
+        ],
+        "potions": 2
       },
       {
         "id": "relay_box",
@@ -1202,7 +1316,9 @@
         "pos": [
           32,
           17
-        ]
+        ],
+        "heavy": true,
+        "metal": true
       },
       {
         "id": "relay_plate",
@@ -1221,7 +1337,39 @@
         ],
         "requires": [
           "gate",
-          "relay_plate"
+          "relay_plate",
+          "receiver"
+        ]
+      },
+      {
+        "id": "beam",
+        "type": "light",
+        "pos": [
+          30,
+          10
+        ],
+        "direction": [
+          1,
+          0
+        ],
+        "requires": [
+          "gate"
+        ]
+      },
+      {
+        "id": "prism",
+        "type": "reflector",
+        "pos": [
+          35,
+          10
+        ]
+      },
+      {
+        "id": "receiver",
+        "type": "receiver",
+        "pos": [
+          35,
+          6
         ]
       }
     ],

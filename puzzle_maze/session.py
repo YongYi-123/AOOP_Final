@@ -6,7 +6,7 @@ from pathlib import Path
 from puzzle_maze.rooms import RoomManager
 from puzzle_maze.puzzles import PuzzleManager, Inventory, Door
 
-SAVE_PATH = Path(__file__).parent / 'save.json'
+SAVE_PATH = Path(__file__).parent / 'save_v2.json'
 
 class GameSession:
     def __init__(self, rooms=None):
@@ -16,6 +16,7 @@ class GameSession:
         self.completed = set()
         self.visited = {'r1'}
         self.finished = False
+        self.dash_cooldown = 0
         self.enter('r1')
 
     def capture(self):
@@ -39,11 +40,15 @@ class GameSession:
         self.puzzles=PuzzleManager(self.rooms.data,self.inventory)
         if name in self.snapshots:
             self.restore(self.snapshots[name])
-        self.checkpoint = dict(inventory=copy.deepcopy(self.inventory.keys), objects=self.capture(), pos=[self.player.x,self.player.y])
+        self.checkpoint = dict(inventory=copy.deepcopy(self.inventory.keys), abilities=sorted(self.inventory.abilities), potions=self.inventory.potions, coins=self.inventory.coins, objects=self.capture(), pos=[self.player.x,self.player.y])
         self.visited.add(name)
 
     def reset(self):
         self.inventory.keys=copy.deepcopy(self.checkpoint['inventory'])
+        self.inventory.abilities=set(self.checkpoint['abilities'])
+        self.inventory.potions=self.checkpoint['potions']
+        self.inventory.coins=self.checkpoint['coins']
+        self.dash_cooldown=0
         self.player.x,self.player.y=self.checkpoint['pos']
         self.player.moving=False
         self.restore(self.checkpoint['objects'])
@@ -52,12 +57,25 @@ class GameSession:
             self.completed.discard(self.rooms.current)
 
     def tick(self, dt):
+        self.dash_cooldown=max(0,self.dash_cooldown-dt)
         self.puzzles.update(dt,self.player)
         if self.puzzles.solved:
             self.completed.add(self.rooms.current)
 
     def move(self, dx, dy):
         moved=self.puzzles.move(self.player,dx,dy)
+        self.tick(0)
+        return moved
+
+    def dash(self):
+        if 'boots' not in self.inventory.abilities or self.dash_cooldown>0:return 0
+        dx,dy=self.player.facing
+        moved=0
+        for _ in range(3):
+            if not self.puzzles.can_enter(self.player.x+dx,self.player.y+dy):break
+            self.player.x+=dx;self.player.y+=dy;moved+=1
+            self.puzzles.update(0,self.player)
+        if moved:self.dash_cooldown=1.2
         self.tick(0)
         return moved
 
@@ -78,13 +96,21 @@ class GameSession:
 
     def save(self, path=SAVE_PATH):
         self.snapshots[self.rooms.current]=self.capture()
-        data=dict(version=1, room=self.rooms.current, player=[self.player.x,self.player.y],
+        data=dict(version=2, abilities=sorted(self.inventory.abilities), potions=self.inventory.potions, coins=self.inventory.coins, room=self.rooms.current, player=[self.player.x,self.player.y],
                   inventory=self.inventory.keys, snapshots=self.snapshots,
                   completed=sorted(self.completed), visited=sorted(self.visited),
                   finished=self.finished, checkpoint=self.checkpoint)
         path=Path(path); tmp=path.with_suffix(path.suffix+'.tmp')
         tmp.write_text(json.dumps(data,indent=2)+'\n')
         tmp.replace(path)
+
+    @staticmethod
+    def validate_growth(data):
+        abilities=data['abilities']
+        if not isinstance(abilities,list) or not all(isinstance(a,str) and a in ('gloves','boots','mirror','magnet') for a in abilities):
+            raise ValueError('Unknown ability')
+        if any(type(data[k]) is not int or data[k]<0 for k in ('potions','coins')):
+            raise ValueError('Invalid supplies')
 
     @staticmethod
     def validate_inventory(keys):
@@ -124,9 +150,12 @@ class GameSession:
         try:
             data=json.loads(Path(path).read_text())
             candidate=cls()
-            if data['version'] != 1 or data['room'] not in candidate.rooms.rooms:
+            if data['version'] != 2 or data['room'] not in candidate.rooms.rooms:
                 raise ValueError('Unsupported save')
             candidate.inventory.keys=data['inventory']
+            candidate.inventory.abilities=set(data['abilities'])
+            candidate.inventory.potions=data['potions'];candidate.inventory.coins=data['coins']
+            cls.validate_growth(data)
             cls.validate_inventory(candidate.inventory.keys)
             candidate.snapshots=data['snapshots']
             candidate.completed=set(data['completed']); candidate.visited=set(data['visited'])
@@ -143,6 +172,7 @@ class GameSession:
                 raise ValueError('Blocked player')
             checkpoint = data['checkpoint']
             cls.validate_inventory(checkpoint['inventory'])
+            cls.validate_growth(checkpoint)
             cls.validate_snapshot(candidate.rooms.data, checkpoint['objects'])
             cls.validate_position(checkpoint['pos'], candidate.puzzles.tilemap)
             check_manager = PuzzleManager(candidate.rooms.data)

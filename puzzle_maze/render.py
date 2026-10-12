@@ -4,7 +4,7 @@ import random
 import pygame
 from puzzle_maze.core import Camera
 from puzzle_maze.ui import NativeText
-from puzzle_maze.puzzles import PushableBox, PressurePlate, Door, Key, SecretPassage, TimedSwitch, Switch
+from puzzle_maze.puzzles import PushableBox, PressurePlate, Door, Key, SecretPassage, TimedSwitch, Switch, Chest, LightSource, Receiver, Reflector
 
 INK=(18,26,39); GOLD=(245,198,96); WHITE=(230,237,219); TEAL=(81,195,165)
 
@@ -79,6 +79,8 @@ class Renderer:
         for e in room['exits']:
             x,y=e['pos'];sx,sy=x*16-cx,y*16-cy
             r.rect(s,TEAL,(sx+3,sy+2,10,12),1);r.polygon(s,GOLD,[(sx+5,sy+5),(sx+11,sy+8),(sx+5,sy+11)])
+        for start,end in session.puzzles.beams:
+            r.line(s,(255,227,130),(start[0]*16+8-cx,start[1]*16+8-cy),(end[0]*16+8-cx,end[1]*16+8-cy),2)
         # Hidden passage clue: moss and luminous cracks converge at the wall.
         for o in sorted(session.puzzles.objects.values(), key=lambda obj: 0 if isinstance(obj,PressurePlate) else 1):
             sx,sy=o.x*16-cx,o.y*16-cy
@@ -86,8 +88,21 @@ class Renderer:
                 if not o.state.active:
                     s.blit(self.tiles['#'],(sx,sy));r.lines(s,GOLD,False,[(sx+8,sy+2),(sx+5,sy+7),(sx+10,sy+9),(sx+7,sy+14)])
                     r.line(s,TEAL,(sx-8,sy+8),(sx-2,sy+8));r.line(s,TEAL,(sx-5,sy+5),(sx-2,sy+8))
+            elif isinstance(o,Chest):
+                r.rect(s,(32,40,47),(sx+2,sy+4,12,10));r.rect(s,(153,98,56),(sx+2,sy+3,12,9))
+                r.rect(s,TEAL if o.state.active else GOLD,(sx+2,sy+3,12,9),1)
+                r.rect(s,GOLD,(sx+7,sy+6,2,3))
+                if o.state.active:r.rect(s,INK,(sx+3,sy+4,10,3))
+            elif isinstance(o,Reflector):
+                r.rect(s,(91,139,174),(sx+2,sy+2,12,12),1)
+                r.line(s,WHITE,(sx+3,sy+12 if o.state.active else sy+3),(sx+12,sy+3 if o.state.active else sy+12),2)
+            elif isinstance(o,Receiver):
+                r.circle(s,TEAL if o.state.active else (99,94,141),(sx+8,sy+8),6,2)
+                r.circle(s,GOLD if o.state.active else INK,(sx+8,sy+8),2)
+            elif isinstance(o,LightSource):
+                r.rect(s,(133,112,158),(sx+3,sy+3,10,10));r.circle(s,GOLD,(sx+8,sy+8),3)
             elif isinstance(o,PushableBox):
-                r.rect(s,(28,36,44),(sx+1,sy+3,14,13));r.rect(s,(145,98,59),(sx+2,sy+1,12,12));r.rect(s,(211,162,92),(sx+3,sy+2,10,10),1);r.line(s,(211,162,92),(sx+4,sy+3),(sx+11,sy+10));r.line(s,(211,162,92),(sx+11,sy+3),(sx+4,sy+10))
+                r.rect(s,(28,36,44),(sx+1,sy+3,14,13));r.rect(s,(117,147,166) if o.data.get('metal') else (145,98,59),(sx+2,sy+1,12,12));r.rect(s,(211,162,92),(sx+3,sy+2,10,10),1);r.line(s,(211,162,92),(sx+4,sy+3),(sx+11,sy+10));r.line(s,(211,162,92),(sx+11,sy+3),(sx+4,sy+10))
             elif isinstance(o,PressurePlate):
                 c=TEAL if o.state.active else (153,137,108)
                 r.polygon(s,(28,40,49),[(sx+8,sy+1),(sx+15,sy+8),(sx+8,sy+15),(sx+1,sy+8)])
@@ -113,7 +128,7 @@ class Renderer:
             particle[0]+=particle[2]*dt;particle[1]+=particle[3]*dt;particle[4]-=dt
             if particle[4]<=0:self.particles.remove(particle)
             else:r.rect(s,particle[5],(int(particle[0])-cx,int(particle[1])-cy,2,2))
-        near=next((o for o in session.puzzles.objects.values() if abs(o.x-p.x)+abs(o.y-p.y)<=1 and isinstance(o,(Switch,Door,SecretPassage)) and not (isinstance(o,(Door,SecretPassage)) and o.state.active)),None)
+        near=next((o for o in session.puzzles.objects.values() if abs(o.x-p.x)+abs(o.y-p.y)<=1 and isinstance(o,(Switch,Door,SecretPassage,Chest,Reflector)) and not (isinstance(o,(Door,SecretPassage)) and o.state.active)),None)
         if near:
             self.text('[SPACE] Pulse' if isinstance(near,SecretPassage) else '[E] Interact',int(visual[0]*16)-cx-18,int(visual[1]*16)-cy-12,GOLD)
         s.set_clip(None)

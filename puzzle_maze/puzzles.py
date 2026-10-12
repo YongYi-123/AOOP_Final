@@ -5,6 +5,9 @@ from puzzle_maze.core import CollisionManager, TileMap
 @dataclass
 class Inventory:
     keys: dict = field(default_factory=dict)
+    abilities: set = field(default_factory=set)
+    potions: int = 0
+    coins: int = 0
 
     def add(self, color):
         self.keys[color] = self.keys.get(color, 0) + 1
@@ -76,6 +79,7 @@ class PuzzleManager(CollisionManager):
         self.room = room
         self.inventory = inventory if inventory is not None else Inventory()
         self.objects = {d['id']: FACTORY[d['type']](d) for d in room['objects']}
+        self.beams=[]
         self.update(0, None)
 
     def blocked(self, x, y, ignore=None):
@@ -91,6 +95,9 @@ class PuzzleManager(CollisionManager):
         dest = player.x + dx, player.y + dy
         box = next((o for o in self.objects.values() if isinstance(o, PushableBox) and o.pos == dest), None)
         if box:
+            if box.data.get('heavy') and 'gloves' not in self.inventory.abilities:
+                player.moving=False
+                return False
             if self.blocked(box.x + dx, box.y + dy):
                 player.moving = False
                 return False
@@ -118,6 +125,7 @@ class PuzzleManager(CollisionManager):
             if isinstance(obj, PressurePlate):
                 obj.state.active = (player is not None and obj.pos == (player.x, player.y)) or any(isinstance(b, PushableBox) and b.pos == obj.pos for b in self.objects.values())
         self.update_special(dt)
+        self.trace_light()
         for obj in self.objects.values():
             if isinstance(obj, Door):
                 powered = all(self.objects[i].state.active or (isinstance(self.objects[i], Door) and self.objects[i].latched) for i in obj.data.get('requires', [])) and obj.unlocked
@@ -135,6 +143,42 @@ class PuzzleManager(CollisionManager):
             if isinstance(obj, TimedSwitch):
                 obj.state.remaining = max(0, obj.state.remaining - dt)
                 obj.state.active = obj.state.remaining > 0
+
+    def condition(self, name):
+        obj=self.objects[name]
+        return obj.state.active or isinstance(obj,Door) and obj.latched
+
+    def trace_light(self):
+        self.beams=[]
+        for obj in self.objects.values():
+            if isinstance(obj,Receiver):obj.state.active=False
+        for source in self.objects.values():
+            if not isinstance(source,LightSource) or not all(self.condition(i) for i in source.data.get('requires',[])):continue
+            x,y=source.pos;dx,dy=source.data['direction'];seen=set()
+            for _ in range(120):
+                start=(x,y);x+=dx;y+=dy
+                if (x,y,dx,dy) in seen or not self.tilemap.walkable(x,y):break
+                seen.add((x,y,dx,dy));self.beams.append((start,(x,y)))
+                obj=next((o for o in self.objects.values() if o.pos==(x,y)),None)
+                if isinstance(obj,Receiver):obj.state.active=True;break
+                if isinstance(obj,Reflector):
+                    dx,dy=(-dy,-dx) if obj.state.active else (dy,dx)
+                elif obj and obj.blocking and not obj.state.active:break
+
+    def magnet(self, player, attract=False):
+        if 'magnet' not in self.inventory.abilities:return None
+        dx,dy=player.facing
+        for distance in range(1,7):
+            x,y=player.x+dx*distance,player.y+dy*distance
+            if not (0<=y<len(self.tilemap.rows) and 0<=x<len(self.tilemap.rows[0])) or self.tilemap.rows[y][x] in '#O':return None
+            box=next((o for o in self.objects.values() if isinstance(o,PushableBox) and o.data.get('metal') and o.pos==(x,y)),None)
+            if box:
+                step=-1 if attract else 1
+                dest=box.x+dx*step,box.y+dy*step
+                if dest==(player.x,player.y) or self.blocked(*dest):return None
+                box.x,box.y=dest;self.update(0,player)
+                return box.id
+        return None
 
     @property
     def solved(self):
@@ -158,3 +202,27 @@ class TimedSwitch(Switch):
         return True
 
 FACTORY.update(secret=SecretPassage, timed=TimedSwitch)
+
+class Chest(PuzzleObject):
+    def interact(self, manager, player, pulse=False):
+        if pulse or self.state.active:
+            return False
+        ability=self.data.get('ability')
+        if ability:manager.inventory.abilities.add(ability)
+        manager.inventory.potions+=self.data.get('potions',0)
+        self.state.active=True
+        return True
+
+class LightSource(PuzzleObject):
+    pass
+
+class Receiver(PuzzleObject):
+    pass
+
+class Reflector(PuzzleObject):
+    def interact(self,manager,player,pulse=False):
+        if 'mirror' not in manager.inventory.abilities:return False
+        self.state.active=not self.state.active
+        return True
+
+FACTORY.update(chest=Chest, light=LightSource, receiver=Receiver, reflector=Reflector)
