@@ -221,7 +221,10 @@ class PrizePlazaScene(BaseRoomScene):
     room_id = "prize_plaza"
     ambience_mix = {"arcade_buzz": 0.1, "machine_hum": 0.06}
     exits = (RoomExit("left", "home", "right"),)
-    cat_spots = {}              # nobody lives here yet
+    cat_spots = {
+        "tango": ((92, 172), (150, 166), (62, 188)),         # curious: sniffs around the prize counter
+        "duchess": ((368, 176), (352, 104)),                 # regal: surveys the Lucky Corner
+    }
     music_id = "prize_plaza"
     hint_rows = (
         [("MOVE: WASD", Col.TEXT)],

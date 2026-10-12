@@ -613,10 +613,10 @@ class HudAndLabelTests(HubTest):
             self.frames(5)
             room.draw(self.game.canvas)
 
-    def test_prize_plaza_has_no_cats_arcade_has_one(self):
-        self.assertEqual(len(self.hub.room("prize_plaza").cats), 0)
-        self.assertEqual([c.name for c in self.hub.room("arcade_floor").cats], ["Pixel"])
-        self.assertEqual(len(self.hub.room("home").cats), len(CATS) - 1)
+    def test_each_room_has_its_own_cats(self):
+        self.assertEqual([c.name for c in self.hub.room("prize_plaza").cats], ["Tango", "Duchess"])
+        self.assertEqual([c.name for c in self.hub.room("arcade_floor").cats], ["Pixel", "Dash", "Pepper"])
+        self.assertEqual(len(self.hub.room("home").cats), len(CATS) - 5)
 
 
 class TransitionRegressionTests(HubTest):

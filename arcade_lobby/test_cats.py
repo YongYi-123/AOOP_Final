@@ -90,7 +90,7 @@ class SpawnTests(CatSceneTest):
         names = [c.name for c in self.all_cats()]
         self.assertEqual(sorted(names), sorted(d["name"] for d in CATS))
         self.assertEqual(len(set(names)), len(names))
-        self.assertGreater(len(self.cats), len(names) / 2)
+        self.assertGreaterEqual(len(self.cats), len(names) / 2)
 
     def test_one_reusable_class(self):
         # One CatNPC class configured by data, no per-cat subclasses

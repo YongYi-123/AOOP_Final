@@ -272,7 +272,7 @@ MACHINES = [
 
 
 # The arcade cats. Each entry is pure data for one cats.CatNPC: its look
-# (cat_sprites.CatLook fields), personality (friendly / shy / lazy / curious,
+# (cat_sprites.CatLook fields), personality (friendly / shy / lazy / curious / sleepy / playful / grumpy / regal,
 # see cat.PERSONALITIES) and meow pitch. Where each cat lives is up to the
 # room: each room's cat_spots maps the id to its spots (the first is home).
 # "room" is the one room the cat lives in (default "home"); a cat is never in
@@ -308,5 +308,35 @@ CATS = [
         # tiny calico: white with orange and black patches
         "look": {"fur": (250, 244, 234), "shade": (206, 196, 190), "patch": (240, 150, 70),
                  "cap": (64, 54, 66), "tail": (240, 150, 70)},
+    },
+    {
+        "id": "nimbus", "name": "Nimbus", "personality": "sleepy", "pitch": 0.9,
+        # fluffy light-grey cat, drowsy lids
+        "look": {"fur": (200, 206, 214), "shade": (150, 158, 172), "belly": (238, 240, 246),
+                 "lid": (96, 100, 124), "nose": (240, 160, 180), "chonk": 1},
+    },
+    {
+        "id": "dash", "name": "Dash", "personality": "playful", "pitch": 1.3, "room": "arcade_floor",
+        # cream-and-ginger kitten with a stripy tail
+        "look": {"fur": (255, 222, 170), "shade": (228, 160, 96), "stripes": (228, 160, 96),
+                 "belly": (255, 246, 226), "eye": (60, 150, 90), "tail": (228, 160, 96)},
+    },
+    {
+        "id": "pepper", "name": "Pepper", "personality": "grumpy", "pitch": 0.85, "room": "arcade_floor",
+        # charcoal tabby with an unimpressed look
+        "look": {"fur": (110, 112, 122), "shade": (72, 74, 88), "stripes": (74, 76, 90),
+                 "belly": (190, 192, 204), "eye": (240, 196, 70), "lid": (50, 50, 64)},
+    },
+    {
+        "id": "tango", "name": "Tango", "personality": "curious", "pitch": 1.08, "room": "prize_plaza",
+        # tortoiseshell
+        "look": {"fur": (88, 62, 58), "shade": (56, 40, 44), "patch": (236, 140, 66),
+                 "cap": (236, 140, 66), "belly": (244, 214, 170), "eye": (130, 230, 150)},
+    },
+    {
+        "id": "duchess", "name": "Duchess", "personality": "regal", "pitch": 0.95, "room": "prize_plaza",
+        # elegant white cat with dark-chocolate points and blue eyes
+        "look": {"fur": (246, 242, 236), "shade": (96, 76, 72), "belly": (255, 252, 246),
+                 "cap": (96, 76, 72), "tail": (96, 76, 72), "eye": (110, 190, 255), "lid": (96, 76, 72)},
     },
 ]
