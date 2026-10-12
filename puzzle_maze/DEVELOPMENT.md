@@ -193,3 +193,73 @@ Dummy driver 的 180 幀純繪製平均 1.51 ms（0.272 秒），為 headless �
 - `A puzzle_maze/themes.py`
 - `M puzzle_maze/ui.py`
 - `A puzzle_maze/weapons.py`
+
+
+## 3.0 — Clockwork Hollow (2026-10-13)
+
+Continued from `5f3de80` on `feature/puzzle-maze-v3`, without merging main or
+changing `backup/puzzle-maze-recovery`. The unrelated root Git-log text file
+was left untouched. All new edits are confined to `puzzle_maze/`.
+
+- Foundation: original bitmap font and live icon HUD; bounded bombs, cracked
+  walls, renewable supply, multi-key/Boss Key locks and enemy strategies.
+- Campaign: eighteen connected rooms over two floors, branch relays, optional
+  secret treasure, ability backtracking, optical/magnetic/timed combinations.
+- Boss: dash exposure, bomb armor, combined final phase, telegraphed projectiles,
+  finite death animation, exit unlock and retry without overwriting living saves.
+- Polish: cold B1F palettes, meaningful columns/bookshelves, floor-aware atlas,
+  Compass markers, concise tutorial, native bitmap text and pickup bounce.
+- Save regression fixed: the active dash anchor now declares its six-second
+  duration, allowing a primed boss encounter to load successfully.
+- Bypass regression fixed: magnetic-only weights reject manual pushing.
+- Validator derives resource rewards and costs from annotated JSON objects;
+  all 109 abstract resource states have a winning continuation. Removing the
+  spare sixth key remains solvable; removing necessary combat keys is rejected.
+
+Baseline: 80 tests passed. Final: 108 tests passed in 18.552 seconds, including
+complete production-action victory, all eighteen room visits, enemy weaknesses,
+boss phases, active bomb/anchor saves and UI bounds at 240×180 through 1000×700.
+`compileall` and `git diff --check` passed. Screenshot review covered all rooms,
+boss HUD and tutorial. Render-only benchmark: 2.56 ms/frame, 180 draws.
+
+The first v3 foundation commit accidentally preceded review of one failing legacy
+assertion that expected exactly three enemy kinds. That assertion was updated
+for the seven supported kinds; subsequent complete suites passed. No history was
+rewritten. New tests use temporary saves or mock the game save method.
+
+Automated campaign traversal uses collision-aware moves with explicit combat and
+fuse ticks. It does not exhaustively prove every real-time enemy trajectory or
+crate arrangement. Actual input feel, audio and graphical FPS need human checks.
+Old 2.1 saves remain separate and playable via `--legacy` / archive continuation.
+
+### 3.0 file manifest
+
+- `puzzle_maze/.gitignore`
+- `puzzle_maze/DEVELOPMENT.md`
+- `puzzle_maze/README.md`
+- `puzzle_maze/README_V21.md`
+- `puzzle_maze/audio.py`
+- `puzzle_maze/build_dungeon.py`
+- `puzzle_maze/combat.py`
+- `puzzle_maze/dungeon.py`
+- `puzzle_maze/enemies.py`
+- `puzzle_maze/environment.py`
+- `puzzle_maze/exploration.py`
+- `puzzle_maze/game.py`
+- `puzzle_maze/icons.py`
+- `puzzle_maze/items.py`
+- `puzzle_maze/maps/dungeon_v3.json`
+- `puzzle_maze/onboarding.py`
+- `puzzle_maze/pixel_font.py`
+- `puzzle_maze/puzzles.py`
+- `puzzle_maze/render.py`
+- `puzzle_maze/rooms.py`
+- `puzzle_maze/session.py`
+- `puzzle_maze/tests/test_combat.py`
+- `puzzle_maze/tests/test_game.py`
+- `puzzle_maze/tests/test_v3_campaign.py`
+- `puzzle_maze/tests/test_v3_presentation.py`
+- `puzzle_maze/tests/test_v3_systems.py`
+- `puzzle_maze/themes.py`
+- `puzzle_maze/ui.py`
+- `puzzle_maze/validator.py`

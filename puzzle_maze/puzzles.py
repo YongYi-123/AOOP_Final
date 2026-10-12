@@ -111,6 +111,8 @@ class PuzzleManager(CollisionManager):
         dest = player.x + dx, player.y + dy
         box = next((o for o in self.objects.values() if isinstance(o, PushableBox) and o.pos == dest), None)
         if box:
+            if box.data.get('magnetic_only'):
+                player.moving=False;return False
             if box.data.get('heavy') and 'gloves' not in self.inventory.abilities:
                 player.moving=False
                 return False

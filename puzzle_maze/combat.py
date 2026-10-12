@@ -194,4 +194,6 @@ class CombatManager:
             pos=drop['pos']
             if not isinstance(pos,list) or len(pos)!=2 or any(type(v) is not int for v in pos) or not self.puzzles.tilemap.walkable(*pos):raise ValueError('Invalid loot position')
             if any(type(drop[k]) is not int or not 0<=drop[k]<=5 for k in ('heal','coins')):raise ValueError('Invalid loot')
+            bombs=drop.get('bombs',0)
+            if type(bombs) is not int or not 0<=bombs<=20:raise ValueError('Invalid bomb drop')
             self.loot.append(dict(drop))

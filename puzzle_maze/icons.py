@@ -1,5 +1,6 @@
 """Original 12-pixel item silhouettes; palette and quantity follow live inventory."""
 import pygame
+import math
 
 ICONS={
  'heart':['............','..rr..rr....','.rrrrrrrr...','.rrrrrrrr...','..rrrrrr....','...rrrr.....','....rr......'],
@@ -13,6 +14,7 @@ ICONS={
  'magnet':['..rr..bb....','..rr..bb....','..gg..gg....','..gg..gg....','...gggg.....'],
  'map':['..sssssss...','..sttttts...','..stststs...','..sttttts...','..stststs...','..sssssss...'],
  'compass':['...sss......','..sgggs.....','.sgtrtgs....','.sgtgtgs....','.sgtbtgs....','..sgggs.....','...sss......'],
+ 'potion':['....sss.....','....srs.....','...sttts....','...sttts....','...sttts....','....sss.....'],
  'pulse':['....t.......','..t.t.t.....','...ttt......','.tttgttt....','...ttt......','..t.t.t.....','....t.......']}
 PALETTE={'r':(239,102,119),'g':(245,198,96),'s':(205,223,230),'b':(65,85,127),'t':(81,195,165)}
 
@@ -30,7 +32,7 @@ class IconAtlas:
 
 class IconHUD:
     def __init__(self):self.atlas=IconAtlas()
-    def draw(self,renderer,session,tool):
+    def draw(self,renderer,session,tool,controls):
         s=renderer.surface;inv=session.inventory
         pygame.draw.rect(s,(18,26,39),(0,184,320,56))
         for index in range(session.player.max_hp):s.blit(self.atlas.get('heart',index<session.player.hp),(5+index*12,186))
@@ -41,14 +43,20 @@ class IconHUD:
         for i,kind in enumerate(('boots','gloves','mirror','magnet','map','compass')):
             x=219+i*16;s.blit(self.atlas.get(kind,kind in inv.abilities),(x,186))
             if tool==kind:pygame.draw.rect(s,(245,198,96),(x-2,184,15,15),1)
+        s.blit(self.atlas.get('pulse'),(207,186))
+        if tool=='pulse':pygame.draw.rect(s,(245,198,96),(205,184,15,15),1)
         room=session.rooms.data
         renderer.text(room['name'],6,205,(245,198,96),max_width=235)
+        s.blit(self.atlas.get('potion',inv.potions>0),(246,207));renderer.text(str(inv.potions),260,205,max_width=20)
         renderer.text(room.get('floor','1F'),281,205,max_width=34)
-        renderer.text('J / E / B / SHIFT',6,224,max_width=232)
-        renderer.text('TAB Map',244,224,max_width=73)
+        pygame.draw.rect(s,(52,65,82),(219,200,12,2))
+        if 'boots' in inv.abilities:pygame.draw.rect(s,(81,195,165),(219,200,int(12*(1-session.dash_cooldown/1.2)),2))
+        keys=f"{controls['attack']} / {controls['interact']} / "+('B / ' if hasattr(session,'bombs') else '')+controls['dash']
+        renderer.text(keys,6,224,max_width=232)
+        renderer.text(controls['map']+' Map',244,224,max_width=73)
         pickup=getattr(session,'pickup',None)
         if pickup:
             kind,label,remaining=pickup
             pygame.draw.rect(s,(18,26,39),(65,137,190,34));pygame.draw.rect(s,(245,198,96),(65,137,190,34),1)
-            s.blit(pygame.transform.scale(self.atlas.get(kind),(24,24)),(72,142))
+            s.blit(pygame.transform.scale(self.atlas.get(kind),(24,24)),(72,142+int(math.sin(renderer.time*10)*2)))
             renderer.text(label,102,149,max_width=146)

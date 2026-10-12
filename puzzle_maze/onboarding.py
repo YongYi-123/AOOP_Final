@@ -45,16 +45,17 @@ class IntroSequence:
         renderer.text(f'{confirm}: skip | ESC: menu',24,213,GOLD)
 
 class TutorialCard:
-    def __init__(self,controls=None):self.controls=dict(DEFAULT_CONTROLS if controls is None else controls)
+    def __init__(self,controls=None):
+        self.controls=dict(DEFAULT_CONTROLS if controls is None else controls);self.bombs=True
 
     def lines(self,begin=False):
         c=self.controls
         return [f"Move: {c['move']}",
-                f"Sword: {c['attack']} | Interact: {c['interact']} | Bomb: B",
-                f"Tool: {c['ability']} | Select: {c['tool']} | Pull: {c['pull']}",
-                f"Dash: {c['dash']} (boots) | Heal: {c['heal']}",
-                f"Map: {c['map']} | Reset room: {c['reset']}",
-                f"Pause: {c['pause']} | Basic Sword ready",
-                f"{c['confirm']}: {'begin' if begin else 'return'} | ESC: {'main menu' if begin else 'return'}"]
+                f"{c['attack']} Sword / {c['interact']} Use"+(" / B Bomb" if self.bombs else ""),
+                f"{c['ability']} Tool / {c['tool']} Next / {c['pull']} Pull",
+                f"{c['dash']} Dash (boots) / {c['heal']} Heal",
+                f"{c['map']} Map / {c['reset']} Reset",
+                f"{c['pause']} Pause / Sword ready",
+                f"{c['confirm']} {'Begin' if begin else 'Return'} / ESC {'Menu' if begin else 'Return'}"]
 
     def draw(self,renderer):renderer.panel('HOW TO PLAY',self.lines(True))

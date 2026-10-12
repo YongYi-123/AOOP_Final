@@ -1,10 +1,10 @@
-# Puzzle Maze 2.1 — The Prism Chambers
+# Puzzle Maze 3.0 — Clockwork Hollow
 
-An independent Python / Pygame dungeon game, upgraded in place. Eight connected
-40×26 chambers and a 19×14 secret vault combine exploration, puzzles and combat.
-All in-game text is English. This upgrade changes only `puzzle_maze/`.
+An original standalone Python / Pygame dungeon, extending the existing movement,
+room, puzzle, combat and save architecture. Eighteen compact 26×16 rooms form a
+branching dungeon over 1F and B1F. No story, external artwork or new lobby integration.
 
-## Launch
+## Run
 
 From the AOOP_Final root:
 
@@ -12,170 +12,168 @@ From the AOOP_Final root:
 .venv/bin/python -m puzzle_maze
 ```
 
-For another Python environment:
+For another environment, install `puzzle_maze/requirements.txt`, then run
+`python3 -m puzzle_maze`. The resizable window starts at 960×720. Audio-device
+initialization failure leaves gameplay available with silent sound.
 
-```bash
-python3 -m pip install -r puzzle_maze/requirements.txt
-python3 -m puzzle_maze
-```
-
-Use pygame-ce; do not install the original pygame alongside it.
-The default resizable window is 960×720.
-
-## Start and learn
-
-**New expedition** equips a Basic Sword and plays a six-second sword / gate
-animation. Enter skips the animation. The HOW TO PLAY card then waits for Enter
-before gameplay begins. Enemies and puzzle clocks stay frozen during onboarding.
-Esc cancels to the menu without overwriting progress.
-
-**Quick start (skip tutorial)** starts a new run immediately. **Continue expedition**
-loads progress without repeating onboarding. **Controls** opens the same live
-control guide used by the tutorial. Repeated key events cannot accidentally
-confirm the tutorial after skipping the animation.
+New expedition plays the six-second sword/gate introduction. Enter skips to the
+control card; Enter confirms gameplay. Quick start bypasses both. Onboarding,
+pause and the full map freeze enemy AI, bomb fuses and puzzle clocks.
 
 ## Controls
 
 | Key | Action |
 | --- | --- |
-| WASD / arrows | Move; push heavy crates after finding Gloves |
-| J | Swing the equipped Basic Sword |
-| E | Chest, switch, key lock, or mirror pedestal |
-| Space | Selected tool: pulse, mirror or magnetic repel |
-| Q | Cycle pulse and acquired mirror / magnet tools |
-| F | Magnetic pull, after acquiring the Magnet |
-| Shift | Three-tile dash after acquiring Boots; 1.2-second cooldown |
-| H | Use a potion to heal up to 3 HP |
-| Tab | Dungeon graph and explored tiles / discovered markers |
-| R | Restore this room's entrance checkpoint |
-| Esc | Pause / return from menus |
+| WASD / arrows | Move and face; push crates after obtaining Gloves |
+| J | Basic Sword, equipped immediately; one front tile, 0.25 s cooldown |
+| E | Chest, lever, key lock, supply jar or mirror pedestal |
+| B | Place a bomb, 1.6 s fuse; repeat events do not consume another bomb |
+| Q | Cycle pulse, acquired Mirror and acquired Magnet |
+| Space | Selected tool; Magnet repels a faced metal weight |
+| F | Magnetic pull; maximum six tiles |
+| Shift | Three-tile dash, after finding Boots; 1.2 s cooldown |
+| H | Spend a potion to recover up to three hearts |
+| Tab | Full dungeon map |
+| Left / Right in map | Switch 1F / B1F |
+| R | Reset the current room to its entrance checkpoint |
+| Esc | Pause / return |
 | M | Toggle music |
 
-The Basic Sword is equipped from the start, independent of chests and abilities.
-Walking toward a living enemy turns the player without overlapping its body, so
-you can aim and attack reliably. Crates and dashes also stop at living enemies.
-The sword hits the adjacent tile directly in front of the player, once per swing, with
-0.25 seconds between attacks. The blade remains visible at the belt; swings show
-a moving blade and trail. Hits flash and knock enemies back, with a hit sound.
+Sword hits flash and knock enemies back. Player damage grants 1.1 seconds of
+invulnerability. Dashes stop at walls and live enemies. Timed dash gates require
+an actual dash; they have a safe return portal on their far side.
 
-The HUD displays five hearts, potions, the selected tool, dash cooldown, sigils
-and shards. G / B / L / M mark acquired Gloves / Boots / Mirror / Magnet.
+## Dungeon and progression
 
-## Rooms
-
-Each main chamber retains its linked puzzle stages. Large unused floor areas,
-decorative water pools and long exit detours have been removed. Only the three
-magnetic slots retain water, which prevents direct access to their metal weights.
-Mounted decorations never alter collision or hide important puzzle objects.
-
-| Chamber | Theme and objective |
+| Room | Purpose |
 | --- | --- |
-| Entrance Hall | Stonework, torches and a statue; Gloves chest, switch gate and key seal |
-| Mechanism Room | Riveted metal and animated gears; entrance plate, heavy crate relay |
-| Ruined Library | Shelves, planks and broken book piles; two crate plates, Boots and key |
-| Guard Room | Slate, racks and columns; amber lock, signal and short dash gate |
-| Crystal Chamber | Blue stone and glowing crystal; Mirror, signals, reflected light and weight |
-| Mosswork Vault | Purple stone and gold sigils; cracked wall, Magnet and remote metal weight |
-| Star Observatory | Constellation floors; clock gate, reflected light and magnetic relay |
-| Prism Sanctum | Banners and inlaid stone; combined tools and three southern guards |
-| Hidden Vault | Optional secret chamber; two lantern switches and a supply chest |
+| Stone Vestibule | Basic combat, map chest and lever gate |
+| Relay Atrium | Central branches; two remote relays and a two-key stair lock |
+| Copper Watch | Clear Slime/Bat, reveal two keys, spend one to reach the workshop |
+| Weight and Light | Gloves, heavy crate plate, Mirror beam and west relay |
+| Ancient Library | Lever, Mirror, crate plate, east relay, Compass and branch key |
+| Returning Runner | Return with Boots and the lower prism signal; dash for Boss Key |
+| Powder Workshop | Bomb chest, renewable supply, lever route and cracked secret wall |
+| Hidden Treasury | Optional reward and bomb-activated bonus chest |
+| Boots Trial | Guardian/Beetle combat and a heavy plate unlock Boots |
+| Lower Landing | B1F crossroads, lever gate and restorative chest |
+| Magnetic Foundry | Blink Mage and lever unlock Magnet |
+| Prism Engine | Magnet-only weight, powered beam, Mirror, relay and key |
+| Hungry Portal | Renewable bombs, Bomb Eater, combat key and activated portal |
+| Threefold Circuit | Magnet plate + Mirror receiver + timed dash gate |
+| Sentinel Gallery | Three enemy styles and a two-key lock |
+| Golem Antechamber | Boss Key seal, healing chest and bomb refill |
+| Ancient Golem | Three ability-driven boss phases and death-gated exit |
+| Dawn Reservoir | Treasure and final lever complete the expedition |
 
-A cracked moss wall marks each optional supply alcove. A second secret passage in
-Mosswork Vault reaches Hidden Vault. Its chest grants two potions and three shards
-once. Reach the eastern exit in Prism Sanctum to finish.
+Six Small Keys cover five lock costs, leaving one spare. Doors consume keys
+atomically and retain their unlocked state. Boss Key remains owned after opening
+the boss seal. Progress, chests, killed enemies, global relays and exploration
+persist across room and floor changes. Hidden Treasury is optional.
 
-Normal doors latch open when their conditions are satisfied. Timed doors close
-when the clock expires, except while occupied by a player, crate or living enemy.
-Crossing memory can power later stages without holding a timed door open.
+Bombs cap at 20. Supply jars refill up to eight and can be used repeatedly; required
+bomb encounters have a jar. Explosions damage the player and enemies, stop at
+permanent walls/closed doors and break marked cracked walls. An active bomb must
+finish before changing rooms. Special enemies can drop bombs.
 
-Gloves allow heavy pushes. Mirror pedestals turn light toward receivers. Magnetic
-pull / repel works up to six tiles, across water but never through walls or into
-obstacles or the player. The fourth room's short clock requires a dash.
+Magnet-only crates cannot be pushed manually. Mirror rotation requires ownership.
+Heavy crates require Gloves. The prism relay powers the earlier Boss Key room,
+so returning to the old floor is required.
 
-## Combat, death and reset
+## Enemy weaknesses and boss
 
-Slime has 2 HP and slow pursuit; Bat has 1 HP and periodic movement bursts;
-Guardian has 4 HP and a visible 0.7-second attack windup. Enemy navigation respects
-terrain, walls, closed doors and crates. Enemies die with a short animation and
-leave a one-time healing / shard pickup. Room changes and loading do not respawn
-killed enemies.
+Slime hunts slowly; Bat has periodic bursts; Guardian commits to a visible melee
+windup. Blink Mage blinks along legal clear paths and telegraphs projectiles.
+Armored Beetle blocks frontal sword strikes: flank it, bomb its armor or dash
+into it. Bomb Eater ignores swords and pursues/swallow bombs, taking extra damage.
+All encounters are finite, collision-aware and save their life state.
 
-Damage causes safe knockback, flashing and 1.1 seconds of invulnerability. HP zero
-stops movement and actions and opens GAME OVER. Enter / Esc returns to the game
-menu without closing the application. A loaded dead run remains GAME OVER.
+Ancient Golem has 12 HP:
 
-R restores the room's entrance checkpoint, including health, objects, enemies,
-keys and supplies. It reverses rewards acquired in this room, preventing duplicate
-claims. Earlier tools remain. Exploration is retained. A revisited room uses its
-state at that visit as its new checkpoint.
+1. Dash across the inlaid anchor, then sword the exposed core.
+2. Bomb the armor, then sword the core.
+3. Dash the anchor again, bomb the armor, then sword the core.
 
-## Native text and art
+Each phase needs four sword hits. Phase changes close the previous exposure.
+The boss telegraphs attacks; later phases move and fire projectiles, ending with
+four-way volleys. The arena refills bombs. The death animation lasts 1.2 seconds
+before the exit opens. Game Over offers Main menu or Retry room.
 
-Pixel scenery uses integer nearest-neighbor scaling. Bundled DejaVu regular / bold
-fonts render directly onto the final output surface with native-size glyph
-antialiasing; text is never drawn into the low-resolution world and enlarged.
-Modal text replaces the world HUD. Titles and notifications respect panel bounds.
-Font notices are in `assets/fonts/DejaVu-LICENSE.txt`.
+## Pixel UI and environment
 
-EnvironmentPainter draws original pixel textures and wall-mounted props. Theme
-palettes, materials, sparse floor variants, shadows, light glows, flames, gears and
-crystal sparkles distinguish rooms. Tiles and glow surfaces are cached; particles
-are bounded. No commercial game assets are used.
+The original 5×7 bitmap font is drawn at integer pixel sizes on the final output,
+without antialiasing or smoothscale. World art uses nearest-neighbor scaling.
+Original icons display hearts, Sword, Small Key, Boss Key, bombs, Gloves, Boots,
+Mirror, Magnet, Map, Compass, selected tool and potions. Pickups bounce briefly
+with a short name/control label and sound. Gray icons indicate unowned items.
 
-## Progress and compatibility
+Stone, wood/library, metal, crystal, guard, vault and sanctum materials use cached
+original pixel tiles, wall-mounted decorations, animated lights and shadows.
+B1F has colder palettes. Columns and bookshelf obstacles use actual collision
+terrain; decorative wall overlays never introduce collision. Bombs, projectiles,
+shield exposure, enemy windups, death bursts and dash trails have distinct art.
 
-Progress stays in `puzzle_maze/save_v2.json` and its temporary / backup files, all
-ignored by Git. Saves include equipment, tools, health, cooldowns, combat, puzzle
-snapshots, checkpoints and exploration. Autosave happens every 15 seconds and on
-room changes, pauses, deaths and exits. Writes use atomic replacement.
+The map reads RoomManager and actual exit data. Without Map it shows visited
+rooms; Map reveals gray unexplored rooms on the selected floor. Secrets remain
+hidden until visited. Compass adds discovered chests and a boss marker when the
+boss room or an adjacent room is known. Stair corners identify floor connections.
 
-Valid 2.0 progress loads into compact 2.1 coordinates without resetting earned
-items or completed rooms. Removed-space positions are moved to safe cells in the
-same puzzle region. Reading does not change the source file. Before the first
-write over a 2.0 save, its original bytes are preserved as
-`save_v2.json.v20.bak`. Missing weapon fields default to Basic Sword; the new
-optional vault chest is added safely to old snapshots. Unsupported or damaged
-saves fall back to a fresh session without modifying the file during loading.
-The original version-one `save.json` remains untouched.
+## Saves and the 2.1 archive
 
-The existing optional `lobby_scene.py` remains inside this package. It now routes
-combat / tools and renders text at the host's full output resolution. No host
-module was edited. Solo controls match the table; in a two-player session the
-starter controls the game: P1 uses WASD, J, E, Space and LShift; P2 uses arrows,
-K, Enter, KP0 and RShift. The tutorial and HUD show that participant's controls.
-Q / F / H / Tab / R remain shared utility keys. The optional cabinet remains a
-free trial without score or ticket payouts.
+3.0 uses `puzzle_maze/save_v3.json`, with atomic temporary-file replacement. It
+never overwrites `save_v2.json`, `save.json` or the 2.0 backup. Invalid saves fall
+back to a new session without editing the invalid file. Dead sessions do not
+replace the last living save; Retry room restores its entrance checkpoint.
 
-## OOP structure
+The original campaign remains available:
 
-- Game / GameScene: scene state, events and display composition, including INTRO
-  and TUTORIAL alongside play, pause, map, victory and game over.
-- IntroSequence / TutorialCard: timed presentation and one control-guide source.
-- Weapon / BasicSword / WEAPONS: equipment, directional reach, damage and timing,
-  with a registry for future upgrades.
-- Player / TileMap / CollisionManager / Camera: existing movement, health and
-  collision core.
-- RoomManager / PuzzleManager / PuzzleObject subclasses: JSON maps, factory-based
-  entities, compound conditions, inventory, keys and tool puzzles.
-- CombatManager / Enemy / Slime / Bat / Guardian / EnemyState: finite encounters,
-  movement, windup, damage, death and rewards.
-- GameSession / CoordinateTransform / LayoutMigration: persistence, room snapshots
-  and safe translation of old progress.
-- Exploration / DungeonAtlas: line-of-sight exploration and the actual room graph.
-- Renderer / NativeText / RoomTheme / EnvironmentPainter / AudioManager: pixel
-  scenery, final-resolution text, cached original art and optional audio.
+```bash
+.venv/bin/python -m puzzle_maze --legacy
+```
 
-## Verification
+If an old save exists, the standalone menu also provides Continue 2.1 archive.
+New 3.0 progression is separate because the floor graph and room geometry changed.
+See `README_V21.md` for the original campaign and its 2.0 migration details.
+The pre-existing optional lobby adapter remains on that older campaign.
+
+## Architecture
+
+`DungeonSession(GameSession)` composes the existing RoomManager, Player,
+PuzzleManager, CombatManager, Inventory and Exploration with BombManager.
+PuzzleObject subclasses add CrackedWall, BombSupply, DashSwitch, RemoteRelay,
+RemoteSwitch and BlastSwitch through the existing factory. Door/Chest reuse the
+existing condition system for multi-key locks, Boss Key and delayed rewards.
+Enemy subclasses override damage and AI: BlinkMage, ArmoredBeetle, BombEater and
+AncientGolem. GameScene continues to manage onboarding, pause, map, death and
+victory; IconHUD/IconAtlas and the bitmap font provide presentation.
+
+Editable data is `maps/dungeon_v3.json`. The deterministic authoring script
+`python -m puzzle_maze.build_dungeon` regenerates it. Keep direct JSON changes and
+that authoring script consistent. DungeonValidator reads progression annotations
+on actual reward/door objects, derives quantities/costs and searches resource
+states; there is no separate manually drawn minimap graph.
+
+## Validation
 
 ```bash
 .venv/bin/python -m unittest discover -s puzzle_maze/tests -v
 .venv/bin/python -m puzzle_maze --headless --frames 60
-.venv/bin/python -m puzzle_maze --headless --screenshot /tmp/puzzle-maze-21.png
+.venv/bin/python -m puzzle_maze --headless --screenshot /tmp/puzzle-maze.png
 ```
 
-Tests cover starter sword / input / single-hit behavior, all eight main rooms via
-production movement, push-state solver replay, optical / magnetic / timed puzzles,
-combat, onboarding, English text, multiple window sizes, hidden vault rewards,
-exploration, death and old-save migration / backup. Legacy fixtures preserve the
-original engine regressions. Screenshot review and dummy-driver rendering do not
-replace real keyboard, monitor, audio-device and difficulty testing.
+108 automated tests pass, including the original regression suite, all eighteen
+room visits, the complete victory route, three boss phases, live bomb/save states,
+resource spending orders, box corner deadlocks, floor exploration, input repeats,
+UI bounds at five resolutions and silent audio fallback.
+
+The resource abstraction has 109 reachable states; all 109 can finish. Production
+action witnesses separately verify geometry, interactions, crate pushes, magnetic
+weights, mirrors, timed dashes and combat. These are deterministic witnesses, not
+an exhaustive search over every enemy timing, player input or all crate arrangements.
+Movement steps in the route witness do not advance time; combat/fuses/dash timers
+are advanced explicitly. Real-time difficulty still needs human playtesting.
+
+Headless screenshots have been reviewed. A cached boss-scene draw benchmark was
+2.56 ms/frame over 180 frames on this environment; this measures rendering only,
+not interactive FPS. Manually check keyboard response, boss readability/difficulty,
+attack and dash feel, audio volume, the smallest window and physical-display FPS.

@@ -73,7 +73,7 @@ class DungeonCampaignTests(unittest.TestCase):
         self.weight()
         self.use('east');self.use('compass');self.travel('r2')
         self.travel('r4');self.use('gloves');self.weight();self.use('prism');self.use('west');self.travel('r2')
-        self.travel('r3');self.fight();self.use('combat_key');self.use('gate');self.travel('r7')
+        self.travel('r3');self.fight();self.walk(s.puzzles.objects['combat_key'].pos);self.use('gate');self.travel('r7')
         self.use('powder');self.use('lever');self.use('supply') if s.inventory.bombs<8 else None
         # Optional secret: a real bomb opens the authored cracked exit.
         self.walk((11,13));s.player.facing=(1,0);self.assertTrue(s.bombs.place());self.walk((8,13));s.tick(1.7)
@@ -103,7 +103,7 @@ class DungeonCampaignTests(unittest.TestCase):
         dash_anchor();bomb_armor();strike_core();self.assertEqual(boss.hp,0)
         self.assertFalse(s.puzzles.objects['gate'].state.active)
         s.tick(1.3);self.assertTrue(s.puzzles.objects['gate'].state.active)
-        self.travel('r18');self.use('treasure');self.use('dawn');self.walk((23,8));self.assertTrue(s.transition());self.assertTrue(s.finished)
+        self.travel('r18');self.use('treasure');self.use('dawn');self.walk((23,8));self.assertTrue(s.transition());self.assertTrue(s.finished);self.assertEqual(s.visited,set(s.rooms.rooms))
 
     def test_floor_and_active_bomb_save_reset(self):
         s=self.s;s.inventory.bombs=5;s.inventory.abilities.update(('boots','map','compass'));s.enter('r13');s.player.facing=(1,0)
@@ -118,3 +118,23 @@ class DungeonCampaignTests(unittest.TestCase):
         self.assertFalse(s.puzzles.objects['gate'].state.active);s.inventory.abilities.add('boots');self.timer()
         self.assertTrue(s.puzzles.objects['gate'].latched);s.tick(1);self.assertFalse(s.puzzles.blocked(s.player.x,s.player.y));s.reset()
         self.assertEqual((s.player.x,s.player.y),(2,7))
+
+    def test_boss_exposure_and_phase_save_load(self):
+        s=self.s;s.inventory.abilities.add('boots');s.inventory.bombs=8;s.enter('r17')
+        self.walk((5,8));s.player.facing=(1,0);self.assertEqual(s.dash(),3)
+        with tempfile.TemporaryDirectory() as directory:
+            path=Path(directory)/'boss.json';s.save(path);loaded=DungeonSession.load(path)
+            self.assertEqual(loaded.rooms.current,'r17');self.assertGreater(loaded.combat.enemies[0].exposed,0)
+            self.assertEqual(loaded.puzzles.objects['anchor'].state.remaining,6)
+            self.assertEqual(loaded.dash_cooldown,1.2)
+            loaded.reset();self.assertEqual(loaded.combat.enemies[0].exposed,0)
+    def test_magnetic_only_weights_cannot_be_manually_bypassed(self):
+        s=self.s;s.inventory.abilities.add('gloves');s.enter('r12')
+        box=s.puzzles.objects['box'];box.x,box.y=6,8
+        self.walk((5,8));self.assertFalse(s.move(1,0));self.assertEqual(box.pos,(6,8))
+        s.inventory.abilities.add('magnet');s.player.facing=(1,0)
+        self.assertEqual(s.puzzles.magnet(s.player),'box');self.assertEqual(box.pos,(7,8))
+    def test_combat_key_is_inert_before_clear_then_picked_once(self):
+        s=self.s;s.enter('r3');self.walk((8,4));self.assertEqual(s.inventory.keys.get('small',0),0)
+        self.fight();self.walk((8,4));self.assertEqual(s.inventory.keys['small'],2)
+        self.walk((8,5));self.walk((8,4));self.assertEqual(s.inventory.keys['small'],2)

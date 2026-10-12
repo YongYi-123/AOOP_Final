@@ -22,3 +22,12 @@ THEMES={
     'sanctum':RoomTheme((65,54,88),(143,125,156),(34,27,52),(230,184,117),(255,221,151),'inlay','banner'),
 }
 DECOR_KINDS={'torch','gear','books','rack','crystal','sigil','banner'}
+
+# Cold underground masonry has distinct palettes while retaining each material's behavior.
+from dataclasses import replace
+for _name in ('observatory','mechanism','crystal','vault','guard','sanctum'):
+    _theme=THEMES[_name]
+    THEMES['lower_'+_name]=replace(_theme,
+        floor=tuple(max(0,c-13)+(8 if i==2 else 0) for i,c in enumerate(_theme.floor)),
+        wall=tuple(max(0,c-18)+(12 if i==2 else 0) for i,c in enumerate(_theme.wall)),
+        light=(105,166,229))

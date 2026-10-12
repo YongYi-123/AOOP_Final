@@ -168,6 +168,9 @@ class GameSession:
             raise ValueError('Unknown ability')
         if any(type(data[k]) is not int or data[k]<0 for k in ('potions','coins')):
             raise ValueError('Invalid supplies')
+        bombs=data.get('bombs',0);boss_key=data.get('boss_key',False);flags=data.get('flags',[])
+        if type(bombs) is not int or not 0<=bombs<=20 or type(boss_key) is not bool or not isinstance(flags,list) or any(not isinstance(f,str) for f in flags):
+            raise ValueError('Invalid dungeon checkpoint supplies')
 
     @staticmethod
     def validate_inventory(keys):

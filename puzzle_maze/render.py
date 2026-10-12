@@ -70,7 +70,12 @@ class Renderer:
             r.rect(s,TEAL,(sx+3,sy+2,10,12),1)
             if e.get("stairs"):
                 for step in range(3):r.line(s,WHITE,(sx+3,sy+4+step*3),(sx+12-step*2,sy+4+step*3))
-            r.polygon(s,GOLD,[(sx+5,sy+5),(sx+11,sy+8),(sx+5,sy+11)])
+            if e.get("portal"):
+                angle=self.time*2
+                r.circle(s,(158,112,234),(sx+8,sy+8),7,1)
+                for spark in range(3):
+                    a=angle+spark*math.tau/3;r.rect(s,TEAL,(int(sx+8+math.cos(a)*6),int(sy+8+math.sin(a)*6),2,2))
+            else:r.polygon(s,GOLD,[(sx+5,sy+5),(sx+11,sy+8),(sx+5,sy+11)])
         for start,end in session.puzzles.beams:
             r.line(s,(255,227,130),(start[0]*16+8-cx,start[1]*16+8-cy),(end[0]*16+8-cx,end[1]*16+8-cy),2)
         # Hidden passage clue: moss and luminous cracks converge at the wall.
@@ -119,7 +124,7 @@ class Renderer:
                     for i in (4,8,12):r.line(s,GOLD,(sx+i,sy+2),(sx+i,sy+13))
                     if not o.unlocked:r.rect(s,(232,157,77),(sx+6,sy+6,5,5))
             elif isinstance(o,Key):
-                if not o.state.active:
+                if not o.state.active and all(session.puzzles.condition(i) for i in o.data.get("requires",[])):
                     yy=sy+int(math.sin(self.time*4)*2)
                     r.circle(s,GOLD,(sx+6,yy+5),3,1);r.line(s,GOLD,(sx+8,yy+7),(sx+12,yy+11),2);r.line(s,GOLD,(sx+11,yy+9),(sx+13,yy+7))
             elif isinstance(o,Switch):
@@ -155,6 +160,7 @@ class Renderer:
         for drop in session.combat.loot:
             sx,sy=drop['pos'][0]*16-cx,drop['pos'][1]*16-cy
             r.circle(s,(238,104,129),(sx+8,sy+8),3)
+            if drop.get("bombs",0):s.blit(self.hud.atlas.get("bomb"),(sx+1,sy+1))
         for bolt in session.combat.projectiles:
             bx,by=bolt.x*16+8-cx,bolt.y*16+8-cy
             r.circle(s,(236,113,170),(bx,by),3);r.line(s,GOLD,(bx-bolt.dx*5,by-bolt.dy*5),(bx,by))
@@ -187,7 +193,14 @@ class Renderer:
             r.rect(s,INK,(int(visual[0]*16)-cx-20,int(visual[1]*16)-cy-13,94,15))
             self.text("[B] Bomb" if isinstance(near,CrackedWall) else f"[{controls['ability']}] Pulse" if isinstance(near,SecretPassage) else f"[{controls['interact']}] Interact",int(visual[0]*16)-cx-18,int(visual[1]*16)-cy-12,GOLD)
         s.set_clip(None)
-        self.hud.draw(self,session,tool)
+        self.hud.draw(self,session,tool,controls)
+        boss=next((e for e in session.combat.enemies if e.kind=='golem' and e.state!=EnemyState.DEAD),None)
+        if boss:
+            labels={1:'I: DASH ANCHOR > SWORD',2:'II: BOMB > SWORD',3:'III: DASH + BOMB > SWORD'}
+            r.rect(s,INK,(5,64,222,27));r.rect(s,(83,110,130),(5,64,222,27),1)
+            self.text('CORE OPEN' if boss.exposed>0 else labels[boss.phase],10,67,TEAL if boss.exposed>0 else GOLD,max_width=211)
+            r.rect(s,(51,54,73),(10,82,210,3));r.rect(s,(227,107,113),(10,82,int(210*boss.hp/boss.max_hp),3))
+
 
     def player(self,pos,facing,moving,cx,cy):
         r=pygame.draw;s=self.surface
@@ -213,7 +226,7 @@ class Renderer:
         self.text(title,35,36,GOLD,self.title,max_width=248)
         y=78
         for i,line in enumerate(lines):
-            self.text(('> ' if selected==i else '  ')+line,36,y,TEAL if selected==i else WHITE)
+            self.text(('> ' if selected==i else '  ')+line,36,y,TEAL if selected==i else WHITE,max_width=244)
             y+=19
 
     def atlas_graph(self,session,bounds):
@@ -235,9 +248,11 @@ class Renderer:
             r.rect(s,INK,rect);r.rect(s,color,rect,1)
             if w>100:self.text(name[1:] if name in session.visited else '?',rect.x+3,rect.y,color)
             elif name==session.rooms.current:r.rect(s,color,(center[0]-1,center[1]-1,2,2))
+            if name in session.visited and any(e.get('stairs') for e in session.rooms.rooms[name]['exits']):
+                for step in range(3):r.line(s,WHITE,(rect.x,rect.bottom-1-step),(rect.x+step+1,rect.bottom-1-step))
             if name in session.visited and 'compass' in session.inventory.abilities and any(o.get('ability') or o.get('boss_key') for o in session.rooms.rooms[name]['objects']):
                 r.rect(s,TEAL,(rect.right-3,rect.bottom-3,2,2))
-            if "compass" in session.inventory.abilities and name in session.visited and any(e["type"]=="golem" for e in session.rooms.rooms[name].get("enemies",[])):
+            if "compass" in session.inventory.abilities and any(e["type"]=="golem" for e in session.rooms.rooms[name].get("enemies",[])) and (name in session.visited or any(name in pair and (set(pair)-{name})<=session.visited for pair in atlas.edges(session.visited))):
                 r.rect(s,(236,98,116),(center[0]-2,center[1]-2,4,4))
 
     def minimap(self,session):

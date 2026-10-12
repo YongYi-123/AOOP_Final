@@ -51,7 +51,7 @@ class EnvironmentPainter:
             else:
                 r.rect(s,bright,(1,1,14,14));r.line(s,dark,(0,15),(15,15))
                 if variant==1:r.lines(s,dark,False,[(5,1),(7,5),(4,8),(6,13)])
-                elif variant==3:r.rect(s,tint(t.accent,-90),(5,5,6,6),1)
+                elif variant==3:r.line(s,tint(t.floor,-10),(5,8),(9,8))
             if kind=='g':
                 for x,y in ((2,5),(9,12),(13,4)):r.lines(s,(72,110,79),False,[(x-1,y-2),(x,y),(x+1,y-3)])
             if kind=='O':

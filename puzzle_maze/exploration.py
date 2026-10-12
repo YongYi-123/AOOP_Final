@@ -65,5 +65,5 @@ class DungeonAtlas:
         known=session.exploration.tiles.get(session.rooms.current,set())
         room=session.rooms.data
         markers=[('exit',tuple(e['pos'])) for e in room['exits'] if tuple(e['pos']) in known]
-        markers += [(o['type'],tuple(o['pos'])) for o in room['objects'] if o['type'] in ('door','secret','chest','receiver') and tuple(o['pos']) in known]
+        markers += [(o['type'],tuple(o['pos'])) for o in room['objects'] if o['type'] in ('door','secret','chest','receiver','cracked') and (o['type']!='chest' or 'compass' in session.inventory.abilities) and tuple(o['pos']) in known]
         return markers
