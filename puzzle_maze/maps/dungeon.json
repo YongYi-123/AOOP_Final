@@ -1,0 +1,3105 @@
+{
+  "r1": {
+    "name": "Entrance Hall",
+    "hint": "Basic Sword: J. Find the Gloves chest, open the switch gate, then unlock the eastern seal.",
+    "spawn": [
+      2,
+      5
+    ],
+    "tiles": [
+      "########################################",
+      "#...........#..#.........#.......#v#vvv#",
+      "#...........#............#.......#v#vvv#",
+      "#...........#............#.......#v#vvv#",
+      "#...........#..#.........#.......#v#vvv#",
+      "#..............#.................#v#vvv#",
+      "#...........#..#.........#.......#vvvvv#",
+      "#...........#..#.........#.......#vvvvv#",
+      "#...........#..#.........#.......#v#vvv#",
+      "#..ggg...O..#..#.........#.......#v#vvv#",
+      "#..ggg......#..#.........#.......#v#vvv#",
+      "#..ggg......#..#.........#.......#.#...#",
+      "#...........#....................#.....#",
+      "#vvvvvvvvvvv#..........................#",
+      "#vvvvvvvvvvv#....#.....#.........#.....#",
+      "#vvvvvvvvvvv#v...#vvv....vv....v.#.#...#",
+      "#vvvvvvvvvvv#v...vvvv..#.vv....v.#v#vvv#",
+      "#vvvvvvvvvvv#v...vvvv..#.v##.###.#v#vvv#",
+      "#vvvvvvvvvvv#v...#vvv..#.v#....#.#v#vvv#",
+      "#vvvvvvvvvvv#v...#vvv..#.v#....#.#vvvvv#",
+      "#vvvvvvvvvvv#v.#.####.#.#v######.#vvvvv#",
+      "#vvvvvvvvvvv#v...#.....#..######.#v#vvv#",
+      "#vvvvvvvvvvv#v...#.....#.........#v#vvv#",
+      "#vvvvvvvvvvv#v...#...............#v#vvv#",
+      "#vvvvvvvvvvv#v...#.....#.........#v#vvv#",
+      "########################################"
+    ],
+    "objects": [
+      {
+        "id": "switch",
+        "type": "switch",
+        "pos": [
+          4,
+          5
+        ]
+      },
+      {
+        "id": "gate",
+        "type": "door",
+        "pos": [
+          12,
+          5
+        ],
+        "requires": [
+          "switch"
+        ]
+      },
+      {
+        "id": "cache_wall",
+        "type": "secret",
+        "pos": [
+          28,
+          17
+        ]
+      },
+      {
+        "id": "cache",
+        "type": "chest",
+        "pos": [
+          29,
+          19
+        ],
+        "potions": 2
+      },
+      {
+        "id": "seal_key",
+        "type": "key",
+        "color": "seal_1",
+        "pos": [
+          27,
+          10
+        ]
+      },
+      {
+        "id": "seal",
+        "type": "door",
+        "pos": [
+          33,
+          13
+        ],
+        "requires": [
+          "gate",
+          "tool_chest"
+        ],
+        "key": "seal_1"
+      },
+      {
+        "id": "tool_chest",
+        "type": "chest",
+        "pos": [
+          8,
+          9
+        ],
+        "ability": "gloves"
+      }
+    ],
+    "exits": [
+      {
+        "pos": [
+          38,
+          13
+        ],
+        "target": "r2",
+        "arrival": [
+          2,
+          5
+        ],
+        "finish": false,
+        "requires": [
+          "seal"
+        ]
+      }
+    ],
+    "goal": [
+      "seal"
+    ],
+    "primary_goal": [
+      "gate"
+    ],
+    "atlas": [
+      0,
+      0
+    ],
+    "enemies": [
+      {
+        "id": "slime",
+        "type": "slime",
+        "pos": [
+          7,
+          11
+        ]
+      }
+    ],
+    "theme": "entrance",
+    "layout_revision": "2.1",
+    "legacy_axes": {
+      "columns": [
+        0,
+        1,
+        2,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        13,
+        14,
+        15,
+        18,
+        19,
+        20,
+        21,
+        23,
+        24,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34,
+        35,
+        36,
+        37,
+        38,
+        40,
+        45,
+        46,
+        48,
+        50,
+        53,
+        55
+      ],
+      "rows": [
+        0,
+        3,
+        4,
+        5,
+        6,
+        7,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        16,
+        17,
+        18,
+        20,
+        22,
+        23,
+        24,
+        25,
+        26,
+        28,
+        29,
+        30,
+        31,
+        33
+      ]
+    },
+    "decorations": [
+      {
+        "kind": "torch",
+        "pos": [
+          3,
+          0
+        ],
+        "phase": 0.0
+      },
+      {
+        "kind": "torch",
+        "pos": [
+          9,
+          0
+        ],
+        "phase": 0.73
+      },
+      {
+        "kind": "torch",
+        "pos": [
+          18,
+          0
+        ],
+        "phase": 1.46
+      },
+      {
+        "kind": "torch",
+        "pos": [
+          24,
+          0
+        ],
+        "phase": 2.19
+      },
+      {
+        "kind": "torch",
+        "pos": [
+          30,
+          0
+        ],
+        "phase": 2.92
+      },
+      {
+        "kind": "torch",
+        "pos": [
+          0,
+          3
+        ],
+        "phase": 3.65
+      },
+      {
+        "kind": "torch",
+        "pos": [
+          33,
+          3
+        ],
+        "phase": 4.38
+      },
+      {
+        "kind": "torch",
+        "pos": [
+          25,
+          4
+        ],
+        "phase": 5.109999999999999
+      },
+      {
+        "kind": "torch",
+        "pos": [
+          15,
+          6
+        ],
+        "phase": 5.84
+      },
+      {
+        "kind": "torch",
+        "pos": [
+          0,
+          9
+        ],
+        "phase": 6.57
+      },
+      {
+        "kind": "torch",
+        "pos": [
+          12,
+          9
+        ],
+        "phase": 7.3
+      },
+      {
+        "kind": "torch",
+        "pos": [
+          33,
+          9
+        ],
+        "phase": 8.03
+      }
+    ]
+  },
+  "r2": {
+    "name": "Mechanism Room",
+    "hint": "Stand on the entrance plate. Push the heavy crate onto the relay plate to open the final seal.",
+    "spawn": [
+      2,
+      5
+    ],
+    "tiles": [
+      "########################################",
+      "#...........#..#.........#.......#v#vvv#",
+      "#...........#..#.........#.......#v#vvv#",
+      "#...........#............#.......#v#vvv#",
+      "#...........#............#.......#v#vvv#",
+      "#..............#.................#v#vvv#",
+      "#...........#..#.........#.......#vvvvv#",
+      "#...........#..#.........#.......#vvvvv#",
+      "#...........#..#.........#.......#v#vvv#",
+      "#........O..#..#.........#.......#v#vvv#",
+      "#...........#..#.........#.......#v#vvv#",
+      "#...........#..#.........#.......#.#...#",
+      "#...........#....................#.....#",
+      "#vvvvvvvvvvv#..........................#",
+      "#vvvvvvvvvvv#....#.....#.........#.....#",
+      "#vvvvvvvvvvv#v...#vvv....vv....v.#.#...#",
+      "#vvvvvvvvvvv#v...vvvv..#.vv....v.#v#vvv#",
+      "#vvvvvvvvvvv#v...vvvv..#.v##.###.#v#vvv#",
+      "#vvvvvvvvvvv#v...#vvv..#.v#....#.#v#vvv#",
+      "#vvvvvvvvvvv#v...#vvv..#.v#....#.#vvvvv#",
+      "#vvvvvvvvvvv#v.#.####.#.#v######.#vvvvv#",
+      "#vvvvvvvvvvv#v...#.....#..######.#v#vvv#",
+      "#vvvvvvvvvvv#v...#.....#.........#v#vvv#",
+      "#vvvvvvvvvvv#v...#...............#v#vvv#",
+      "#vvvvvvvvvvv#v...#.....#.........#v#vvv#",
+      "########################################"
+    ],
+    "objects": [
+      {
+        "id": "plate",
+        "type": "plate",
+        "pos": [
+          6,
+          5
+        ]
+      },
+      {
+        "id": "gate",
+        "type": "door",
+        "pos": [
+          12,
+          5
+        ],
+        "requires": [
+          "plate"
+        ]
+      },
+      {
+        "id": "cache_wall",
+        "type": "secret",
+        "pos": [
+          28,
+          17
+        ]
+      },
+      {
+        "id": "cache",
+        "type": "chest",
+        "pos": [
+          29,
+          19
+        ],
+        "potions": 2
+      },
+      {
+        "id": "relay_box",
+        "type": "box",
+        "pos": [
+          26,
+          13
+        ],
+        "heavy": true
+      },
+      {
+        "id": "relay_plate",
+        "type": "plate",
+        "pos": [
+          29,
+          13
+        ]
+      },
+      {
+        "id": "seal",
+        "type": "door",
+        "pos": [
+          33,
+          13
+        ],
+        "requires": [
+          "gate",
+          "relay_plate"
+        ]
+      }
+    ],
+    "exits": [
+      {
+        "pos": [
+          1,
+          5
+        ],
+        "target": "r1",
+        "arrival": [
+          37,
+          13
+        ]
+      },
+      {
+        "pos": [
+          38,
+          13
+        ],
+        "target": "r3",
+        "arrival": [
+          2,
+          5
+        ],
+        "finish": false,
+        "requires": [
+          "seal"
+        ]
+      }
+    ],
+    "goal": [
+      "seal"
+    ],
+    "primary_goal": [
+      "gate"
+    ],
+    "atlas": [
+      1,
+      0
+    ],
+    "enemies": [
+      {
+        "id": "slime",
+        "type": "slime",
+        "pos": [
+          21,
+          15
+        ]
+      }
+    ],
+    "theme": "mechanism",
+    "layout_revision": "2.1",
+    "legacy_axes": {
+      "columns": [
+        0,
+        1,
+        2,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        13,
+        14,
+        15,
+        18,
+        19,
+        20,
+        21,
+        23,
+        24,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34,
+        35,
+        36,
+        37,
+        38,
+        40,
+        45,
+        46,
+        48,
+        50,
+        53,
+        55
+      ],
+      "rows": [
+        0,
+        3,
+        4,
+        5,
+        6,
+        7,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        16,
+        17,
+        18,
+        20,
+        22,
+        23,
+        24,
+        25,
+        26,
+        28,
+        29,
+        30,
+        31,
+        33
+      ]
+    },
+    "decorations": [
+      {
+        "kind": "torch",
+        "pos": [
+          3,
+          0
+        ],
+        "phase": 0.0
+      },
+      {
+        "kind": "gear",
+        "pos": [
+          9,
+          0
+        ],
+        "phase": 0.73
+      },
+      {
+        "kind": "gear",
+        "pos": [
+          18,
+          0
+        ],
+        "phase": 1.46
+      },
+      {
+        "kind": "torch",
+        "pos": [
+          24,
+          0
+        ],
+        "phase": 2.19
+      },
+      {
+        "kind": "gear",
+        "pos": [
+          30,
+          0
+        ],
+        "phase": 2.92
+      },
+      {
+        "kind": "gear",
+        "pos": [
+          0,
+          3
+        ],
+        "phase": 3.65
+      },
+      {
+        "kind": "torch",
+        "pos": [
+          33,
+          3
+        ],
+        "phase": 4.38
+      },
+      {
+        "kind": "gear",
+        "pos": [
+          25,
+          4
+        ],
+        "phase": 5.109999999999999
+      },
+      {
+        "kind": "gear",
+        "pos": [
+          15,
+          6
+        ],
+        "phase": 5.84
+      },
+      {
+        "kind": "torch",
+        "pos": [
+          0,
+          9
+        ],
+        "phase": 6.57
+      },
+      {
+        "kind": "gear",
+        "pos": [
+          12,
+          9
+        ],
+        "phase": 7.3
+      },
+      {
+        "kind": "gear",
+        "pos": [
+          33,
+          9
+        ],
+        "phase": 8.03
+      }
+    ]
+  },
+  "r3": {
+    "name": "Ruined Library",
+    "hint": "Weight both plates. Find the Boots chest and the seal key. A cracked alcove hides supplies.",
+    "spawn": [
+      2,
+      5
+    ],
+    "tiles": [
+      "########################################",
+      "#...........#..#.........#.......#v#vvv#",
+      "#...........#..#.........#.......#v#vvv#",
+      "#...........#..#.........#.......#v#vvv#",
+      "#...........#............#.......#v#vvv#",
+      "#................................#v#vvv#",
+      "#...........#..#.........#.......#vvvvv#",
+      "#...........#..#.........#.......#vvvvv#",
+      "#...........#..#.........#.......#v#vvv#",
+      "#........O..#..#.........#.......#v#vvv#",
+      "#...........#..#.........#.......#v#vvv#",
+      "#...........#..#.........#.......#.#...#",
+      "#...........#....................#.....#",
+      "#vvvvvvvvvvv#..........................#",
+      "#vvvvvvvvvvv#....#.....#.........#.....#",
+      "#vvvvvvvvvvv#v...#vvv....vv....v.#.#...#",
+      "#vvvvvvvvvvv#v...vvvv..#.vv....v.#v#vvv#",
+      "#vvvvvvvvvvv#v...vvvv..#.v##.###.#v#vvv#",
+      "#vvvvvvvvvvv#v...#vvv..#.v#....#.#v#vvv#",
+      "#vvvvvvvvvvv#v...#vvv..#.v#....#.#vvvvv#",
+      "#vvvvvvvvvvv#v.#.####.#.#v######.#vvvvv#",
+      "#vvvvvvvvvvv#v...#.....#..######.#v#vvv#",
+      "#vvvvvvvvvvv#v...#.....#.........#v#vvv#",
+      "#vvvvvvvvvvv#v...#...............#v#vvv#",
+      "#vvvvvvvvvvv#v...#.....#.........#v#vvv#",
+      "########################################"
+    ],
+    "objects": [
+      {
+        "id": "box1",
+        "type": "box",
+        "pos": [
+          4,
+          3
+        ],
+        "heavy": true
+      },
+      {
+        "id": "plate1",
+        "type": "plate",
+        "pos": [
+          7,
+          3
+        ]
+      },
+      {
+        "id": "box2",
+        "type": "box",
+        "pos": [
+          4,
+          6
+        ],
+        "heavy": true
+      },
+      {
+        "id": "plate2",
+        "type": "plate",
+        "pos": [
+          7,
+          6
+        ]
+      },
+      {
+        "id": "gate",
+        "type": "door",
+        "pos": [
+          12,
+          5
+        ],
+        "requires": [
+          "plate1",
+          "plate2"
+        ]
+      },
+      {
+        "id": "cache_wall",
+        "type": "secret",
+        "pos": [
+          28,
+          17
+        ]
+      },
+      {
+        "id": "cache",
+        "type": "chest",
+        "pos": [
+          29,
+          19
+        ],
+        "potions": 2
+      },
+      {
+        "id": "seal_key",
+        "type": "key",
+        "color": "seal_3",
+        "pos": [
+          27,
+          10
+        ]
+      },
+      {
+        "id": "seal",
+        "type": "door",
+        "pos": [
+          33,
+          13
+        ],
+        "requires": [
+          "gate",
+          "tool_chest"
+        ],
+        "key": "seal_3"
+      },
+      {
+        "id": "tool_chest",
+        "type": "chest",
+        "pos": [
+          21,
+          7
+        ],
+        "ability": "boots"
+      }
+    ],
+    "exits": [
+      {
+        "pos": [
+          1,
+          5
+        ],
+        "target": "r2",
+        "arrival": [
+          37,
+          13
+        ]
+      },
+      {
+        "pos": [
+          38,
+          13
+        ],
+        "target": "r4",
+        "arrival": [
+          2,
+          5
+        ],
+        "finish": false,
+        "requires": [
+          "seal"
+        ]
+      }
+    ],
+    "goal": [
+      "seal"
+    ],
+    "primary_goal": [
+      "gate"
+    ],
+    "atlas": [
+      2,
+      0
+    ],
+    "enemies": [
+      {
+        "id": "slime",
+        "type": "slime",
+        "pos": [
+          14,
+          23
+        ]
+      },
+      {
+        "id": "bat",
+        "type": "bat",
+        "pos": [
+          21,
+          23
+        ]
+      }
+    ],
+    "theme": "library",
+    "layout_revision": "2.1",
+    "legacy_axes": {
+      "columns": [
+        0,
+        1,
+        2,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        13,
+        14,
+        15,
+        18,
+        19,
+        20,
+        21,
+        23,
+        24,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34,
+        35,
+        36,
+        37,
+        38,
+        40,
+        45,
+        46,
+        48,
+        50,
+        53,
+        55
+      ],
+      "rows": [
+        0,
+        3,
+        4,
+        5,
+        6,
+        7,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        16,
+        17,
+        18,
+        20,
+        22,
+        23,
+        24,
+        25,
+        26,
+        28,
+        29,
+        30,
+        31,
+        33
+      ]
+    },
+    "decorations": [
+      {
+        "kind": "torch",
+        "pos": [
+          3,
+          0
+        ],
+        "phase": 0.0
+      },
+      {
+        "kind": "books",
+        "pos": [
+          9,
+          0
+        ],
+        "phase": 0.73
+      },
+      {
+        "kind": "books",
+        "pos": [
+          18,
+          0
+        ],
+        "phase": 1.46
+      },
+      {
+        "kind": "torch",
+        "pos": [
+          24,
+          0
+        ],
+        "phase": 2.19
+      },
+      {
+        "kind": "books",
+        "pos": [
+          30,
+          0
+        ],
+        "phase": 2.92
+      },
+      {
+        "kind": "books",
+        "pos": [
+          0,
+          3
+        ],
+        "phase": 3.65
+      },
+      {
+        "kind": "torch",
+        "pos": [
+          15,
+          3
+        ],
+        "phase": 4.38
+      },
+      {
+        "kind": "books",
+        "pos": [
+          33,
+          3
+        ],
+        "phase": 5.109999999999999
+      },
+      {
+        "kind": "books",
+        "pos": [
+          25,
+          4
+        ],
+        "phase": 5.84
+      },
+      {
+        "kind": "torch",
+        "pos": [
+          0,
+          9
+        ],
+        "phase": 6.57
+      },
+      {
+        "kind": "books",
+        "pos": [
+          12,
+          9
+        ],
+        "phase": 7.3
+      },
+      {
+        "kind": "books",
+        "pos": [
+          33,
+          9
+        ],
+        "phase": 8.03
+      }
+    ]
+  },
+  "r4": {
+    "name": "Guard Room",
+    "hint": "Use the amber key. Set the relay signal, start the short clock, and dash through its gate.",
+    "spawn": [
+      2,
+      5
+    ],
+    "tiles": [
+      "########################################",
+      "#...........#..#.........#.......#v#vvv#",
+      "#...........#..#.........#.......#v#vvv#",
+      "#...........#..#.........#.......#v#vvv#",
+      "#...........#..#.........#.......#v#vvv#",
+      "#................................#v#vvv#",
+      "#...........#..#.........#.......#vvvvv#",
+      "#...........#..#.........#.......#vvvvv#",
+      "#...........#..#.........#.......#v#vvv#",
+      "#........O..#..#.........#.......#v#vvv#",
+      "#...........#..#.........#.......#v#vvv#",
+      "#...........#..#.........#.......#.#...#",
+      "#...........#....................#.....#",
+      "#vvvvvvvvvvv#..........................#",
+      "#vvvvvvvvvvv#....#.....#.........#.....#",
+      "#vvvvvvvvvvv#v...#vvv....vv....v.#.#...#",
+      "#vvvvvvvvvvv#v...vvvv..#.vv....v.#v#vvv#",
+      "#vvvvvvvvvvv#v...vvvv..#.v##.###.#v#vvv#",
+      "#vvvvvvvvvvv#v...#vvv..#.v#....#.#v#vvv#",
+      "#vvvvvvvvvvv#v...#vvv..#.v#....#.#vvvvv#",
+      "#vvvvvvvvvvv#v.#.####.#.#v######.#vvvvv#",
+      "#vvvvvvvvvvv#v...#.....#..######.#v#vvv#",
+      "#vvvvvvvvvvv#v...#.....#.........#v#vvv#",
+      "#vvvvvvvvvvv#v...#...............#v#vvv#",
+      "#vvvvvvvvvvv#v...#.....#.........#v#vvv#",
+      "########################################"
+    ],
+    "objects": [
+      {
+        "id": "key",
+        "type": "key",
+        "pos": [
+          6,
+          3
+        ],
+        "color": "amber"
+      },
+      {
+        "id": "gate",
+        "type": "door",
+        "pos": [
+          12,
+          5
+        ],
+        "key": "amber"
+      },
+      {
+        "id": "cache_wall",
+        "type": "secret",
+        "pos": [
+          28,
+          17
+        ]
+      },
+      {
+        "id": "cache",
+        "type": "chest",
+        "pos": [
+          29,
+          19
+        ],
+        "potions": 2
+      },
+      {
+        "id": "relay_clock",
+        "type": "timed",
+        "pos": [
+          29,
+          13
+        ],
+        "duration": 0.35
+      },
+      {
+        "id": "relay_signal",
+        "type": "switch",
+        "pos": [
+          26,
+          10
+        ]
+      },
+      {
+        "id": "seal",
+        "type": "door",
+        "pos": [
+          33,
+          13
+        ],
+        "requires": [
+          "gate",
+          "relay_clock",
+          "relay_signal"
+        ]
+      }
+    ],
+    "exits": [
+      {
+        "pos": [
+          1,
+          5
+        ],
+        "target": "r3",
+        "arrival": [
+          37,
+          13
+        ]
+      },
+      {
+        "pos": [
+          38,
+          13
+        ],
+        "target": "r5",
+        "arrival": [
+          2,
+          5
+        ],
+        "finish": false,
+        "requires": [
+          "seal"
+        ]
+      }
+    ],
+    "goal": [
+      "seal"
+    ],
+    "primary_goal": [
+      "gate"
+    ],
+    "atlas": [
+      3,
+      0
+    ],
+    "enemies": [
+      {
+        "id": "slime",
+        "type": "slime",
+        "pos": [
+          14,
+          23
+        ]
+      },
+      {
+        "id": "bat",
+        "type": "bat",
+        "pos": [
+          21,
+          23
+        ]
+      }
+    ],
+    "theme": "guard",
+    "layout_revision": "2.1",
+    "legacy_axes": {
+      "columns": [
+        0,
+        1,
+        2,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        13,
+        14,
+        15,
+        18,
+        19,
+        20,
+        21,
+        23,
+        24,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34,
+        35,
+        36,
+        37,
+        38,
+        40,
+        45,
+        46,
+        48,
+        50,
+        53,
+        55
+      ],
+      "rows": [
+        0,
+        3,
+        4,
+        5,
+        6,
+        7,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        16,
+        17,
+        18,
+        20,
+        22,
+        23,
+        24,
+        25,
+        26,
+        28,
+        29,
+        30,
+        31,
+        33
+      ]
+    },
+    "decorations": [
+      {
+        "kind": "torch",
+        "pos": [
+          3,
+          0
+        ],
+        "phase": 0.0
+      },
+      {
+        "kind": "rack",
+        "pos": [
+          9,
+          0
+        ],
+        "phase": 0.73
+      },
+      {
+        "kind": "rack",
+        "pos": [
+          18,
+          0
+        ],
+        "phase": 1.46
+      },
+      {
+        "kind": "torch",
+        "pos": [
+          24,
+          0
+        ],
+        "phase": 2.19
+      },
+      {
+        "kind": "rack",
+        "pos": [
+          30,
+          0
+        ],
+        "phase": 2.92
+      },
+      {
+        "kind": "rack",
+        "pos": [
+          0,
+          3
+        ],
+        "phase": 3.65
+      },
+      {
+        "kind": "torch",
+        "pos": [
+          15,
+          3
+        ],
+        "phase": 4.38
+      },
+      {
+        "kind": "rack",
+        "pos": [
+          33,
+          3
+        ],
+        "phase": 5.109999999999999
+      },
+      {
+        "kind": "rack",
+        "pos": [
+          25,
+          4
+        ],
+        "phase": 5.84
+      },
+      {
+        "kind": "torch",
+        "pos": [
+          0,
+          9
+        ],
+        "phase": 6.57
+      },
+      {
+        "kind": "rack",
+        "pos": [
+          12,
+          9
+        ],
+        "phase": 7.3
+      },
+      {
+        "kind": "rack",
+        "pos": [
+          33,
+          9
+        ],
+        "phase": 8.03
+      }
+    ]
+  },
+  "r5": {
+    "name": "Crystal Chamber",
+    "hint": "Find the Mirror. Power both signals, turn light north, and weight the relay plate.",
+    "spawn": [
+      2,
+      5
+    ],
+    "tiles": [
+      "########################################",
+      "#...........#..#.........#.......#v#vvv#",
+      "#...........#..#.........#.......#v#vvv#",
+      "#...........#..#.........#.......#v#vvv#",
+      "#...........#..#.........#.......#v#vvv#",
+      "#..............#.................#v#vvv#",
+      "#...........#............#.......#vvvvv#",
+      "#...........#..#.................#vvvvv#",
+      "#...........#..#.........#.......#v#vvv#",
+      "#........O..#..#.........#.......#v#vvv#",
+      "#...........#..#.........#.......#v#vvv#",
+      "#...........#..#.........#.......#.#...#",
+      "#...........#....................#.....#",
+      "#vvvvvvvvvvv#..........................#",
+      "#vvvvvvvvvvv#....#.....#.........#.....#",
+      "#vvvvvvvvvvv#v...#vvv....vv....v.#.#...#",
+      "#vvvvvvvvvvv#v...vvvv..#.vv....v.#v#vvv#",
+      "#vvvvvvvvvvv#v...vvvv..#.v##.###.#v#vvv#",
+      "#vvvvvvvvvvv#v...#vvv..#.v#....#.#v#vvv#",
+      "#vvvvvvvvvvv#v...#vvv..#.v#....#.#vvvvv#",
+      "#vvvvvvvvvvv#v.#.####.#.#v######.#vvvvv#",
+      "#vvvvvvvvvvv#v...#.....#..######.#v#vvv#",
+      "#vvvvvvvvvvv#v...#.....#.........#v#vvv#",
+      "#vvvvvvvvvvv#v...#...............#v#vvv#",
+      "#vvvvvvvvvvv#v...#.....#.........#v#vvv#",
+      "########################################"
+    ],
+    "objects": [
+      {
+        "id": "north",
+        "type": "switch",
+        "pos": [
+          6,
+          2
+        ]
+      },
+      {
+        "id": "south",
+        "type": "switch",
+        "pos": [
+          6,
+          7
+        ]
+      },
+      {
+        "id": "gate",
+        "type": "door",
+        "pos": [
+          12,
+          5
+        ],
+        "requires": [
+          "north",
+          "south"
+        ]
+      },
+      {
+        "id": "cache_wall",
+        "type": "secret",
+        "pos": [
+          28,
+          17
+        ]
+      },
+      {
+        "id": "cache",
+        "type": "chest",
+        "pos": [
+          29,
+          19
+        ],
+        "potions": 2
+      },
+      {
+        "id": "relay_box",
+        "type": "box",
+        "pos": [
+          26,
+          13
+        ],
+        "heavy": true
+      },
+      {
+        "id": "relay_plate",
+        "type": "plate",
+        "pos": [
+          29,
+          13
+        ]
+      },
+      {
+        "id": "seal",
+        "type": "door",
+        "pos": [
+          33,
+          13
+        ],
+        "requires": [
+          "gate",
+          "relay_plate",
+          "tool_chest",
+          "receiver"
+        ]
+      },
+      {
+        "id": "tool_chest",
+        "type": "chest",
+        "pos": [
+          9,
+          8
+        ],
+        "ability": "mirror"
+      },
+      {
+        "id": "beam",
+        "type": "light",
+        "pos": [
+          24,
+          7
+        ],
+        "direction": [
+          1,
+          0
+        ],
+        "requires": [
+          "gate"
+        ]
+      },
+      {
+        "id": "prism",
+        "type": "reflector",
+        "pos": [
+          29,
+          7
+        ]
+      },
+      {
+        "id": "receiver",
+        "type": "receiver",
+        "pos": [
+          29,
+          4
+        ]
+      }
+    ],
+    "exits": [
+      {
+        "pos": [
+          1,
+          5
+        ],
+        "target": "r4",
+        "arrival": [
+          37,
+          13
+        ]
+      },
+      {
+        "pos": [
+          38,
+          13
+        ],
+        "target": "r6",
+        "arrival": [
+          2,
+          5
+        ],
+        "finish": false,
+        "requires": [
+          "seal"
+        ]
+      }
+    ],
+    "goal": [
+      "seal"
+    ],
+    "primary_goal": [
+      "gate"
+    ],
+    "atlas": [
+      0,
+      1
+    ],
+    "enemies": [
+      {
+        "id": "slime",
+        "type": "slime",
+        "pos": [
+          14,
+          23
+        ]
+      },
+      {
+        "id": "bat",
+        "type": "bat",
+        "pos": [
+          21,
+          23
+        ]
+      }
+    ],
+    "theme": "crystal",
+    "layout_revision": "2.1",
+    "legacy_axes": {
+      "columns": [
+        0,
+        1,
+        2,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        13,
+        14,
+        15,
+        18,
+        19,
+        20,
+        21,
+        23,
+        24,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34,
+        35,
+        36,
+        37,
+        38,
+        40,
+        45,
+        46,
+        48,
+        50,
+        53,
+        55
+      ],
+      "rows": [
+        0,
+        3,
+        4,
+        5,
+        6,
+        7,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        16,
+        17,
+        18,
+        20,
+        22,
+        23,
+        24,
+        25,
+        26,
+        28,
+        29,
+        30,
+        31,
+        33
+      ]
+    },
+    "decorations": [
+      {
+        "kind": "torch",
+        "pos": [
+          3,
+          0
+        ],
+        "phase": 0.0
+      },
+      {
+        "kind": "crystal",
+        "pos": [
+          9,
+          0
+        ],
+        "phase": 0.73
+      },
+      {
+        "kind": "crystal",
+        "pos": [
+          18,
+          0
+        ],
+        "phase": 1.46
+      },
+      {
+        "kind": "torch",
+        "pos": [
+          24,
+          0
+        ],
+        "phase": 2.19
+      },
+      {
+        "kind": "crystal",
+        "pos": [
+          30,
+          0
+        ],
+        "phase": 2.92
+      },
+      {
+        "kind": "crystal",
+        "pos": [
+          0,
+          3
+        ],
+        "phase": 3.65
+      },
+      {
+        "kind": "torch",
+        "pos": [
+          15,
+          3
+        ],
+        "phase": 4.38
+      },
+      {
+        "kind": "crystal",
+        "pos": [
+          33,
+          3
+        ],
+        "phase": 5.109999999999999
+      },
+      {
+        "kind": "crystal",
+        "pos": [
+          25,
+          4
+        ],
+        "phase": 5.84
+      },
+      {
+        "kind": "torch",
+        "pos": [
+          0,
+          9
+        ],
+        "phase": 6.57
+      },
+      {
+        "kind": "crystal",
+        "pos": [
+          12,
+          9
+        ],
+        "phase": 7.3
+      },
+      {
+        "kind": "crystal",
+        "pos": [
+          33,
+          9
+        ],
+        "phase": 8.03
+      }
+    ]
+  },
+  "r6": {
+    "name": "Mosswork Vault",
+    "hint": "Pulse the cracked passage. Find the Magnet, then repel the metal weight across its slot.",
+    "spawn": [
+      2,
+      5
+    ],
+    "tiles": [
+      "########################################",
+      "#...........#..#.........#.......#v#vvv#",
+      "#...........#............#.......#v#vvv#",
+      "#...........#............#.......#v#vvv#",
+      "#...........#..#.........#.......#v#vvv#",
+      "#..............#.................#v#vvv#",
+      "#...........#..#.........#.......#vvvvv#",
+      "#...........#..#.........#.......#vvvvv#",
+      "#...........#..#.........#.......#v#vvv#",
+      "#........O..#..#....##.#####.....#v#vvv#",
+      "#...........#..#....#......#.....#v#vvv#",
+      "#...........#..#....#......#.....#.#...#",
+      "#...........#.......###########..#.....#",
+      "#vvvvvvvvvvv#............~....#........#",
+      "#vvvvvvvvvvv#....#.....#.######..#.....#",
+      "#vvvvvvvvvvv#v...#vvv....vv....v.#.#...#",
+      "#vvvvvvvvvvv#v...vvvv..#.vv....v.#v#vvv#",
+      "#vvvvvvvvvvv#v...vvvv..#.v##.###.#v#vvv#",
+      "#vvvvvvvvvvv#v...#vvv..#.v#....#.#v#vvv#",
+      "#vvvvvvvvvvv#v...#vvv..#.v#....#.#vvvvv#",
+      "#vvvvvvvvvvv#v.#.####.#.#v######.#vvvvv#",
+      "#vvvvvvvvvvv#v...#.....#..######.#v#vvv#",
+      "#vvvvvvvvvvv#v...#.....#.........#v#vvv#",
+      "#vvvvvvvvvvv#v...#...............#v#vvv#",
+      "#vvvvvvvvvvv#v...#.....#.........#v#vvv#",
+      "########################################"
+    ],
+    "objects": [
+      {
+        "id": "cracked",
+        "type": "secret",
+        "pos": [
+          12,
+          5
+        ]
+      },
+      {
+        "id": "archive_wall",
+        "type": "secret",
+        "pos": [
+          22,
+          9
+        ]
+      },
+      {
+        "id": "cache_wall",
+        "type": "secret",
+        "pos": [
+          28,
+          17
+        ]
+      },
+      {
+        "id": "cache",
+        "type": "chest",
+        "pos": [
+          29,
+          19
+        ],
+        "potions": 2
+      },
+      {
+        "id": "relay_box",
+        "type": "box",
+        "pos": [
+          26,
+          13
+        ],
+        "heavy": true,
+        "metal": true
+      },
+      {
+        "id": "relay_plate",
+        "type": "plate",
+        "pos": [
+          29,
+          13
+        ]
+      },
+      {
+        "id": "seal",
+        "type": "door",
+        "pos": [
+          33,
+          13
+        ],
+        "requires": [
+          "cracked",
+          "relay_plate",
+          "tool_chest"
+        ]
+      },
+      {
+        "id": "tool_chest",
+        "type": "chest",
+        "pos": [
+          10,
+          8
+        ],
+        "ability": "magnet"
+      }
+    ],
+    "exits": [
+      {
+        "pos": [
+          1,
+          5
+        ],
+        "target": "r5",
+        "arrival": [
+          37,
+          13
+        ]
+      },
+      {
+        "pos": [
+          38,
+          13
+        ],
+        "target": "r7",
+        "arrival": [
+          2,
+          5
+        ],
+        "finish": false,
+        "requires": [
+          "seal"
+        ]
+      },
+      {
+        "pos": [
+          23,
+          11
+        ],
+        "target": "r9",
+        "arrival": [
+          2,
+          5
+        ]
+      }
+    ],
+    "goal": [
+      "seal"
+    ],
+    "primary_goal": [
+      "cracked"
+    ],
+    "atlas": [
+      1,
+      1
+    ],
+    "enemies": [
+      {
+        "id": "slime",
+        "type": "slime",
+        "pos": [
+          14,
+          23
+        ]
+      },
+      {
+        "id": "bat",
+        "type": "bat",
+        "pos": [
+          21,
+          23
+        ]
+      },
+      {
+        "id": "guardian",
+        "type": "guardian",
+        "pos": [
+          32,
+          23
+        ]
+      }
+    ],
+    "theme": "vault",
+    "layout_revision": "2.1",
+    "legacy_axes": {
+      "columns": [
+        0,
+        1,
+        2,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        13,
+        14,
+        15,
+        18,
+        19,
+        20,
+        21,
+        23,
+        24,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34,
+        35,
+        36,
+        37,
+        38,
+        40,
+        45,
+        46,
+        48,
+        50,
+        53,
+        55
+      ],
+      "rows": [
+        0,
+        3,
+        4,
+        5,
+        6,
+        7,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        16,
+        17,
+        18,
+        20,
+        22,
+        23,
+        24,
+        25,
+        26,
+        28,
+        29,
+        30,
+        31,
+        33
+      ]
+    },
+    "decorations": [
+      {
+        "kind": "torch",
+        "pos": [
+          3,
+          0
+        ],
+        "phase": 0.0
+      },
+      {
+        "kind": "sigil",
+        "pos": [
+          9,
+          0
+        ],
+        "phase": 0.73
+      },
+      {
+        "kind": "sigil",
+        "pos": [
+          18,
+          0
+        ],
+        "phase": 1.46
+      },
+      {
+        "kind": "torch",
+        "pos": [
+          24,
+          0
+        ],
+        "phase": 2.19
+      },
+      {
+        "kind": "sigil",
+        "pos": [
+          30,
+          0
+        ],
+        "phase": 2.92
+      },
+      {
+        "kind": "sigil",
+        "pos": [
+          0,
+          3
+        ],
+        "phase": 3.65
+      },
+      {
+        "kind": "torch",
+        "pos": [
+          33,
+          3
+        ],
+        "phase": 4.38
+      },
+      {
+        "kind": "sigil",
+        "pos": [
+          25,
+          4
+        ],
+        "phase": 5.109999999999999
+      },
+      {
+        "kind": "sigil",
+        "pos": [
+          15,
+          6
+        ],
+        "phase": 5.84
+      },
+      {
+        "kind": "torch",
+        "pos": [
+          0,
+          9
+        ],
+        "phase": 6.57
+      },
+      {
+        "kind": "sigil",
+        "pos": [
+          12,
+          9
+        ],
+        "phase": 7.3
+      },
+      {
+        "kind": "sigil",
+        "pos": [
+          27,
+          9
+        ],
+        "phase": 8.03
+      }
+    ]
+  },
+  "r7": {
+    "name": "Star Observatory",
+    "hint": "Cross the clock gate. Reflect light north and move the remote metal weight onto its plate.",
+    "spawn": [
+      2,
+      5
+    ],
+    "tiles": [
+      "########################################",
+      "#...........#..#.........#.......#v#vvv#",
+      "#...........#..#.........#.......#v#vvv#",
+      "#...........#..#.........#.......#v#vvv#",
+      "#...........#..#.........#.......#v#vvv#",
+      "#................................#v#vvv#",
+      "#...........#..#.........#.......#vvvvv#",
+      "#...........#..#.................#vvvvv#",
+      "#...........#..#.........#.......#v#vvv#",
+      "#........O..#..#.........#.......#v#vvv#",
+      "#...........#..#.........#.......#v#vvv#",
+      "#...........#..#.........#.......#.#...#",
+      "#...........#............######..#.....#",
+      "#vvvvvvvvvvv#............~....#........#",
+      "#vvvvvvvvvvv#....#.....#.######..#.....#",
+      "#vvvvvvvvvvv#v...#vvv....vv....v.#.#...#",
+      "#vvvvvvvvvvv#v...vvvv..#.vv....v.#v#vvv#",
+      "#vvvvvvvvvvv#v...vvvv..#.v##.###.#v#vvv#",
+      "#vvvvvvvvvvv#v...#vvv..#.v#....#.#v#vvv#",
+      "#vvvvvvvvvvv#v...#vvv..#.v#....#.#vvvvv#",
+      "#vvvvvvvvvvv#v.#.####.#.#v######.#vvvvv#",
+      "#vvvvvvvvvvv#v...#.....#..######.#v#vvv#",
+      "#vvvvvvvvvvv#v...#.....#.........#v#vvv#",
+      "#vvvvvvvvvvv#v...#...............#v#vvv#",
+      "#vvvvvvvvvvv#v...#.....#.........#v#vvv#",
+      "########################################"
+    ],
+    "objects": [
+      {
+        "id": "clock",
+        "type": "timed",
+        "pos": [
+          7,
+          5
+        ],
+        "duration": 4.5
+      },
+      {
+        "id": "gate",
+        "type": "door",
+        "pos": [
+          12,
+          5
+        ],
+        "requires": [
+          "clock"
+        ]
+      },
+      {
+        "id": "cache_wall",
+        "type": "secret",
+        "pos": [
+          28,
+          17
+        ]
+      },
+      {
+        "id": "cache",
+        "type": "chest",
+        "pos": [
+          29,
+          19
+        ],
+        "potions": 2
+      },
+      {
+        "id": "relay_box",
+        "type": "box",
+        "pos": [
+          26,
+          13
+        ],
+        "heavy": true,
+        "metal": true
+      },
+      {
+        "id": "relay_plate",
+        "type": "plate",
+        "pos": [
+          29,
+          13
+        ]
+      },
+      {
+        "id": "seal",
+        "type": "door",
+        "pos": [
+          33,
+          13
+        ],
+        "requires": [
+          "gate",
+          "relay_plate",
+          "receiver"
+        ]
+      },
+      {
+        "id": "beam",
+        "type": "light",
+        "pos": [
+          24,
+          7
+        ],
+        "direction": [
+          1,
+          0
+        ],
+        "requires": [
+          "gate"
+        ]
+      },
+      {
+        "id": "prism",
+        "type": "reflector",
+        "pos": [
+          29,
+          7
+        ]
+      },
+      {
+        "id": "receiver",
+        "type": "receiver",
+        "pos": [
+          29,
+          4
+        ]
+      }
+    ],
+    "exits": [
+      {
+        "pos": [
+          1,
+          5
+        ],
+        "target": "r6",
+        "arrival": [
+          37,
+          13
+        ]
+      },
+      {
+        "pos": [
+          38,
+          13
+        ],
+        "target": "r8",
+        "arrival": [
+          2,
+          5
+        ],
+        "finish": false,
+        "requires": [
+          "seal"
+        ]
+      }
+    ],
+    "goal": [
+      "seal"
+    ],
+    "primary_goal": [
+      "gate"
+    ],
+    "atlas": [
+      2,
+      1
+    ],
+    "enemies": [
+      {
+        "id": "slime",
+        "type": "slime",
+        "pos": [
+          14,
+          23
+        ]
+      },
+      {
+        "id": "bat",
+        "type": "bat",
+        "pos": [
+          21,
+          23
+        ]
+      },
+      {
+        "id": "guardian",
+        "type": "guardian",
+        "pos": [
+          32,
+          23
+        ]
+      }
+    ],
+    "theme": "observatory",
+    "layout_revision": "2.1",
+    "legacy_axes": {
+      "columns": [
+        0,
+        1,
+        2,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        13,
+        14,
+        15,
+        18,
+        19,
+        20,
+        21,
+        23,
+        24,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34,
+        35,
+        36,
+        37,
+        38,
+        40,
+        45,
+        46,
+        48,
+        50,
+        53,
+        55
+      ],
+      "rows": [
+        0,
+        3,
+        4,
+        5,
+        6,
+        7,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        16,
+        17,
+        18,
+        20,
+        22,
+        23,
+        24,
+        25,
+        26,
+        28,
+        29,
+        30,
+        31,
+        33
+      ]
+    },
+    "decorations": [
+      {
+        "kind": "torch",
+        "pos": [
+          3,
+          0
+        ],
+        "phase": 0.0
+      },
+      {
+        "kind": "crystal",
+        "pos": [
+          9,
+          0
+        ],
+        "phase": 0.73
+      },
+      {
+        "kind": "crystal",
+        "pos": [
+          18,
+          0
+        ],
+        "phase": 1.46
+      },
+      {
+        "kind": "torch",
+        "pos": [
+          24,
+          0
+        ],
+        "phase": 2.19
+      },
+      {
+        "kind": "crystal",
+        "pos": [
+          30,
+          0
+        ],
+        "phase": 2.92
+      },
+      {
+        "kind": "crystal",
+        "pos": [
+          0,
+          3
+        ],
+        "phase": 3.65
+      },
+      {
+        "kind": "torch",
+        "pos": [
+          15,
+          3
+        ],
+        "phase": 4.38
+      },
+      {
+        "kind": "crystal",
+        "pos": [
+          33,
+          3
+        ],
+        "phase": 5.109999999999999
+      },
+      {
+        "kind": "crystal",
+        "pos": [
+          25,
+          4
+        ],
+        "phase": 5.84
+      },
+      {
+        "kind": "torch",
+        "pos": [
+          0,
+          9
+        ],
+        "phase": 6.57
+      },
+      {
+        "kind": "crystal",
+        "pos": [
+          12,
+          9
+        ],
+        "phase": 7.3
+      },
+      {
+        "kind": "crystal",
+        "pos": [
+          33,
+          9
+        ],
+        "phase": 8.03
+      }
+    ]
+  },
+  "r8": {
+    "name": "Prism Sanctum",
+    "hint": "Use all four tools to align the seals. Defeat the three southern guards to open the last gate.",
+    "spawn": [
+      2,
+      5
+    ],
+    "tiles": [
+      "########################################",
+      "#...........#......#.....#.......#v#vvv#",
+      "#...........#......#.....#.......#v#vvv#",
+      "#...........#......#.....#.......#v#vvv#",
+      "#...........#......#.....#.......#v#vvv#",
+      "#................................#v#vvv#",
+      "#...........#......#.....#.......#vvvvv#",
+      "#...........#......#.............#vvvvv#",
+      "#...........#......#.....#.......#v#vvv#",
+      "#........O..#......#.....#.......#v#vvv#",
+      "#...........#......#.....#.......#v#vvv#",
+      "#...........#......#.....#.......#.#...#",
+      "#...........#......#.....######..#.....#",
+      "#vvvvvvvvvvv#......#.....~....#........#",
+      "#vvvvvvvvvvv#....#.#...#.######..#.....#",
+      "#vvvvvvvvvvv#v...#v#v....vv....v.#.#...#",
+      "#vvvvvvvvvvv#v...vv#v..#.vv....v.#v#vvv#",
+      "#vvvvvvvvvvv#v...vv#v..#.v##.###.#v#vvv#",
+      "#vvvvvvvvvvv#v...#v#v..#.v#....#.#v#vvv#",
+      "#vvvvvvvvvvv#v...#v#v..#.v#....#.#vvvvv#",
+      "#vvvvvvvvvvv#v.#.####.#.#v######.#vvvvv#",
+      "#vvvvvvvvvvv#v...#.#...#..######.#v#vvv#",
+      "#vvvvvvvvvvv#v...#.#...#.........#v#vvv#",
+      "#vvvvvvvvvvv#v...#.#.............#v#vvv#",
+      "#vvvvvvvvvvv#v...#.#...#.........#v#vvv#",
+      "########################################"
+    ],
+    "objects": [
+      {
+        "id": "box1",
+        "type": "box",
+        "pos": [
+          4,
+          3
+        ],
+        "heavy": true
+      },
+      {
+        "id": "plate1",
+        "type": "plate",
+        "pos": [
+          7,
+          3
+        ]
+      },
+      {
+        "id": "box2",
+        "type": "box",
+        "pos": [
+          4,
+          6
+        ],
+        "heavy": true
+      },
+      {
+        "id": "plate2",
+        "type": "plate",
+        "pos": [
+          7,
+          6
+        ]
+      },
+      {
+        "id": "key",
+        "type": "key",
+        "pos": [
+          9,
+          1
+        ],
+        "color": "prism"
+      },
+      {
+        "id": "cracked",
+        "type": "secret",
+        "pos": [
+          12,
+          5
+        ]
+      },
+      {
+        "id": "clock",
+        "type": "timed",
+        "pos": [
+          16,
+          3
+        ],
+        "duration": 4.5
+      },
+      {
+        "id": "signal",
+        "type": "switch",
+        "pos": [
+          15,
+          7
+        ]
+      },
+      {
+        "id": "gate",
+        "type": "door",
+        "pos": [
+          19,
+          5
+        ],
+        "requires": [
+          "plate1",
+          "plate2",
+          "clock",
+          "signal"
+        ],
+        "key": "prism"
+      },
+      {
+        "id": "cache_wall",
+        "type": "secret",
+        "pos": [
+          28,
+          17
+        ]
+      },
+      {
+        "id": "cache",
+        "type": "chest",
+        "pos": [
+          29,
+          19
+        ],
+        "potions": 2
+      },
+      {
+        "id": "relay_box",
+        "type": "box",
+        "pos": [
+          26,
+          13
+        ],
+        "heavy": true,
+        "metal": true
+      },
+      {
+        "id": "relay_plate",
+        "type": "plate",
+        "pos": [
+          29,
+          13
+        ]
+      },
+      {
+        "id": "seal",
+        "type": "door",
+        "pos": [
+          33,
+          13
+        ],
+        "requires": [
+          "gate",
+          "relay_plate",
+          "receiver",
+          "clearance"
+        ]
+      },
+      {
+        "id": "beam",
+        "type": "light",
+        "pos": [
+          24,
+          7
+        ],
+        "direction": [
+          1,
+          0
+        ],
+        "requires": [
+          "gate"
+        ]
+      },
+      {
+        "id": "prism",
+        "type": "reflector",
+        "pos": [
+          29,
+          7
+        ]
+      },
+      {
+        "id": "receiver",
+        "type": "receiver",
+        "pos": [
+          29,
+          4
+        ]
+      },
+      {
+        "id": "clearance",
+        "type": "combat",
+        "pos": [
+          32,
+          22
+        ]
+      }
+    ],
+    "exits": [
+      {
+        "pos": [
+          1,
+          5
+        ],
+        "target": "r7",
+        "arrival": [
+          37,
+          13
+        ]
+      },
+      {
+        "pos": [
+          38,
+          13
+        ],
+        "target": "r1",
+        "arrival": [
+          2,
+          5
+        ],
+        "finish": true,
+        "requires": [
+          "seal"
+        ]
+      }
+    ],
+    "goal": [
+      "seal"
+    ],
+    "primary_goal": [
+      "gate"
+    ],
+    "atlas": [
+      3,
+      1
+    ],
+    "enemies": [
+      {
+        "id": "slime",
+        "type": "slime",
+        "pos": [
+          21,
+          23
+        ]
+      },
+      {
+        "id": "bat",
+        "type": "bat",
+        "pos": [
+          26,
+          23
+        ]
+      },
+      {
+        "id": "guardian",
+        "type": "guardian",
+        "pos": [
+          32,
+          23
+        ]
+      }
+    ],
+    "theme": "sanctum",
+    "layout_revision": "2.1",
+    "legacy_axes": {
+      "columns": [
+        0,
+        1,
+        2,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        13,
+        14,
+        15,
+        18,
+        19,
+        20,
+        21,
+        23,
+        24,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34,
+        35,
+        36,
+        37,
+        38,
+        40,
+        45,
+        46,
+        48,
+        50,
+        53,
+        55
+      ],
+      "rows": [
+        0,
+        3,
+        4,
+        5,
+        6,
+        7,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        16,
+        17,
+        18,
+        20,
+        22,
+        23,
+        24,
+        25,
+        26,
+        28,
+        29,
+        30,
+        31,
+        33
+      ]
+    },
+    "decorations": [
+      {
+        "kind": "torch",
+        "pos": [
+          3,
+          0
+        ],
+        "phase": 0.0
+      },
+      {
+        "kind": "banner",
+        "pos": [
+          15,
+          0
+        ],
+        "phase": 0.73
+      },
+      {
+        "kind": "banner",
+        "pos": [
+          21,
+          0
+        ],
+        "phase": 1.46
+      },
+      {
+        "kind": "torch",
+        "pos": [
+          27,
+          0
+        ],
+        "phase": 2.19
+      },
+      {
+        "kind": "banner",
+        "pos": [
+          0,
+          3
+        ],
+        "phase": 2.92
+      },
+      {
+        "kind": "banner",
+        "pos": [
+          33,
+          3
+        ],
+        "phase": 3.65
+      },
+      {
+        "kind": "torch",
+        "pos": [
+          25,
+          4
+        ],
+        "phase": 4.38
+      },
+      {
+        "kind": "banner",
+        "pos": [
+          0,
+          9
+        ],
+        "phase": 5.109999999999999
+      },
+      {
+        "kind": "banner",
+        "pos": [
+          12,
+          9
+        ],
+        "phase": 5.84
+      },
+      {
+        "kind": "torch",
+        "pos": [
+          33,
+          9
+        ],
+        "phase": 6.57
+      },
+      {
+        "kind": "banner",
+        "pos": [
+          19,
+          10
+        ],
+        "phase": 7.3
+      },
+      {
+        "kind": "banner",
+        "pos": [
+          25,
+          10
+        ],
+        "phase": 8.03
+      }
+    ]
+  },
+  "r9": {
+    "name": "Hidden Vault",
+    "hint": "Activate both lantern switches. Open the vault chest beyond the gate, then return west.",
+    "spawn": [
+      2,
+      5
+    ],
+    "tiles": [
+      "###################",
+      "#...........#.....#",
+      "#...........#.....#",
+      "#...........#.....#",
+      "#...........#.....#",
+      "#.................#",
+      "#...........#.....#",
+      "#...........#.....#",
+      "#...........#.....#",
+      "#...........#.....#",
+      "#...........#.....#",
+      "#...........#.....#",
+      "#...........#.....#",
+      "###################"
+    ],
+    "objects": [
+      {
+        "id": "north",
+        "type": "switch",
+        "pos": [
+          6,
+          2
+        ]
+      },
+      {
+        "id": "south",
+        "type": "switch",
+        "pos": [
+          6,
+          7
+        ]
+      },
+      {
+        "id": "gate",
+        "type": "door",
+        "pos": [
+          12,
+          5
+        ],
+        "requires": [
+          "north",
+          "south"
+        ]
+      },
+      {
+        "id": "vault_reward",
+        "type": "chest",
+        "pos": [
+          14,
+          5
+        ],
+        "potions": 2,
+        "coins": 3,
+        "optional": true
+      }
+    ],
+    "exits": [
+      {
+        "pos": [
+          1,
+          5
+        ],
+        "target": "r6",
+        "arrival": [
+          23,
+          11
+        ]
+      }
+    ],
+    "goal": [
+      "gate"
+    ],
+    "hidden": true,
+    "atlas": [
+      1,
+      2
+    ],
+    "theme": "vault",
+    "layout_revision": "2.1",
+    "legacy_axes": {
+      "columns": [
+        0,
+        1,
+        2,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        13,
+        14,
+        15,
+        18,
+        19,
+        20,
+        21,
+        23
+      ],
+      "rows": [
+        0,
+        3,
+        4,
+        5,
+        6,
+        7,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        16,
+        17
+      ]
+    },
+    "decorations": [
+      {
+        "kind": "torch",
+        "pos": [
+          3,
+          0
+        ],
+        "phase": 0.0
+      },
+      {
+        "kind": "sigil",
+        "pos": [
+          9,
+          0
+        ],
+        "phase": 0.73
+      },
+      {
+        "kind": "sigil",
+        "pos": [
+          15,
+          0
+        ],
+        "phase": 1.46
+      },
+      {
+        "kind": "torch",
+        "pos": [
+          0,
+          3
+        ],
+        "phase": 2.19
+      },
+      {
+        "kind": "sigil",
+        "pos": [
+          18,
+          3
+        ],
+        "phase": 2.92
+      },
+      {
+        "kind": "sigil",
+        "pos": [
+          0,
+          9
+        ],
+        "phase": 3.65
+      },
+      {
+        "kind": "torch",
+        "pos": [
+          12,
+          9
+        ],
+        "phase": 4.38
+      },
+      {
+        "kind": "sigil",
+        "pos": [
+          18,
+          9
+        ],
+        "phase": 5.109999999999999
+      },
+      {
+        "kind": "sigil",
+        "pos": [
+          1,
+          13
+        ],
+        "phase": 5.84
+      },
+      {
+        "kind": "torch",
+        "pos": [
+          7,
+          13
+        ],
+        "phase": 6.57
+      },
+      {
+        "kind": "sigil",
+        "pos": [
+          13,
+          13
+        ],
+        "phase": 7.3
+      }
+    ]
+  }
+}
