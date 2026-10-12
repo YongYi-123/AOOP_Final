@@ -53,3 +53,12 @@ class PresentationTests(unittest.TestCase):
         with patch('pygame.mixer.init',side_effect=pygame.error('no device')):
             audio=AudioManager();audio.play('solve');audio.toggle()
             self.assertFalse(audio.enabled)
+
+    def test_game_over_returns_to_menu_without_quitting(self):
+        self.game.start();self.game.session.player.hp=0
+        self.game.update(.016)
+        self.assertEqual(self.game.scene,GameScene.GAMEOVER)
+        self.key(pygame.K_j);self.assertEqual(self.game.session.player.hp,0)
+        self.key(pygame.K_RETURN)
+        self.assertEqual(self.game.scene,GameScene.MENU)
+        self.assertTrue(self.game.running)

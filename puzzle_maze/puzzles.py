@@ -80,6 +80,7 @@ class PuzzleManager(CollisionManager):
         self.inventory = inventory if inventory is not None else Inventory()
         self.objects = {d['id']: FACTORY[d['type']](d) for d in room['objects']}
         self.beams=[]
+        self.occupants=set()
         self.update(0, None)
 
     def blocked(self, x, y, ignore=None):
@@ -136,7 +137,7 @@ class PuzzleManager(CollisionManager):
                 if timed and player is not None and player.x > obj.x:
                     obj.latched = True  # Crossing memory powers later stages, without holding this gate open.
                 occupied = player is not None and obj.pos == (player.x, player.y) or any(isinstance(b, PushableBox) and b.pos == obj.pos for b in self.objects.values())
-                obj.state.active = powered or (obj.latched and not timed) or bool(occupied)
+                obj.state.active = powered or (obj.latched and not timed) or bool(occupied) or obj.pos in self.occupants
 
     def update_special(self, dt):
         for obj in self.objects.values():
@@ -226,3 +227,8 @@ class Reflector(PuzzleObject):
         return True
 
 FACTORY.update(chest=Chest, light=LightSource, receiver=Receiver, reflector=Reflector)
+
+class CombatSeal(PuzzleObject):
+    pass
+
+FACTORY['combat']=CombatSeal

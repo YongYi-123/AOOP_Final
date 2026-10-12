@@ -4,6 +4,7 @@ import json
 import math
 from pathlib import Path
 from puzzle_maze.rooms import RoomManager
+from puzzle_maze.combat import CombatManager
 from puzzle_maze.puzzles import PuzzleManager, Inventory, Door
 
 SAVE_PATH = Path(__file__).parent / 'save_v2.json'
@@ -17,6 +18,7 @@ class GameSession:
         self.visited = {'r1'}
         self.finished = False
         self.dash_cooldown = 0
+        self.encounters = {}
         self.enter('r1')
 
     def capture(self):
@@ -36,11 +38,15 @@ class GameSession:
         self.puzzles.update(0,self.player)
 
     def enter(self, name, arrival=None):
+        health=self.player.hp if hasattr(self,"player") else 5
         self.player=self.rooms.enter(name,arrival)
+        self.player.hp=health
         self.puzzles=PuzzleManager(self.rooms.data,self.inventory)
         if name in self.snapshots:
             self.restore(self.snapshots[name])
-        self.checkpoint = dict(inventory=copy.deepcopy(self.inventory.keys), abilities=sorted(self.inventory.abilities), potions=self.inventory.potions, coins=self.inventory.coins, objects=self.capture(), pos=[self.player.x,self.player.y])
+        self.combat=CombatManager(self.rooms.data,self.puzzles,self.player)
+        if name in self.encounters:self.combat.restore(self.encounters[name])
+        self.checkpoint = dict(hp=self.player.hp, combat=copy.deepcopy(self.combat.capture()),inventory=copy.deepcopy(self.inventory.keys), abilities=sorted(self.inventory.abilities), potions=self.inventory.potions, coins=self.inventory.coins, objects=self.capture(), pos=[self.player.x,self.player.y])
         self.visited.add(name)
 
     def reset(self):
@@ -49,25 +55,36 @@ class GameSession:
         self.inventory.potions=self.checkpoint['potions']
         self.inventory.coins=self.checkpoint['coins']
         self.dash_cooldown=0
+        self.player.hp=self.checkpoint['hp']
+        self.player.invulnerable=0
+        self.player.attack_cooldown=0
         self.player.x,self.player.y=self.checkpoint['pos']
         self.player.moving=False
         self.restore(self.checkpoint['objects'])
+        self.combat.restore(copy.deepcopy(self.checkpoint['combat']))
         # Remove completion only when checkpoint itself was unsolved.
         if not self.puzzles.solved:
             self.completed.discard(self.rooms.current)
 
     def tick(self, dt):
         self.dash_cooldown=max(0,self.dash_cooldown-dt)
+        self.combat.player=self.player
+        self.combat.update(dt)
+        self.puzzles.occupants={e.pos for e in self.combat.enemies if e.hp>0}
+        for obj in self.puzzles.objects.values():
+            if obj.data['type']=='combat':obj.state.active=self.combat.cleared
         self.puzzles.update(dt,self.player)
         if self.puzzles.solved:
             self.completed.add(self.rooms.current)
 
     def move(self, dx, dy):
+        if self.player.hp<=0:return False
         moved=self.puzzles.move(self.player,dx,dy)
         self.tick(0)
         return moved
 
     def dash(self):
+        if self.player.hp<=0:return 0
         if 'boots' not in self.inventory.abilities or self.dash_cooldown>0:return 0
         dx,dy=self.player.facing
         moved=0
@@ -75,9 +92,17 @@ class GameSession:
             if not self.puzzles.can_enter(self.player.x+dx,self.player.y+dy):break
             self.player.x+=dx;self.player.y+=dy;moved+=1
             self.puzzles.update(0,self.player)
-        if moved:self.dash_cooldown=1.2
+        if moved:
+            self.dash_cooldown=1.2
+            self.player.invulnerable=max(self.player.invulnerable,.3)
         self.tick(0)
         return moved
+
+    def attack(self):
+        return self.combat.attack()
+
+    def heal(self):
+        return self.combat.heal()
 
     def transition(self):
         e=self.rooms.exit_at(self.player)
@@ -91,12 +116,14 @@ class GameSession:
             self.finished=True
             return True
         self.snapshots[self.rooms.current]=self.capture()
+        self.encounters[self.rooms.current]=copy.deepcopy(self.combat.capture())
         self.enter(e['target'],e['arrival'])
         return True
 
     def save(self, path=SAVE_PATH):
+        self.encounters[self.rooms.current]=copy.deepcopy(self.combat.capture())
         self.snapshots[self.rooms.current]=self.capture()
-        data=dict(version=2, abilities=sorted(self.inventory.abilities), potions=self.inventory.potions, coins=self.inventory.coins, room=self.rooms.current, player=[self.player.x,self.player.y],
+        data=dict(version=2, hp=self.player.hp, encounters=self.encounters, abilities=sorted(self.inventory.abilities), potions=self.inventory.potions, coins=self.inventory.coins, room=self.rooms.current, player=[self.player.x,self.player.y],
                   inventory=self.inventory.keys, snapshots=self.snapshots,
                   completed=sorted(self.completed), visited=sorted(self.visited),
                   finished=self.finished, checkpoint=self.checkpoint)
@@ -158,6 +185,12 @@ class GameSession:
             cls.validate_growth(data)
             cls.validate_inventory(candidate.inventory.keys)
             candidate.snapshots=data['snapshots']
+            candidate.encounters=data.get('encounters',{})
+            hp=data.get('hp',5)
+            if type(hp) is not int or not 0<=hp<=5:raise ValueError('Invalid HP')
+            for room,snapshot in candidate.encounters.items():
+                if room not in candidate.rooms.rooms:raise ValueError('Invalid encounter room')
+                CombatManager(candidate.rooms.rooms[room],PuzzleManager(candidate.rooms.rooms[room]),candidate.player).restore(snapshot)
             candidate.completed=set(data['completed']); candidate.visited=set(data['visited'])
             if not (candidate.completed | candidate.visited) <= candidate.rooms.rooms.keys():
                 raise ValueError('Invalid room set')
@@ -168,6 +201,7 @@ class GameSession:
                 cls.validate_snapshot(candidate.rooms.rooms[room], snapshot)
             cls.validate_position(data['player'], PuzzleManager(candidate.rooms.rooms[data['room']]).tilemap)
             candidate.enter(data['room'],data['player'])
+            candidate.player.hp=hp
             if candidate.puzzles.blocked(*data['player']):
                 raise ValueError('Blocked player')
             checkpoint = data['checkpoint']
@@ -182,6 +216,8 @@ class GameSession:
                 obj.state.active = values['active']
             if check_manager.blocked(*checkpoint['pos']):
                 raise ValueError('Blocked checkpoint')
+            if type(checkpoint['hp']) is not int or not 0<=checkpoint['hp']<=5:raise ValueError('Invalid checkpoint HP')
+            CombatManager(candidate.rooms.data, candidate.puzzles, candidate.player).restore(checkpoint['combat'])
             candidate.checkpoint=checkpoint
             candidate.finished=bool(data['finished'])
             return candidate

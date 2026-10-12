@@ -16,6 +16,7 @@ class GameScene(Enum):
     HELP=auto()
     MAP=auto()
     VICTORY=auto()
+    GAMEOVER=auto()
 
 class Game:
     def __init__(self,headless=False,embedded=False,audio=None):
@@ -42,7 +43,8 @@ class Game:
 
     def start(self,continuing=False):
         self.session=GameSession.load() if continuing else GameSession()
-        self.scene=GameScene.VICTORY if self.session.finished else GameScene.PLAY
+        self.tool="pulse"
+        self.scene=GameScene.GAMEOVER if self.session.player.hp<=0 else GameScene.VICTORY if self.session.finished else GameScene.PLAY
         self.visual=[float(self.session.player.x),float(self.session.player.y)]
         self.fade=.5;self.cooldown=.2;self.last_solved=self.session.puzzles.solved
         self.notify(self.session.rooms.data['name'])
@@ -54,12 +56,13 @@ class Game:
         if event.type!=pygame.KEYDOWN:return
         key=event.key
         if key==pygame.K_m:self.audio.toggle()
-        if self.scene in (GameScene.MENU,GameScene.PAUSE,GameScene.VICTORY):
+        if self.scene in (GameScene.MENU,GameScene.PAUSE,GameScene.VICTORY,GameScene.GAMEOVER):
             options=self.options()
             if key in (pygame.K_DOWN,pygame.K_s):self.selection=(self.selection+1)%len(options)
             if key in (pygame.K_UP,pygame.K_w):self.selection=(self.selection-1)%len(options)
             if key in (pygame.K_RETURN,pygame.K_SPACE):self.choose(options[self.selection])
             if key==pygame.K_ESCAPE and self.scene==GameScene.PAUSE:self.scene=GameScene.PLAY
+            elif key==pygame.K_ESCAPE and self.scene==GameScene.GAMEOVER:self.choose("Main menu")
             return
         if self.scene==GameScene.HELP:
             if key in (pygame.K_ESCAPE,pygame.K_RETURN):self.scene=self.previous
@@ -73,6 +76,10 @@ class Game:
             self.last_solved=self.session.puzzles.solved;self.renderer.particles.clear()
             self.notify('Room restored to entrance checkpoint');self.save();return
         if self.scene!=GameScene.PLAY:return
+        if key==pygame.K_j:self.session.attack();return
+        if key==pygame.K_h:
+            if not self.session.heal():self.notify("H: use a potion when hurt",2)
+            return
         if key==pygame.K_q:
             tools=['pulse']+[a for a in ('mirror','magnet') if a in self.session.inventory.abilities]
             self.tool=tools[(tools.index(self.tool)+1)%len(tools)] if self.tool in tools else 'pulse'
@@ -103,6 +110,7 @@ class Game:
     def options(self):
         exit_label='Return to arcade' if self.embedded else 'Quit'
         if self.scene==GameScene.MENU:return ['New expedition','Continue expedition','Controls',exit_label]
+        if self.scene==GameScene.GAMEOVER:return ['Main menu']
         if self.scene==GameScene.VICTORY:return ['New expedition','Main menu',exit_label]
         return ['Resume','Controls','Reset room','Save and main menu',exit_label]
 
@@ -127,6 +135,12 @@ class Game:
         self.cooldown=max(0,self.cooldown-dt)
         p=self.session.player
         self.session.tick(dt)
+        for cue in self.session.combat.events:
+            self.audio.play(cue)
+            if cue in ('hurt','heal','defeat'):self.renderer.burst(p.x,p.y,TEAL if cue!='hurt' else (230,95,97))
+        self.session.combat.events.clear()
+        if p.hp<=0:
+            self.scene=GameScene.GAMEOVER;self.selection=0;self.save();return
         if self.session.puzzles.solved and not self.last_solved:
             self.renderer.burst(p.x,p.y,GOLD,40);self.audio.play('solve');self.notify('Mechanism aligned! Follow the eastern passage.')
         self.last_solved=self.session.puzzles.solved
@@ -156,12 +170,12 @@ class Game:
 
     def draw(self,dt,target=None):
         r=self.renderer;r.world(self.session,self.visual,dt)
-        if self.scene in (GameScene.MENU,GameScene.PAUSE,GameScene.VICTORY):
-            title={GameScene.MENU:'PUZZLE MAZE',GameScene.PAUSE:'EXPEDITION PAUSED',GameScene.VICTORY:'PRISM RESTORED'}[self.scene]
+        if self.scene in (GameScene.MENU,GameScene.PAUSE,GameScene.VICTORY,GameScene.GAMEOVER):
+            title={GameScene.MENU:'PUZZLE MAZE',GameScene.PAUSE:'EXPEDITION PAUSED',GameScene.VICTORY:'PRISM RESTORED',GameScene.GAMEOVER:'GAME OVER'}[self.scene]
             r.panel(title,self.options(),self.selection)
             r.text('The Prism Chambers / original pixel adventure',36,193,(133,163,156))
         elif self.scene==GameScene.HELP:
-            r.panel('FIELD GUIDE',['WASD / arrows: move. E: open / rotate','SPACE: pulse / selected tool. Q: tool','SHIFT: dash (boots). F: magnet pull','TAB: atlas. R: room checkpoint','ESC: pause. M: music','Gloves / boots / mirror / magnet: chests','Enter / ESC: return'])
+            r.panel('FIELD GUIDE',['WASD / arrows: move. E: open / rotate','SPACE: pulse / selected tool. Q: tool','SHIFT: dash (boots). F: magnet pull','TAB: atlas. R: room checkpoint','J: melee. H: heal potion. ESC: pause','Gloves / boots / mirror / magnet: chests','Enter / ESC: return'])
         elif self.scene==GameScene.MAP:r.map_panel(self.session)
         else:
             if self.toast_time:

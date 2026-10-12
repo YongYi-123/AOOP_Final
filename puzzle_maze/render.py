@@ -4,6 +4,7 @@ import random
 import pygame
 from puzzle_maze.core import Camera
 from puzzle_maze.ui import NativeText
+from puzzle_maze.combat import EnemyState
 from puzzle_maze.puzzles import PushableBox, PressurePlate, Door, Key, SecretPassage, TimedSwitch, Switch, Chest, LightSource, Receiver, Reflector
 
 INK=(18,26,39); GOLD=(245,198,96); WHITE=(230,237,219); TEAL=(81,195,165)
@@ -123,7 +124,29 @@ class Renderer:
                 r.circle(s,TEAL if o.state.active else (180,91,74),(sx+8,sy+3),2)
                 if isinstance(o,TimedSwitch) and o.state.remaining:
                     self.text(f'{o.state.remaining:.1f}',sx-1,sy-9,GOLD)
-        self.player(visual,p.facing,p.moving,cx,cy)
+        for enemy in session.combat.enemies:
+            if enemy.state==EnemyState.DEAD:continue
+            sx,sy=enemy.x*16-cx,enemy.y*16-cy
+            color=(251,210,139) if enemy.flash>0 else {'slime':(112,190,108),'bat':(152,127,208),'guardian':(176,138,96)}[enemy.kind]
+            if enemy.state==EnemyState.DYING:
+                radius=max(1,int(enemy.attack_timer*20));r.circle(s,color,(sx+8,sy+8),radius,1);continue
+            if enemy.state==EnemyState.WINDUP:r.rect(s,(239,93,91),(sx-1,sy-1,18,18),1)
+            r.ellipse(s,(24,34,44),(sx+1,sy+12,14,4))
+            if enemy.kind=='slime':r.ellipse(s,color,(sx+2,sy+5,12,9))
+            elif enemy.kind=='bat':
+                wing=int(math.sin(self.time*18)*3)
+                r.polygon(s,color,[(sx,sy+5+wing),(sx+6,sy+8),(sx+8,sy+5),(sx+10,sy+8),(sx+16,sy+5+wing),(sx+12,sy+13),(sx+4,sy+13)])
+            else:
+                r.rect(s,color,(sx+3,sy+2,10,12));r.rect(s,(88,94,104),(sx+2,sy+7,4,7));r.line(s,GOLD,(sx+13,sy+2),(sx+13,sy+13),2)
+            for ex in (5,10):r.rect(s,INK,(sx+ex,sy+8,1,2))
+            r.rect(s,(36,41,54),(sx+2,sy-3,12,2));r.rect(s,(234,108,114),(sx+2,sy-3,int(12*enemy.hp/enemy.max_hp),2))
+        for drop in session.combat.loot:
+            sx,sy=drop['pos'][0]*16-cx,drop['pos'][1]*16-cy
+            r.circle(s,(238,104,129),(sx+8,sy+8),3)
+        if p.invulnerable<=0 or int(self.time*15)%2==0:self.player(visual,p.facing,p.moving,cx,cy)
+        if p.attack_flash>0:
+            sx,sy=int(visual[0]*16+8)-cx,int(visual[1]*16+8)-cy
+            dx,dy=p.facing;r.circle(s,WHITE,(sx+dx*13,sy+dy*13),7,2)
         for particle in self.particles[:]:
             particle[0]+=particle[2]*dt;particle[1]+=particle[3]*dt;particle[4]-=dt
             if particle[4]<=0:self.particles.remove(particle)
@@ -132,6 +155,12 @@ class Renderer:
         if near:
             self.text('[SPACE] Pulse' if isinstance(near,SecretPassage) else '[E] Interact',int(visual[0]*16)-cx-18,int(visual[1]*16)-cy-12,GOLD)
         s.set_clip(None)
+        r.rect(s,INK,(4,190,202,17))
+        for heart in range(p.max_hp):
+            hx=8+heart*13;hy=195
+            color=(239,102,119) if heart<p.hp else (75,66,81)
+            r.polygon(s,color,[(hx,hy+2),(hx+2,hy),(hx+4,hy+2),(hx+6,hy),(hx+8,hy+2),(hx+8,hy+5),(hx+4,hy+9),(hx,hy+5)])
+        self.text(f'H Potion {session.inventory.potions} / J Attack',78,193)
         r.rect(s,INK,(0,208,320,32));r.line(s,(80,107,112),(0,208),(320,208))
         self.text(f'{session.rooms.current.upper()}  {room["name"]}',7,213,GOLD)
         keys=sum(session.inventory.keys.values())

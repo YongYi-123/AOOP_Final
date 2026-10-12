@@ -10,7 +10,7 @@ class AudioManager:
         try:
             pygame.mixer.init(frequency=22050, size=-16, channels=1, buffer=512)
             self.enabled = True
-            for name,freq in [('step',180),('use',520),('key',880),('solve',1046),('pulse',330)]:
+            for name,freq in [('step',180),('use',520),('key',880),('solve',1046),('pulse',330),('attack',440),('hurt',110),('heal',740),('defeat',660)]:
                 self.sounds[name]=self.tone(freq,.09 if name=='step' else .25)
             notes=[261.63,329.63,392,523.25,440,392,329.63,293.66,
                    220,261.63,329.63,440,392,329.63,293.66,246.94]

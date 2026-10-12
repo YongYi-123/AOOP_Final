@@ -7,6 +7,11 @@ class Player:
     y: int
     facing: tuple = (0, 1)
     moving: bool = False
+    hp: int = 5
+    max_hp: int = 5
+    invulnerable: float = 0
+    attack_cooldown: float = 0
+    attack_flash: float = 0
 
 @dataclass
 class TileMap:

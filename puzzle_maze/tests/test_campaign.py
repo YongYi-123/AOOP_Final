@@ -3,7 +3,32 @@ import unittest
 from puzzle_maze.session import GameSession
 from puzzle_maze.rooms import load_rooms
 from puzzle_maze.solver import solve_boxes
-from test_playthrough import walk,use
+from collections import deque
+from test_playthrough import DIRECTIONS
+
+def walk(session,target):
+    for _ in range(600):
+        start=(session.player.x,session.player.y)
+        if start==tuple(target):return
+        if session.player.hp<=2:session.heal()
+        queue=deque([(start,None)]);seen={start};step=None
+        while queue:
+            pos,first=queue.popleft()
+            if pos==tuple(target):step=first;break
+            for dx,dy in DIRECTIONS:
+                nxt=pos[0]+dx,pos[1]+dy
+                if nxt not in seen and session.puzzles.can_enter(*nxt):
+                    seen.add(nxt);queue.append((nxt,first or (dx,dy)))
+        if step is None:raise AssertionError(f'No route to {target}')
+        if not session.move(*step):raise AssertionError('Movement disabled')
+        session.tick(.13)
+    raise AssertionError('Movement witness did not converge')
+
+def use(session,pos,pulse=False):
+    walk(session,pos)
+    if not session.puzzles.interact(session.player,pulse):raise AssertionError('Interaction blocked')
+    session.tick(0)
+
 
 def boxes(session,ids,plates):
     open_ids=[o.id for o in session.puzzles.objects.values() if o.state.active]
@@ -13,6 +38,25 @@ def boxes(session,ids,plates):
         walk(session,behind)
         if not session.move(*delta):raise AssertionError('Invalid solver push')
         session.tick(.13)
+
+
+def fight_encounter(s):
+    for enemy in s.combat.enemies:
+        safety=0
+        while enemy.hp>0:
+            if s.player.hp<=2:s.heal()
+            safety+=1
+            if safety>12:raise AssertionError('Combat route failed')
+            candidates=[(enemy.x-1,enemy.y),(enemy.x+1,enemy.y),(enemy.x,enemy.y-1),(enemy.x,enemy.y+1)]
+            for target in candidates:
+                if s.puzzles.can_enter(*target):
+                    walk(s,target);break
+            delta=enemy.x-s.player.x,enemy.y-s.player.y
+            if abs(delta[0])+abs(delta[1])<=1:
+                s.player.facing=delta
+                s.attack();s.tick(.26)
+            if s.player.hp<=0:raise AssertionError('Player died during combat witness')
+        s.tick(.4);walk(s,enemy.pos)
 
 
 def solve_room(s):
@@ -32,6 +76,8 @@ def solve_room(s):
     elif name=='r6':use(s,(13,7),True)
     elif name=='r7':use(s,(9,7))
     walk(s,(16 if name!='r8' else 26,7))
+    if name=='r1':
+        use(s,(34,22),True);use(s,(35,24))
     if name=='r3':use(s,(26,10))
     if name in ('r5','r7','r8'):use(s,(34,10))
     if name in ('r1','r3'):
@@ -45,6 +91,7 @@ def solve_room(s):
         for _ in range(3):
             if s.puzzles.magnet(s.player) is None:raise AssertionError('Magnet route blocked')
     else:boxes(s,['relay_box'],['relay_plate'])
+    if name=='r8':fight_encounter(s)
     walk(s,(53,17))
 
 class CampaignTests(unittest.TestCase):

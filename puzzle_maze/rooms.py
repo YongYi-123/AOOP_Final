@@ -29,7 +29,7 @@ def validate_rooms(rooms):
             raise ValueError(f'{name}: duplicate object ids')
         occupied = set()
         for obj in room['objects']:
-            if obj['type'] not in ('box', 'plate', 'switch', 'door', 'key', 'secret', 'timed', 'chest', 'light', 'receiver', 'reflector'):
+            if obj['type'] not in ('box', 'plate', 'switch', 'door', 'key', 'secret', 'timed', 'chest', 'light', 'receiver', 'reflector', 'combat'):
                 raise ValueError(f'{name}: unknown object')
             pos = tuple(obj['pos'])
             if not tilemap.walkable(*pos) or pos in occupied or pos == tuple(room['spawn']):
@@ -43,6 +43,14 @@ def validate_rooms(rooms):
                 raise ValueError(f'{name}: invalid light direction')
             if obj['type'] == 'timed' and obj.get('duration', 0) <= 0:
                 raise ValueError(f'{name}: invalid timer')
+        enemy_ids=set()
+        for enemy in room.get('enemies',[]):
+            if enemy['id'] in enemy_ids or enemy['type'] not in ('slime','bat','guardian'):
+                raise ValueError(f'{name}: invalid enemy')
+            enemy_ids.add(enemy['id'])
+            x,y=enemy['pos'];sx,sy=room['spawn']
+            if not tilemap.walkable(x,y) or (x,y) in occupied or abs(x-sx)+abs(y-sy)<5:
+                raise ValueError(f'{name}: unsafe enemy spawn')
         if not room['exits']:
             raise ValueError(f'{name}: missing exits')
         for e in room['exits']:
