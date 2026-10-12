@@ -179,11 +179,12 @@ class Game:
         elif self.scene==GameScene.MAP:r.map_panel(self.session)
         else:
             if self.toast_time:
-                for i,line in enumerate(textwrap.wrap(self.toast,53)):
-                    pygame.draw.rect(r.surface,(18,26,39),(6,6+i*16,308,16));r.text(line,10,8+i*16,GOLD)
+                for i,line in enumerate(textwrap.wrap(self.toast,36)):
+                    pygame.draw.rect(r.surface,(18,26,39),(6,6+i*16,226,16));r.text(line,10,8+i*16,GOLD)
             elif self.session.player.x<5:
-                for i,line in enumerate(textwrap.wrap(self.session.rooms.data['hint'],52)):
-                    pygame.draw.rect(r.surface,(18,26,39),(6,6+i*16,308,16));r.text(line,10,8+i*16)
+                for i,line in enumerate(textwrap.wrap(self.session.rooms.data['hint'],36)):
+                    pygame.draw.rect(r.surface,(18,26,39),(6,6+i*16,226,16));r.text(line,10,8+i*16)
+        if self.scene==GameScene.PLAY:r.minimap(self.session)
         if self.fade>0:
             shade=pygame.Surface((320,240));shade.fill((11,20,30));shade.set_alpha(int(255*min(1,self.fade/.45)));r.surface.blit(shade,(0,0))
         screen=target if target is not None else self.screen

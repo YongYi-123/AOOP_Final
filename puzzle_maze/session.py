@@ -5,6 +5,7 @@ import math
 from pathlib import Path
 from puzzle_maze.rooms import RoomManager
 from puzzle_maze.combat import CombatManager
+from puzzle_maze.exploration import Exploration
 from puzzle_maze.puzzles import PuzzleManager, Inventory, Door
 
 SAVE_PATH = Path(__file__).parent / 'save_v2.json'
@@ -19,6 +20,7 @@ class GameSession:
         self.finished = False
         self.dash_cooldown = 0
         self.encounters = {}
+        self.exploration=Exploration()
         self.enter('r1')
 
     def capture(self):
@@ -48,6 +50,7 @@ class GameSession:
         if name in self.encounters:self.combat.restore(self.encounters[name])
         self.checkpoint = dict(hp=self.player.hp, combat=copy.deepcopy(self.combat.capture()),inventory=copy.deepcopy(self.inventory.keys), abilities=sorted(self.inventory.abilities), potions=self.inventory.potions, coins=self.inventory.coins, objects=self.capture(), pos=[self.player.x,self.player.y])
         self.visited.add(name)
+        self.exploration.reveal(name,self.puzzles,self.player)
 
     def reset(self):
         self.inventory.keys=copy.deepcopy(self.checkpoint['inventory'])
@@ -74,6 +77,7 @@ class GameSession:
         for obj in self.puzzles.objects.values():
             if obj.data['type']=='combat':obj.state.active=self.combat.cleared
         self.puzzles.update(dt,self.player)
+        self.exploration.reveal(self.rooms.current,self.puzzles,self.player)
         if self.puzzles.solved:
             self.completed.add(self.rooms.current)
 
@@ -123,7 +127,7 @@ class GameSession:
     def save(self, path=SAVE_PATH):
         self.encounters[self.rooms.current]=copy.deepcopy(self.combat.capture())
         self.snapshots[self.rooms.current]=self.capture()
-        data=dict(version=2, hp=self.player.hp, encounters=self.encounters, abilities=sorted(self.inventory.abilities), potions=self.inventory.potions, coins=self.inventory.coins, room=self.rooms.current, player=[self.player.x,self.player.y],
+        data=dict(version=2, explored=self.exploration.capture(), hp=self.player.hp, encounters=self.encounters, abilities=sorted(self.inventory.abilities), potions=self.inventory.potions, coins=self.inventory.coins, room=self.rooms.current, player=[self.player.x,self.player.y],
                   inventory=self.inventory.keys, snapshots=self.snapshots,
                   completed=sorted(self.completed), visited=sorted(self.visited),
                   finished=self.finished, checkpoint=self.checkpoint)
@@ -179,6 +183,7 @@ class GameSession:
             candidate=cls()
             if data['version'] != 2 or data['room'] not in candidate.rooms.rooms:
                 raise ValueError('Unsupported save')
+            candidate.exploration.restore(data.get('explored',{}),candidate.rooms.rooms)
             candidate.inventory.keys=data['inventory']
             candidate.inventory.abilities=set(data['abilities'])
             candidate.inventory.potions=data['potions'];candidate.inventory.coins=data['coins']

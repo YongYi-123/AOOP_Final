@@ -5,6 +5,7 @@ import pygame
 from puzzle_maze.core import Camera
 from puzzle_maze.ui import NativeText
 from puzzle_maze.combat import EnemyState
+from puzzle_maze.exploration import DungeonAtlas
 from puzzle_maze.puzzles import PushableBox, PressurePlate, Door, Key, SecretPassage, TimedSwitch, Switch, Chest, LightSource, Receiver, Reflector
 
 INK=(18,26,39); GOLD=(245,198,96); WHITE=(230,237,219); TEAL=(81,195,165)
@@ -190,24 +191,46 @@ class Renderer:
             self.text(('> ' if selected==i else '  ')+line,36,y,TEAL if selected==i else WHITE)
             y+=19
 
+    def atlas_graph(self,session,bounds):
+        x,y,w,h=bounds;r=pygame.draw;s=self.surface
+        atlas=DungeonAtlas(session.rooms);layout=atlas.layout(session.visited)
+        if not layout:return
+        max_x=max(p[0] for p in layout.values())+1;max_y=max(p[1] for p in layout.values())+1
+        cell_w=w/max_x;cell_h=h/max_y
+        centers={name:(int(x+(pos[0]+.5)*cell_w),int(y+(pos[1]+.5)*cell_h)) for name,pos in layout.items()}
+        for a,b in atlas.edges(session.visited):
+            if a in session.visited or b in session.visited:r.line(s,(65,85,95),centers[a],centers[b])
+        for name,center in centers.items():
+            color=GOLD if name==session.rooms.current else TEAL if name in session.completed else WHITE if name in session.visited else (61,71,84)
+            rw=max(4,int(cell_w*.58));rh=max(4,int(cell_h*.55))
+            rect=pygame.Rect(center[0]-rw//2,center[1]-rh//2,rw,rh)
+            r.rect(s,INK,rect);r.rect(s,color,rect,1)
+            if w>100:self.text(name[1:] if name in session.visited else '?',rect.x+3,rect.y,color)
+            elif name==session.rooms.current:r.rect(s,color,(center[0]-1,center[1]-1,2,2))
+            if name in session.visited and any(o.get('ability') for o in session.rooms.rooms[name]['objects']):
+                r.rect(s,TEAL,(rect.right-3,rect.bottom-3,2,2))
+
+    def minimap(self,session):
+        pygame.draw.rect(self.surface,INK,(239,5,77,52))
+        pygame.draw.rect(self.surface,(77,108,112),(239,5,77,52),1)
+        self.atlas_graph(session,(242,8,71,46))
+
     def map_panel(self,session):
-        self.panel('DUNGEON ATLAS',['Eight chambers + a hidden archive', '', '', '', '', '', 'TAB closes / R resets current room'])
-        positions = {
-            'r1': (30,94), 'r2': (94,94), 'r3': (158,94), 'r4': (222,94),
-            'r5': (222,131), 'r6': (158,131), 'r7': (94,131), 'r8': (30,131),
-            'r9': (158,168),
-        }
-        for name,room in session.rooms.rooms.items():
-            x,y=positions[name]
-            for exit_data in room['exits']:
-                target=exit_data['target']
-                if exit_data.get('finish') or name not in session.visited or target not in session.visited:
-                    continue
-                tx,ty=positions[target]
-                pygame.draw.line(self.surface,(97,112,109),(x+22,y+13),(tx+22,ty+13))
-        for i,(name,room) in enumerate(session.rooms.rooms.items()):
-            x,y=positions[name]
-            pygame.draw.rect(self.surface,INK,(x,y,44,26))
-            pygame.draw.rect(self.surface,TEAL if name in session.completed else (97,112,109) if name in session.visited else (44,55,68),(x,y,44,26),1)
-            if name==session.rooms.current:pygame.draw.rect(self.surface,GOLD,(x-2,y-2,48,30),1)
-            self.text(str(i+1) if name in session.visited else '?',x+18,y+8,GOLD)
+        self.panel('DUNGEON ATLAS',[])
+        self.atlas_graph(session,(30,75,260,68))
+        known=session.exploration.tiles.get(session.rooms.current,set())
+        rows=session.rooms.data['tiles'];w=len(rows[0]);h=len(rows)
+        tile=min(120/w,66/h);x0,y0=32,151
+        for x,y in known:
+            color=(93,114,107) if rows[y][x] not in '#~O' else (38,64,83) if rows[y][x]=='~' else (62,73,89)
+            pygame.draw.rect(self.surface,color,(int(x0+x*tile),int(y0+y*tile),max(1,int(tile)),max(1,int(tile))))
+        for kind,(x,y) in DungeonAtlas(session.rooms).discovered_markers(session):
+            color=GOLD if kind=='exit' else TEAL if kind in ('chest','receiver') else (198,136,113)
+            pygame.draw.rect(self.surface,color,(int(x0+x*tile),int(y0+y*tile),2,2))
+        p=session.player
+        pygame.draw.rect(self.surface,GOLD,(int(x0+p.x*tile),int(y0+p.y*tile),3,3))
+        self.text(session.rooms.data['name'],162,152,GOLD)
+        self.text(f'Explored: {len(known)} tiles',162,169)
+        self.text('Gold: you / exit',162,184)
+        self.text('Teal: item / receiver',162,199)
+        self.text('TAB closes / R resets',32,218)
