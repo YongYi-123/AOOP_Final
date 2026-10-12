@@ -169,7 +169,11 @@ class Game:
 
     @classmethod
     def duck_for(cls, scene):
-        """Music level while a minigame is paused: lowered, so the pause card is easy to read."""
+        """Music level while a minigame is paused: lowered, so the pause card is easy to read.
+        A scene can also ask for its own level with `music_duck` (e.g. the vending machine's secret page)."""
+        own = getattr(scene, "music_duck", None)
+        if own is not None:
+            return own
         for attr in cls.PAUSABLE:
             inner = getattr(scene, attr, None)
             if inner is None:

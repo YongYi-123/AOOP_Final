@@ -41,6 +41,9 @@ from chance_scene import ChanceGameScene
 from neon21_scene import Neon21Scene
 from daily_ui import TaskPanel
 from inventory_ui import InventoryUI
+from novelty import use_item
+from novelty_fx import NoveltyFX
+from vending_ui import VendingScene
 from item_registry import FREE_PLAY_COUPON
 from local_session import GameEvent, MachineInteraction
 from machine import ArcadeMachine
@@ -144,6 +147,7 @@ class BaseRoomScene(BaseScene):
         self.popup = None       # the daily login bonus (HOME)
         self.panel = None       # TaskPanel while the daily board is open (HOME)
         self.inventory_ui = None    # InventoryUI while the bag is open
+        self.novelty_fx = NoveltyFX()   # shows put on by used novelty items
         self._modal_owner = None    # the HubPlayer who opened the open modal
         self.acting_player = None   # the HubPlayer whose press is being carried out (for stations)
         self._day_timer = 0.0
@@ -327,6 +331,7 @@ class BaseRoomScene(BaseScene):
         self.popup = None
         self.inventory_ui = None
         self.waiting = None
+        self.novelty_fx.clear()
         self.notice.clear()
         for p in self.players:
             p.held.clear()
@@ -431,7 +436,8 @@ class BaseRoomScene(BaseScene):
             return
         if action == "menu":
             self.inventory_ui = InventoryUI(local.profile.inventory, self._owner_tag(player),
-                                            player.look.accent)
+                                            player.look.accent, use_keys=local.controls.item,
+                                            on_use=lambda item_id, p=player: self.use_novelty(item_id, p))
             self._own_modal(player)
             player.held.clear()
         elif action in ("up", "down", "left", "right") and key not in player.held:
@@ -703,6 +709,23 @@ class BaseRoomScene(BaseScene):
         self._pause_for_minigame()
         self.game.scenes.push(scene)
 
+    def open_vending(self, player=None):
+        """Walk up to the NEON VEND-O-MATIC. Opening is free; each purchase charges the player who opened it."""
+        if self.active_play is not None or self.game.scenes.transitioning:
+            return
+        player = self._actor(player)
+        self.notice.clear()
+        self.game.scenes.push(VendingScene(self.game, self.session.player_for_avatar(player)))
+
+    def use_novelty(self, item_id, player=None):
+        """USE from the bag: one copy leaves that player's inventory and a harmless show plays on their avatar."""
+        player = self._actor(player)
+        result = use_item(player.profile, item_id)
+        if result.success:
+            self.play_sound(result.sound)
+            self.novelty_fx.start(player, result)
+        return result
+
     def open_task_panel(self, player=None):
         player = self._actor(player)
         self.panel = TaskPanel(player.profile, self._owner_tag(player), player.look.accent)
@@ -781,6 +804,7 @@ class BaseRoomScene(BaseScene):
                 p.footstep = False
                 self.play_sound("footstep")
         self.cats.update(dt, self.players, busy)
+        self.novelty_fx.update(dt)
         self._check_exits()
 
         # Machines win over cats when both are in reach.
@@ -852,6 +876,7 @@ class BaseRoomScene(BaseScene):
         for m in self.machines:
             m.draw_glow(surf)
         self.cats.draw_overlay(surf)
+        self.novelty_fx.draw(surf)
         if self.edit_mode:
             return
 

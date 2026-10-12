@@ -13,6 +13,8 @@ import pygame
 from font import LINE_H, get_font
 from gfx import scale_color, shade
 from item_icons import item_icon
+from controls import key_label
+from novelty import is_usable
 from item_registry import (ARCADE, COLLECTIBLE, COMMON, CONSUMABLE, COSMETIC, EPIC,
                            RARE, UNCOMMON)
 from settings import (BACK_KEYS, CONFIRM_KEYS, MOVE_KEYS, VIEW_H, VIEW_W, Col)
@@ -29,11 +31,13 @@ DETAIL = pygame.Rect(GRID_X + COLS * (SLOT + GAP) + 8, GRID_Y - 2, W - 12 - (GRI
 
 
 class InventoryUI:
-    def __init__(self, inventory, owner=None, accent=Col.CYAN):
+    def __init__(self, inventory, owner=None, accent=Col.CYAN, use_keys=(), on_use=None):
         """owner: whose bag this is ('P1 YONGYI'), shown in the header; None
-        in a one-player session."""
+        in a one-player session. use_keys / on_use: the owner's "use item" keys and the callback
+        `on_use(item_id)` that uses one (novelty items); without them the bag is read-only."""
         self.inventory = inventory
         self.owner, self.accent = owner, accent
+        self.use_keys, self.on_use = tuple(use_keys), on_use
         self.tab = 0
         self.selected = 0           # slot index within the current tab
         self.inspecting = False
@@ -59,6 +63,16 @@ class InventoryUI:
         return entries[self.selected] if self.selected < len(entries) else None
 
     @property
+    def can_use(self):
+        """Is the selected item one that can be used from the bag?"""
+        entry = self.selected_entry
+        return entry is not None and is_usable(entry[0].id)
+
+    @property
+    def use_label(self):
+        return key_label(self.use_keys[0]) if self.use_keys else ""
+
+    @property
     def slot_count(self):
         rows = max(ROWS, math.ceil(len(self.entries) / COLS))
         return rows * COLS
@@ -82,6 +96,9 @@ class InventoryUI:
             step = -1 if event.mod & pygame.KMOD_SHIFT else 1
             self.tab = (self.tab + step) % len(TABS)
             self.selected, self.inspecting = 0, False
+        elif key in self.use_keys and self.on_use and self.can_use:
+            self.on_use(self.selected_entry[0].id)         # the bag closes so the effect can be seen
+            self.closed = True
         elif key in CONFIRM_KEYS:
             self.inspecting = (not self.inspecting) and self.selected_entry is not None
         elif key in MOVE_KEYS and not self.inspecting:
@@ -114,7 +131,9 @@ class InventoryUI:
         self._draw_tabs(img, font)
         self._draw_grid(img, font)
         self._draw_detail(img, font)
-        draw_text(img, "ARROWS MOVE  TAB CATEGORY  E INSPECT  ESC CLOSE", (W // 2, H - 12),
+        footer = ("ARROWS MOVE  E INSPECT  " + f"{self.use_label} USE  ESC CLOSE"
+                  if self.on_use and self.can_use else "ARROWS MOVE  TAB CATEGORY  E INSPECT  ESC CLOSE")
+        draw_text(img, footer, (W // 2, H - 12),
                   scale_color(Col.TEXT_MUTED, 0.75), anchor="midtop")
         self.image = img
 
@@ -189,6 +208,8 @@ class InventoryUI:
                 draw_text(img, line, (pad, y), Col.CYAN)
                 y += LINE_H
         bottom = box.bottom - 6 - LINE_H
+        if self.on_use and is_usable(definition.id):
+            draw_text(img, f"{self.use_label}: USE", (pad, bottom - LINE_H * (2 if self.inspecting else 1)), Col.GREEN)
         draw_text(img, f"OWNED: {qty}", (pad, bottom), Col.YELLOW)
         if self.inspecting:
             kind = f"STACKS TO {definition.limit}" if definition.stackable else "ONE ONLY"
