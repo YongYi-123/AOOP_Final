@@ -331,3 +331,20 @@ FPS. Manual keyboard feel, boss difficulty, sound and display scaling remain.
 Final CLI smoke checks passed for campaigns 4, 3 and 2. The v4 JSON exactly
 matches its deterministic authoring generator. `compileall` and `git diff --check`
 passed. No other tracked module was edited.
+
+
+## Existing cabinet upgraded to 4.0
+
+User authorized replacing the old cabinet entrance after playing the archived
+2.1 campaign by mistake. `PuzzleMazeScene` now explicitly selects campaign 4 while
+sharing the host window/audio. Embedded games without an explicit campaign keep
+the old default for compatibility. B/P/G reach the live bomb/powder/pot actions.
+Tutorial and nearby prompts use participant-specific sword/interact/dash keys.
+Menu title/footer show the active campaign version. No host module or economy
+was modified. The private result still has no player payouts.
+
+Bridge regressions include a real two-player lobby session launched by P2,
+onboarding, powder input and safe return with identical token/ticket balances.
+
+Cabinet follow-up validation: all 137 Puzzle Maze tests passed in 18.186 seconds;
+`compileall` and `git diff --check` passed. Only Puzzle Maze files were changed.

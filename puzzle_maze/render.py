@@ -259,11 +259,11 @@ class Renderer:
         near=next((o for o in session.puzzles.objects.values() if abs(o.x-p.x)+abs(o.y-p.y)<=1 and isinstance(o,(Switch,Door,SecretPassage,Chest,Reflector,CrackedWall,BombSupply,LiftablePot,Brazier,CrystalSwitch,PotSupply,PowderSupply)) and not (isinstance(o,(Door,SecretPassage)) and o.state.active)),None)
         if near or getattr(session.inventory,'carried',None):
             carrying=getattr(session.inventory,'carried',None)
-            label='E Drop / G Throw' if carrying else '[P] Light' if isinstance(near,Brazier) else '[J] Crystal' if isinstance(near,CrystalSwitch) else '[E] Lift' if isinstance(near,LiftablePot) else '[B] Bomb' if isinstance(near,CrackedWall) else f"[{controls['ability']}] Pulse" if isinstance(near,SecretPassage) else f"[{controls['interact']}] Interact"
+            label=f"{controls['interact']} Drop / G Throw" if carrying else '[P] Light' if isinstance(near,Brazier) else f"[{controls['attack']}] Crystal" if isinstance(near,CrystalSwitch) else f"[{controls['interact']}] Lift" if isinstance(near,LiftablePot) else '[B] Bomb' if isinstance(near,CrackedWall) else f"[{controls['ability']}] Pulse" if isinstance(near,SecretPassage) else f"[{controls['interact']}] Interact"
             px=int(visual[0]*16)-cx;py=int(visual[1]*16)-cy
             hint_y=max(2,min(168,py+18 if carrying or py<18 else py-15))
-            hint_x=max(2,min(174,px-30))
-            r.rect(s,INK,(hint_x,hint_y,144,15));self.text(label,hint_x+3,hint_y+1,GOLD,max_width=138)
+            hint_x=max(2,min(146,px-30))
+            r.rect(s,INK,(hint_x,hint_y,172,15));self.text(label,hint_x+3,hint_y+1,GOLD,max_width=166)
         s.set_clip(None)
         self.hud.draw(self,session,tool,controls)
         boss=next((e for e in session.combat.enemies if e.kind in ('golem','crystal_warden') and e.state!=EnemyState.DEAD),None)

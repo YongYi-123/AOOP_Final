@@ -2,7 +2,7 @@
 import math
 import pygame
 
-DEFAULT_CONTROLS=dict(move='WASD / ARROWS',attack='J',interact='E',ability='SPACE',tool='Q',dash='SHIFT',pull='F',heal='H',map='TAB',reset='R',pause='ESC',confirm='ENTER')
+DEFAULT_CONTROLS=dict(move='WASD / ARROWS',attack='J',interact='E',ability='SPACE',tool='Q',dash='SHIFT',pull='F',heal='H',map='TAB',reset='R',pause='ESC',confirm='ENTER',pages='LEFT / RIGHT')
 
 class IntroSequence:
     duration=6.0
@@ -18,7 +18,7 @@ class IntroSequence:
         progress=self.elapsed/self.duration
         return 9.5,8.5-min(1,max(0,(progress-.6)/.4))*2
 
-    def draw(self,renderer,confirm='ENTER'):
+    def draw(self,renderer,confirm='ENTER',pages='LEFT / RIGHT'):
         from puzzle_maze.render import INK,GOLD,TEAL,WHITE
         s=renderer.surface;r=pygame.draw;renderer.ui.clear();s.fill(INK)
         progress=self.elapsed/self.duration
@@ -51,8 +51,8 @@ class TutorialCard:
     def lines(self,begin=False):
         c=self.controls
         if self.advanced:
-            if self.page==0:return [f'Move: {c["move"]}',f'{c["attack"]} Sword / E Use / B Bomb','P Powder / E Lift, Drop','G Throw / J Crystal',f'{c["ability"]} Tool / Q Next / F Pull','SHIFT Dash / H Heal',f'RIGHT More / ENTER {"Begin" if begin else "Return"}']
-            return ['TAB Map / R Reset','ESC Pause / H Heal','Powder reveals ghost foes','Pots break hunters and weigh','Crystal changes both floors','Read fire and enemy glyphs',f'LEFT Basics / ENTER {"Begin" if begin else "Return"}']
+            if self.page==0:return [f'Move: {c["move"]}',f'{c["attack"]} Sword / {c["interact"]} Use / B Bomb',f'P Dust / {c["interact"]} Lift, Drop',f'G Throw / {c["attack"]} Crystal',f'{c["ability"]} Tool / Q Next / F Pull',f'{c["dash"]} Dash / H Heal',f'{c["pages"]} / {c["confirm"]} {"Begin" if begin else "Return"}']
+            return ['TAB Map / R Reset','ESC Pause / H Heal','Powder reveals ghost foes','Pots break hunters and weigh','Crystal changes both floors','Read fire and enemy glyphs',f'{c["pages"]} / {c["confirm"]} {"Begin" if begin else "Return"}']
         return [f"Move: {c['move']}",
                 f"{c['attack']} Sword / {c['interact']} Use"+(" / B Bomb" if self.bombs else ""),
                 f"{c['ability']} Tool / {c['tool']} Next / {c['pull']} Pull",

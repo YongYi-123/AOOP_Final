@@ -3,7 +3,7 @@
 An original Python / Pygame dungeon adventure upgraded in place. Twenty-two
 rooms over 1F and B1F combine branch exploration, returning routes, cross-room
 circuits, fire sequences, carried weights, enemy weaknesses and five secret
-collections. No story or new Arcade Lobby integration is included.
+collections. The original free Arcade cabinet now opens this 4.0 campaign. No story is included.
 
 ## Run
 
@@ -178,8 +178,9 @@ current save. They are also available directly:
 .venv/bin/python -m puzzle_maze --campaign 2
 ```
 
-See `README_V3.md` and `README_V21.md`. The existing optional lobby adapter stays
-on its old campaign; this upgrade does not integrate 4.0 into it.
+See `README_V3.md` and `README_V21.md`. The original Arcade cabinet now uses the 4.0 campaign through `lobby_scene.py`.
+P1 uses J / E / Space / LShift; P2 uses K / Enter / KP0 / RShift. Both use
+B bombs, P powder and G pots. Private reward receipts do not pay lobby currency.
 
 ## Architecture and maps
 
@@ -207,7 +208,7 @@ alternatives, and searches all key spending orders in a monotone abstraction.
 .venv/bin/python -m puzzle_maze --headless --screenshot /tmp/puzzle-maze.png
 ```
 
-135 tests pass. They cover all prior regressions, all 22 room visits, the complete
+137 tests pass. They cover all prior regressions, all 22 room visits, the complete
 five-secret victory route, crystals, carried weights, fire/enemy orders, pot combat,
 finite Warden summons, both Bosses, receipt idempotence, death, corrupt/active saves,
 archives and UI bounds at five resolutions. All 341 abstract resource states have
@@ -222,5 +223,5 @@ A 180-frame cached Warden draw benchmark averaged 1.87 ms/frame here; it measure
 rendering, not full interactive FPS.
 
 Manually check input feel, powder/pot discoverability, real-time Warden/Golem
-balance, audio volume, native display scaling and actual FPS. All 4.0 edits are
-confined to `puzzle_maze/`; no push, pull, merge or backup-branch changes were made.
+balance, audio volume, native display scaling and actual FPS. All edits are confined to `puzzle_maze/`; no push, pull, merge or backup-branch
+changes were made. The cabinet selects 4.0 explicitly without changing host modules.

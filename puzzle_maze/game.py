@@ -25,7 +25,7 @@ class GameScene(Enum):
     ARCHIVE=auto()
 
 class Game:
-    def __init__(self,headless=False,embedded=False,audio=None,legacy=False,campaign="4"):
+    def __init__(self,headless=False,embedded=False,audio=None,legacy=False,campaign=None):
         if headless:
             os.environ['SDL_VIDEODRIVER']='dummy';os.environ['SDL_AUDIODRIVER']='dummy'
         pygame.display.init();pygame.font.init()
@@ -33,7 +33,7 @@ class Game:
         self.screen=pygame.display.get_surface() if embedded else pygame.display.set_mode((960,720),pygame.RESIZABLE)
         if not embedded:pygame.display.set_caption('Puzzle Maze / Clockwork Hollow')
         self.clock=pygame.time.Clock();self.renderer=Renderer();self.audio=audio if audio is not None else AudioManager()
-        self.session_factory=GameSession if embedded or legacy or campaign=="2" else DungeonSession if campaign=="3" else AdvancedDungeonSession
+        self.session_factory=GameSession if embedded and campaign is None or legacy or campaign=="2" else DungeonSession if campaign=="3" else AdvancedDungeonSession
         self.session=self.session_factory();self.scene=GameScene.MENU;self.previous=GameScene.MENU
         self.selection=0;self.running=True;self.cooldown=0
         self.visual=[float(self.session.player.x),float(self.session.player.y)]
@@ -234,12 +234,14 @@ class Game:
         elif self.scene==GameScene.TUTORIAL:self.tutorial.draw(r)
         elif self.scene in (GameScene.MENU,GameScene.PAUSE,GameScene.VICTORY,GameScene.GAMEOVER,GameScene.ARCHIVE):
             title={GameScene.MENU:'PUZZLE MAZE',GameScene.PAUSE:'EXPEDITION PAUSED',GameScene.VICTORY:'HOLLOW AWAKENED',GameScene.GAMEOVER:'GAME OVER',GameScene.ARCHIVE:'OLD EXPEDITIONS'}[self.scene]
+            if self.scene==GameScene.MENU and isinstance(self.session,AdvancedDungeonSession):title='PUZZLE MAZE 4.0'
             r.panel(title,self.options(),self.selection)
             if self.scene==GameScene.VICTORY and hasattr(self.session,'rewards'):
                 bag=self.session.rewards
                 r.text(f'Tokens {bag.tokens} / Tickets {bag.tickets}',36,151,GOLD,max_width=244)
                 r.text(f'Found {len(bag.collections)}/5 / '+('Settled once' if bag.claimed else 'Pending'),36,170,TEAL,max_width=244)
-            r.text('Original pixel dungeon / archived saves kept',36,193,(133,163,156),max_width=244)
+            label='4.0 / Emberglass Hollow' if isinstance(self.session,AdvancedDungeonSession) else '3.0 / Clockwork Hollow' if isinstance(self.session,DungeonSession) else '2.1 / The Prism Chambers'
+            r.text(label,36,193,(133,163,156),max_width=244)
         elif self.scene==GameScene.HELP:
             r.panel('FIELD GUIDE',self.tutorial.lines(False))
         elif self.scene==GameScene.MAP:r.map_panel(self.session)
