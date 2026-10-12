@@ -156,4 +156,3 @@ class TimedSwitch(Switch):
         return True
 
 FACTORY.update(secret=SecretPassage, timed=TimedSwitch)
-

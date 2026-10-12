@@ -77,7 +77,7 @@ class Renderer:
             x,y=e['pos'];sx,sy=x*16-cx,y*16-cy
             r.rect(s,TEAL,(sx+3,sy+2,10,12),1);r.polygon(s,GOLD,[(sx+5,sy+5),(sx+11,sy+8),(sx+5,sy+11)])
         # Hidden passage clue: moss and luminous cracks converge at the wall.
-        for o in session.puzzles.objects.values():
+        for o in sorted(session.puzzles.objects.values(), key=lambda obj: 0 if isinstance(obj,PressurePlate) else 1):
             sx,sy=o.x*16-cx,o.y*16-cy
             if isinstance(o,SecretPassage):
                 if not o.state.active:
@@ -145,10 +145,22 @@ class Renderer:
 
     def map_panel(self,session):
         self.panel('DUNGEON ATLAS',['Eight chambers + a hidden archive', '', '', '', '', '', 'TAB closes / R resets current room'])
+        positions = {
+            'r1': (30,94), 'r2': (94,94), 'r3': (158,94), 'r4': (222,94),
+            'r5': (222,131), 'r6': (158,131), 'r7': (94,131), 'r8': (30,131),
+            'r9': (158,168),
+        }
+        for name,room in session.rooms.rooms.items():
+            x,y=positions[name]
+            for exit_data in room['exits']:
+                target=exit_data['target']
+                if exit_data.get('finish') or name not in session.visited or target not in session.visited:
+                    continue
+                tx,ty=positions[target]
+                pygame.draw.line(self.surface,(97,112,109),(x+22,y+13),(tx+22,ty+13))
         for i,(name,room) in enumerate(session.rooms.rooms.items()):
-            x=58+(i%3)*80;y=94+(i//3)*34
+            x,y=positions[name]
+            pygame.draw.rect(self.surface,INK,(x,y,44,26))
             pygame.draw.rect(self.surface,TEAL if name in session.completed else (97,112,109) if name in session.visited else (44,55,68),(x,y,44,26),1)
             if name==session.rooms.current:pygame.draw.rect(self.surface,GOLD,(x-2,y-2,48,30),1)
             self.text(str(i+1) if name in session.visited else '?',x+18,y+8,GOLD)
-            if i%3!=2:pygame.draw.line(self.surface,(97,112,109),(x+44,y+13),(x+80,y+13))
-

@@ -15,3 +15,10 @@
 一般門採完成条件後鎖定開啟，限時門則持續觀察倒數。
 入口檢查點同步還原鑰匙與物件，避免重置後重複取得鑰匙。
 程式化美術及聲音無外部資產或授權依賴。沒有加入 Lobby，沒有 Push/Pull/Merge。
+
+Phase E 後的呈現檢查修正：壓力板先繪製，避免覆蓋其上的木箱；
+Atlas 依 JSON 的實際出口關係繪製已探索連線，包含第六房到秘密房的支線。
+26 項測試、compileall 與 Git 空白格式檢查重新通過。
+
+既有遊戲回歸：Retro Racer 82、Pixel Volleyball 110、Cat Territory 27、
+Cat Minesweeper 14、Galaxy Defender 78 項均通過（SDL dummy，獨立程序）。
