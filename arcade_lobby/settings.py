@@ -146,6 +146,18 @@ NEON21_DEFAULT_WAGER = 2
 NEON21_TICKETS_PER_TOKEN = 1
 NEON21_DAILY_TICKET_CAP = 30
 
+# NEON COIN PUSHER - KITTY FORTUNE. Opening is free; every DROP costs exactly 1 Token.
+# Coins that fall over the FRONT edge are collected (NORMAL 1 Token, SILVER 3 Tokens,
+# GOLDEN CAT 5 Tickets, MYSTERY a small surprise); coins off the sides are lost.
+# Golden/mystery Tickets are gambling winnings like NEON 21's: capped per profile per
+# calendar day, and beyond the cap a Golden Cat Coin pays COIN_PUSHER_CAPPED_TOKENS instead.
+COIN_PUSHER_DROP_COST = 1
+COIN_PUSHER_NORMAL_TOKENS = 1
+COIN_PUSHER_SILVER_TOKENS = 3
+COIN_PUSHER_GOLDEN_TICKETS = 5
+COIN_PUSHER_CAPPED_TOKENS = 1
+COIN_PUSHER_DAILY_TICKET_CAP = 30
+
 
 class Col:
     """Neon arcade palette: dark navy/purple base with bright accents."""
