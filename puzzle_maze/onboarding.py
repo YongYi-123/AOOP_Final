@@ -50,7 +50,7 @@ class TutorialCard:
     def lines(self,begin=False):
         c=self.controls
         return [f"Move: {c['move']}",
-                f"Sword: {c['attack']} | Interact: {c['interact']}",
+                f"Sword: {c['attack']} | Interact: {c['interact']} | Bomb: B",
                 f"Tool: {c['ability']} | Select: {c['tool']} | Pull: {c['pull']}",
                 f"Dash: {c['dash']} (boots) | Heal: {c['heal']}",
                 f"Map: {c['map']} | Reset room: {c['reset']}",

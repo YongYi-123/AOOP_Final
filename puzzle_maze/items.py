@@ -20,7 +20,7 @@ class BombManager:
         if p.hp<=0 or self.timer>0 or s.inventory.bombs<=0:return False
         pos=p.x+p.facing[0],p.y+p.facing[1]
         # Placement against a cracked wall or enemy remains legal, permanent walls reject it.
-        if not s.puzzles.tilemap.walkable(*pos):pos=p.x,p.y
+        if s.puzzles.blocked(*pos):pos=p.x,p.y
         if any(b.pos==pos for b in self.bombs):return False
         s.inventory.bombs-=1;self.bombs.append(Bomb(*pos));self.timer=self.cooldown
         s.combat.events.append('bomb_place');return True

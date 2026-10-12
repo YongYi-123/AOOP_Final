@@ -60,7 +60,7 @@ class CombatTests(unittest.TestCase):
 
     def test_bat_has_periodic_burst_and_all_archetypes(self):
         from puzzle_maze.combat import ENEMIES
-        self.assertEqual(set(ENEMIES),{'slime','bat','guardian'})
+        self.assertEqual(set(ENEMIES),{'slime','bat','guardian','blink_mage','armored_beetle','bomb_eater','golem'})
         bat=ENEMIES['bat'](dict(id='bat',type='bat',pos=[1,1]))
         burst=bat.interval();bat.age=1
         self.assertLess(burst,bat.interval())

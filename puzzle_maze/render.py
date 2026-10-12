@@ -9,7 +9,7 @@ from puzzle_maze.combat import EnemyState
 from puzzle_maze.exploration import DungeonAtlas
 from puzzle_maze.environment import EnvironmentPainter
 from puzzle_maze.themes import THEMES
-from puzzle_maze.puzzles import PushableBox, PressurePlate, Door, Key, SecretPassage, TimedSwitch, Switch, Chest, LightSource, Receiver, Reflector
+from puzzle_maze.puzzles import PushableBox, PressurePlate, Door, Key, SecretPassage, TimedSwitch, Switch, Chest, LightSource, Receiver, Reflector,CrackedWall,BombSupply,DashSwitch,BlastSwitch,RemoteRelay
 
 INK=(18,26,39); GOLD=(245,198,96); WHITE=(230,237,219); TEAL=(81,195,165)
 
@@ -44,9 +44,9 @@ class Renderer:
         theme_name=room.get("theme","entrance");theme=THEMES[theme_name]
         self.tiles=self.environment.tiles(theme_name)
         proxy=type('Position',(),dict(x=visual[0],y=visual[1]))()
-        self.camera.follow(proxy,len(room['tiles'][0]),len(room['tiles']))
+        self.camera.follow(proxy,len(room['tiles'][0]),len(room['tiles']),viewport=(320,184))
         cx,cy=int(self.camera.x),int(self.camera.y)
-        s.set_clip((0,0,320,208))
+        s.set_clip((0,0,320,184))
         for y,row in enumerate(room['tiles']):
             for x,kind in enumerate(row):
                 sx,sy=x*16-cx,y*16-cy
@@ -67,14 +67,26 @@ class Renderer:
         r.lines(s,(142,170,140),False,[(sx+8,sy+2),(sx+8,sy+14)])
         for e in room['exits']:
             x,y=e['pos'];sx,sy=x*16-cx,y*16-cy
-            r.rect(s,TEAL,(sx+3,sy+2,10,12),1);r.polygon(s,GOLD,[(sx+5,sy+5),(sx+11,sy+8),(sx+5,sy+11)])
+            r.rect(s,TEAL,(sx+3,sy+2,10,12),1)
+            if e.get("stairs"):
+                for step in range(3):r.line(s,WHITE,(sx+3,sy+4+step*3),(sx+12-step*2,sy+4+step*3))
+            r.polygon(s,GOLD,[(sx+5,sy+5),(sx+11,sy+8),(sx+5,sy+11)])
         for start,end in session.puzzles.beams:
             r.line(s,(255,227,130),(start[0]*16+8-cx,start[1]*16+8-cy),(end[0]*16+8-cx,end[1]*16+8-cy),2)
         # Hidden passage clue: moss and luminous cracks converge at the wall.
         for o in sorted(session.puzzles.objects.values(), key=lambda obj: 0 if isinstance(obj,PressurePlate) else 1):
             sx,sy=o.x*16-cx,o.y*16-cy
             if not (-16<sx<320 and -16<sy<208):continue
-            if isinstance(o,SecretPassage):
+            if isinstance(o,CrackedWall):
+                if not o.state.active:
+                    s.blit(self.tiles["#"],(sx,sy));r.lines(s,GOLD,False,[(sx+3,sy+1),(sx+9,sy+5),(sx+5,sy+10),(sx+12,sy+15)]);r.rect(s,(104,58,44),(sx+10,sy+4,2,2))
+            elif isinstance(o,BombSupply):
+                r.rect(s,(110,91,65),(sx+2,sy+4,12,10));s.blit(self.hud.atlas.get("bomb"),(sx+2,sy+2))
+            elif isinstance(o,DashSwitch):
+                r.rect(s,TEAL if o.state.active else GOLD,(sx+1,sy+2,14,12),2);r.polygon(s,WHITE,[(sx+3,sy+5),(sx+11,sy+8),(sx+3,sy+11)])
+            elif isinstance(o,(BlastSwitch,RemoteRelay)):
+                r.circle(s,TEAL if o.state.active else (112,76,104),(sx+8,sy+8),5,2)
+            elif isinstance(o,SecretPassage):
                 if not o.state.active:
                     s.blit(self.tiles['#'],(sx,sy));r.lines(s,GOLD,False,[(sx+8,sy+2),(sx+5,sy+7),(sx+10,sy+9),(sx+7,sy+14)])
                     r.line(s,TEAL,(sx-8,sy+8),(sx-2,sy+8));r.line(s,TEAL,(sx-5,sy+5),(sx-2,sy+8))
@@ -118,7 +130,7 @@ class Renderer:
         for enemy in session.combat.enemies:
             if enemy.state==EnemyState.DEAD:continue
             sx,sy=enemy.x*16-cx,enemy.y*16-cy
-            color=(251,210,139) if enemy.flash>0 else {'slime':(112,190,108),'bat':(152,127,208),'guardian':(176,138,96)}[enemy.kind]
+            color=(251,210,139) if enemy.flash>0 else {'slime':(112,190,108),'bat':(152,127,208),'guardian':(176,138,96),'blink_mage':(144,106,215),'armored_beetle':(104,168,175),'bomb_eater':(215,133,76),'golem':(154,164,179)}[enemy.kind]
             if enemy.state==EnemyState.DYING:
                 radius=max(1,int(enemy.attack_timer*20));r.circle(s,color,(sx+8,sy+8),radius,1);continue
             if enemy.state==EnemyState.WINDUP:r.rect(s,(239,93,91),(sx-1,sy-1,18,18),1)
@@ -127,6 +139,15 @@ class Renderer:
             elif enemy.kind=='bat':
                 wing=int(math.sin(self.time*18)*3)
                 r.polygon(s,color,[(sx,sy+5+wing),(sx+6,sy+8),(sx+8,sy+5),(sx+10,sy+8),(sx+16,sy+5+wing),(sx+12,sy+13),(sx+4,sy+13)])
+            elif enemy.kind=='blink_mage':
+                r.polygon(s,color,[(sx+8,sy),(sx+1,sy+14),(sx+15,sy+14)]);r.rect(s,GOLD,(sx+4,sy+8,8,1));r.circle(s,TEAL,(sx+13,sy+3),2)
+            elif enemy.kind=='armored_beetle':
+                r.ellipse(s,color,(sx+2,sy+2,12,12));r.line(s,INK,(sx+8,sy+3),(sx+8,sy+12));dx,dy=enemy.facing;r.line(s,GOLD if enemy.armor else (89,88,91),(sx+8-dy*5+dx*5,sy+8+dx*5+dy*5),(sx+8+dy*5+dx*5,sy+8-dx*5+dy*5),3)
+            elif enemy.kind=='bomb_eater':
+                r.ellipse(s,color,(sx+1,sy+3,14,12));r.rect(s,INK,(sx+3,sy+8,10,5));r.line(s,WHITE,(sx+4,sy+9),(sx+11,sy+9));r.rect(s,GOLD,(sx+5,sy+2,6,3))
+            elif enemy.kind=='golem':
+                r.rect(s,(34,41,58),(sx-7,sy-9,30,28));r.rect(s,color,(sx-5,sy-11,26,28));r.rect(s,(70,87,107),(sx-3,sy-8,22,22),2);r.circle(s,TEAL if enemy.exposed>0 else GOLD,(sx+8,sy+4),5,2);r.rect(s,(225,95,91),(sx+4,sy-5,8,2))
+                if enemy.exposed<=0:r.circle(s,(121,201,227),(sx+8,sy+6),19,1)
             else:
                 r.rect(s,color,(sx+3,sy+2,10,12));r.rect(s,(88,94,104),(sx+2,sy+7,4,7));r.line(s,GOLD,(sx+13,sy+2),(sx+13,sy+13),2)
             for ex in (5,10):r.rect(s,INK,(sx+ex,sy+8,1,2))
@@ -134,6 +155,18 @@ class Renderer:
         for drop in session.combat.loot:
             sx,sy=drop['pos'][0]*16-cx,drop['pos'][1]*16-cy
             r.circle(s,(238,104,129),(sx+8,sy+8),3)
+        for bolt in session.combat.projectiles:
+            bx,by=bolt.x*16+8-cx,bolt.y*16+8-cy
+            r.circle(s,(236,113,170),(bx,by),3);r.line(s,GOLD,(bx-bolt.dx*5,by-bolt.dy*5),(bx,by))
+        for pos,remaining in getattr(session,'trails',[]):
+            r.rect(s,(68,135,161),(pos[0]*16+3-cx,pos[1]*16+3-cy,10,10),1)
+        if hasattr(session,'bombs'):
+            for bomb in session.bombs.bombs:
+                bx,by=bomb.x*16-cx,bomb.y*16-cy
+                s.blit(self.hud.atlas.get('bomb'),(bx+2,by+2));r.rect(s,GOLD if int(bomb.fuse*12)%2 else WHITE,(bx+8,by+1,2,2))
+            for cells,remaining in session.bombs.blasts:
+                for bx,by in cells:
+                    radius=max(2,int(remaining*20));r.circle(s,GOLD if int(remaining*25)%2 else (240,123,72),(bx*16+8-cx,by*16+8-cy),radius,2)
         if p.invulnerable<=0 or int(self.time*15)%2==0:self.player(visual,p.facing,p.moving,cx,cy)
         if p.attack_flash>0:
             sx,sy=int(visual[0]*16+8)-cx,int(visual[1]*16+8)-cy
@@ -149,10 +182,10 @@ class Renderer:
             particle[0]+=particle[2]*dt;particle[1]+=particle[3]*dt;particle[4]-=dt
             if particle[4]<=0:self.particles.remove(particle)
             else:r.rect(s,particle[5],(int(particle[0])-cx,int(particle[1])-cy,2,2))
-        near=next((o for o in session.puzzles.objects.values() if abs(o.x-p.x)+abs(o.y-p.y)<=1 and isinstance(o,(Switch,Door,SecretPassage,Chest,Reflector)) and not (isinstance(o,(Door,SecretPassage)) and o.state.active)),None)
+        near=next((o for o in session.puzzles.objects.values() if abs(o.x-p.x)+abs(o.y-p.y)<=1 and isinstance(o,(Switch,Door,SecretPassage,Chest,Reflector,CrackedWall,BombSupply)) and not (isinstance(o,(Door,SecretPassage)) and o.state.active)),None)
         if near:
             r.rect(s,INK,(int(visual[0]*16)-cx-20,int(visual[1]*16)-cy-13,94,15))
-            self.text(f"[{controls['ability']}] Pulse" if isinstance(near,SecretPassage) else f"[{controls['interact']}] Interact",int(visual[0]*16)-cx-18,int(visual[1]*16)-cy-12,GOLD)
+            self.text("[B] Bomb" if isinstance(near,CrackedWall) else f"[{controls['ability']}] Pulse" if isinstance(near,SecretPassage) else f"[{controls['interact']}] Interact",int(visual[0]*16)-cx-18,int(visual[1]*16)-cy-12,GOLD)
         s.set_clip(None)
         self.hud.draw(self,session,tool)
 
@@ -186,12 +219,15 @@ class Renderer:
     def atlas_graph(self,session,bounds):
         x,y,w,h=bounds;r=pygame.draw;s=self.surface
         atlas=DungeonAtlas(session.rooms);layout=atlas.layout(session.visited)
+        floor=getattr(session,"map_floor",None) if w>100 else session.rooms.data.get("floor")
+        if floor:layout={name:pos for name,pos in layout.items() if session.rooms.rooms[name].get("floor","1F")==floor}
+        if "map" not in session.inventory.abilities and hasattr(session,"bombs"):layout={name:pos for name,pos in layout.items() if name in session.visited}
         if not layout:return
         max_x=max(p[0] for p in layout.values())+1;max_y=max(p[1] for p in layout.values())+1
         cell_w=w/max_x;cell_h=h/max_y
         centers={name:(int(x+(pos[0]+.5)*cell_w),int(y+(pos[1]+.5)*cell_h)) for name,pos in layout.items()}
         for a,b in atlas.edges(session.visited):
-            if a in session.visited or b in session.visited:r.line(s,(65,85,95),centers[a],centers[b])
+            if a in centers and b in centers and (a in session.visited or b in session.visited):r.line(s,(65,85,95),centers[a],centers[b])
         for name,center in centers.items():
             color=GOLD if name==session.rooms.current else TEAL if name in session.completed else WHITE if name in session.visited else (61,71,84)
             rw=max(4,int(cell_w*.58));rh=max(4,int(cell_h*.55))
@@ -199,16 +235,20 @@ class Renderer:
             r.rect(s,INK,rect);r.rect(s,color,rect,1)
             if w>100:self.text(name[1:] if name in session.visited else '?',rect.x+3,rect.y,color)
             elif name==session.rooms.current:r.rect(s,color,(center[0]-1,center[1]-1,2,2))
-            if name in session.visited and any(o.get('ability') for o in session.rooms.rooms[name]['objects']):
+            if name in session.visited and 'compass' in session.inventory.abilities and any(o.get('ability') or o.get('boss_key') for o in session.rooms.rooms[name]['objects']):
                 r.rect(s,TEAL,(rect.right-3,rect.bottom-3,2,2))
+            if "compass" in session.inventory.abilities and name in session.visited and any(e["type"]=="golem" for e in session.rooms.rooms[name].get("enemies",[])):
+                r.rect(s,(236,98,116),(center[0]-2,center[1]-2,4,4))
 
     def minimap(self,session):
         pygame.draw.rect(self.surface,INK,(239,5,77,52))
         pygame.draw.rect(self.surface,(77,108,112),(239,5,77,52),1)
-        self.atlas_graph(session,(242,8,71,46))
+        self.text(session.rooms.data.get("floor","1F"),243,7,TEAL,max_width=30)
+        self.atlas_graph(session,(242,23,71,29))
 
     def map_panel(self,session):
         self.panel('DUNGEON ATLAS',[])
+        if hasattr(session,"map_floor"):self.text(f"{session.map_floor} / LEFT, RIGHT: floor",32,60,TEAL)
         self.atlas_graph(session,(30,75,260,68))
         known=session.exploration.tiles.get(session.rooms.current,set())
         rows=session.rooms.data['tiles'];w=len(rows[0]);h=len(rows)
@@ -225,4 +265,4 @@ class Renderer:
         self.text(f'Explored: {len(known)} tiles',162,169)
         self.text('Gold: you / exit',162,184)
         self.text('Teal: item / receiver',162,199)
-        self.text('TAB closes / R resets',32,218)
+        self.text('TAB closes / LEFT, RIGHT floor',32,218)

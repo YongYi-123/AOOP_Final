@@ -6,6 +6,7 @@ import textwrap
 from enum import Enum, auto
 import pygame
 from puzzle_maze.session import GameSession, SAVE_PATH
+from puzzle_maze.dungeon import DungeonSession
 from puzzle_maze.render import Renderer, GOLD, TEAL
 from puzzle_maze.audio import AudioManager
 from puzzle_maze.onboarding import IntroSequence,TutorialCard
@@ -30,7 +31,8 @@ class Game:
         self.screen=pygame.display.get_surface() if embedded else pygame.display.set_mode((960,720),pygame.RESIZABLE)
         if not embedded:pygame.display.set_caption('Puzzle Maze / The Prism Chambers')
         self.clock=pygame.time.Clock();self.renderer=Renderer();self.audio=audio if audio is not None else AudioManager()
-        self.session=GameSession();self.scene=GameScene.MENU;self.previous=GameScene.MENU
+        self.session_factory=GameSession if embedded else DungeonSession
+        self.session=self.session_factory();self.scene=GameScene.MENU;self.previous=GameScene.MENU
         self.selection=0;self.running=True;self.cooldown=0
         self.visual=[float(self.session.player.x),float(self.session.player.y)]
         self.toast='';self.toast_time=0;self.fade=0;self.autosave=0
@@ -47,7 +49,7 @@ class Game:
         except OSError:self.notify('Save unavailable: progress stays in memory')
 
     def start(self,continuing=False,onboarding=True):
-        self.session=GameSession.load() if continuing else GameSession()
+        self.session=self.session_factory.load() if continuing else self.session_factory()
         self.tool="pulse"
         self.scene=GameScene.GAMEOVER if self.session.player.hp<=0 else GameScene.VICTORY if self.session.finished else GameScene.PLAY
         if not continuing and onboarding:
@@ -87,6 +89,9 @@ class Game:
             return
         if key==pygame.K_ESCAPE:
             self.scene=GameScene.PAUSE;self.selection=0;self.save();return
+        if self.scene==GameScene.MAP and key in (pygame.K_LEFT,pygame.K_RIGHT):
+            if hasattr(self.session,'map_floor'):self.session.map_floor='B1F' if self.session.map_floor=='1F' else '1F'
+            return
         if key==pygame.K_TAB:
             self.scene=GameScene.PLAY if self.scene==GameScene.MAP else GameScene.MAP;return
         if key==pygame.K_r:
@@ -94,6 +99,10 @@ class Game:
             self.last_solved=self.session.puzzles.solved;self.renderer.particles.clear()
             self.notify('Room restored to entrance checkpoint');self.save();return
         if self.scene!=GameScene.PLAY:return
+        if getattr(event,'repeat',False) and key in (pygame.K_b,pygame.K_j,pygame.K_e,pygame.K_SPACE):return
+        if key==pygame.K_b and hasattr(self.session,'bombs'):
+            if not self.session.bombs.place():self.notify('Find powder / wait for placement cooldown',2)
+            return
         if key==pygame.K_j:self.session.attack();return
         if key==pygame.K_h:
             if not self.session.heal():self.notify("H: use a potion when hurt",2)
@@ -128,7 +137,7 @@ class Game:
     def options(self):
         exit_label='Return to arcade' if self.embedded else 'Quit'
         if self.scene==GameScene.MENU:return ['New expedition','Quick start (skip tutorial)','Continue expedition','Controls',exit_label]
-        if self.scene==GameScene.GAMEOVER:return ['Main menu']
+        if self.scene==GameScene.GAMEOVER:return ['Main menu','Retry room']
         if self.scene==GameScene.VICTORY:return ['New expedition','Main menu',exit_label]
         return ['Resume','Controls','Reset room','Save and main menu',exit_label]
 
@@ -139,7 +148,7 @@ class Game:
         elif option=='Continue expedition':self.start(True)
         elif option=='Controls':self.previous=self.scene;self.scene=GameScene.HELP
         elif option=='Resume':self.scene=GameScene.PLAY
-        elif option=='Reset room':
+        elif option in ('Reset room','Retry room'):
             self.session.reset();self.visual=[float(self.session.player.x),float(self.session.player.y)]
             self.last_solved=self.session.puzzles.solved;self.scene=GameScene.PLAY;self.save()
         elif option in ('Save and main menu','Main menu'):
@@ -164,7 +173,7 @@ class Game:
         if p.hp<=0:
             self.scene=GameScene.GAMEOVER;self.selection=0;self.save();return
         if self.session.puzzles.solved and not self.last_solved:
-            self.renderer.burst(p.x,p.y,GOLD,40);self.audio.play('solve');self.notify('Mechanism aligned! Follow the eastern passage.')
+            self.renderer.burst(p.x,p.y,GOLD,40);self.audio.play('solve');self.notify('Mechanism aligned! Check the map for routes.')
         self.last_solved=self.session.puzzles.solved
         if keys is None:keys=pygame.key.get_pressed()
         if self.cooldown<=0:

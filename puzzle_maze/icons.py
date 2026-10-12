@@ -44,7 +44,7 @@ class IconHUD:
         room=session.rooms.data
         renderer.text(room['name'],6,205,(245,198,96),max_width=235)
         renderer.text(room.get('floor','1F'),281,205,max_width=34)
-        renderer.text('J Sword  E Use  B Bomb  SHIFT Dash',6,224,max_width=232)
+        renderer.text('J / E / B / SHIFT',6,224,max_width=232)
         renderer.text('TAB Map',244,224,max_width=73)
         pickup=getattr(session,'pickup',None)
         if pickup:

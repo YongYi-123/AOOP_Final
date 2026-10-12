@@ -153,7 +153,9 @@ class CombatManager:
                 self.loot.remove(drop);self.events.append('heal')
 
     @property
-    def cleared(self):return all(e.hp==0 for e in self.enemies)
+    def cleared(self):
+        if any(e.kind=="golem" for e in self.enemies):return all(e.state==EnemyState.DEAD for e in self.enemies)
+        return all(e.hp==0 for e in self.enemies)
 
     def capture(self):return dict(enemies={e.id:e.capture() for e in self.enemies},loot=self.loot.copy(),projectiles=[vars(b).copy() for b in self.projectiles])
 

@@ -44,7 +44,7 @@ class PresentationTests(unittest.TestCase):
         self.key(pygame.K_ESCAPE);self.assertEqual(self.game.scene,GameScene.PLAY)
 
     def test_pause_freezes_clock(self):
-        self.game.start(onboarding=False);self.game.session.enter('r7')
+        self.game.start(onboarding=False);self.game.session.enter('r6')
         clock=self.game.session.puzzles.objects['clock']
         clock.state.remaining=3;clock.state.active=True
         self.game.scene=GameScene.PAUSE

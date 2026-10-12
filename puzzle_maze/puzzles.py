@@ -135,8 +135,8 @@ class PuzzleManager(CollisionManager):
 
     def update(self, dt, player):
         for obj in self.objects.values():
-            if isinstance(obj, Key) and player and obj.pos == (player.x, player.y) and not obj.state.active:
-                self.inventory.add(obj.data['color'])
+            if isinstance(obj, Key) and player and obj.pos == (player.x, player.y) and not obj.state.active and all(self.condition(i) for i in obj.data.get("requires",[])):
+                for _ in range(obj.data.get("amount",1)):self.inventory.add(obj.data['color'])
                 obj.state.active = True
             if isinstance(obj, PressurePlate):
                 obj.state.active = (player is not None and obj.pos == (player.x, player.y)) or any(isinstance(b, PushableBox) and b.pos == obj.pos for b in self.objects.values())
@@ -276,7 +276,7 @@ class RemoteRelay(PuzzleObject):
 
 class RemoteSwitch(Switch):
     def interact(self,manager,player,pulse=False):
-        if pulse or self.state.active:return False
+        if pulse or self.state.active or not all(manager.condition(i) for i in self.data.get("requires",[])):return False
         self.state.active=True;manager.inventory.flags.add(self.data['flag']);return True
 
 FACTORY.update(cracked=CrackedWall,blast_switch=BlastSwitch,supply=BombSupply,dash_switch=DashSwitch,relay=RemoteRelay,remote=RemoteSwitch)

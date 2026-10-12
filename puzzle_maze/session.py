@@ -53,7 +53,7 @@ class GameSession:
             self.restore(self.snapshots[name])
         self.combat=CombatManager(self.rooms.data,self.puzzles,self.player)
         if name in self.encounters:self.combat.restore(self.encounters[name])
-        self.checkpoint = dict(hp=self.player.hp, combat=copy.deepcopy(self.combat.capture()),inventory=copy.deepcopy(self.inventory.keys), abilities=sorted(self.inventory.abilities), potions=self.inventory.potions, coins=self.inventory.coins, objects=self.capture(), pos=[self.player.x,self.player.y])
+        self.checkpoint = dict(hp=self.player.hp, combat=copy.deepcopy(self.combat.capture()),inventory=copy.deepcopy(self.inventory.keys), abilities=sorted(self.inventory.abilities), potions=self.inventory.potions, coins=self.inventory.coins, bombs=self.inventory.bombs,boss_key=self.inventory.boss_key,flags=sorted(self.inventory.flags),objects=self.capture(), pos=[self.player.x,self.player.y])
         self.visited.add(name)
         self.exploration.reveal(name,self.puzzles,self.player)
 
@@ -62,6 +62,10 @@ class GameSession:
         self.inventory.abilities=set(self.checkpoint['abilities'])
         self.inventory.potions=self.checkpoint['potions']
         self.inventory.coins=self.checkpoint['coins']
+        self.inventory.bombs=self.checkpoint.get('bombs',0)
+        self.inventory.boss_key=self.checkpoint.get('boss_key',False)
+        self.inventory.flags=set(self.checkpoint.get('flags',[]))
+        self.inventory.notifications.clear()
         self.dash_cooldown=0
         self.player.hp=self.checkpoint['hp']
         self.player.invulnerable=0
@@ -142,7 +146,7 @@ class GameSession:
     def save(self, path=SAVE_PATH):
         self.encounters[self.rooms.current]=copy.deepcopy(self.combat.capture())
         self.snapshots[self.rooms.current]=self.capture()
-        data=dict(version=2, facing=list(self.player.facing), attack_facing=list(self.player.attack_facing), map_revision=self.rooms.revision, weapon=self.player.weapon.id, dash_cooldown=self.dash_cooldown, player_status={k:getattr(self.player,k) for k in ('invulnerable','attack_cooldown','attack_flash')}, explored=self.exploration.capture(), hp=self.player.hp, encounters=self.encounters, abilities=sorted(self.inventory.abilities), potions=self.inventory.potions, coins=self.inventory.coins, room=self.rooms.current, player=[self.player.x,self.player.y],
+        data=dict(bombs=self.inventory.bombs,boss_key=self.inventory.boss_key,flags=sorted(self.inventory.flags),bomb_state=self.bombs.capture() if hasattr(self,"bombs") else {},version=2, facing=list(self.player.facing), attack_facing=list(self.player.attack_facing), map_revision=self.rooms.revision, weapon=self.player.weapon.id, dash_cooldown=self.dash_cooldown, player_status={k:getattr(self.player,k) for k in ('invulnerable','attack_cooldown','attack_flash')}, explored=self.exploration.capture(), hp=self.player.hp, encounters=self.encounters, abilities=sorted(self.inventory.abilities), potions=self.inventory.potions, coins=self.inventory.coins, room=self.rooms.current, player=[self.player.x,self.player.y],
                   inventory=self.inventory.keys, snapshots=self.snapshots,
                   completed=sorted(self.completed), visited=sorted(self.visited),
                   finished=self.finished, checkpoint=self.checkpoint)
@@ -160,7 +164,7 @@ class GameSession:
     @staticmethod
     def validate_growth(data):
         abilities=data['abilities']
-        if not isinstance(abilities,list) or not all(isinstance(a,str) and a in ('gloves','boots','mirror','magnet') for a in abilities):
+        if not isinstance(abilities,list) or not all(isinstance(a,str) and a in ('gloves','boots','mirror','magnet','map','compass') for a in abilities):
             raise ValueError('Unknown ability')
         if any(type(data[k]) is not int or data[k]<0 for k in ('potions','coins')):
             raise ValueError('Invalid supplies')
@@ -221,6 +225,9 @@ class GameSession:
                 raise ValueError('Unsupported save')
             candidate.exploration.restore(data.get('explored',{}),candidate.rooms.rooms)
             candidate.inventory.keys=data['inventory']
+            bombs=data.get('bombs',0);boss_key=data.get('boss_key',False);flags=data.get('flags',[])
+            if type(bombs) is not int or not 0<=bombs<=20 or type(boss_key) is not bool or not isinstance(flags,list) or any(not isinstance(f,str) for f in flags):raise ValueError('Invalid dungeon supplies')
+            candidate.inventory.bombs=bombs;candidate.inventory.boss_key=boss_key;candidate.inventory.flags=set(flags)
             candidate.inventory.abilities=set(data['abilities'])
             candidate.inventory.potions=data['potions'];candidate.inventory.coins=data['coins']
             cls.validate_growth(data)
@@ -276,6 +283,7 @@ class GameSession:
             CombatManager(candidate.rooms.data, candidate.puzzles, candidate.player).restore(checkpoint['combat'])
             candidate.checkpoint=checkpoint
             candidate.finished=bool(data['finished'])
+            if hasattr(candidate,'bombs'):candidate.bombs.restore(data.get('bomb_state',{}))
             return candidate
         except (OSError,ValueError,KeyError,TypeError,IndexError,AttributeError):
             return cls()
