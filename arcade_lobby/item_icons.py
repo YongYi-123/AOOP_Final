@@ -213,11 +213,71 @@ def _jacket(s, c, a):
     s.fill((24, 18, 50), (6, 3, 2, 10))
 
 
+def _soda(s, c, a):
+    s.fill(c, (4, 3, 6, 10))                          # a fizzy can
+    s.fill(shade(c, 0.5), (5, 4, 1, 8))
+    s.fill(a, (4, 6, 6, 3))
+    s.fill((190, 200, 210), (4, 2, 6, 1))
+    s.fill((190, 200, 210), (4, 13, 6, 1))
+    s.fill(a, (10, 0, 1, 1))
+    s.fill(a, (8, 1, 1, 1))                            # bubbles
+
+
+def _sandwich(s, c, a):
+    # dashed outline only: the sandwich is invisible
+    for x in range(1, 13, 2):
+        s.fill(c, (x, 4, 1, 1))
+        s.fill(c, (x, 10, 1, 1))
+    for y in range(5, 10, 2):
+        s.fill(c, (1, y, 1, 1))
+        s.fill(c, (12, y, 1, 1))
+    s.fill(a, (5, 6, 1, 2))
+    s.fill(a, (8, 6, 1, 2))
+
+
+def _rainbow(s, c, a):
+    colors = ((255, 70, 90), (255, 160, 60), (255, 230, 80), (90, 230, 120), (80, 170, 255))
+    for i, color in enumerate(colors):
+        pygame.draw.arc(s, color, (1 + i, 3 + i, 12 - 2 * i, 14 - 2 * i), 0.0, 3.1416, 1)
+    s.fill(a, (0, 11, 3, 2))
+    s.fill(a, (11, 11, 3, 2))
+
+
+def _duck(s, c, a):
+    pygame.draw.ellipse(s, c, (2, 6, 10, 7))
+    pygame.draw.circle(s, c, (9, 4), 3)
+    s.fill(a, (11, 4, 3, 2))                           # beak
+    s.fill(Col.OUTLINE, (9, 3, 1, 1))
+    s.fill(shade(c, 0.5), (4, 8, 4, 1))
+
+
+def _battery(s, c, a):
+    s.fill((60, 66, 90), (3, 2, 8, 11))
+    s.fill(c, (4, 4, 6, 8))
+    s.fill((190, 200, 210), (5, 1, 4, 1))
+    s.fill(a, (6, 6, 2, 1))
+    s.fill(a, (5, 8, 2, 1))
+    s.fill(a, (7, 9, 2, 1))                            # a crooked bolt
+
+
+def _mystery(s, c, a):
+    s.fill(c, (3, 2, 8, 11))
+    s.fill(shade(c, 0.4), (4, 3, 1, 9))
+    s.fill((190, 200, 210), (3, 1, 8, 1))
+    s.fill((190, 200, 210), (3, 13, 8, 1))
+    s.fill(a, (6, 4, 3, 1))                            # a big question mark
+    s.fill(a, (8, 5, 1, 2))
+    s.fill(a, (7, 7, 1, 1))
+    s.fill(a, (7, 9, 1, 1))
+
+
 PAINTERS = {"sticker": _sticker, "cap": _cap, "ticket": _ticket, "badge": _badge,
             "lamp": _lamp, "plush": _plush, "plant": _plant, "clock": _clock, "frame": _frame,
             "rug": _rug, "star": _star, "ears": _ears, "glasses": _glasses, "swatch": _swatch,
             "headphones": _headphones, "crown": _crown, "visor": _visor, "medal": _medal,
-            "clip": _clip, "tail": _tail, "jacket": _jacket, "trophy": _trophy, "coin": _coin, "clover": _clover, "cabinet": _cabinet}
+            "clip": _clip, "tail": _tail, "jacket": _jacket, "trophy": _trophy, "coin": _coin, "clover": _clover, "cabinet": _cabinet,
+            "soda": _soda, "sandwich": _sandwich, "rainbow": _rainbow, "duck": _duck,
+            "battery": _battery, "mystery": _mystery}
 _cache = {}
 
 

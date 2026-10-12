@@ -107,9 +107,13 @@ class ShopService:
     def can_afford(self, entry):
         return self.profile.tickets >= entry.cost
 
+    def find_entry(self, item_id):
+        """The catalogue line for `item_id` (another shop overrides this with its own stock)."""
+        return entry_for(item_id)
+
     def purchase(self, item_id):
         """Buy one `item_id`. Every refusal changes nothing."""
-        entry = entry_for(item_id)
+        entry = self.find_entry(item_id)
         if entry is None:
             return PurchaseResult(False, "unknown", "NOT FOR SALE")
         why = self.blocked(entry)

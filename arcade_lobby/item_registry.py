@@ -156,6 +156,32 @@ _SHOP_ITEMS = (
           "cabinet", _VIOLET, _CYAN, _COLLECT_USE),
 )
 
+# ---- NEON VEND-O-MATIC novelty goods (Arcade Floor). Pure fun: using one only plays a little effect
+# (novelty.py) and never touches scores, tokens, tickets, movement or any minigame.
+NOVELTY_STACK = 9
+_NOVELTY_USE = "USE IT FROM THE BAG"
+
+
+def _novelty(item_id, name, text, rarity, shape, color, accent):
+    return ItemDefinition(item_id, name, text, CONSUMABLE, rarity, stackable=True, max_stack=NOVELTY_STACK,
+                          icon={"shape": shape, "color": color, "accent": accent}, use_hint=_NOVELTY_USE)
+
+
+_NOVELTY_ITEMS = (
+    _novelty("suspicious_soda", "SUSPICIOUS SODA", "Fizzes more than it should. Burps are guaranteed.",
+             COMMON, "soda", (120, 255, 90), (255, 255, 140)),
+    _novelty("invisible_sandwich", "INVISIBLE SANDWICH", "Looks like nothing. Tastes like nothing.",
+             COMMON, "sandwich", (150, 170, 230), (255, 255, 255)),
+    _novelty("pocket_rainbow", "POCKET RAINBOW", "A tiny rainbow, folded for travel.",
+             UNCOMMON, "rainbow", (255, 160, 60), (255, 255, 255)),
+    _novelty("rubber_duck", "RUBBER DUCK", "Squeaks. That is all it does.",
+             UNCOMMON, "duck", (255, 214, 60), (255, 130, 40)),
+    _novelty("questionable_battery", "QUESTIONABLE BATTERY", "Powers nothing. Flickers everything.",
+             RARE, "battery", (90, 255, 150), (255, 230, 80)),
+    _novelty("mystery_can", "MYSTERY CAN", "The label fell off. So did the contents.",
+             RARE, "mystery", (150, 110, 255), (255, 214, 90)),
+)
+
 from racing_progression.catalog import PRIZES
 
 _RACING_ITEMS = tuple(ItemDefinition(p.item_id, p.name, f"Permanent {p.kind} unlock.",
@@ -169,4 +195,4 @@ _RACING_ITEMS = tuple(
                    if d.id.startswith("racing_decoration_") else d.icon,
                    use_hint=_DECOR_USE if d.id.startswith("racing_decoration_") else "")
     for d in _RACING_ITEMS)
-ITEM_REGISTRY = ItemRegistry(_ITEMS + _SHOP_ITEMS + _RACING_ITEMS)
+ITEM_REGISTRY = ItemRegistry(_ITEMS + _SHOP_ITEMS + _NOVELTY_ITEMS + _RACING_ITEMS)
