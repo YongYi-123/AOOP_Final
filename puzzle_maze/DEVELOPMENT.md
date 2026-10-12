@@ -116,3 +116,8 @@ Phase A：Player 預設 BasicSword，Weapon 封裝面向、距離、傷害、冷
 揮劍只判定一次，正前方一格，敵人閃爍 / 擊退 / hit 音效。補上既有可選
 puzzle_maze/lobby_scene.py 丟棄 J 的輸入問題，不改 host 模組。舊 v2 存檔
 缺少武器欄位會自動補基礎劍。59 項全套與新增 1 項橋接攻擊測試通過。
+
+Phase B：獨立 INTRO / TUTORIAL 狀態，6 秒拔劍與開門動畫、Enter 略過，
+之後操作說明等待确认。Quick start 可略過全部教學，Continue 不重播。
+IntroSequence / TutorialCard 封裝動畫與操作資料；開場及教學凍結敵人、
+機關與存檔寫入，取消不覆蓋原進度。63 項全套測試通過。

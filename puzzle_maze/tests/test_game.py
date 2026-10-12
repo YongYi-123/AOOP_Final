@@ -30,6 +30,8 @@ class PresentationTests(unittest.TestCase):
 
     def test_input_movement_pause_reset(self):
         self.key(pygame.K_RETURN)
+        self.assertEqual(self.game.scene,GameScene.INTRO)
+        self.key(pygame.K_RETURN);self.key(pygame.K_RETURN)
         self.assertEqual(self.game.scene,GameScene.PLAY)
         self.game.cooldown=0
         keys=defaultdict(bool);keys[pygame.K_d]=True
@@ -42,7 +44,7 @@ class PresentationTests(unittest.TestCase):
         self.key(pygame.K_ESCAPE);self.assertEqual(self.game.scene,GameScene.PLAY)
 
     def test_pause_freezes_clock(self):
-        self.game.start();self.game.session.enter('r7')
+        self.game.start(onboarding=False);self.game.session.enter('r7')
         clock=self.game.session.puzzles.objects['clock']
         clock.state.remaining=3;clock.state.active=True
         self.game.scene=GameScene.PAUSE
@@ -55,7 +57,7 @@ class PresentationTests(unittest.TestCase):
             self.assertFalse(audio.enabled)
 
     def test_game_over_returns_to_menu_without_quitting(self):
-        self.game.start();self.game.session.player.hp=0
+        self.game.start(onboarding=False);self.game.session.player.hp=0
         self.game.update(.016)
         self.assertEqual(self.game.scene,GameScene.GAMEOVER)
         self.key(pygame.K_j);self.assertEqual(self.game.session.player.hp,0)

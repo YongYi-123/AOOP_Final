@@ -8,6 +8,7 @@ import pygame
 from puzzle_maze.session import GameSession, SAVE_PATH
 from puzzle_maze.render import Renderer, GOLD, TEAL
 from puzzle_maze.audio import AudioManager
+from puzzle_maze.onboarding import IntroSequence,TutorialCard
 
 class GameScene(Enum):
     MENU=auto()
@@ -17,6 +18,8 @@ class GameScene(Enum):
     MAP=auto()
     VICTORY=auto()
     GAMEOVER=auto()
+    INTRO=auto()
+    TUTORIAL=auto()
 
 class Game:
     def __init__(self,headless=False,embedded=False,audio=None):
@@ -33,18 +36,22 @@ class Game:
         self.toast='';self.toast_time=0;self.fade=0;self.autosave=0
         self.last_solved=False
         self.tool='pulse'
+        self.intro=IntroSequence();self.tutorial=TutorialCard()
 
     def notify(self,message,seconds=3):
         self.toast=message;self.toast_time=seconds
 
     def save(self):
+        if self.scene in (GameScene.INTRO,GameScene.TUTORIAL):return
         try:self.session.save()
         except OSError:self.notify('Save unavailable: progress stays in memory')
 
-    def start(self,continuing=False):
+    def start(self,continuing=False,onboarding=True):
         self.session=GameSession.load() if continuing else GameSession()
         self.tool="pulse"
         self.scene=GameScene.GAMEOVER if self.session.player.hp<=0 else GameScene.VICTORY if self.session.finished else GameScene.PLAY
+        if not continuing and onboarding:
+            self.intro=IntroSequence();self.scene=GameScene.INTRO
         self.visual=[float(self.session.player.x),float(self.session.player.y)]
         self.fade=.5;self.cooldown=.2;self.last_solved=self.session.puzzles.solved
         self.notify(self.session.rooms.data['name'])
@@ -56,6 +63,16 @@ class Game:
         if event.type!=pygame.KEYDOWN:return
         key=event.key
         if key==pygame.K_m:self.audio.toggle()
+        if self.scene==GameScene.INTRO:
+            if key==pygame.K_RETURN:self.scene=GameScene.TUTORIAL;self.fade=0
+            elif key==pygame.K_ESCAPE:self.scene=GameScene.MENU
+            return
+        if self.scene==GameScene.TUTORIAL:
+            if key==pygame.K_RETURN:
+                self.scene=GameScene.PLAY;self.cooldown=.2;self.fade=0
+                self.notify('Basic Sword ready. J attacks. E opens chests.')
+            elif key==pygame.K_ESCAPE:self.scene=GameScene.MENU
+            return
         if self.scene in (GameScene.MENU,GameScene.PAUSE,GameScene.VICTORY,GameScene.GAMEOVER):
             options=self.options()
             if key in (pygame.K_DOWN,pygame.K_s):self.selection=(self.selection+1)%len(options)
@@ -109,7 +126,7 @@ class Game:
 
     def options(self):
         exit_label='Return to arcade' if self.embedded else 'Quit'
-        if self.scene==GameScene.MENU:return ['New expedition','Continue expedition','Controls',exit_label]
+        if self.scene==GameScene.MENU:return ['New expedition','Quick start (skip tutorial)','Continue expedition','Controls',exit_label]
         if self.scene==GameScene.GAMEOVER:return ['Main menu']
         if self.scene==GameScene.VICTORY:return ['New expedition','Main menu',exit_label]
         return ['Resume','Controls','Reset room','Save and main menu',exit_label]
@@ -117,6 +134,7 @@ class Game:
     def choose(self,option):
         self.selection=0
         if option=='New expedition':self.start()
+        elif option=='Quick start (skip tutorial)':self.start(onboarding=False)
         elif option=='Continue expedition':self.start(True)
         elif option=='Controls':self.previous=self.scene;self.scene=GameScene.HELP
         elif option=='Resume':self.scene=GameScene.PLAY
@@ -131,6 +149,9 @@ class Game:
 
     def update(self,dt,keys=None):
         self.toast_time=max(0,self.toast_time-dt);self.fade=max(0,self.fade-dt)
+        if self.scene==GameScene.INTRO:
+            if self.intro.update(dt):self.scene=GameScene.TUTORIAL;self.fade=0
+            return
         if self.scene!=GameScene.PLAY:return
         self.cooldown=max(0,self.cooldown-dt)
         p=self.session.player
@@ -170,7 +191,9 @@ class Game:
 
     def draw(self,dt,target=None):
         r=self.renderer;r.world(self.session,self.visual,dt,self.tool)
-        if self.scene in (GameScene.MENU,GameScene.PAUSE,GameScene.VICTORY,GameScene.GAMEOVER):
+        if self.scene==GameScene.INTRO:self.intro.draw(r)
+        elif self.scene==GameScene.TUTORIAL:self.tutorial.draw(r)
+        elif self.scene in (GameScene.MENU,GameScene.PAUSE,GameScene.VICTORY,GameScene.GAMEOVER):
             title={GameScene.MENU:'PUZZLE MAZE',GameScene.PAUSE:'EXPEDITION PAUSED',GameScene.VICTORY:'PRISM RESTORED',GameScene.GAMEOVER:'GAME OVER / 探索失敗'}[self.scene]
             r.panel(title,self.options(),self.selection)
             r.text('The Prism Chambers / original pixel adventure',36,193,(133,163,156))
@@ -211,7 +234,7 @@ def main():
     args=parser.parse_args()
     game=Game(args.headless)
     if args.screenshot:
-        game.start();game.fade=0
+        game.start(onboarding=False);game.fade=0
         for _ in range(args.frames or 1):game.draw(1/60)
         pygame.image.save(game.screen,args.screenshot);pygame.quit()
     else:game.run(args.frames)
