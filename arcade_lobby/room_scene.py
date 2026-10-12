@@ -473,7 +473,7 @@ class BaseRoomScene(BaseScene):
         if any(p is not player and p.sitting and p.seat == seat.seat_pos for p in self.players):
             self.notice.show("SEAT TAKEN", [], Col.YELLOW)
             return
-        player.sit(seat.seat_pos, "down")
+        player.sit(seat.seat_pos, "down", seat.sort_y)
         self.play_sound("sit")
 
     def play_sound(self, name):
