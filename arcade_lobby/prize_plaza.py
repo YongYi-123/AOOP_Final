@@ -22,7 +22,7 @@ from neon21_art import suit_icon
 from room_art import HubBackdrop, Twinkles
 from room_scene import BaseRoomScene, RoomExit
 from settings import Col, Lofi, VIEW_H, VIEW_W
-from stations import CoinPusherStation, PrizeCounter, SoonStation, build_lucky_corner
+from stations import CoinPusherStation, PinballStation, PrizeCounter, build_lucky_corner
 from racing_progression.station import GarageStation
 from racing_progression.ui import PrizeCounterScene, GarageScene
 from shop_ui import ShopScene
@@ -100,7 +100,7 @@ class PlazaBackdrop(HubBackdrop):
             pygame.draw.circle(surf, (255, 190, 70), (cx, cy), 2)
             surf.fill((255, 244, 190), (cx - 1, cy - 1, 1, 1))
         for kind, x, y in (("spin", LUCKY_POS[0], 0), ("hilo", LUCKY_POS[0] + 40, 0), ("neon21", LUCKY_POS[0] + 80, 0),
-                           ("pusher", LUCKY_POS[0], 70)):
+                           ("pusher", LUCKY_POS[0], 70), ("pinball", LUCKY_POS[0] + 40, 70)):
             neon = KINDS[kind]["neon"]
             pool = pygame.Surface((30, 14), pygame.SRCALPHA)
             for yy in range(14):                                            # floor reflection, fading out
@@ -241,11 +241,11 @@ class PrizePlazaScene(BaseRoomScene):
                       neon_rect_glow(CASE_W + 2, CASE_H + 2, color, 6, self.style.strength(0.22)), (x - 6, 98))
                  for x, color, kind in CASES]
         lucky = build_lucky_corner(*LUCKY_POS)
-        # the first SOON bay is now NEON COIN PUSHER; the second stays dark for a future game
+        # the two former SOON bays are NEON COIN PUSHER and LUCKY CAT PINBALL
         pusher = CoinPusherStation((LUCKY_POS[0], LUCKY_POS[1] + 70))
-        spare_bays = [SoonStation((LUCKY_POS[0] + 40, LUCKY_POS[1] + 70))]
+        pinball = PinballStation((LUCKY_POS[0] + 40, LUCKY_POS[1] + 70))
         plant = make_plant(Lofi.TERRACOTTA, Lofi.TERRACOTTA_HI)
-        return ([counter, GarageStation((146,186))] + cases + lucky + [pusher] + spare_bays + [
+        return ([counter, GarageStation((146,186))] + cases + lucky + [pusher, pinball] + [
             Prop(plant, (24, 76), (27, 92, 13, 10)),
             Prop(plant, (358, 244), (361, 260, 13, 10)),
             Prop(make_gumball(), (176, 252), (177, 268, 12, 6)),

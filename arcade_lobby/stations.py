@@ -190,6 +190,16 @@ class CoinPusherStation(LuckyCabinet):
         scene.open_coin_pusher()
 
 
+class PinballStation(LuckyCabinet):
+    """LUCKY CAT PINBALL. Opening it is free; a run of 3 balls costs 1 Token."""
+
+    def __init__(self, pos):
+        super().__init__(pos, "pinball", "LUCKY CAT PINBALL")
+
+    def interact(self, scene):
+        scene.open_pinball()
+
+
 class LuckySign(Prop):
     """The glowing LUCKY CORNER plaque above the machines. Decoration only:
     it is not solid and has no prompt."""
