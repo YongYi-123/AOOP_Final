@@ -92,14 +92,13 @@ class HubBase(unittest.TestCase):
 
 
 class LuckyCornerTests(HubBase):
-    def test_the_first_soon_bay_became_the_coin_pusher_and_the_second_is_untouched(self):
+    def test_the_first_soon_bay_became_the_coin_pusher_and_the_second_is_lucky_cat_pinball(self):
         room = self.plaza()
         pusher = self.station(room)
         self.assertEqual(pusher.rect.topleft, (LUCKY_POS[0], LUCKY_POS[1] + 70))
-        soon = [p for p in room.props if isinstance(p, SoonStation)]
-        self.assertEqual([s.rect.topleft for s in soon], [(LUCKY_POS[0] + 40, LUCKY_POS[1] + 70)])
+        self.assertEqual([p for p in room.props if isinstance(p, SoonStation)], [])
         self.assertEqual(sorted(p.prompt_label for p in room.interactables if hasattr(p, "kind")),
-                         ["PLAY COIN PUSHER", "PLAY HI-LO", "PLAY NEON 21", "PLAY SPIN"])
+                         ["PLAY COIN PUSHER", "PLAY HI-LO", "PLAY LUCKY CAT PINBALL", "PLAY NEON 21", "PLAY SPIN"])
 
     def test_it_is_interactable_solid_and_blocks_no_walking_route(self):
         room = self.plaza()
@@ -109,8 +108,8 @@ class LuckyCornerTests(HubBase):
         for other in room.props:
             if other is not pusher and getattr(other, "solid", True):
                 self.assertFalse(pusher.footprint.colliderect(other.footprint), type(other).__name__)
-        soon = next(p for p in room.props if isinstance(p, SoonStation))
-        self.assertGreaterEqual(soon.footprint.left - pusher.footprint.right, 8)     # the player can walk between
+        neighbour = next(p for p in room.props if p.__class__.__name__ == "PinballStation")
+        self.assertGreaterEqual(neighbour.footprint.left - pusher.footprint.right, 8)     # the player can walk between
         self.assertLessEqual(pusher.rect.bottom, VIEW_H - 20)
 
     def test_the_cabinet_has_a_readable_marquee_and_its_own_sprite(self):

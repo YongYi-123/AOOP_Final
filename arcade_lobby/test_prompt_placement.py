@@ -157,13 +157,14 @@ class SoloHubTests(HubBase):
         for sign in room.prompt_avoid_rects():
             self.assertEqual(overlap(used, sign), 0)
 
-    def test_lucky_corner_signs_include_the_plaque_the_cabinets_and_the_soon_bays(self):
+    def test_lucky_corner_signs_include_the_plaque_the_cabinets_and_every_lucky_corner_bay(self):
         room = self.room("prize_plaza")
         avoid = room.prompt_avoid_rects()
-        soon = [p for p in room.props if p.__class__.__name__ == "SoonStation"]
+        bays = [p for p in room.props if p.__class__.__name__ in ("CoinPusherStation", "PinballStation")]
+        self.assertEqual(len(bays), 2)
         plaque = next(p for p in room.props if p.__class__.__name__ == "LuckySign")
         self.assertIn(plaque.sign_rect, avoid)
-        for s in soon:
+        for s in bays:
             self.assertTrue(any(r.x == s.rect.x and r.y == s.rect.y for r in avoid))
 
     def test_prompts_do_not_change_collision_or_interaction(self):
@@ -197,7 +198,7 @@ class SoloHubTests(HubBase):
         self.assertEqual(labels, {"PLAY"})
         lucky = self.room("prize_plaza")
         self.assertEqual(sorted(t.prompt_label for t in lucky.interactables if hasattr(t, "kind")),
-                         ["PLAY COIN PUSHER", "PLAY HI-LO", "PLAY NEON 21", "PLAY SPIN"])
+                         ["PLAY COIN PUSHER", "PLAY HI-LO", "PLAY LUCKY CAT PINBALL", "PLAY NEON 21", "PLAY SPIN"])
 
     def test_cat_volleyball_keeps_its_player_facing_name(self):
         machine = next(m for m in MACHINES if m["id"] == "pixel_volleyball")
