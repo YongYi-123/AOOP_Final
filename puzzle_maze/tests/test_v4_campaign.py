@@ -39,7 +39,7 @@ class EmberglassCampaignTests(unittest.TestCase):
         self.use('jar2');self.walk((13,8));self.assertTrue(s.puzzles.objects['load'].state.active);self.assertTrue(s.puzzles.objects['gate'].state.active)
         s.player.facing=(1,0);self.assertTrue(s.drop_pot());self.use('cache');self.travel('r7')
         self.use('powder');self.use('lever');self.travel('r9');d.fight();d.weight();self.use('boots');self.travel('r3')
-        d.fight();self.walk(s.puzzles.objects['combat_key'].pos);self.use('fragment');self.use('gate');self.travel('r7')
+        d.fight();self.use('combat_key');self.use('fragment');self.use('gate');self.travel('r7')
         self.walk((11,13));s.player.facing=(1,0);self.assertTrue(s.bombs.place());self.walk((8,13));s.tick(1.7)
         self.travel('r8');self.use('reward');self.travel('r7');self.travel('r3');self.travel('r2')
         self.use('lower');self.travel('r10');self.use('rest');self.use('lever');self.travel('r21')

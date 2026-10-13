@@ -31,6 +31,7 @@ class DungeonCampaignTests(unittest.TestCase):
             candidates=[(o.x+dx,o.y+dy) for dx,dy in ((1,0),(-1,0),(0,1),(0,-1))]
             reachable=[(len(path),pos) for pos in candidates if (path:=self.path(pos)) is not None]
             self.assertTrue(reachable,f'{s.rooms.current} cannot interact with {name}');self.walk(min(reachable)[1])
+        if getattr(o,'spawn_time',0):s.tick(o.spawn_time)
         s.player.facing=o.x-s.player.x,o.y-s.player.y
         if s.player.facing==(0,0):s.player.facing=(1,0)
         result=s.puzzles.interact(s.player);self.assertEqual(result,name);s.tick(0)

@@ -6,6 +6,7 @@ from puzzle_maze.rooms import MAP_PATH,load_rooms
 from puzzle_maze.advanced_puzzles import AdvancedPuzzleManager,LiftablePot,CrystalSwitch,OrderedSeal
 from puzzle_maze.rewards import DungeonRewardBag,TREASURES
 from puzzle_maze.items import Bomb
+from puzzle_maze.puzzles import Chest,ChestPhase
 
 V4_SAVE=Path(__file__).parent/'save_v4.json'
 
@@ -19,6 +20,7 @@ class AdvancedDungeonSession(DungeonSession):
         super().enter(name,arrival)
         self.checkpoint['reward_bag']=self.rewards.capture();self.effects=[];self.pot_flights=[]
     def tick(self,dt):
+        pending={o.id for o in self.puzzles.objects.values() if isinstance(o,Chest) and o.phase==ChestPhase.HIDDEN}
         super().tick(dt)
         if self.player.hp<=0:return
         self.pot_flights=[dict(flight,time=flight['time']-dt) for flight in self.pot_flights if flight['time']>dt]
@@ -28,6 +30,10 @@ class AdvancedDungeonSession(DungeonSession):
         flag=self.rooms.data.get('on_clear_flag')
         if flag and self.combat.cleared:self.inventory.flags.add(flag)
         self.puzzles.update(0,self.player)
+        for name in pending:
+            chest=self.puzzles.objects[name]
+            if chest.phase==ChestPhase.SPAWNING:
+                self.combat.events.append('solve');self.effects.append(('chest',chest.pos,.45))
     def move(self,dx,dy):
         moved=super().move(dx,dy)
         if moved:
@@ -91,6 +97,8 @@ class AdvancedDungeonSession(DungeonSession):
         inv.notifications.append((treasure,name));return True
     def transition(self):
         exit=self.rooms.exit_at(self.player)
+        if exit and not set(exit.get('flag_requires',[])) <= self.inventory.flags:return False
+        if exit and not all(self.puzzles.condition(i) for i in exit.get('requires',[])):return False
         if exit and exit.get('crystal') and exit['crystal']!=('blue' if 'crystal_blue' in self.inventory.flags else 'red'):return False
         if self.inventory.carried is not None:return False
         moved=super().transition()

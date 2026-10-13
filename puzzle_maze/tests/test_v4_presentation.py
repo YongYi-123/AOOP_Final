@@ -52,6 +52,7 @@ class FourthPresentationTests(unittest.TestCase):
         s=AdvancedDungeonSession();s.enter('r22');s.inventory.abilities.add('compass');s.exploration.tiles['r22']={(20,5)}
         self.assertNotIn(('chest',(20,5)),DungeonAtlas(s.rooms).discovered_markers(s))
         s.puzzles.objects['sequence'].state.active=True
+        s.puzzles.objects['skin'].advance(s.puzzles,0)
         self.assertIn(('chest',(20,5)),DungeonAtlas(s.rooms).discovered_markers(s))
     def test_archive_navigation_does_not_overwrite_current_expedition(self):
         game=Game(headless=True)

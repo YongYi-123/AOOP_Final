@@ -234,13 +234,13 @@ class Game:
         elif self.scene==GameScene.TUTORIAL:self.tutorial.draw(r)
         elif self.scene in (GameScene.MENU,GameScene.PAUSE,GameScene.VICTORY,GameScene.GAMEOVER,GameScene.ARCHIVE):
             title={GameScene.MENU:'PUZZLE MAZE',GameScene.PAUSE:'EXPEDITION PAUSED',GameScene.VICTORY:'HOLLOW AWAKENED',GameScene.GAMEOVER:'GAME OVER',GameScene.ARCHIVE:'OLD EXPEDITIONS'}[self.scene]
-            if self.scene==GameScene.MENU and isinstance(self.session,AdvancedDungeonSession):title='PUZZLE MAZE 4.0'
+            if self.scene==GameScene.MENU and isinstance(self.session,AdvancedDungeonSession):title='PUZZLE MAZE 4.1'
             r.panel(title,self.options(),self.selection)
             if self.scene==GameScene.VICTORY and hasattr(self.session,'rewards'):
                 bag=self.session.rewards
                 r.text(f'Tokens {bag.tokens} / Tickets {bag.tickets}',36,151,GOLD,max_width=244)
                 r.text(f'Found {len(bag.collections)}/5 / '+('Settled once' if bag.claimed else 'Pending'),36,170,TEAL,max_width=244)
-            label='4.0 / Emberglass Hollow' if isinstance(self.session,AdvancedDungeonSession) else '3.0 / Clockwork Hollow' if isinstance(self.session,DungeonSession) else '2.1 / The Prism Chambers'
+            label='4.1 / Emberglass Hollow' if isinstance(self.session,AdvancedDungeonSession) else '3.0 / Clockwork Hollow' if isinstance(self.session,DungeonSession) else '2.1 / The Prism Chambers'
             r.text(label,36,193,(133,163,156),max_width=244)
         elif self.scene==GameScene.HELP:
             r.panel('FIELD GUIDE',self.tutorial.lines(False))

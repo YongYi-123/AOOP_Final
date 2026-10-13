@@ -3,6 +3,7 @@ import math
 import random
 import pygame
 from puzzle_maze.core import Camera
+from puzzle_maze.entrances import draw_entrance
 from puzzle_maze.ui import NativeText
 from puzzle_maze.icons import IconHUD
 from puzzle_maze.room_art import RoomArt
@@ -11,7 +12,7 @@ from puzzle_maze.combat import EnemyState
 from puzzle_maze.exploration import DungeonAtlas
 from puzzle_maze.environment import EnvironmentPainter
 from puzzle_maze.themes import THEMES
-from puzzle_maze.puzzles import PushableBox, PressurePlate, Door, Key, SecretPassage, TimedSwitch, Switch, Chest, LightSource, Receiver, Reflector,CrackedWall,BombSupply,DashSwitch,BlastSwitch,RemoteRelay
+from puzzle_maze.puzzles import PushableBox, PressurePlate, Door, Key, SecretPassage, TimedSwitch, Switch, Chest, LightSource, Receiver, Reflector,CrackedWall,BombSupply,DashSwitch,BlastSwitch,RemoteRelay,ChestPhase
 
 INK=(18,26,39); GOLD=(245,198,96); WHITE=(230,237,219); TEAL=(81,195,165)
 
@@ -71,15 +72,7 @@ class Renderer:
         r.lines(s,(142,170,140),False,[(sx+8,sy+2),(sx+8,sy+14)])
         for e in room['exits']:
             x,y=e['pos'];sx,sy=x*16-cx,y*16-cy
-            r.rect(s,TEAL,(sx+3,sy+2,10,12),1)
-            if e.get("stairs"):
-                for step in range(3):r.line(s,WHITE,(sx+3,sy+4+step*3),(sx+12-step*2,sy+4+step*3))
-            if e.get("portal"):
-                angle=self.time*2
-                r.circle(s,(158,112,234),(sx+8,sy+8),7,1)
-                for spark in range(3):
-                    a=angle+spark*math.tau/3;r.rect(s,TEAL,(int(sx+8+math.cos(a)*6),int(sy+8+math.sin(a)*6),2,2))
-            else:r.polygon(s,GOLD,[(sx+5,sy+5),(sx+11,sy+8),(sx+5,sy+11)])
+            draw_entrance(s,session,e,sx,sy,self.tiles['#'])
         for start,end in session.puzzles.beams:
             r.line(s,(255,227,130),(start[0]*16+8-cx,start[1]*16+8-cy),(end[0]*16+8-cx,end[1]*16+8-cy),2)
         # Hidden passage clue: moss and luminous cracks converge at the wall.
@@ -117,7 +110,7 @@ class Renderer:
                 for index in range(3):r.rect(s,TEAL if o.state.active else (126,111,103),(sx+3+index*4,sy+7,2,2))
             elif isinstance(o,CrackedWall):
                 if not o.state.active:
-                    s.blit(self.tiles["#"],(sx,sy));r.lines(s,GOLD,False,[(sx+3,sy+1),(sx+9,sy+5),(sx+5,sy+10),(sx+12,sy+15)]);r.rect(s,(104,58,44),(sx+10,sy+4,2,2))
+                    s.blit(self.tiles["#"],(sx,sy));r.lines(s,(102,108,104),False,[(sx+3,sy+1),(sx+9,sy+5),(sx+5,sy+10),(sx+12,sy+15)]);r.rect(s,(104,58,44),(sx+10,sy+4,2,2))
             elif isinstance(o,BombSupply):
                 r.rect(s,(110,91,65),(sx+2,sy+4,12,10));s.blit(self.hud.atlas.get("bomb"),(sx+2,sy+2))
             elif isinstance(o,DashSwitch):
@@ -126,10 +119,12 @@ class Renderer:
                 r.circle(s,TEAL if o.state.active else (112,76,104),(sx+8,sy+8),5,2)
             elif isinstance(o,SecretPassage):
                 if not o.state.active:
-                    s.blit(self.tiles['#'],(sx,sy));r.lines(s,GOLD,False,[(sx+8,sy+2),(sx+5,sy+7),(sx+10,sy+9),(sx+7,sy+14)])
-                    r.line(s,TEAL,(sx-8,sy+8),(sx-2,sy+8));r.line(s,TEAL,(sx-5,sy+5),(sx-2,sy+8))
+                    s.blit(self.tiles['#'],(sx,sy));r.lines(s,(102,108,104),False,[(sx+8,sy+2),(sx+5,sy+7),(sx+10,sy+9),(sx+7,sy+14)])
             elif isinstance(o,Chest):
-                if o.data.get('hidden') and not o.state.active and not all(session.puzzles.condition(i) for i in o.data.get('requires',[])):continue
+                if not o.visible:continue
+                if o.phase == ChestPhase.SPAWNING:
+                    sy += int(o.spawn_time / o.spawn_duration * 10)
+                    r.line(s,GOLD,(sx+2,sy-2),(sx+13,sy-2))
                 key=session.rooms.current,o.id
                 if o.state.active and not self.object_seen.get(key,False):
                     self.opening[key]=.45;self.burst(o.x,o.y,GOLD,8)
@@ -256,7 +251,7 @@ class Renderer:
             particle[0]+=particle[2]*dt;particle[1]+=particle[3]*dt;particle[4]-=dt
             if particle[4]<=0:self.particles.remove(particle)
             else:r.rect(s,particle[5],(int(particle[0])-cx,int(particle[1])-cy,2,2))
-        near=next((o for o in session.puzzles.objects.values() if abs(o.x-p.x)+abs(o.y-p.y)<=1 and isinstance(o,(Switch,Door,SecretPassage,Chest,Reflector,CrackedWall,BombSupply,LiftablePot,Brazier,CrystalSwitch,PotSupply,PowderSupply)) and not (isinstance(o,(Door,SecretPassage)) and o.state.active)),None)
+        near=next((o for o in session.puzzles.objects.values() if abs(o.x-p.x)+abs(o.y-p.y)<=1 and isinstance(o,(Switch,Door,SecretPassage,Chest,Reflector,CrackedWall,BombSupply,LiftablePot,Brazier,CrystalSwitch,PotSupply,PowderSupply)) and not (isinstance(o,Chest) and not o.visible) and not (isinstance(o,(Door,SecretPassage)) and o.state.active)),None)
         if near or getattr(session.inventory,'carried',None):
             carrying=getattr(session.inventory,'carried',None)
             label=f"{controls['interact']} Drop / G Throw" if carrying else '[P] Light' if isinstance(near,Brazier) else f"[{controls['attack']}] Crystal" if isinstance(near,CrystalSwitch) else f"[{controls['interact']}] Lift" if isinstance(near,LiftablePot) else '[B] Bomb' if isinstance(near,CrackedWall) else f"[{controls['ability']}] Pulse" if isinstance(near,SecretPassage) else f"[{controls['interact']}] Interact"

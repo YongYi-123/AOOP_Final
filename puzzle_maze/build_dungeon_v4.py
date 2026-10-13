@@ -75,6 +75,29 @@ def build():
         room['decorations']=[dict(kind='torch' if i in (1,19) else 'books' if i==5 else 'gear' if i in (7,20) else 'crystal' if i in (12,14,21) else 'banner',pos=[x,0]) for x in (4,10,16,22)]
         # Texture patterns and inlaid paths are room-specific authored presentation.
         room['seed']=i*79
+    # 4.1 is an additive content update: existing coordinates/save schema remain valid.
+    item(3,'combat_key').update(type='chest',small_keys=2,hidden=True)
+    item(3,'combat_key').pop('color',None);item(3,'combat_key').pop('amount',None)
+    for number,name in ((5,'mirror'),(9,'boots'),(13,'portal_key'),(19,'disc'),(20,'cache'),(21,'warden_cache'),(22,'skin'),(22,'stamp')):
+        item(number,name)['hidden']=True
+    item(6,'boss_key').update(hidden=True,ability_requires=['boots'],flag_requires=['prism','warden'])
+    # A subtle book-wall passage and a remotely opened foundry passage add optional loops.
+    edge(5,8,(23,13));edge(8,5,(12,13))
+    rooms['r5']['exits'][-1].update(entrance='walkthrough',arrival=[12,12])
+    rooms['r8']['exits'][-1].update(entrance='cave',arrival=[23,12])
+    edge(11,22,(23,12));edge(22,11,(23,12))
+    rooms['r11']['exits'][-1].update(entrance='remote',flag_requires=['flame','warden'],arrival=[23,11])
+    rooms['r22']['exits'][-1].update(entrance='stone',arrival=[23,11])
+    for room in rooms.values():
+        room['content_revision']='4.1'
+        for exit in room['exits']:
+            if 'entrance' in exit:continue
+            if exit.get('stairs'):
+                exit['entrance']='stairs_down' if room['floor']=='1F' else 'stairs_up'
+            else:
+                objects={o['id']:o for o in room['objects']}
+                gates=[objects[i] for i in exit.get('requires',[]) if i in objects]
+                exit['entrance']='boss_gate' if any(o.get('key')=='boss' for o in gates) else 'locked' if any(o.get('key')=='small' for o in gates) else 'cave' if any(o['type']=='cracked' for o in gates) else 'stone'
     return rooms
 
 if __name__=='__main__':
