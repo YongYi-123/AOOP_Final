@@ -28,7 +28,7 @@ from daily_tasks import DailyTaskManager
 from game_clock import GameClock
 from inventory import Inventory
 from rewards import RewardService
-from settings import (COIN_PUSHER_DAILY_TICKET_CAP, NEON21_DAILY_TICKET_CAP, STARTING_TICKETS, STARTING_TOKENS,
+from settings import (COIN_PUSHER_DAILY_TICKET_CAP, PINBALL_DAILY_TICKET_CAP, PINBALL_DAILY_TOKEN_CAP, NEON21_DAILY_TICKET_CAP, STARTING_TICKETS, STARTING_TOKENS,
                       TRANSACTION_HISTORY_SIZE)
 
 # field: "tokens", "tickets", "games_played", "high_score", "daily", "tasks",
@@ -60,7 +60,7 @@ class PlayerProfile:
                  daily=None, daily_tasks=None, history=(), clock=None, inventory=None,
                  home_decorations=None, profile_id=None, display_name=None, racing_selection=None,
                  neon21=None, appearance=None, collection_display=None, basic_appearance=None,
-                 secrets=None, coin_pusher=None):
+                 secrets=None, coin_pusher=None, pinball=None):
         # Who this profile is. The id is the save identity (never the name);
         # both are None for a bare profile that is not managed by a ProfileManager.
         self.profile_id = profile_id
@@ -116,6 +116,15 @@ class PlayerProfile:
         self._pusher_tickets = _count(pusher.get("tickets"), 0)
         self._pusher_state = {k: copy.deepcopy(pusher[k]) for k in ("seed", "stock", "board")
                               if k in pusher} if isinstance(pusher.get("board"), dict) else None
+        # LUCKY CAT PINBALL: Tickets / Tokens won per calendar day (the daily caps) plus the one paid
+        # run that is not yet settled (see pinball_table.py). Absent from the save until first used.
+        pin = pinball if isinstance(pinball, dict) else {}
+        self._pinball_date = pin.get("date") if isinstance(pin.get("date"), str) else ""
+        self._pinball_tickets = _count(pin.get("tickets"), 0)
+        self._pinball_tokens = _count(pin.get("tokens"), 0)
+        run = pin.get("run")
+        self._pinball_run = ({"score": _count(run.get("score"), 0), "ball": max(1, _count(run.get("ball"), 1))}
+                             if isinstance(run, dict) else None)
         self._tasks.ensure_current(self.clock.today(), eligible=self._task_eligible)
 
     # ------------------------------------------------------------ read-only
@@ -418,6 +427,47 @@ class PlayerProfile:
         self._pusher_state = copy.deepcopy(state) if state else None
         self._notify("coin_pusher", 0, 0)
 
+    # ------------------------------------------------------------ LUCKY CAT PINBALL
+    def pinball_tickets_today(self):
+        return self._pinball_tickets if self._pinball_date == self.clock.today().isoformat() else 0
+
+    def pinball_tokens_today(self):
+        return self._pinball_tokens if self._pinball_date == self.clock.today().isoformat() else 0
+
+    def pinball_ticket_room(self):
+        return max(0, PINBALL_DAILY_TICKET_CAP - self.pinball_tickets_today())
+
+    def pinball_token_room(self):
+        return max(0, PINBALL_DAILY_TOKEN_CAP - self.pinball_tokens_today())
+
+    def award_pinball(self, tickets, tokens):
+        """Pay a pinball run's winnings, each clipped to what is left of today's cap. Returns
+        (tickets paid, tokens paid). Tickets are winnings, not 'earned' (like NEON 21's)."""
+        _check_amount(tickets)
+        _check_amount(tokens)
+        tickets = min(tickets, self.pinball_ticket_room())
+        tokens = min(tokens, self.pinball_token_room())
+        if tickets or tokens:
+            today = self.clock.today().isoformat()
+            self._pinball_tickets = self.pinball_tickets_today() + tickets
+            self._pinball_tokens = self.pinball_tokens_today() + tokens
+            self._pinball_date = today
+        if tickets:
+            self._tickets += tickets
+            self._notify(self.TICKET, tickets, self._tickets)
+        if tokens:
+            self.add_tokens(tokens, "LUCKY CAT PINBALL")
+        return tickets, tokens
+
+    @property
+    def pinball_run(self):
+        """The paid run that is not settled yet {score, ball}, or None."""
+        return dict(self._pinball_run) if self._pinball_run else None
+
+    def set_pinball_run(self, run):
+        self._pinball_run = {"score": int(run["score"]), "ball": int(run["ball"])} if run else None
+        self._notify("pinball", 0, 0)
+
     # ------------------------------------------------------------ daily login
     def daily_status(self, today=None):
         """DailyStatus for `today` (default: the clock's date)."""
@@ -589,6 +639,9 @@ class PlayerProfile:
             **({"coin_pusher": {"date": self._pusher_date, "tickets": self._pusher_tickets,
                                 **(copy.deepcopy(self._pusher_state) or {})}}
                if self._pusher_state or self._pusher_tickets else {}),
+            **({"pinball": {"date": self._pinball_date, "tickets": self._pinball_tickets, "tokens": self._pinball_tokens,
+                            **({"run": dict(self._pinball_run)} if self._pinball_run else {})}}
+               if self._pinball_run or self._pinball_tickets or self._pinball_tokens else {}),
         }
 
     @classmethod
@@ -631,6 +684,7 @@ class PlayerProfile:
             racing_selection=data.get("racing_selection") if isinstance(data.get("racing_selection"),dict) else {},
             neon21=data.get("neon21"),
             coin_pusher=data.get("coin_pusher"),
+            pinball=data.get("pinball"),
             appearance=data.get("appearance") if isinstance(data.get("appearance"), dict) else {},
             basic_appearance=BasicAppearance.from_dict(data.get("basic_appearance")),
             collection_display=data.get("collection_display") if isinstance(data.get("collection_display"), list) else [],
