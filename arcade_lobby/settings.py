@@ -158,6 +158,18 @@ COIN_PUSHER_GOLDEN_TICKETS = 5
 COIN_PUSHER_CAPPED_TOKENS = 1
 COIN_PUSHER_DAILY_TICKET_CAP = 30
 
+# LUCKY CAT PINBALL. Opening is free; a run costs 1 Token and gives 3 balls. Tickets come from the
+# final score (1 per PINBALL_POINTS_PER_TICKET, at most PINBALL_MAX_TICKETS per run); a rare
+# 50,000+ run also returns 1 Token. Like the other Lucky Corner winnings these are capped per
+# profile per calendar day (Tickets are winnings, not "earned" Tickets) and a run never pays twice.
+PINBALL_RUN_COST = 1
+PINBALL_POINTS_PER_TICKET = 5000
+PINBALL_MAX_TICKETS = 12
+PINBALL_TOKEN_SCORE = 50000
+PINBALL_TOKEN_REWARD = 1
+PINBALL_DAILY_TICKET_CAP = 30
+PINBALL_DAILY_TOKEN_CAP = 2
+
 
 class Col:
     """Neon arcade palette: dark navy/purple base with bright accents."""
