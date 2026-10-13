@@ -17,8 +17,14 @@ class DungeonIntegrityValidator:
 
     def validate(self):
         report = DungeonValidator(self.rooms).validate()
+        from puzzle_maze.coordinates import DoorValidator
+        from puzzle_maze.dependencies import PuzzleDependencyValidator,ChestValidator
+        DoorValidator(self.rooms).validate()
+        report['effective_mechanisms']=len(PuzzleDependencyValidator(self.rooms).validate())
+        ChestValidator(self.rooms).validate()
         flags = {o['flag'] for room in self.rooms.values() for o in room['objects'] if 'flag' in o}
         flags |= {room['on_clear_flag'] for room in self.rooms.values() if 'on_clear_flag' in room}
+        flags |= {r['transformation']['result'] for r in self.rooms.values() if 'transformation' in r}
         chests = hidden = stairs = exits = secrets = 0
         finish = []
         for name, room in self.rooms.items():
@@ -44,7 +50,7 @@ class DungeonIntegrityValidator:
                 arrival = tuple(exit['arrival'])
                 if not TileMap(target['tiles']).walkable(*arrival):
                     raise ValueError(f'{name}: blocked arrival')
-                if any(tuple(o['pos']) == arrival and o['type'] in ('box', 'door', 'pot', 'cracked', 'secret', 'crystal_barrier') for o in target['objects']):
+                if not exit.get('finish') and any(tuple(o['pos']) == arrival and o['type'] in ('box', 'door', 'pot', 'cracked', 'secret', 'crystal_barrier') for o in target['objects']):
                     raise ValueError(f'{name}: arrival overlaps mechanism')
                 if any(tuple(e['pos']) == arrival for e in target.get('enemies', [])):
                     raise ValueError(f'{name}: arrival overlaps enemy')

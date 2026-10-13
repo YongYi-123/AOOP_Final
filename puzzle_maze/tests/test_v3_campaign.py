@@ -20,7 +20,7 @@ class DungeonCampaignTests(unittest.TestCase):
                 return result[::-1]
             for dx,dy in ((1,0),(-1,0),(0,1),(0,-1)):
                 nxt=pos[0]+dx,pos[1]+dy
-                if nxt not in parents and s.can_enter(*nxt) and not any(o.pos==nxt and o.data.get("dash_only") for o in s.puzzles.objects.values()):parents[nxt]=pos;queue.append(nxt)
+                if nxt not in parents and s.can_enter(*nxt) and not any(o.pos==nxt and o.data.get("dash_only") and not (o.data.get("reversible") and o.latched) for o in s.puzzles.objects.values()):parents[nxt]=pos;queue.append(nxt)
         return None
     def walk(self,pos):
         path=self.path(tuple(pos));self.assertIsNotNone(path,f'{self.s.rooms.current}: unreachable {pos}')

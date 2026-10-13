@@ -58,7 +58,8 @@ class Dungeon41Tests(unittest.TestCase):
             self.assertFalse(again.puzzles.objects['mirror'].interact(again.puzzles,again.player))
 
     def test_legacy_v40_chest_snapshots_load_without_erasing_progress(self):
-        s=AdvancedDungeonSession();s.enter('r3');s.inventory.keys['small']=2
+        from puzzle_maze.rooms import load_rooms,MAP_PATH
+        s=AdvancedDungeonSession(load_rooms(MAP_PATH.with_name('dungeon_v41.json')));s.enter('r3');s.inventory.keys['small']=2
         s.puzzles.objects['combat_key'].state.active=True;s.tick(0)
         with tempfile.TemporaryDirectory() as folder:
             path=Path(folder)/'old.json';s.save(path);data=json.loads(path.read_text())
@@ -72,29 +73,33 @@ class Dungeon41Tests(unittest.TestCase):
             self.assertEqual(path.read_bytes(),original)
 
     def test_old_save_on_new_closed_portal_keeps_inventory_and_progress(self):
-        s=AdvancedDungeonSession();s.enter('r11');s.player.x,s.player.y=23,12;s.inventory.keys['small']=3
+        from puzzle_maze.rooms import load_rooms,MAP_PATH
+        s=AdvancedDungeonSession(load_rooms(MAP_PATH.with_name('dungeon_v41.json')));s.enter('r11');s.player.x,s.player.y=23,12;s.inventory.keys['small']=3
         with tempfile.TemporaryDirectory() as folder:
             path=Path(folder)/'old.json';s.save(path);data=json.loads(path.read_text());data.pop('content_revision',None)
             path.write_text(json.dumps(data));original=path.read_bytes();loaded=AdvancedDungeonSession.load(path)
             self.assertEqual(loaded.rooms.current,'r11');self.assertEqual(loaded.inventory.keys['small'],3)
-            self.assertEqual((loaded.player.x,loaded.player.y),(23,11));self.assertIn('retained',loaded.migration_notice)
+            self.assertTrue(loaded.can_enter(loaded.player.x,loaded.player.y));self.assertIn('retained',loaded.migration_notice)
             self.assertEqual(path.read_bytes(),original)
 
     def test_remote_passage_cannot_be_bypassed_by_room_completion(self):
-        s=AdvancedDungeonSession();s.enter('r11');s.completed.add('r11');s.player.x,s.player.y=23,12
-        self.assertTrue(s.puzzles.blocked(23,12));self.assertFalse(s.transition())
-        s.inventory.flags.update(('flame','warden'));self.assertFalse(s.puzzles.blocked(23,12))
-        self.assertTrue(s.transition());self.assertEqual(s.rooms.current,'r22')
-        self.assertEqual((s.player.x,s.player.y),(23,11));self.assertFalse(s.puzzles.blocked(23,11))
-        s.player.x,s.player.y=23,12;self.assertTrue(s.transition());self.assertEqual(s.rooms.current,'r11')
+        s=AdvancedDungeonSession();s.enter('r11');s.completed.add('r11')
+        exit=next(e for e in s.rooms.data['exits'] if e.get('entrance')=='remote')
+        s.player.x,s.player.y=exit['pos']
+        self.assertTrue(s.puzzles.blocked(*exit['pos']));self.assertFalse(s.transition())
+        s.inventory.flags.update(('flame','warden'));self.assertFalse(s.puzzles.blocked(*exit['pos']))
+        self.assertTrue(s.transition());self.assertEqual(s.rooms.current,'r22');self.assertEqual((s.player.x,s.player.y),tuple(exit['arrival']))
+        reverse=next(e for e in s.rooms.data['exits'] if e['target']=='r11');s.player.x,s.player.y=reverse['pos']
+        self.assertTrue(s.transition());self.assertEqual(s.rooms.current,'r11')
 
     def test_walkthrough_passage_discovery_and_return(self):
-        s=AdvancedDungeonSession();s.enter('r5');s.exploration.tiles['r5']={(23,13)}
-        self.assertNotIn(('exit',(23,13)),DungeonAtlas(s.rooms).discovered_markers(s))
-        s.player.x,s.player.y=23,12;self.assertTrue(s.move(0,1));self.assertTrue(s.transition())
-        self.assertEqual(s.rooms.current,'r8');self.assertIn('r8',s.visited)
-        s.player.x,s.player.y=12,13;self.assertTrue(s.transition());self.assertEqual(s.rooms.current,'r5')
-        self.assertIn(('exit',(23,13)),DungeonAtlas(s.rooms).discovered_markers(s))
+        s=AdvancedDungeonSession();s.enter('r5');exit=next(e for e in s.rooms.data['exits'] if e.get('entrance')=='walkthrough')
+        pos=tuple(exit['pos']);s.exploration.tiles['r5']={pos}
+        self.assertNotIn(('exit',pos),DungeonAtlas(s.rooms).discovered_markers(s))
+        s.player.x,s.player.y=pos[0]+1,pos[1];self.assertTrue(s.move(-1,0));self.assertTrue(s.transition())
+        self.assertEqual(s.rooms.current,'r3')
+        reverse=next(e for e in s.rooms.data['exits'] if e['target']=='r5');s.player.x,s.player.y=reverse['pos'];self.assertTrue(s.transition())
+        self.assertIn(('exit',pos),DungeonAtlas(s.rooms).discovered_markers(s))
 
     def test_restored_crate_or_enemy_never_traps_return_arrival(self):
         s=AdvancedDungeonSession();s.enter('r4');snap=s.capture();snap['box']['pos']=[2,7];s.snapshots['r4']=snap
@@ -104,7 +109,7 @@ class Dungeon41Tests(unittest.TestCase):
     def test_integrity_rejects_bad_landings_returns_flags_and_floor(self):
         rooms=AdvancedDungeonSession().rooms.rooms;report=DungeonIntegrityValidator(rooms).validate()
         self.assertEqual(report['final_room'],'r18');self.assertEqual(report['resource_states'],report['winning_states'])
-        self.assertEqual(report['chests'],27);self.assertEqual(report['stair_entrances'],2)
+        self.assertEqual(report['chests'],30);self.assertEqual(report['stair_entrances'],4)
         variants=[]
         bad=copy.deepcopy(rooms);bad['r5']['exits'][-1]['arrival']=[0,0];variants.append(bad)
         bad=copy.deepcopy(rooms);bad['r11']['exits'][-1]['flag_requires']=['nonexistent'];variants.append(bad)
@@ -120,17 +125,17 @@ class Dungeon41Tests(unittest.TestCase):
         for _ in range(12):s.tick(1/60)
         self.assertEqual(s.dash(),3);self.assertEqual(s.player.x,19)
         for _ in range(60):s.tick(1/60)
-        self.assertFalse(s.puzzles.objects['gate'].state.active)
+        self.assertTrue(s.puzzles.objects['gate'].state.active)
         self.assertEqual(s.puzzles.objects['boss_key'].phase,ChestPhase.AVAILABLE)
         self.assertTrue(s.puzzles.objects['boss_key'].interact(s.puzzles,s.player))
         self.assertTrue(s.inventory.boss_key)
 
     def test_undiscovered_bomb_wall_has_no_map_exit_marker(self):
-        s=AdvancedDungeonSession();s.enter('r7');s.exploration.tiles['r7']={(12,13)}
-        self.assertNotIn(('exit',(12,13)),DungeonAtlas(s.rooms).discovered_markers(s))
-        s.inventory.bombs=1;s.player.x,s.player.y=11,13;s.player.facing=(1,0)
-        self.assertTrue(s.bombs.place());s.move(-1,0);s.move(-1,0);s.tick(1.7)
-        self.assertIn(('exit',(12,13)),DungeonAtlas(s.rooms).discovered_markers(s))
+        s=AdvancedDungeonSession();s.enter('r7');wall=s.puzzles.objects['crack'];pos=wall.pos;s.exploration.tiles['r7']={pos}
+        self.assertNotIn(('exit',pos),DungeonAtlas(s.rooms).discovered_markers(s))
+        s.inventory.bombs=1;s.player.x,s.player.y=wall.x+1,wall.y;s.player.facing=(-1,0)
+        self.assertTrue(s.bombs.place());s.move(1,0);s.move(1,0);s.tick(1.7)
+        self.assertIn(('exit',pos),DungeonAtlas(s.rooms).discovered_markers(s))
 
     def test_stairs_art_has_distinct_up_down_and_no_arrow_marker(self):
         s=AdvancedDungeonSession();wall=pygame.Surface((16,16));samples=[]

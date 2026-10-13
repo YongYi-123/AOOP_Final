@@ -1,0 +1,4500 @@
+{
+  "r1": {
+    "name": "Stone Vestibule",
+    "theme": "stone_garden",
+    "atlas": [
+      2,
+      0
+    ],
+    "floor": "1F",
+    "layout_revision": "4.0",
+    "spawn": [
+      2,
+      7
+    ],
+    "tiles": [
+      "##########################",
+      "#.................#......#",
+      "#.............##..#......#",
+      "#.gg...........#..#.O....#",
+      "#.g...............#.O....#",
+      "#.................#......#",
+      "#.................#......#",
+      "#.................#......#",
+      "#........................#",
+      "#.................#......#",
+      "#.................#......#",
+      "#..#..............#.O....#",
+      "#..............#..#.O....#",
+      "#.............#...#......#",
+      "#.................#......#",
+      "##########################"
+    ],
+    "objects": [
+      {
+        "type": "switch",
+        "id": "lever",
+        "pos": [
+          8,
+          5
+        ]
+      },
+      {
+        "type": "chest",
+        "id": "map",
+        "pos": [
+          5,
+          4
+        ],
+        "ability": "map",
+        "loot": [
+          "token_cache"
+        ]
+      },
+      {
+        "type": "door",
+        "id": "gate",
+        "pos": [
+          18,
+          8
+        ],
+        "requires": [
+          "lever"
+        ]
+      }
+    ],
+    "enemies": [
+      {
+        "id": "slime",
+        "type": "slime",
+        "pos": [
+          10,
+          10
+        ]
+      }
+    ],
+    "exits": [
+      {
+        "pos": [
+          23,
+          8
+        ],
+        "target": "r2",
+        "arrival": [
+          2,
+          7
+        ],
+        "requires": [
+          "gate"
+        ],
+        "abilities": [],
+        "stairs": false,
+        "entrance": "stone"
+      }
+    ],
+    "goal": [
+      "gate"
+    ],
+    "hint": "J: sword. E: map chest and lever.",
+    "decorations": [
+      {
+        "kind": "torch",
+        "pos": [
+          4,
+          0
+        ]
+      },
+      {
+        "kind": "torch",
+        "pos": [
+          10,
+          0
+        ]
+      },
+      {
+        "kind": "torch",
+        "pos": [
+          16,
+          0
+        ]
+      },
+      {
+        "kind": "torch",
+        "pos": [
+          22,
+          0
+        ]
+      }
+    ],
+    "architecture": "mosaic",
+    "motifs": [
+      {
+        "kind": "medallion",
+        "pos": [
+          12,
+          7
+        ]
+      },
+      {
+        "kind": "runner",
+        "pos": [
+          2,
+          7
+        ]
+      }
+    ],
+    "seed": 79,
+    "content_revision": "4.1"
+  },
+  "r2": {
+    "name": "Relay Atrium",
+    "theme": "mechanism",
+    "atlas": [
+      2,
+      1
+    ],
+    "floor": "1F",
+    "layout_revision": "4.0",
+    "spawn": [
+      2,
+      7
+    ],
+    "tiles": [
+      "##########################",
+      "#........................#",
+      "#........................#",
+      "#.gg..............######.#",
+      "#.g....................#.#",
+      "#......................#.#",
+      "#........................#",
+      "#........................#",
+      "#........................#",
+      "#........................#",
+      "#........................#",
+      "#..#.....................#",
+      "#........................#",
+      "#........................#",
+      "#........................#",
+      "##########################"
+    ],
+    "objects": [
+      {
+        "type": "relay",
+        "id": "relays",
+        "pos": [
+          15,
+          5
+        ],
+        "flags": [
+          "west",
+          "east",
+          "flame"
+        ]
+      },
+      {
+        "type": "door",
+        "id": "lower",
+        "pos": [
+          23,
+          8
+        ],
+        "key": "small",
+        "cost": 2,
+        "requires": [
+          "relays"
+        ],
+        "progression": {
+          "milestone": "stairs",
+          "needs": [
+            "west",
+            "east",
+            "flame"
+          ]
+        }
+      },
+      {
+        "type": "crystal_switch",
+        "id": "crystal",
+        "pos": [
+          7,
+          10
+        ]
+      },
+      {
+        "type": "crystal_barrier",
+        "id": "library_red",
+        "pos": [
+          5,
+          3
+        ],
+        "color": "red"
+      },
+      {
+        "type": "crystal_barrier",
+        "id": "watch_blue",
+        "pos": [
+          12,
+          2
+        ],
+        "color": "blue"
+      }
+    ],
+    "enemies": [],
+    "exits": [
+      {
+        "pos": [
+          2,
+          8
+        ],
+        "target": "r1",
+        "arrival": [
+          4,
+          7
+        ],
+        "requires": [],
+        "abilities": [],
+        "stairs": false,
+        "entrance": "stone"
+      },
+      {
+        "pos": [
+          12,
+          2
+        ],
+        "target": "r3",
+        "arrival": [
+          2,
+          7
+        ],
+        "requires": [],
+        "abilities": [],
+        "stairs": false,
+        "entrance": "stone"
+      },
+      {
+        "pos": [
+          12,
+          13
+        ],
+        "target": "r4",
+        "arrival": [
+          2,
+          7
+        ],
+        "requires": [],
+        "abilities": [],
+        "stairs": false,
+        "entrance": "stone"
+      },
+      {
+        "pos": [
+          5,
+          3
+        ],
+        "target": "r5",
+        "arrival": [
+          2,
+          7
+        ],
+        "requires": [],
+        "abilities": [],
+        "stairs": false,
+        "entrance": "stone"
+      },
+      {
+        "pos": [
+          5,
+          13
+        ],
+        "target": "r6",
+        "arrival": [
+          2,
+          7
+        ],
+        "requires": [],
+        "abilities": [],
+        "stairs": false,
+        "entrance": "stone"
+      },
+      {
+        "pos": [
+          23,
+          8
+        ],
+        "target": "r10",
+        "arrival": [
+          2,
+          7
+        ],
+        "requires": [
+          "lower"
+        ],
+        "abilities": [],
+        "stairs": true,
+        "entrance": "stairs_down"
+      },
+      {
+        "pos": [
+          8,
+          2
+        ],
+        "target": "r19",
+        "arrival": [
+          2,
+          7
+        ],
+        "requires": [],
+        "abilities": [],
+        "entrance": "stone"
+      }
+    ],
+    "goal": [
+      "lower"
+    ],
+    "hint": "Blue opens the library; red opens the watch. Three relays power B1F.",
+    "decorations": [
+      {
+        "kind": "banner",
+        "pos": [
+          4,
+          0
+        ]
+      },
+      {
+        "kind": "banner",
+        "pos": [
+          10,
+          0
+        ]
+      },
+      {
+        "kind": "banner",
+        "pos": [
+          16,
+          0
+        ]
+      },
+      {
+        "kind": "banner",
+        "pos": [
+          22,
+          0
+        ]
+      }
+    ],
+    "architecture": "runners",
+    "motifs": [
+      {
+        "kind": "medallion",
+        "pos": [
+          12,
+          7
+        ]
+      },
+      {
+        "kind": "runner",
+        "pos": [
+          2,
+          7
+        ]
+      }
+    ],
+    "seed": 158,
+    "content_revision": "4.1"
+  },
+  "r3": {
+    "name": "Copper Watch",
+    "theme": "guard",
+    "atlas": [
+      1,
+      1
+    ],
+    "floor": "1F",
+    "layout_revision": "4.0",
+    "spawn": [
+      2,
+      7
+    ],
+    "tiles": [
+      "##########################",
+      "#.................#......#",
+      "#.............##..#......#",
+      "#.gg...........#..#.O....#",
+      "#.g...............#.O....#",
+      "#.................#......#",
+      "#.................#......#",
+      "#.................#......#",
+      "#........................#",
+      "#.................#......#",
+      "#.................#......#",
+      "#..#..............#.O....#",
+      "#..............#..#.O....#",
+      "#.............#...#......#",
+      "#.................#......#",
+      "##########################"
+    ],
+    "objects": [
+      {
+        "type": "combat",
+        "id": "clear",
+        "pos": [
+          16,
+          13
+        ]
+      },
+      {
+        "type": "chest",
+        "id": "combat_key",
+        "pos": [
+          8,
+          4
+        ],
+        "requires": [
+          "clear"
+        ],
+        "progression": {
+          "milestone": "watch",
+          "needs": []
+        },
+        "loot": [],
+        "small_keys": 2,
+        "hidden": true
+      },
+      {
+        "type": "door",
+        "id": "gate",
+        "pos": [
+          18,
+          8
+        ],
+        "requires": [
+          "clear"
+        ],
+        "key": "small",
+        "progression": {
+          "milestone": "watch_lock",
+          "needs": [
+            "watch"
+          ]
+        }
+      },
+      {
+        "type": "chest",
+        "id": "fragment",
+        "pos": [
+          5,
+          11
+        ],
+        "loot": [
+          "heart_fragment"
+        ]
+      }
+    ],
+    "enemies": [
+      {
+        "id": "slime",
+        "type": "slime",
+        "pos": [
+          10,
+          8
+        ]
+      },
+      {
+        "id": "bat",
+        "type": "bat",
+        "pos": [
+          12,
+          11
+        ]
+      }
+    ],
+    "exits": [
+      {
+        "pos": [
+          2,
+          8
+        ],
+        "target": "r2",
+        "arrival": [
+          4,
+          7
+        ],
+        "requires": [],
+        "abilities": [],
+        "stairs": false,
+        "entrance": "stone"
+      },
+      {
+        "pos": [
+          23,
+          8
+        ],
+        "target": "r7",
+        "arrival": [
+          2,
+          7
+        ],
+        "requires": [
+          "gate"
+        ],
+        "abilities": [],
+        "stairs": false,
+        "entrance": "locked"
+      },
+      {
+        "pos": [
+          12,
+          13
+        ],
+        "target": "r9",
+        "arrival": [
+          2,
+          7
+        ],
+        "requires": [],
+        "abilities": [
+          "boots"
+        ],
+        "entrance": "stone"
+      }
+    ],
+    "goal": [
+      "gate"
+    ],
+    "hint": "Clear the watch, claim two keys, spend one at the lock.",
+    "decorations": [
+      {
+        "kind": "banner",
+        "pos": [
+          4,
+          0
+        ]
+      },
+      {
+        "kind": "banner",
+        "pos": [
+          10,
+          0
+        ]
+      },
+      {
+        "kind": "banner",
+        "pos": [
+          16,
+          0
+        ]
+      },
+      {
+        "kind": "banner",
+        "pos": [
+          22,
+          0
+        ]
+      }
+    ],
+    "architecture": "fractured",
+    "motifs": [
+      {
+        "kind": "medallion",
+        "pos": [
+          12,
+          7
+        ]
+      },
+      {
+        "kind": "runner",
+        "pos": [
+          2,
+          7
+        ]
+      }
+    ],
+    "seed": 237,
+    "content_revision": "4.1"
+  },
+  "r4": {
+    "name": "Weight and Light",
+    "theme": "mechanism",
+    "atlas": [
+      2,
+      2
+    ],
+    "floor": "1F",
+    "layout_revision": "4.0",
+    "spawn": [
+      2,
+      7
+    ],
+    "tiles": [
+      "##########################",
+      "#.................#......#",
+      "#.................#......#",
+      "#.gg..............#......#",
+      "#.g...............#......#",
+      "#.................#......#",
+      "#.................#......#",
+      "#.................#......#",
+      "#........................#",
+      "#.................#......#",
+      "#.................#......#",
+      "#..#..............#......#",
+      "#.................#......#",
+      "#.................#......#",
+      "#.................#......#",
+      "##########################"
+    ],
+    "objects": [
+      {
+        "type": "chest",
+        "id": "gloves",
+        "pos": [
+          4,
+          4
+        ],
+        "ability": "gloves",
+        "progression": {
+          "milestone": "gloves",
+          "needs": []
+        },
+        "loot": [
+          "heart_fragment"
+        ]
+      },
+      {
+        "type": "box",
+        "id": "box",
+        "pos": [
+          6,
+          9
+        ],
+        "heavy": true
+      },
+      {
+        "type": "plate",
+        "id": "plate",
+        "pos": [
+          6,
+          8
+        ]
+      },
+      {
+        "type": "light",
+        "id": "lamp",
+        "pos": [
+          6,
+          6
+        ],
+        "direction": [
+          1,
+          0
+        ],
+        "requires": [
+          "plate"
+        ]
+      },
+      {
+        "type": "reflector",
+        "id": "prism",
+        "pos": [
+          10,
+          6
+        ]
+      },
+      {
+        "type": "receiver",
+        "id": "eye",
+        "pos": [
+          10,
+          3
+        ]
+      },
+      {
+        "type": "door",
+        "id": "gate",
+        "pos": [
+          18,
+          8
+        ],
+        "requires": [
+          "plate",
+          "eye"
+        ]
+      },
+      {
+        "type": "remote",
+        "id": "west",
+        "pos": [
+          23,
+          5
+        ],
+        "flag": "west",
+        "requires": [
+          "gate"
+        ],
+        "progression": {
+          "milestone": "west",
+          "needs": [
+            "mirror",
+            "gloves"
+          ]
+        }
+      }
+    ],
+    "enemies": [],
+    "exits": [
+      {
+        "pos": [
+          2,
+          8
+        ],
+        "target": "r2",
+        "arrival": [
+          4,
+          7
+        ],
+        "requires": [],
+        "abilities": [],
+        "stairs": false,
+        "entrance": "stone"
+      },
+      {
+        "pos": [
+          8,
+          13
+        ],
+        "target": "r20",
+        "arrival": [
+          2,
+          7
+        ],
+        "requires": [],
+        "abilities": [
+          "gloves"
+        ],
+        "entrance": "stone"
+      }
+    ],
+    "goal": [
+      "west"
+    ],
+    "hint": "Take gloves. Weight powers light; rotate the mirror from the library.",
+    "decorations": [
+      {
+        "kind": "banner",
+        "pos": [
+          4,
+          0
+        ]
+      },
+      {
+        "kind": "banner",
+        "pos": [
+          10,
+          0
+        ]
+      },
+      {
+        "kind": "banner",
+        "pos": [
+          16,
+          0
+        ]
+      },
+      {
+        "kind": "banner",
+        "pos": [
+          22,
+          0
+        ]
+      }
+    ],
+    "architecture": "arched",
+    "motifs": [
+      {
+        "kind": "medallion",
+        "pos": [
+          12,
+          7
+        ]
+      },
+      {
+        "kind": "runner",
+        "pos": [
+          2,
+          7
+        ]
+      }
+    ],
+    "seed": 316,
+    "content_revision": "4.1"
+  },
+  "r5": {
+    "name": "Ancient Library",
+    "theme": "underground_library",
+    "atlas": [
+      3,
+      1
+    ],
+    "floor": "1F",
+    "layout_revision": "4.0",
+    "spawn": [
+      2,
+      7
+    ],
+    "tiles": [
+      "##########################",
+      "#.................#......#",
+      "#.............##..#......#",
+      "#.gg...........#..#.O....#",
+      "#.g...............#.O....#",
+      "#.................#......#",
+      "#.................#......#",
+      "#.................#......#",
+      "#........................#",
+      "#.................#......#",
+      "#.................#......#",
+      "#..#..............#.O....#",
+      "#..............#..#.O....#",
+      "#.............#...#......#",
+      "#.................#......#",
+      "##########################"
+    ],
+    "objects": [
+      {
+        "type": "switch",
+        "id": "lever",
+        "pos": [
+          9,
+          5
+        ]
+      },
+      {
+        "type": "chest",
+        "id": "mirror",
+        "pos": [
+          5,
+          4
+        ],
+        "ability": "mirror",
+        "requires": [
+          "lever"
+        ],
+        "progression": {
+          "milestone": "mirror",
+          "needs": []
+        },
+        "hidden": true
+      },
+      {
+        "type": "box",
+        "id": "box",
+        "pos": [
+          6,
+          9
+        ]
+      },
+      {
+        "type": "plate",
+        "id": "plate",
+        "pos": [
+          6,
+          8
+        ]
+      },
+      {
+        "type": "door",
+        "id": "gate",
+        "pos": [
+          18,
+          8
+        ],
+        "requires": [
+          "lever",
+          "plate"
+        ]
+      },
+      {
+        "type": "remote",
+        "id": "east",
+        "pos": [
+          23,
+          5
+        ],
+        "flag": "east",
+        "progression": {
+          "milestone": "east",
+          "needs": [
+            "mirror"
+          ]
+        }
+      },
+      {
+        "type": "chest",
+        "id": "compass",
+        "pos": [
+          23,
+          11
+        ],
+        "ability": "compass",
+        "small_keys": 1,
+        "progression": {
+          "milestone": "library",
+          "needs": [
+            "mirror"
+          ]
+        }
+      }
+    ],
+    "enemies": [],
+    "exits": [
+      {
+        "pos": [
+          2,
+          8
+        ],
+        "target": "r2",
+        "arrival": [
+          4,
+          7
+        ],
+        "requires": [],
+        "abilities": [],
+        "stairs": false,
+        "entrance": "stone"
+      },
+      {
+        "pos": [
+          12,
+          2
+        ],
+        "target": "r19",
+        "arrival": [
+          2,
+          7
+        ],
+        "requires": [],
+        "abilities": [],
+        "entrance": "stone"
+      },
+      {
+        "pos": [
+          23,
+          13
+        ],
+        "target": "r8",
+        "arrival": [
+          12,
+          12
+        ],
+        "requires": [],
+        "abilities": [],
+        "entrance": "walkthrough"
+      }
+    ],
+    "goal": [
+      "east",
+      "compass"
+    ],
+    "hint": "Move the book crate; the lever reveals a mirror. Relay waits beyond.",
+    "decorations": [
+      {
+        "kind": "books",
+        "pos": [
+          4,
+          0
+        ]
+      },
+      {
+        "kind": "books",
+        "pos": [
+          10,
+          0
+        ]
+      },
+      {
+        "kind": "books",
+        "pos": [
+          16,
+          0
+        ]
+      },
+      {
+        "kind": "books",
+        "pos": [
+          22,
+          0
+        ]
+      }
+    ],
+    "architecture": "mosaic",
+    "motifs": [
+      {
+        "kind": "medallion",
+        "pos": [
+          12,
+          7
+        ]
+      },
+      {
+        "kind": "runner",
+        "pos": [
+          2,
+          7
+        ]
+      }
+    ],
+    "seed": 395,
+    "content_revision": "4.1"
+  },
+  "r6": {
+    "name": "Returning Runner",
+    "theme": "observatory",
+    "atlas": [
+      3,
+      2
+    ],
+    "floor": "1F",
+    "layout_revision": "4.0",
+    "spawn": [
+      2,
+      7
+    ],
+    "tiles": [
+      "##########################",
+      "#.................#......#",
+      "#.................#......#",
+      "#.gg..............#......#",
+      "#.g...............#......#",
+      "#.................#......#",
+      "#.................#......#",
+      "#.................#......#",
+      "#........................#",
+      "#.................#......#",
+      "#.................#......#",
+      "#..#..............#......#",
+      "#.................#......#",
+      "#.................#......#",
+      "#.................#......#",
+      "##########################"
+    ],
+    "objects": [
+      {
+        "type": "timed",
+        "id": "clock",
+        "pos": [
+          16,
+          8
+        ],
+        "duration": 0.35
+      },
+      {
+        "type": "relay",
+        "id": "prism_ready",
+        "pos": [
+          4,
+          4
+        ],
+        "flags": [
+          "prism"
+        ]
+      },
+      {
+        "type": "door",
+        "id": "gate",
+        "pos": [
+          18,
+          8
+        ],
+        "requires": [
+          "clock"
+        ],
+        "dash_only": true
+      },
+      {
+        "type": "chest",
+        "id": "boss_key",
+        "pos": [
+          23,
+          6
+        ],
+        "boss_key": true,
+        "requires": [
+          "gate",
+          "prism_ready"
+        ],
+        "progression": {
+          "milestone": "boss_key",
+          "needs": [
+            "boots",
+            "prism",
+            "warden"
+          ]
+        },
+        "loot": [
+          "ticket_bundle"
+        ],
+        "hidden": true,
+        "ability_requires": [
+          "boots"
+        ],
+        "flag_requires": [
+          "prism",
+          "warden"
+        ]
+      }
+    ],
+    "enemies": [],
+    "exits": [
+      {
+        "pos": [
+          2,
+          8
+        ],
+        "target": "r2",
+        "arrival": [
+          4,
+          7
+        ],
+        "requires": [],
+        "abilities": [],
+        "stairs": false,
+        "entrance": "stone"
+      },
+      {
+        "pos": [
+          23,
+          12
+        ],
+        "target": "r2",
+        "arrival": [
+          4,
+          7
+        ],
+        "requires": [],
+        "abilities": [],
+        "stairs": false,
+        "entrance": "stone"
+      }
+    ],
+    "goal": [
+      "boss_key"
+    ],
+    "hint": "Return with boots and the lower prism signal. E then SHIFT east.",
+    "decorations": [
+      {
+        "kind": "banner",
+        "pos": [
+          4,
+          0
+        ]
+      },
+      {
+        "kind": "banner",
+        "pos": [
+          10,
+          0
+        ]
+      },
+      {
+        "kind": "banner",
+        "pos": [
+          16,
+          0
+        ]
+      },
+      {
+        "kind": "banner",
+        "pos": [
+          22,
+          0
+        ]
+      }
+    ],
+    "architecture": "runners",
+    "motifs": [
+      {
+        "kind": "medallion",
+        "pos": [
+          12,
+          7
+        ]
+      },
+      {
+        "kind": "runner",
+        "pos": [
+          2,
+          7
+        ]
+      }
+    ],
+    "seed": 474,
+    "content_revision": "4.1"
+  },
+  "r7": {
+    "name": "Powder Workshop",
+    "theme": "ancient_workshop",
+    "atlas": [
+      0,
+      1
+    ],
+    "floor": "1F",
+    "layout_revision": "4.0",
+    "spawn": [
+      2,
+      7
+    ],
+    "tiles": [
+      "##########################",
+      "#........................#",
+      "#........................#",
+      "#.gg..............######.#",
+      "#.g....................#.#",
+      "#......................#.#",
+      "#........................#",
+      "#........................#",
+      "#........................#",
+      "#........................#",
+      "#........................#",
+      "#..#.....................#",
+      "#........................#",
+      "#........................#",
+      "#........................#",
+      "##########################"
+    ],
+    "objects": [
+      {
+        "type": "chest",
+        "id": "powder",
+        "pos": [
+          6,
+          5
+        ],
+        "bombs": 8,
+        "small_keys": 1,
+        "progression": {
+          "milestone": "workshop",
+          "needs": [
+            "watch_lock"
+          ],
+          "alternatives": [
+            [
+              "watch_lock"
+            ],
+            [
+              "flame",
+              "gloves"
+            ]
+          ]
+        },
+        "loot": [
+          "magic_powder"
+        ]
+      },
+      {
+        "type": "supply",
+        "id": "supply",
+        "pos": [
+          4,
+          10
+        ]
+      },
+      {
+        "type": "switch",
+        "id": "lever",
+        "pos": [
+          12,
+          6
+        ]
+      },
+      {
+        "type": "cracked",
+        "id": "crack",
+        "pos": [
+          12,
+          13
+        ]
+      }
+    ],
+    "enemies": [],
+    "exits": [
+      {
+        "pos": [
+          2,
+          8
+        ],
+        "target": "r3",
+        "arrival": [
+          4,
+          7
+        ],
+        "requires": [],
+        "abilities": [],
+        "stairs": false,
+        "entrance": "stone"
+      },
+      {
+        "pos": [
+          23,
+          8
+        ],
+        "target": "r9",
+        "arrival": [
+          2,
+          7
+        ],
+        "requires": [
+          "lever"
+        ],
+        "abilities": [],
+        "stairs": false,
+        "entrance": "stone"
+      },
+      {
+        "pos": [
+          12,
+          13
+        ],
+        "target": "r8",
+        "arrival": [
+          2,
+          7
+        ],
+        "requires": [
+          "crack"
+        ],
+        "abilities": [],
+        "stairs": false,
+        "entrance": "cave"
+      },
+      {
+        "pos": [
+          12,
+          2
+        ],
+        "target": "r20",
+        "arrival": [
+          2,
+          7
+        ],
+        "requires": [],
+        "abilities": [
+          "gloves"
+        ],
+        "entrance": "stone"
+      }
+    ],
+    "goal": [
+      "powder",
+      "lever"
+    ],
+    "hint": "B places bombs. Powder jars refill. Cracks mark a hidden stair.",
+    "decorations": [
+      {
+        "kind": "gear",
+        "pos": [
+          4,
+          0
+        ]
+      },
+      {
+        "kind": "gear",
+        "pos": [
+          10,
+          0
+        ]
+      },
+      {
+        "kind": "gear",
+        "pos": [
+          16,
+          0
+        ]
+      },
+      {
+        "kind": "gear",
+        "pos": [
+          22,
+          0
+        ]
+      }
+    ],
+    "architecture": "fractured",
+    "motifs": [
+      {
+        "kind": "medallion",
+        "pos": [
+          12,
+          7
+        ]
+      },
+      {
+        "kind": "runner",
+        "pos": [
+          2,
+          7
+        ]
+      }
+    ],
+    "seed": 553,
+    "content_revision": "4.1"
+  },
+  "r8": {
+    "name": "Hidden Treasury",
+    "theme": "forgotten_vault",
+    "atlas": [
+      0,
+      2
+    ],
+    "floor": "1F",
+    "layout_revision": "4.0",
+    "spawn": [
+      2,
+      7
+    ],
+    "tiles": [
+      "##########################",
+      "#........................#",
+      "#........................#",
+      "#.gg.....................#",
+      "#.g......................#",
+      "#........................#",
+      "#........................#",
+      "#........................#",
+      "#........................#",
+      "#........................#",
+      "#........................#",
+      "#..#.....................#",
+      "#........................#",
+      "#........................#",
+      "#........................#",
+      "##########################"
+    ],
+    "objects": [
+      {
+        "type": "chest",
+        "id": "reward",
+        "pos": [
+          12,
+          6
+        ],
+        "potions": 3,
+        "coins": 8,
+        "loot": [
+          "golden_cat",
+          "heart_fragment",
+          "ticket_bundle"
+        ]
+      },
+      {
+        "type": "blast_switch",
+        "id": "blast",
+        "pos": [
+          8,
+          8
+        ]
+      },
+      {
+        "type": "chest",
+        "id": "bonus",
+        "pos": [
+          16,
+          8
+        ],
+        "bombs": 4,
+        "requires": [
+          "blast"
+        ]
+      }
+    ],
+    "enemies": [],
+    "exits": [
+      {
+        "pos": [
+          2,
+          8
+        ],
+        "target": "r7",
+        "arrival": [
+          4,
+          7
+        ],
+        "requires": [],
+        "abilities": [],
+        "stairs": false,
+        "entrance": "stone"
+      },
+      {
+        "pos": [
+          12,
+          13
+        ],
+        "target": "r5",
+        "arrival": [
+          23,
+          12
+        ],
+        "requires": [],
+        "abilities": [],
+        "entrance": "cave"
+      }
+    ],
+    "goal": [
+      "reward"
+    ],
+    "hint": "Optional treasury. Bomb the copper receiver for extra supplies.",
+    "decorations": [
+      {
+        "kind": "banner",
+        "pos": [
+          4,
+          0
+        ]
+      },
+      {
+        "kind": "banner",
+        "pos": [
+          10,
+          0
+        ]
+      },
+      {
+        "kind": "banner",
+        "pos": [
+          16,
+          0
+        ]
+      },
+      {
+        "kind": "banner",
+        "pos": [
+          22,
+          0
+        ]
+      }
+    ],
+    "hidden": true,
+    "architecture": "arched",
+    "motifs": [
+      {
+        "kind": "medallion",
+        "pos": [
+          12,
+          7
+        ]
+      },
+      {
+        "kind": "runner",
+        "pos": [
+          2,
+          7
+        ]
+      }
+    ],
+    "seed": 632,
+    "content_revision": "4.1"
+  },
+  "r9": {
+    "name": "Boots Trial",
+    "theme": "guard",
+    "atlas": [
+      0,
+      0
+    ],
+    "floor": "1F",
+    "layout_revision": "4.0",
+    "spawn": [
+      2,
+      7
+    ],
+    "tiles": [
+      "##########################",
+      "#........................#",
+      "#.............##.........#",
+      "#.gg...........#...O.....#",
+      "#.g................O.....#",
+      "#........................#",
+      "#........................#",
+      "#........................#",
+      "#........................#",
+      "#........................#",
+      "#........................#",
+      "#..#................O....#",
+      "#..............#....O....#",
+      "#.............#..........#",
+      "#........................#",
+      "##########################"
+    ],
+    "objects": [
+      {
+        "type": "combat",
+        "id": "clear",
+        "pos": [
+          16,
+          13
+        ]
+      },
+      {
+        "type": "box",
+        "id": "box",
+        "pos": [
+          6,
+          9
+        ],
+        "heavy": true
+      },
+      {
+        "type": "plate",
+        "id": "plate",
+        "pos": [
+          6,
+          8
+        ]
+      },
+      {
+        "type": "chest",
+        "id": "boots",
+        "pos": [
+          15,
+          8
+        ],
+        "ability": "boots",
+        "requires": [
+          "clear",
+          "plate"
+        ],
+        "progression": {
+          "milestone": "boots",
+          "needs": [
+            "workshop",
+            "gloves"
+          ]
+        },
+        "loot": [
+          "heart_recovery"
+        ],
+        "hidden": true
+      }
+    ],
+    "enemies": [
+      {
+        "id": "guardian",
+        "type": "guardian",
+        "pos": [
+          12,
+          5
+        ]
+      },
+      {
+        "id": "armored_beetle",
+        "type": "armored_beetle",
+        "pos": [
+          12,
+          11
+        ]
+      }
+    ],
+    "exits": [
+      {
+        "pos": [
+          2,
+          8
+        ],
+        "target": "r7",
+        "arrival": [
+          4,
+          7
+        ],
+        "requires": [],
+        "abilities": [],
+        "stairs": false,
+        "entrance": "stone"
+      },
+      {
+        "pos": [
+          12,
+          2
+        ],
+        "target": "r3",
+        "arrival": [
+          2,
+          7
+        ],
+        "requires": [
+          "boots"
+        ],
+        "abilities": [],
+        "entrance": "stone"
+      }
+    ],
+    "goal": [
+      "boots"
+    ],
+    "hint": "Flank the beetle. Heavy weight and combat unlock the boots.",
+    "decorations": [
+      {
+        "kind": "banner",
+        "pos": [
+          4,
+          0
+        ]
+      },
+      {
+        "kind": "banner",
+        "pos": [
+          10,
+          0
+        ]
+      },
+      {
+        "kind": "banner",
+        "pos": [
+          16,
+          0
+        ]
+      },
+      {
+        "kind": "banner",
+        "pos": [
+          22,
+          0
+        ]
+      }
+    ],
+    "architecture": "mosaic",
+    "motifs": [
+      {
+        "kind": "medallion",
+        "pos": [
+          12,
+          7
+        ]
+      },
+      {
+        "kind": "runner",
+        "pos": [
+          2,
+          7
+        ]
+      }
+    ],
+    "seed": 711,
+    "content_revision": "4.1"
+  },
+  "r10": {
+    "name": "Lower Landing",
+    "theme": "lower_observatory",
+    "atlas": [
+      2,
+      0
+    ],
+    "floor": "B1F",
+    "layout_revision": "4.0",
+    "spawn": [
+      2,
+      7
+    ],
+    "tiles": [
+      "##########################",
+      "#.................#......#",
+      "#.............##..#......#",
+      "#.gg...........#..#O.....#",
+      "#.g...............#O.....#",
+      "#.................#......#",
+      "#.................#......#",
+      "#.................#......#",
+      "#........................#",
+      "#.................#......#",
+      "#.................#......#",
+      "#..#..............#.O....#",
+      "#..............#..#.O....#",
+      "#.............#...#......#",
+      "#.................#......#",
+      "##########################"
+    ],
+    "objects": [
+      {
+        "type": "switch",
+        "id": "lever",
+        "pos": [
+          8,
+          5
+        ]
+      },
+      {
+        "type": "door",
+        "id": "gate",
+        "pos": [
+          18,
+          8
+        ],
+        "requires": [
+          "lever"
+        ]
+      },
+      {
+        "type": "chest",
+        "id": "rest",
+        "pos": [
+          5,
+          11
+        ],
+        "potions": 2,
+        "loot": [
+          "heart_fragment"
+        ]
+      },
+      {
+        "type": "crystal_switch",
+        "id": "crystal",
+        "pos": [
+          8,
+          9
+        ]
+      }
+    ],
+    "enemies": [],
+    "exits": [
+      {
+        "pos": [
+          2,
+          8
+        ],
+        "target": "r2",
+        "arrival": [
+          4,
+          7
+        ],
+        "requires": [],
+        "abilities": [],
+        "stairs": true,
+        "entrance": "stairs_up"
+      },
+      {
+        "pos": [
+          12,
+          2
+        ],
+        "target": "r11",
+        "arrival": [
+          2,
+          7
+        ],
+        "requires": [],
+        "abilities": [],
+        "stairs": false,
+        "entrance": "stone"
+      },
+      {
+        "pos": [
+          23,
+          8
+        ],
+        "target": "r13",
+        "arrival": [
+          2,
+          7
+        ],
+        "requires": [
+          "gate"
+        ],
+        "abilities": [],
+        "stairs": false,
+        "entrance": "stone"
+      },
+      {
+        "pos": [
+          12,
+          13
+        ],
+        "target": "r21",
+        "arrival": [
+          2,
+          7
+        ],
+        "requires": [],
+        "abilities": [],
+        "crystal": "blue",
+        "entrance": "stone"
+      }
+    ],
+    "goal": [
+      "gate"
+    ],
+    "hint": "1F relays remain powered. Explore both lower branches.",
+    "decorations": [
+      {
+        "kind": "banner",
+        "pos": [
+          4,
+          0
+        ]
+      },
+      {
+        "kind": "banner",
+        "pos": [
+          10,
+          0
+        ]
+      },
+      {
+        "kind": "banner",
+        "pos": [
+          16,
+          0
+        ]
+      },
+      {
+        "kind": "banner",
+        "pos": [
+          22,
+          0
+        ]
+      }
+    ],
+    "architecture": "runners",
+    "motifs": [
+      {
+        "kind": "medallion",
+        "pos": [
+          12,
+          7
+        ]
+      },
+      {
+        "kind": "runner",
+        "pos": [
+          2,
+          7
+        ]
+      }
+    ],
+    "seed": 790,
+    "content_revision": "4.1"
+  },
+  "r11": {
+    "name": "Magnetic Foundry",
+    "theme": "lower_mechanism",
+    "atlas": [
+      1,
+      0
+    ],
+    "floor": "B1F",
+    "layout_revision": "4.0",
+    "spawn": [
+      2,
+      7
+    ],
+    "tiles": [
+      "##########################",
+      "#........................#",
+      "#.............##.........#",
+      "#.gg...........#..######.#",
+      "#.g................O...#.#",
+      "#......................#.#",
+      "#........................#",
+      "#........................#",
+      "#........................#",
+      "#........................#",
+      "#........................#",
+      "#..#................O....#",
+      "#..............#....O....#",
+      "#.............#..........#",
+      "#........................#",
+      "##########################"
+    ],
+    "objects": [
+      {
+        "type": "combat",
+        "id": "clear",
+        "pos": [
+          16,
+          13
+        ]
+      },
+      {
+        "type": "switch",
+        "id": "lever",
+        "pos": [
+          8,
+          4
+        ]
+      },
+      {
+        "type": "chest",
+        "id": "magnet",
+        "pos": [
+          13,
+          8
+        ],
+        "ability": "magnet",
+        "requires": [
+          "lever",
+          "clear"
+        ],
+        "progression": {
+          "milestone": "magnet",
+          "needs": [
+            "stairs"
+          ]
+        }
+      }
+    ],
+    "enemies": [
+      {
+        "id": "blink_mage",
+        "type": "blink_mage",
+        "pos": [
+          12,
+          11
+        ]
+      }
+    ],
+    "exits": [
+      {
+        "pos": [
+          2,
+          8
+        ],
+        "target": "r10",
+        "arrival": [
+          4,
+          7
+        ],
+        "requires": [],
+        "abilities": [],
+        "stairs": false,
+        "entrance": "stone"
+      },
+      {
+        "pos": [
+          23,
+          8
+        ],
+        "target": "r12",
+        "arrival": [
+          2,
+          7
+        ],
+        "requires": [
+          "magnet"
+        ],
+        "abilities": [],
+        "stairs": false,
+        "entrance": "stone"
+      },
+      {
+        "pos": [
+          23,
+          12
+        ],
+        "target": "r22",
+        "arrival": [
+          23,
+          11
+        ],
+        "requires": [],
+        "abilities": [],
+        "entrance": "remote",
+        "flag_requires": [
+          "flame",
+          "warden"
+        ]
+      }
+    ],
+    "goal": [
+      "magnet"
+    ],
+    "hint": "Mages blink along clear lines. Switch and combat unlock magnet.",
+    "decorations": [
+      {
+        "kind": "banner",
+        "pos": [
+          4,
+          0
+        ]
+      },
+      {
+        "kind": "banner",
+        "pos": [
+          10,
+          0
+        ]
+      },
+      {
+        "kind": "banner",
+        "pos": [
+          16,
+          0
+        ]
+      },
+      {
+        "kind": "banner",
+        "pos": [
+          22,
+          0
+        ]
+      }
+    ],
+    "architecture": "fractured",
+    "motifs": [
+      {
+        "kind": "medallion",
+        "pos": [
+          12,
+          7
+        ]
+      },
+      {
+        "kind": "runner",
+        "pos": [
+          2,
+          7
+        ]
+      }
+    ],
+    "seed": 869,
+    "content_revision": "4.1"
+  },
+  "r12": {
+    "name": "Prism Engine",
+    "theme": "crystal_hall",
+    "atlas": [
+      0,
+      0
+    ],
+    "floor": "B1F",
+    "layout_revision": "4.0",
+    "spawn": [
+      2,
+      7
+    ],
+    "tiles": [
+      "##########################",
+      "#.................#......#",
+      "#.................#......#",
+      "#.gg..............#......#",
+      "#.g...............#......#",
+      "#.................#......#",
+      "#.................#......#",
+      "#.......#.........#......#",
+      "#.......~................#",
+      "#.......#.........#......#",
+      "#.................#......#",
+      "#..#..............#......#",
+      "#.................#......#",
+      "#.................#......#",
+      "#.................#......#",
+      "##########################"
+    ],
+    "objects": [
+      {
+        "type": "box",
+        "id": "box",
+        "pos": [
+          9,
+          8
+        ],
+        "metal": true,
+        "heavy": true,
+        "magnetic_only": true
+      },
+      {
+        "type": "plate",
+        "id": "plate",
+        "pos": [
+          11,
+          8
+        ]
+      },
+      {
+        "type": "light",
+        "id": "lamp",
+        "pos": [
+          7,
+          4
+        ],
+        "direction": [
+          1,
+          0
+        ],
+        "requires": [
+          "plate"
+        ]
+      },
+      {
+        "type": "reflector",
+        "id": "prism",
+        "pos": [
+          11,
+          4
+        ]
+      },
+      {
+        "type": "receiver",
+        "id": "eye",
+        "pos": [
+          11,
+          2
+        ]
+      },
+      {
+        "type": "door",
+        "id": "gate",
+        "pos": [
+          18,
+          8
+        ],
+        "requires": [
+          "plate",
+          "eye"
+        ],
+        "dash_only": false
+      },
+      {
+        "type": "remote",
+        "id": "prism_signal",
+        "pos": [
+          23,
+          5
+        ],
+        "flag": "prism"
+      },
+      {
+        "type": "chest",
+        "id": "key",
+        "pos": [
+          23,
+          11
+        ],
+        "small_keys": 1,
+        "potions": 2,
+        "progression": {
+          "milestone": "prism",
+          "needs": [
+            "stairs",
+            "mirror",
+            "magnet"
+          ]
+        }
+      },
+      {
+        "type": "crystal_barrier",
+        "id": "blue",
+        "pos": [
+          15,
+          8
+        ],
+        "color": "blue"
+      }
+    ],
+    "enemies": [],
+    "exits": [
+      {
+        "pos": [
+          2,
+          8
+        ],
+        "target": "r11",
+        "arrival": [
+          4,
+          7
+        ],
+        "requires": [],
+        "abilities": [],
+        "stairs": false,
+        "entrance": "stone"
+      },
+      {
+        "pos": [
+          12,
+          13
+        ],
+        "target": "r21",
+        "arrival": [
+          2,
+          7
+        ],
+        "requires": [],
+        "abilities": [],
+        "crystal": "blue",
+        "entrance": "stone"
+      },
+      {
+        "pos": [
+          23,
+          12
+        ],
+        "target": "r14",
+        "arrival": [
+          2,
+          7
+        ],
+        "requires": [
+          "gate"
+        ],
+        "abilities": [
+          "boots",
+          "mirror",
+          "magnet"
+        ],
+        "entrance": "stone"
+      }
+    ],
+    "goal": [
+      "prism_signal",
+      "key"
+    ],
+    "hint": "Face east from (6,8). SPACE with magnet twice; rotate prism with E.",
+    "decorations": [
+      {
+        "kind": "crystal",
+        "pos": [
+          4,
+          0
+        ]
+      },
+      {
+        "kind": "crystal",
+        "pos": [
+          10,
+          0
+        ]
+      },
+      {
+        "kind": "crystal",
+        "pos": [
+          16,
+          0
+        ]
+      },
+      {
+        "kind": "crystal",
+        "pos": [
+          22,
+          0
+        ]
+      }
+    ],
+    "architecture": "arched",
+    "motifs": [
+      {
+        "kind": "medallion",
+        "pos": [
+          12,
+          7
+        ]
+      },
+      {
+        "kind": "runner",
+        "pos": [
+          2,
+          7
+        ]
+      }
+    ],
+    "seed": 948,
+    "content_revision": "4.1"
+  },
+  "r13": {
+    "name": "Hungry Portal",
+    "theme": "lower_vault",
+    "atlas": [
+      2,
+      1
+    ],
+    "floor": "B1F",
+    "layout_revision": "4.0",
+    "spawn": [
+      2,
+      7
+    ],
+    "tiles": [
+      "##########################",
+      "#.................#......#",
+      "#.................#......#",
+      "#.gg..............#......#",
+      "#.g...............#......#",
+      "#.................#......#",
+      "#.................#......#",
+      "#.................#......#",
+      "#........................#",
+      "#.................#......#",
+      "#.................#......#",
+      "#..#..............#......#",
+      "#.................#......#",
+      "#.................#......#",
+      "#.................#......#",
+      "##########################"
+    ],
+    "objects": [
+      {
+        "type": "combat",
+        "id": "clear",
+        "pos": [
+          16,
+          13
+        ]
+      },
+      {
+        "type": "supply",
+        "id": "supply",
+        "pos": [
+          4,
+          4
+        ]
+      },
+      {
+        "type": "chest",
+        "id": "portal_key",
+        "pos": [
+          8,
+          4
+        ],
+        "small_keys": 1,
+        "requires": [
+          "clear"
+        ],
+        "progression": {
+          "milestone": "eater",
+          "needs": [
+            "stairs",
+            "workshop"
+          ]
+        },
+        "hidden": true
+      },
+      {
+        "type": "door",
+        "id": "gate",
+        "pos": [
+          18,
+          8
+        ],
+        "requires": [
+          "clear"
+        ]
+      }
+    ],
+    "enemies": [
+      {
+        "id": "bomb_eater",
+        "type": "bomb_eater",
+        "pos": [
+          11,
+          8
+        ]
+      }
+    ],
+    "exits": [
+      {
+        "pos": [
+          2,
+          8
+        ],
+        "target": "r10",
+        "arrival": [
+          4,
+          7
+        ],
+        "requires": [],
+        "abilities": [],
+        "stairs": false,
+        "entrance": "stone"
+      },
+      {
+        "pos": [
+          23,
+          8
+        ],
+        "target": "r14",
+        "arrival": [
+          2,
+          7
+        ],
+        "requires": [
+          "gate"
+        ],
+        "abilities": [
+          "boots",
+          "mirror",
+          "magnet"
+        ],
+        "stairs": false,
+        "portal": true,
+        "entrance": "stone"
+      }
+    ],
+    "goal": [
+      "portal_key",
+      "gate"
+    ],
+    "hint": "B: place a bomb near the hungry mouth. The cleared gate is a portal.",
+    "decorations": [
+      {
+        "kind": "banner",
+        "pos": [
+          4,
+          0
+        ]
+      },
+      {
+        "kind": "banner",
+        "pos": [
+          10,
+          0
+        ]
+      },
+      {
+        "kind": "banner",
+        "pos": [
+          16,
+          0
+        ]
+      },
+      {
+        "kind": "banner",
+        "pos": [
+          22,
+          0
+        ]
+      }
+    ],
+    "architecture": "mosaic",
+    "motifs": [
+      {
+        "kind": "medallion",
+        "pos": [
+          12,
+          7
+        ]
+      },
+      {
+        "kind": "runner",
+        "pos": [
+          2,
+          7
+        ]
+      }
+    ],
+    "seed": 1027,
+    "content_revision": "4.1"
+  },
+  "r14": {
+    "name": "Threefold Circuit",
+    "theme": "crystal_hall",
+    "atlas": [
+      1,
+      1
+    ],
+    "floor": "B1F",
+    "layout_revision": "4.0",
+    "spawn": [
+      2,
+      7
+    ],
+    "tiles": [
+      "##########################",
+      "#.................#......#",
+      "#.................#......#",
+      "#.gg..............#......#",
+      "#.g...............#......#",
+      "#.................#......#",
+      "#.................#......#",
+      "#.......#.........#......#",
+      "#.......~................#",
+      "#.......#.........#......#",
+      "#.................#......#",
+      "#..#..............#......#",
+      "#.................#......#",
+      "#.................#......#",
+      "#.................#......#",
+      "##########################"
+    ],
+    "objects": [
+      {
+        "type": "box",
+        "id": "box",
+        "pos": [
+          9,
+          8
+        ],
+        "metal": true,
+        "heavy": true,
+        "magnetic_only": true
+      },
+      {
+        "type": "plate",
+        "id": "plate",
+        "pos": [
+          11,
+          8
+        ]
+      },
+      {
+        "type": "light",
+        "id": "lamp",
+        "pos": [
+          7,
+          4
+        ],
+        "direction": [
+          1,
+          0
+        ],
+        "requires": [
+          "plate"
+        ]
+      },
+      {
+        "type": "reflector",
+        "id": "prism",
+        "pos": [
+          11,
+          4
+        ]
+      },
+      {
+        "type": "receiver",
+        "id": "eye",
+        "pos": [
+          11,
+          2
+        ]
+      },
+      {
+        "type": "timed",
+        "id": "clock",
+        "pos": [
+          16,
+          8
+        ],
+        "duration": 0.35
+      },
+      {
+        "type": "door",
+        "id": "gate",
+        "pos": [
+          18,
+          8
+        ],
+        "requires": [
+          "plate",
+          "eye",
+          "clock"
+        ],
+        "dash_only": true
+      },
+      {
+        "type": "chest",
+        "id": "reward",
+        "pos": [
+          23,
+          6
+        ],
+        "potions": 2,
+        "requires": [
+          "gate"
+        ]
+      }
+    ],
+    "enemies": [],
+    "exits": [
+      {
+        "pos": [
+          2,
+          8
+        ],
+        "target": "r13",
+        "arrival": [
+          4,
+          7
+        ],
+        "requires": [],
+        "abilities": [],
+        "stairs": false,
+        "entrance": "stone"
+      },
+      {
+        "pos": [
+          23,
+          12
+        ],
+        "target": "r13",
+        "arrival": [
+          4,
+          7
+        ],
+        "requires": [],
+        "abilities": [],
+        "stairs": false,
+        "entrance": "stone"
+      },
+      {
+        "pos": [
+          23,
+          8
+        ],
+        "target": "r15",
+        "arrival": [
+          2,
+          7
+        ],
+        "requires": [
+          "gate"
+        ],
+        "abilities": [],
+        "stairs": false,
+        "entrance": "stone"
+      },
+      {
+        "pos": [
+          12,
+          13
+        ],
+        "target": "r12",
+        "arrival": [
+          2,
+          7
+        ],
+        "requires": [
+          "gate"
+        ],
+        "abilities": [],
+        "entrance": "stone"
+      }
+    ],
+    "goal": [
+      "gate",
+      "reward"
+    ],
+    "hint": "Magnet, mirror, then E timer and SHIFT from (16,8).",
+    "decorations": [
+      {
+        "kind": "crystal",
+        "pos": [
+          4,
+          0
+        ]
+      },
+      {
+        "kind": "crystal",
+        "pos": [
+          10,
+          0
+        ]
+      },
+      {
+        "kind": "crystal",
+        "pos": [
+          16,
+          0
+        ]
+      },
+      {
+        "kind": "crystal",
+        "pos": [
+          22,
+          0
+        ]
+      }
+    ],
+    "architecture": "runners",
+    "motifs": [
+      {
+        "kind": "medallion",
+        "pos": [
+          12,
+          7
+        ]
+      },
+      {
+        "kind": "runner",
+        "pos": [
+          2,
+          7
+        ]
+      }
+    ],
+    "seed": 1106,
+    "content_revision": "4.1"
+  },
+  "r15": {
+    "name": "Sentinel Gallery",
+    "theme": "lower_guard",
+    "atlas": [
+      1,
+      2
+    ],
+    "floor": "B1F",
+    "layout_revision": "4.0",
+    "spawn": [
+      2,
+      7
+    ],
+    "tiles": [
+      "##########################",
+      "#.................#......#",
+      "#.............##..#......#",
+      "#.gg...........#..#.O....#",
+      "#.g...............#.O....#",
+      "#.................#......#",
+      "#.................#......#",
+      "#.................#......#",
+      "#........................#",
+      "#.................#......#",
+      "#.................#......#",
+      "#..#..............#.O....#",
+      "#..............#..#.O....#",
+      "#.............#...#......#",
+      "#.................#......#",
+      "##########################"
+    ],
+    "objects": [
+      {
+        "type": "combat",
+        "id": "clear",
+        "pos": [
+          16,
+          13
+        ]
+      },
+      {
+        "type": "door",
+        "id": "gate",
+        "pos": [
+          18,
+          8
+        ],
+        "requires": [
+          "clear"
+        ],
+        "key": "small",
+        "cost": 2,
+        "progression": {
+          "milestone": "sentinels",
+          "needs": [
+            "prism",
+            "eater"
+          ]
+        }
+      },
+      {
+        "type": "chest",
+        "id": "rest",
+        "pos": [
+          8,
+          4
+        ],
+        "potions": 2
+      },
+      {
+        "type": "pot",
+        "id": "guard_pot",
+        "pos": [
+          6,
+          11
+        ],
+        "renewable": true
+      },
+      {
+        "type": "pot_supply",
+        "id": "rack",
+        "pos": [
+          4,
+          10
+        ]
+      }
+    ],
+    "enemies": [
+      {
+        "id": "blink_mage",
+        "type": "blink_mage",
+        "pos": [
+          11,
+          5
+        ]
+      },
+      {
+        "id": "armored_beetle",
+        "type": "armored_beetle",
+        "pos": [
+          11,
+          11
+        ]
+      },
+      {
+        "id": "bat",
+        "type": "bat",
+        "pos": [
+          15,
+          9
+        ]
+      },
+      {
+        "id": "elite",
+        "type": "elite_guardian",
+        "pos": [
+          15,
+          5
+        ]
+      }
+    ],
+    "exits": [
+      {
+        "pos": [
+          2,
+          8
+        ],
+        "target": "r14",
+        "arrival": [
+          4,
+          7
+        ],
+        "requires": [],
+        "abilities": [],
+        "stairs": false,
+        "entrance": "stone"
+      },
+      {
+        "pos": [
+          23,
+          8
+        ],
+        "target": "r16",
+        "arrival": [
+          2,
+          7
+        ],
+        "requires": [
+          "gate"
+        ],
+        "abilities": [],
+        "stairs": false,
+        "entrance": "locked"
+      }
+    ],
+    "goal": [
+      "gate"
+    ],
+    "hint": "Two branch keys open the lower lock after the sentinel encounter.",
+    "decorations": [
+      {
+        "kind": "banner",
+        "pos": [
+          4,
+          0
+        ]
+      },
+      {
+        "kind": "banner",
+        "pos": [
+          10,
+          0
+        ]
+      },
+      {
+        "kind": "banner",
+        "pos": [
+          16,
+          0
+        ]
+      },
+      {
+        "kind": "banner",
+        "pos": [
+          22,
+          0
+        ]
+      }
+    ],
+    "architecture": "fractured",
+    "motifs": [
+      {
+        "kind": "medallion",
+        "pos": [
+          12,
+          7
+        ]
+      },
+      {
+        "kind": "runner",
+        "pos": [
+          2,
+          7
+        ]
+      }
+    ],
+    "seed": 1185,
+    "content_revision": "4.1"
+  },
+  "r16": {
+    "name": "Golem Antechamber",
+    "theme": "boss_chamber",
+    "atlas": [
+      2,
+      2
+    ],
+    "floor": "B1F",
+    "layout_revision": "4.0",
+    "spawn": [
+      2,
+      7
+    ],
+    "tiles": [
+      "##########################",
+      "#.................#......#",
+      "#.............##..#......#",
+      "#.gg...........#..#.O....#",
+      "#.g...............#.O....#",
+      "#.................#......#",
+      "#.................#......#",
+      "#.................#......#",
+      "#........................#",
+      "#.................#......#",
+      "#.................#......#",
+      "#..#..............#.O....#",
+      "#..............#..#.O....#",
+      "#.............#...#......#",
+      "#.................#......#",
+      "##########################"
+    ],
+    "objects": [
+      {
+        "type": "door",
+        "id": "gate",
+        "pos": [
+          18,
+          8
+        ],
+        "requires": [
+          "warden_signal"
+        ],
+        "key": "boss"
+      },
+      {
+        "type": "supply",
+        "id": "supply",
+        "pos": [
+          4,
+          4
+        ]
+      },
+      {
+        "type": "chest",
+        "id": "rest",
+        "pos": [
+          8,
+          5
+        ],
+        "potions": 3
+      },
+      {
+        "type": "relay",
+        "id": "warden_signal",
+        "pos": [
+          12,
+          11
+        ],
+        "flags": [
+          "warden"
+        ]
+      }
+    ],
+    "enemies": [],
+    "exits": [
+      {
+        "pos": [
+          2,
+          8
+        ],
+        "target": "r15",
+        "arrival": [
+          4,
+          7
+        ],
+        "requires": [],
+        "abilities": [],
+        "stairs": false,
+        "entrance": "stone"
+      },
+      {
+        "pos": [
+          23,
+          8
+        ],
+        "target": "r17",
+        "arrival": [
+          2,
+          7
+        ],
+        "requires": [
+          "gate"
+        ],
+        "abilities": [
+          "boots"
+        ],
+        "stairs": false,
+        "entrance": "boss_gate"
+      }
+    ],
+    "goal": [
+      "gate"
+    ],
+    "hint": "Boss Key opens the seal. Refill bombs before entering.",
+    "decorations": [
+      {
+        "kind": "banner",
+        "pos": [
+          4,
+          0
+        ]
+      },
+      {
+        "kind": "banner",
+        "pos": [
+          10,
+          0
+        ]
+      },
+      {
+        "kind": "banner",
+        "pos": [
+          16,
+          0
+        ]
+      },
+      {
+        "kind": "banner",
+        "pos": [
+          22,
+          0
+        ]
+      }
+    ],
+    "architecture": "arched",
+    "motifs": [
+      {
+        "kind": "medallion",
+        "pos": [
+          12,
+          7
+        ]
+      },
+      {
+        "kind": "runner",
+        "pos": [
+          2,
+          7
+        ]
+      }
+    ],
+    "seed": 1264,
+    "content_revision": "4.1"
+  },
+  "r17": {
+    "name": "Ancient Golem",
+    "theme": "boss_chamber",
+    "atlas": [
+      3,
+      2
+    ],
+    "floor": "B1F",
+    "layout_revision": "4.0",
+    "spawn": [
+      2,
+      7
+    ],
+    "tiles": [
+      "##########################",
+      "#.................#......#",
+      "#.................#......#",
+      "#.gg..............#......#",
+      "#.g...............#......#",
+      "#.................#......#",
+      "#.................#......#",
+      "#.................#......#",
+      "#........................#",
+      "#.................#......#",
+      "#.................#......#",
+      "#..#..............#......#",
+      "#.................#......#",
+      "#.................#......#",
+      "#.................#......#",
+      "##########################"
+    ],
+    "objects": [
+      {
+        "type": "combat",
+        "id": "clear",
+        "pos": [
+          16,
+          13
+        ]
+      },
+      {
+        "type": "dash_switch",
+        "id": "anchor",
+        "pos": [
+          7,
+          8
+        ],
+        "duration": 6
+      },
+      {
+        "type": "supply",
+        "id": "supply",
+        "pos": [
+          4,
+          4
+        ]
+      },
+      {
+        "type": "door",
+        "id": "gate",
+        "pos": [
+          18,
+          8
+        ],
+        "requires": [
+          "clear"
+        ]
+      },
+      {
+        "type": "crystal_switch",
+        "id": "crystal",
+        "pos": [
+          5,
+          11
+        ]
+      },
+      {
+        "type": "pot",
+        "id": "arena_pot",
+        "pos": [
+          9,
+          4
+        ],
+        "renewable": true,
+        "explosive": true
+      },
+      {
+        "type": "pot_supply",
+        "id": "arena_rack",
+        "pos": [
+          4,
+          11
+        ]
+      }
+    ],
+    "enemies": [
+      {
+        "id": "golem",
+        "type": "golem",
+        "pos": [
+          13,
+          8
+        ],
+        "crystal_color": "blue"
+      }
+    ],
+    "exits": [
+      {
+        "pos": [
+          2,
+          8
+        ],
+        "target": "r16",
+        "arrival": [
+          4,
+          7
+        ],
+        "requires": [],
+        "abilities": [],
+        "stairs": false,
+        "entrance": "stone"
+      },
+      {
+        "pos": [
+          23,
+          8
+        ],
+        "target": "r18",
+        "arrival": [
+          2,
+          7
+        ],
+        "requires": [
+          "gate"
+        ],
+        "abilities": [],
+        "stairs": false,
+        "entrance": "stone"
+      }
+    ],
+    "goal": [
+      "gate"
+    ],
+    "hint": "Dash anchor, bomb armor, sword core. Final phase needs BLUE crystal.",
+    "decorations": [
+      {
+        "kind": "banner",
+        "pos": [
+          4,
+          0
+        ]
+      },
+      {
+        "kind": "banner",
+        "pos": [
+          10,
+          0
+        ]
+      },
+      {
+        "kind": "banner",
+        "pos": [
+          16,
+          0
+        ]
+      },
+      {
+        "kind": "banner",
+        "pos": [
+          22,
+          0
+        ]
+      }
+    ],
+    "architecture": "mosaic",
+    "motifs": [
+      {
+        "kind": "medallion",
+        "pos": [
+          12,
+          7
+        ]
+      },
+      {
+        "kind": "runner",
+        "pos": [
+          2,
+          7
+        ]
+      }
+    ],
+    "seed": 1343,
+    "content_revision": "4.1"
+  },
+  "r18": {
+    "name": "Dawn Reservoir",
+    "theme": "hidden_sanctuary",
+    "atlas": [
+      3,
+      3
+    ],
+    "floor": "B1F",
+    "layout_revision": "4.0",
+    "spawn": [
+      2,
+      7
+    ],
+    "tiles": [
+      "##########################",
+      "#.................#......#",
+      "#.............##..#......#",
+      "#.gg...........#..#.O....#",
+      "#.g...............#.O....#",
+      "#.................#......#",
+      "#.................#......#",
+      "#.................#......#",
+      "#........................#",
+      "#.................#......#",
+      "#.................#......#",
+      "#..#..............#.O....#",
+      "#..............#..#.O....#",
+      "#.............#...#......#",
+      "#.................#......#",
+      "##########################"
+    ],
+    "objects": [
+      {
+        "type": "switch",
+        "id": "dawn",
+        "pos": [
+          10,
+          5
+        ]
+      },
+      {
+        "type": "chest",
+        "id": "treasure",
+        "pos": [
+          8,
+          11
+        ],
+        "coins": 20,
+        "loot": [
+          "token_cache",
+          "ticket_bundle"
+        ]
+      },
+      {
+        "type": "door",
+        "id": "gate",
+        "pos": [
+          18,
+          8
+        ],
+        "requires": [
+          "dawn",
+          "treasure"
+        ]
+      }
+    ],
+    "enemies": [],
+    "exits": [
+      {
+        "pos": [
+          2,
+          8
+        ],
+        "target": "r17",
+        "arrival": [
+          4,
+          7
+        ],
+        "requires": [],
+        "abilities": [],
+        "stairs": false,
+        "entrance": "stone"
+      },
+      {
+        "pos": [
+          23,
+          8
+        ],
+        "target": "r18",
+        "arrival": [
+          2,
+          7
+        ],
+        "requires": [
+          "gate"
+        ],
+        "finish": true,
+        "entrance": "stone"
+      }
+    ],
+    "goal": [
+      "gate"
+    ],
+    "hint": "Open the treasury and activate dawn to finish.",
+    "decorations": [
+      {
+        "kind": "banner",
+        "pos": [
+          4,
+          0
+        ]
+      },
+      {
+        "kind": "banner",
+        "pos": [
+          10,
+          0
+        ]
+      },
+      {
+        "kind": "banner",
+        "pos": [
+          16,
+          0
+        ]
+      },
+      {
+        "kind": "banner",
+        "pos": [
+          22,
+          0
+        ]
+      }
+    ],
+    "architecture": "runners",
+    "motifs": [
+      {
+        "kind": "medallion",
+        "pos": [
+          12,
+          7
+        ]
+      },
+      {
+        "kind": "runner",
+        "pos": [
+          2,
+          7
+        ]
+      }
+    ],
+    "seed": 1422,
+    "content_revision": "4.1"
+  },
+  "r19": {
+    "name": "Torch Shrine",
+    "theme": "torch_shrine",
+    "atlas": [
+      4,
+      0
+    ],
+    "floor": "1F",
+    "layout_revision": "4.0",
+    "spawn": [
+      2,
+      7
+    ],
+    "tiles": [
+      "##########################",
+      "#.................#......#",
+      "#.................#......#",
+      "#.gg..........#...#......#",
+      "#.g....#..#..##...#......#",
+      "#.................#......#",
+      "#.................#......#",
+      "#.................#......#",
+      "#........................#",
+      "#.................#......#",
+      "#.................#......#",
+      "#..#..........#...#......#",
+      "#.............#...#......#",
+      "#.................#......#",
+      "#.................#......#",
+      "##########################"
+    ],
+    "objects": [
+      {
+        "type": "chest",
+        "id": "powder",
+        "pos": [
+          5,
+          4
+        ],
+        "ability": "powder",
+        "powder": 12
+      },
+      {
+        "type": "powder_supply",
+        "id": "dust",
+        "pos": [
+          4,
+          10
+        ]
+      },
+      {
+        "type": "brazier",
+        "id": "dawn",
+        "pos": [
+          7,
+          5
+        ],
+        "mark": 1
+      },
+      {
+        "type": "brazier",
+        "id": "noon",
+        "pos": [
+          10,
+          5
+        ],
+        "mark": 2
+      },
+      {
+        "type": "brazier",
+        "id": "dusk",
+        "pos": [
+          13,
+          5
+        ],
+        "mark": 3
+      },
+      {
+        "type": "torch_order",
+        "id": "flames",
+        "pos": [
+          16,
+          4
+        ],
+        "order": [
+          "dawn",
+          "noon",
+          "dusk"
+        ]
+      },
+      {
+        "type": "combat",
+        "id": "clear",
+        "pos": [
+          16,
+          13
+        ]
+      },
+      {
+        "type": "door",
+        "id": "gate",
+        "pos": [
+          18,
+          8
+        ],
+        "requires": [
+          "flames",
+          "clear"
+        ]
+      },
+      {
+        "type": "remote",
+        "id": "flame_signal",
+        "pos": [
+          23,
+          5
+        ],
+        "flag": "flame",
+        "requires": [
+          "gate"
+        ],
+        "progression": {
+          "milestone": "flame",
+          "needs": []
+        }
+      },
+      {
+        "type": "brazier",
+        "id": "hidden_fire",
+        "pos": [
+          22,
+          11
+        ],
+        "requires": [
+          "flames"
+        ]
+      },
+      {
+        "type": "chest",
+        "id": "disc",
+        "pos": [
+          23,
+          11
+        ],
+        "loot": [
+          "music_disc"
+        ],
+        "requires": [
+          "hidden_fire"
+        ],
+        "hidden": true
+      }
+    ],
+    "enemies": [
+      {
+        "id": "ghost",
+        "type": "crystal_ghost",
+        "pos": [
+          11,
+          10
+        ],
+        "torch": "dawn"
+      }
+    ],
+    "exits": [
+      {
+        "pos": [
+          2,
+          8
+        ],
+        "target": "r2",
+        "arrival": [
+          2,
+          7
+        ],
+        "requires": [],
+        "abilities": [],
+        "entrance": "stone"
+      },
+      {
+        "pos": [
+          23,
+          8
+        ],
+        "target": "r5",
+        "arrival": [
+          2,
+          7
+        ],
+        "requires": [
+          "gate"
+        ],
+        "abilities": [],
+        "entrance": "stone"
+      }
+    ],
+    "goal": [
+      "flame_signal"
+    ],
+    "hint": "P lights marked bowls: dawn, noon, dusk. E refills powder.",
+    "decorations": [
+      {
+        "kind": "torch",
+        "pos": [
+          4,
+          0
+        ]
+      },
+      {
+        "kind": "torch",
+        "pos": [
+          10,
+          0
+        ]
+      },
+      {
+        "kind": "torch",
+        "pos": [
+          16,
+          0
+        ]
+      },
+      {
+        "kind": "torch",
+        "pos": [
+          22,
+          0
+        ]
+      }
+    ],
+    "architecture": "mosaic",
+    "motifs": [
+      {
+        "kind": "medallion",
+        "pos": [
+          12,
+          7
+        ]
+      }
+    ],
+    "seed": 1501,
+    "content_revision": "4.1"
+  },
+  "r20": {
+    "name": "Pot Storage",
+    "theme": "pot_storage",
+    "atlas": [
+      1,
+      2
+    ],
+    "floor": "1F",
+    "layout_revision": "4.0",
+    "spawn": [
+      2,
+      7
+    ],
+    "tiles": [
+      "##########################",
+      "#.................#......#",
+      "#.................#......#",
+      "#.gg..........#...#......#",
+      "#.g...........#...#......#",
+      "#.................#......#",
+      "#.................#......#",
+      "#.................#......#",
+      "#........................#",
+      "#.................#......#",
+      "#.................#......#",
+      "#..#..........#...#......#",
+      "#.............#...#......#",
+      "#.................#......#",
+      "#.................#......#",
+      "##########################"
+    ],
+    "objects": [
+      {
+        "type": "pot",
+        "id": "jar",
+        "pos": [
+          6,
+          6
+        ],
+        "weight": 2,
+        "renewable": true
+      },
+      {
+        "type": "pot",
+        "id": "jar2",
+        "pos": [
+          9,
+          9
+        ],
+        "weight": 2,
+        "renewable": true
+      },
+      {
+        "type": "pot",
+        "id": "charm_pot",
+        "pos": [
+          12,
+          4
+        ],
+        "weight": 2,
+        "loot": [
+          "lucky_charm"
+        ],
+        "inscribed": true
+      },
+      {
+        "type": "pot",
+        "id": "bomb_pot",
+        "pos": [
+          6,
+          11
+        ],
+        "weight": 2,
+        "explosive": true
+      },
+      {
+        "type": "pot_supply",
+        "id": "pot_rack",
+        "pos": [
+          4,
+          4
+        ]
+      },
+      {
+        "type": "weight",
+        "id": "load",
+        "pos": [
+          13,
+          8
+        ],
+        "weight": 3
+      },
+      {
+        "type": "combat",
+        "id": "clear",
+        "pos": [
+          16,
+          13
+        ]
+      },
+      {
+        "type": "relay",
+        "id": "flame_ready",
+        "pos": [
+          16,
+          5
+        ],
+        "flags": [
+          "flame"
+        ]
+      },
+      {
+        "type": "door",
+        "id": "gate",
+        "pos": [
+          18,
+          8
+        ],
+        "requires": [
+          "load",
+          "clear",
+          "flame_ready"
+        ]
+      },
+      {
+        "type": "chest",
+        "id": "cache",
+        "pos": [
+          23,
+          5
+        ],
+        "loot": [
+          "bomb_bundle",
+          "token_cache"
+        ],
+        "requires": [
+          "gate"
+        ],
+        "hidden": true
+      },
+      {
+        "type": "pot",
+        "id": "stored_5",
+        "pos": [
+          5,
+          12
+        ],
+        "weight": 2,
+        "renewable": true
+      },
+      {
+        "type": "pot",
+        "id": "stored_7",
+        "pos": [
+          7,
+          12
+        ],
+        "weight": 2,
+        "renewable": true
+      },
+      {
+        "type": "pot",
+        "id": "stored_9",
+        "pos": [
+          9,
+          12
+        ],
+        "weight": 2,
+        "renewable": true
+      }
+    ],
+    "enemies": [
+      {
+        "id": "hunter",
+        "type": "pot_hunter",
+        "pos": [
+          14,
+          10
+        ]
+      }
+    ],
+    "exits": [
+      {
+        "pos": [
+          2,
+          8
+        ],
+        "target": "r4",
+        "arrival": [
+          2,
+          7
+        ],
+        "requires": [],
+        "abilities": [],
+        "entrance": "stone"
+      },
+      {
+        "pos": [
+          23,
+          8
+        ],
+        "target": "r7",
+        "arrival": [
+          2,
+          7
+        ],
+        "requires": [
+          "gate"
+        ],
+        "abilities": [],
+        "entrance": "stone"
+      }
+    ],
+    "goal": [
+      "cache"
+    ],
+    "hint": "E lifts a pot. G throws. Carry weight onto the three-dot plate.",
+    "decorations": [
+      {
+        "kind": "gear",
+        "pos": [
+          4,
+          0
+        ]
+      },
+      {
+        "kind": "gear",
+        "pos": [
+          10,
+          0
+        ]
+      },
+      {
+        "kind": "gear",
+        "pos": [
+          16,
+          0
+        ]
+      },
+      {
+        "kind": "gear",
+        "pos": [
+          22,
+          0
+        ]
+      }
+    ],
+    "architecture": "mosaic",
+    "motifs": [
+      {
+        "kind": "medallion",
+        "pos": [
+          12,
+          7
+        ]
+      }
+    ],
+    "seed": 1580,
+    "content_revision": "4.1"
+  },
+  "r21": {
+    "name": "Crystal Warden",
+    "theme": "crystal_hall",
+    "atlas": [
+      2,
+      3
+    ],
+    "floor": "B1F",
+    "layout_revision": "4.0",
+    "spawn": [
+      2,
+      7
+    ],
+    "tiles": [
+      "##########################",
+      "#.###.............#..###.#",
+      "#.##..............#...##.#",
+      "#.gg..........#...#......#",
+      "#.g...........#...#......#",
+      "#.................#......#",
+      "#.................#......#",
+      "#.................#......#",
+      "#........................#",
+      "#.................#......#",
+      "#.................#......#",
+      "#..#..........#...#......#",
+      "#.............#...#....#.#",
+      "#.##..............#...##.#",
+      "#.................#......#",
+      "##########################"
+    ],
+    "objects": [
+      {
+        "type": "crystal_switch",
+        "id": "crystal",
+        "pos": [
+          5,
+          8
+        ]
+      },
+      {
+        "type": "crystal_barrier",
+        "id": "red",
+        "pos": [
+          17,
+          8
+        ],
+        "color": "red"
+      },
+      {
+        "type": "combat",
+        "id": "clear",
+        "pos": [
+          16,
+          13
+        ],
+        "progression": {
+          "milestone": "warden",
+          "needs": [
+            "stairs"
+          ]
+        }
+      },
+      {
+        "type": "door",
+        "id": "gate",
+        "pos": [
+          18,
+          8
+        ],
+        "requires": [
+          "clear"
+        ]
+      },
+      {
+        "type": "chest",
+        "id": "warden_cache",
+        "pos": [
+          23,
+          5
+        ],
+        "loot": [
+          "ticket_bundle",
+          "heart_recovery"
+        ],
+        "requires": [
+          "gate"
+        ],
+        "hidden": true
+      },
+      {
+        "type": "supply",
+        "id": "bombs",
+        "pos": [
+          4,
+          4
+        ]
+      },
+      {
+        "type": "cracked",
+        "id": "sanctuary",
+        "pos": [
+          12,
+          13
+        ]
+      }
+    ],
+    "enemies": [
+      {
+        "id": "warden",
+        "type": "crystal_warden",
+        "pos": [
+          12,
+          8
+        ],
+        "weak_color": "red"
+      },
+      {
+        "id": "spark_slime",
+        "type": "slime",
+        "pos": [
+          15,
+          5
+        ],
+        "summon_at": 3
+      },
+      {
+        "id": "spark_bat",
+        "type": "bat",
+        "pos": [
+          15,
+          11
+        ],
+        "summon_at": 3
+      }
+    ],
+    "exits": [
+      {
+        "pos": [
+          2,
+          8
+        ],
+        "target": "r10",
+        "arrival": [
+          2,
+          7
+        ],
+        "requires": [],
+        "abilities": [],
+        "entrance": "stone"
+      },
+      {
+        "pos": [
+          23,
+          8
+        ],
+        "target": "r12",
+        "arrival": [
+          2,
+          7
+        ],
+        "requires": [
+          "gate"
+        ],
+        "abilities": [],
+        "entrance": "stone"
+      },
+      {
+        "pos": [
+          12,
+          13
+        ],
+        "target": "r22",
+        "arrival": [
+          2,
+          7
+        ],
+        "requires": [
+          "sanctuary",
+          "clear"
+        ],
+        "abilities": [],
+        "entrance": "cave"
+      }
+    ],
+    "goal": [
+      "clear",
+      "warden_cache"
+    ],
+    "hint": "J strikes crystal. Red reveals the Warden; blue lowers the exit.",
+    "decorations": [
+      {
+        "kind": "crystal",
+        "pos": [
+          4,
+          0
+        ]
+      },
+      {
+        "kind": "crystal",
+        "pos": [
+          10,
+          0
+        ]
+      },
+      {
+        "kind": "crystal",
+        "pos": [
+          16,
+          0
+        ]
+      },
+      {
+        "kind": "crystal",
+        "pos": [
+          22,
+          0
+        ]
+      }
+    ],
+    "architecture": "mosaic",
+    "motifs": [
+      {
+        "kind": "medallion",
+        "pos": [
+          12,
+          7
+        ]
+      }
+    ],
+    "on_clear_flag": "warden",
+    "seed": 1659,
+    "content_revision": "4.1"
+  },
+  "r22": {
+    "name": "Hidden Sanctuary",
+    "theme": "hidden_sanctuary",
+    "atlas": [
+      1,
+      3
+    ],
+    "floor": "B1F",
+    "layout_revision": "4.0",
+    "spawn": [
+      2,
+      7
+    ],
+    "tiles": [
+      "##########################",
+      "#........................#",
+      "#........................#",
+      "#.gg..........#..........#",
+      "#.g...........#..........#",
+      "#........................#",
+      "#........................#",
+      "#........................#",
+      "#........................#",
+      "#........................#",
+      "#........................#",
+      "#..#..........#..........#",
+      "#.............#..........#",
+      "#........................#",
+      "#........................#",
+      "##########################"
+    ],
+    "objects": [
+      {
+        "type": "ordered",
+        "id": "sequence",
+        "pos": [
+          16,
+          13
+        ]
+      },
+      {
+        "type": "chest",
+        "id": "skin",
+        "pos": [
+          20,
+          5
+        ],
+        "loot": [
+          "crystal_skin"
+        ],
+        "requires": [
+          "sequence"
+        ],
+        "hidden": true
+      },
+      {
+        "type": "relay",
+        "id": "sanctuary_ready",
+        "pos": [
+          8,
+          4
+        ],
+        "flags": [
+          "flame",
+          "warden"
+        ]
+      },
+      {
+        "type": "chest",
+        "id": "stamp",
+        "pos": [
+          8,
+          5
+        ],
+        "loot": [
+          "ancient_stamp"
+        ],
+        "requires": [
+          "sanctuary_ready"
+        ],
+        "hidden": true
+      },
+      {
+        "type": "chest",
+        "id": "fragment",
+        "pos": [
+          19,
+          11
+        ],
+        "loot": [
+          "heart_fragment"
+        ],
+        "requires": [
+          "sequence"
+        ]
+      },
+      {
+        "type": "chest",
+        "id": "cache",
+        "pos": [
+          21,
+          11
+        ],
+        "loot": [
+          "token_cache",
+          "ticket_bundle"
+        ],
+        "requires": [
+          "sequence"
+        ]
+      }
+    ],
+    "enemies": [
+      {
+        "id": "slime",
+        "type": "slime",
+        "pos": [
+          7,
+          5
+        ]
+      },
+      {
+        "id": "bat",
+        "type": "bat",
+        "pos": [
+          11,
+          11
+        ]
+      },
+      {
+        "id": "mask",
+        "type": "mirror_mask",
+        "pos": [
+          15,
+          8
+        ]
+      }
+    ],
+    "exits": [
+      {
+        "pos": [
+          2,
+          8
+        ],
+        "target": "r21",
+        "arrival": [
+          2,
+          7
+        ],
+        "requires": [],
+        "abilities": [],
+        "entrance": "stone"
+      },
+      {
+        "pos": [
+          23,
+          12
+        ],
+        "target": "r11",
+        "arrival": [
+          23,
+          11
+        ],
+        "requires": [],
+        "abilities": [],
+        "entrance": "stone"
+      }
+    ],
+    "goal": [
+      "skin"
+    ],
+    "hint": "Carved order: slime, bat, mask. Wrong order awakens them again.",
+    "decorations": [
+      {
+        "kind": "banner",
+        "pos": [
+          4,
+          0
+        ]
+      },
+      {
+        "kind": "banner",
+        "pos": [
+          10,
+          0
+        ]
+      },
+      {
+        "kind": "banner",
+        "pos": [
+          16,
+          0
+        ]
+      },
+      {
+        "kind": "banner",
+        "pos": [
+          22,
+          0
+        ]
+      }
+    ],
+    "architecture": "mosaic",
+    "motifs": [
+      {
+        "kind": "medallion",
+        "pos": [
+          12,
+          7
+        ]
+      }
+    ],
+    "hidden": true,
+    "kill_order": [
+      "slime",
+      "bat",
+      "mask"
+    ],
+    "seed": 1738,
+    "content_revision": "4.1"
+  }
+}

@@ -3,6 +3,7 @@ import pygame
 
 
 def entrance_visible(session, exit):
+    if exit.get('flag_requires') and not set(exit['flag_requires']) <= session.inventory.flags:return False
     if exit.get('entrance') == 'remote':
         return set(exit.get('flag_requires', [])) <= session.inventory.flags
     return all(session.puzzles.condition(i) for i in exit.get('requires',[]) if session.puzzles.objects[i].data['type'] in ('secret','cracked'))
@@ -12,6 +13,7 @@ def draw_entrance(surface, session, exit, sx, sy, wall_tile):
     draw = pygame.draw
     kind = exit.get('entrance', 'stairs_down' if exit.get('stairs') else 'stone')
     discovered = exit['target'] in session.visited
+    if exit.get('transformed') and not entrance_visible(session,exit):return
     if kind == 'walkthrough' and not discovered or not entrance_visible(session, exit):
         surface.blit(wall_tile, (sx, sy))
         draw.line(surface, (95, 103, 102), (sx+5, sy+14), (sx+11, sy+14))
@@ -26,6 +28,10 @@ def draw_entrance(surface, session, exit, sx, sy, wall_tile):
             draw.rect(surface, (78+step*23, 88+step*21, 108+step*18), (x, sy+2+step*3, width, 2))
         draw.line(surface, edge, (sx+1, sy+1), (sx+1, sy+14))
         draw.line(surface, edge, (sx+14, sy+1), (sx+14, sy+14))
+        return
+    if exit.get('portal'):
+        draw.circle(surface,(152,102,230),(sx+8,sy+8),7,2)
+        draw.circle(surface,(67,172,183),(sx+8,sy+8),4,1)
         return
     draw.ellipse(surface, (16, 22, 32), (sx+1, sy+11, 14, 5))
     draw.rect(surface, stone, (sx+1, sy+3, 14, 11))

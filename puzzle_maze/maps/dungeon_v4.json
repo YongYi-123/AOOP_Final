@@ -4,7 +4,7 @@
     "theme": "stone_garden",
     "atlas": [
       2,
-      0
+      3
     ],
     "floor": "1F",
     "layout_revision": "4.0",
@@ -14,20 +14,20 @@
     ],
     "tiles": [
       "##########################",
-      "#.................#......#",
-      "#.............##..#......#",
-      "#.gg...........#..#.O....#",
-      "#.g...............#.O....#",
-      "#.................#......#",
-      "#.................#......#",
-      "#.................#......#",
       "#........................#",
-      "#.................#......#",
-      "#.................#......#",
-      "#..#..............#.O....#",
-      "#..............#..#.O....#",
-      "#.............#...#......#",
-      "#.................#......#",
+      "#.............##.........#",
+      "#.gg...........#....O....#",
+      "#.g.................O....#",
+      "#........................#",
+      "#........................#",
+      "#........................#",
+      "#........................#",
+      "#........................#",
+      "#........................#",
+      "#..#................O....#",
+      "#..............#....O....#",
+      "#.............#..........#",
+      "#........................#",
       "##########################"
     ],
     "objects": [
@@ -55,8 +55,8 @@
         "type": "door",
         "id": "gate",
         "pos": [
-          18,
-          8
+          12,
+          1
         ],
         "requires": [
           "lever"
@@ -76,20 +76,42 @@
     "exits": [
       {
         "pos": [
-          23,
-          8
+          12,
+          1
         ],
         "target": "r2",
         "arrival": [
-          2,
-          7
+          12,
+          13
         ],
         "requires": [
           "gate"
         ],
         "abilities": [],
         "stairs": false,
-        "entrance": "stone"
+        "entrance": "stone",
+        "direction": "NORTH",
+        "id": "r1:r2",
+        "return_id": "r2:r1",
+        "orb_allowed": true
+      },
+      {
+        "target": "r6",
+        "requires": [],
+        "abilities": [],
+        "entrance": "stone",
+        "direction": "EAST",
+        "id": "r1:r6",
+        "return_id": "r6:r1",
+        "pos": [
+          24,
+          8
+        ],
+        "arrival": [
+          2,
+          8
+        ],
+        "orb_allowed": true
       }
     ],
     "goal": [
@@ -144,14 +166,16 @@
       }
     ],
     "seed": 79,
-    "content_revision": "4.1"
+    "content_revision": "4.2",
+    "grid_x": 2,
+    "grid_y": 3
   },
   "r2": {
     "name": "Relay Atrium",
     "theme": "mechanism",
     "atlas": [
       2,
-      1
+      2
     ],
     "floor": "1F",
     "layout_revision": "4.0",
@@ -163,7 +187,7 @@
       "##########################",
       "#........................#",
       "#........................#",
-      "#.gg..............######.#",
+      "#.gg...............#####.#",
       "#.g....................#.#",
       "#......................#.#",
       "#........................#",
@@ -195,8 +219,8 @@
         "type": "door",
         "id": "lower",
         "pos": [
-          23,
-          8
+          22,
+          11
         ],
         "key": "small",
         "cost": 2,
@@ -222,19 +246,10 @@
       },
       {
         "type": "crystal_barrier",
-        "id": "library_red",
-        "pos": [
-          5,
-          3
-        ],
-        "color": "red"
-      },
-      {
-        "type": "crystal_barrier",
         "id": "watch_blue",
         "pos": [
           12,
-          2
+          1
         ],
         "color": "blue"
       }
@@ -243,83 +258,65 @@
     "exits": [
       {
         "pos": [
-          2,
-          8
+          12,
+          14
         ],
         "target": "r1",
         "arrival": [
-          4,
-          7
-        ],
-        "requires": [],
-        "abilities": [],
-        "stairs": false,
-        "entrance": "stone"
-      },
-      {
-        "pos": [
           12,
           2
         ],
-        "target": "r3",
-        "arrival": [
-          2,
-          7
-        ],
         "requires": [],
         "abilities": [],
         "stairs": false,
-        "entrance": "stone"
+        "entrance": "stone",
+        "direction": "SOUTH",
+        "id": "r2:r1",
+        "return_id": "r1:r2",
+        "orb_allowed": true
       },
       {
         "pos": [
           12,
+          1
+        ],
+        "target": "r3",
+        "arrival": [
+          12,
           13
+        ],
+        "requires": [],
+        "abilities": [],
+        "stairs": false,
+        "entrance": "stone",
+        "direction": "NORTH",
+        "id": "r2:r3",
+        "return_id": "r3:r2",
+        "orb_allowed": true
+      },
+      {
+        "pos": [
+          1,
+          8
         ],
         "target": "r4",
         "arrival": [
-          2,
-          7
-        ],
-        "requires": [],
-        "abilities": [],
-        "stairs": false,
-        "entrance": "stone"
-      },
-      {
-        "pos": [
-          5,
-          3
-        ],
-        "target": "r5",
-        "arrival": [
-          2,
-          7
-        ],
-        "requires": [],
-        "abilities": [],
-        "stairs": false,
-        "entrance": "stone"
-      },
-      {
-        "pos": [
-          5,
-          13
-        ],
-        "target": "r6",
-        "arrival": [
-          2,
-          7
-        ],
-        "requires": [],
-        "abilities": [],
-        "stairs": false,
-        "entrance": "stone"
-      },
-      {
-        "pos": [
           23,
           8
+        ],
+        "requires": [],
+        "abilities": [],
+        "stairs": false,
+        "entrance": "stone",
+        "direction": "WEST",
+        "id": "r2:r4",
+        "return_id": "r4:r2",
+        "orb_allowed": true
+      },
+      {
+        "pos": [
+          22,
+          11
         ],
         "target": "r10",
         "arrival": [
@@ -331,21 +328,33 @@
         ],
         "abilities": [],
         "stairs": true,
-        "entrance": "stairs_down"
+        "entrance": "stairs_down",
+        "direction": "DOWN",
+        "id": "r2:r10",
+        "return_id": "r10:r2",
+        "landing": [
+          22,
+          10
+        ],
+        "orb_allowed": true
       },
       {
         "pos": [
-          8,
-          2
+          24,
+          8
         ],
         "target": "r19",
         "arrival": [
           2,
-          7
+          8
         ],
         "requires": [],
         "abilities": [],
-        "entrance": "stone"
+        "entrance": "stone",
+        "direction": "EAST",
+        "id": "r2:r19",
+        "return_id": "r19:r2",
+        "orb_allowed": true
       }
     ],
     "goal": [
@@ -400,13 +409,15 @@
       }
     ],
     "seed": 158,
-    "content_revision": "4.1"
+    "content_revision": "4.2",
+    "grid_x": 2,
+    "grid_y": 2
   },
   "r3": {
     "name": "Copper Watch",
     "theme": "guard",
     "atlas": [
-      1,
+      2,
       1
     ],
     "floor": "1F",
@@ -417,20 +428,20 @@
     ],
     "tiles": [
       "##########################",
-      "#.................#......#",
-      "#.............##..#......#",
-      "#.gg...........#..#.O....#",
-      "#.g...............#.O....#",
-      "#.................#......#",
-      "#.................#......#",
-      "#.................#......#",
       "#........................#",
-      "#.................#......#",
-      "#.................#......#",
-      "#..#..............#.O....#",
-      "#..............#..#.O....#",
-      "#.............#...#......#",
-      "#.................#......#",
+      "#.............##.........#",
+      "#.gg...........#....O....#",
+      "#.g.................O....#",
+      "#........................#",
+      "#........................#",
+      "#........................#",
+      "#........................#",
+      "#........................#",
+      "#........................#",
+      "#..#................O....#",
+      "#..............#....O....#",
+      "#.............#..........#",
+      "#........................#",
       "##########################"
     ],
     "objects": [
@@ -464,8 +475,8 @@
         "type": "door",
         "id": "gate",
         "pos": [
-          18,
-          8
+          12,
+          1
         ],
         "requires": [
           "clear"
@@ -511,51 +522,62 @@
     "exits": [
       {
         "pos": [
-          2,
-          8
+          12,
+          14
         ],
         "target": "r2",
         "arrival": [
-          4,
-          7
+          12,
+          2
         ],
         "requires": [],
         "abilities": [],
         "stairs": false,
-        "entrance": "stone"
-      },
-      {
-        "pos": [
-          23,
-          8
-        ],
-        "target": "r7",
-        "arrival": [
-          2,
-          7
-        ],
-        "requires": [
-          "gate"
-        ],
-        "abilities": [],
-        "stairs": false,
-        "entrance": "locked"
+        "entrance": "stone",
+        "direction": "SOUTH",
+        "id": "r3:r2",
+        "return_id": "r2:r3",
+        "orb_allowed": true
       },
       {
         "pos": [
           12,
-          13
+          1
         ],
         "target": "r9",
         "arrival": [
-          2,
-          7
+          12,
+          13
         ],
-        "requires": [],
+        "requires": [
+          "gate"
+        ],
         "abilities": [
           "boots"
         ],
-        "entrance": "stone"
+        "entrance": "locked",
+        "direction": "NORTH",
+        "id": "r3:r9",
+        "return_id": "r9:r3",
+        "orb_allowed": true
+      },
+      {
+        "target": "r5",
+        "requires": [],
+        "abilities": [],
+        "entrance": "walkthrough",
+        "direction": "EAST",
+        "id": "r3:r5",
+        "return_id": "r5:r3",
+        "pos": [
+          24,
+          8
+        ],
+        "arrival": [
+          2,
+          8
+        ],
+        "orb_allowed": true
       }
     ],
     "goal": [
@@ -610,13 +632,15 @@
       }
     ],
     "seed": 237,
-    "content_revision": "4.1"
+    "content_revision": "4.2",
+    "grid_x": 2,
+    "grid_y": 1
   },
   "r4": {
     "name": "Weight and Light",
     "theme": "mechanism",
     "atlas": [
-      2,
+      1,
       2
     ],
     "floor": "1F",
@@ -627,20 +651,20 @@
     ],
     "tiles": [
       "##########################",
-      "#.................#......#",
-      "#.................#......#",
-      "#.gg..............#......#",
-      "#.g...............#......#",
-      "#.................#......#",
-      "#.................#......#",
-      "#.................#......#",
       "#........................#",
-      "#.................#......#",
-      "#.................#......#",
-      "#..#..............#......#",
-      "#.................#......#",
-      "#.................#......#",
-      "#.................#......#",
+      "#........................#",
+      "#.gg.....................#",
+      "#.g......................#",
+      "#........................#",
+      "#........................#",
+      "#........................#",
+      "#........................#",
+      "#........................#",
+      "#........................#",
+      "#..#.....................#",
+      "#........................#",
+      "#........................#",
+      "#........................#",
       "##########################"
     ],
     "objects": [
@@ -709,7 +733,7 @@
         ]
       },
       {
-        "type": "door",
+        "type": "gate_control",
         "id": "gate",
         "pos": [
           18,
@@ -744,34 +768,42 @@
     "exits": [
       {
         "pos": [
-          2,
+          24,
           8
         ],
         "target": "r2",
         "arrival": [
-          4,
-          7
+          2,
+          8
         ],
         "requires": [],
         "abilities": [],
         "stairs": false,
-        "entrance": "stone"
+        "entrance": "stone",
+        "direction": "EAST",
+        "id": "r4:r2",
+        "return_id": "r2:r4",
+        "orb_allowed": true
       },
       {
         "pos": [
-          8,
-          13
+          12,
+          1
         ],
         "target": "r20",
         "arrival": [
-          2,
-          7
+          12,
+          13
         ],
         "requires": [],
         "abilities": [
           "gloves"
         ],
-        "entrance": "stone"
+        "entrance": "stone",
+        "direction": "NORTH",
+        "id": "r4:r20",
+        "return_id": "r20:r4",
+        "orb_allowed": true
       }
     ],
     "goal": [
@@ -826,7 +858,9 @@
       }
     ],
     "seed": 316,
-    "content_revision": "4.1"
+    "content_revision": "4.2",
+    "grid_x": 1,
+    "grid_y": 2
   },
   "r5": {
     "name": "Ancient Library",
@@ -843,20 +877,20 @@
     ],
     "tiles": [
       "##########################",
-      "#.................#......#",
-      "#.............##..#......#",
-      "#.gg...........#..#.O....#",
-      "#.g...............#.O....#",
-      "#.................#......#",
-      "#.................#......#",
-      "#.................#......#",
       "#........................#",
-      "#.................#......#",
-      "#.................#......#",
-      "#..#..............#.O....#",
-      "#..............#..#.O....#",
-      "#.............#...#......#",
-      "#.................#......#",
+      "#.............##.........#",
+      "#.gg...........#....O....#",
+      "#.g.................O....#",
+      "#........................#",
+      "#........................#",
+      "#........................#",
+      "#........................#",
+      "#........................#",
+      "#........................#",
+      "#..#................O....#",
+      "#..............#....O....#",
+      "#.............#..........#",
+      "#........................#",
       "##########################"
     ],
     "objects": [
@@ -902,7 +936,7 @@
         ]
       },
       {
-        "type": "door",
+        "type": "gate_control",
         "id": "gate",
         "pos": [
           18,
@@ -926,7 +960,10 @@
           "needs": [
             "mirror"
           ]
-        }
+        },
+        "requires": [
+          "gate"
+        ]
       },
       {
         "type": "chest",
@@ -942,53 +979,49 @@
           "needs": [
             "mirror"
           ]
-        }
+        },
+        "requires": [
+          "gate"
+        ]
       }
     ],
     "enemies": [],
     "exits": [
       {
         "pos": [
-          2,
-          8
-        ],
-        "target": "r2",
-        "arrival": [
-          4,
-          7
-        ],
-        "requires": [],
-        "abilities": [],
-        "stairs": false,
-        "entrance": "stone"
-      },
-      {
-        "pos": [
           12,
-          2
+          14
         ],
         "target": "r19",
         "arrival": [
-          2,
-          7
+          12,
+          2
         ],
         "requires": [],
         "abilities": [],
-        "entrance": "stone"
+        "entrance": "stone",
+        "direction": "SOUTH",
+        "id": "r5:r19",
+        "return_id": "r19:r5",
+        "orb_allowed": true
       },
       {
-        "pos": [
-          23,
-          13
-        ],
-        "target": "r8",
-        "arrival": [
-          12,
-          12
-        ],
+        "target": "r3",
         "requires": [],
         "abilities": [],
-        "entrance": "walkthrough"
+        "entrance": "walkthrough",
+        "direction": "WEST",
+        "id": "r5:r3",
+        "return_id": "r3:r5",
+        "pos": [
+          1,
+          8
+        ],
+        "arrival": [
+          23,
+          8
+        ],
+        "orb_allowed": true
       }
     ],
     "goal": [
@@ -1044,14 +1077,16 @@
       }
     ],
     "seed": 395,
-    "content_revision": "4.1"
+    "content_revision": "4.2",
+    "grid_x": 3,
+    "grid_y": 1
   },
   "r6": {
     "name": "Returning Runner",
     "theme": "observatory",
     "atlas": [
       3,
-      2
+      3
     ],
     "floor": "1F",
     "layout_revision": "4.0",
@@ -1108,7 +1143,8 @@
         "requires": [
           "clock"
         ],
-        "dash_only": true
+        "dash_only": true,
+        "reversible": true
       },
       {
         "type": "chest",
@@ -1146,34 +1182,22 @@
     "enemies": [],
     "exits": [
       {
+        "target": "r1",
+        "requires": [],
+        "abilities": [],
+        "entrance": "stone",
+        "direction": "WEST",
+        "id": "r6:r1",
+        "return_id": "r1:r6",
         "pos": [
-          2,
+          1,
           8
         ],
-        "target": "r2",
         "arrival": [
-          4,
-          7
-        ],
-        "requires": [],
-        "abilities": [],
-        "stairs": false,
-        "entrance": "stone"
-      },
-      {
-        "pos": [
           23,
-          12
+          8
         ],
-        "target": "r2",
-        "arrival": [
-          4,
-          7
-        ],
-        "requires": [],
-        "abilities": [],
-        "stairs": false,
-        "entrance": "stone"
+        "orb_allowed": true
       }
     ],
     "goal": [
@@ -1228,14 +1252,16 @@
       }
     ],
     "seed": 474,
-    "content_revision": "4.1"
+    "content_revision": "4.2",
+    "grid_x": 3,
+    "grid_y": 3
   },
   "r7": {
     "name": "Powder Workshop",
     "theme": "ancient_workshop",
     "atlas": [
-      0,
-      1
+      1,
+      0
     ],
     "floor": "1F",
     "layout_revision": "4.0",
@@ -1247,7 +1273,7 @@
       "##########################",
       "#........................#",
       "#........................#",
-      "#.gg..............######.#",
+      "#.gg...............#####.#",
       "#.g....................#.#",
       "#......................#.#",
       "#........................#",
@@ -1310,8 +1336,8 @@
         "type": "cracked",
         "id": "crack",
         "pos": [
-          12,
-          13
+          1,
+          8
         ]
       }
     ],
@@ -1319,68 +1345,65 @@
     "exits": [
       {
         "pos": [
-          2,
-          8
-        ],
-        "target": "r3",
-        "arrival": [
-          4,
-          7
-        ],
-        "requires": [],
-        "abilities": [],
-        "stairs": false,
-        "entrance": "stone"
-      },
-      {
-        "pos": [
-          23,
+          24,
           8
         ],
         "target": "r9",
         "arrival": [
           2,
-          7
+          8
         ],
         "requires": [
           "lever"
         ],
         "abilities": [],
         "stairs": false,
-        "entrance": "stone"
+        "entrance": "stone",
+        "direction": "EAST",
+        "id": "r7:r9",
+        "return_id": "r9:r7",
+        "orb_allowed": true
       },
       {
         "pos": [
-          12,
-          13
+          1,
+          8
         ],
         "target": "r8",
         "arrival": [
-          2,
-          7
+          23,
+          8
         ],
         "requires": [
           "crack"
         ],
         "abilities": [],
         "stairs": false,
-        "entrance": "cave"
+        "entrance": "cave",
+        "direction": "WEST",
+        "id": "r7:r8",
+        "return_id": "r8:r7",
+        "orb_allowed": true
       },
       {
         "pos": [
           12,
-          2
+          14
         ],
         "target": "r20",
         "arrival": [
-          2,
-          7
+          12,
+          2
         ],
         "requires": [],
         "abilities": [
           "gloves"
         ],
-        "entrance": "stone"
+        "entrance": "stone",
+        "direction": "SOUTH",
+        "id": "r7:r20",
+        "return_id": "r20:r7",
+        "orb_allowed": true
       }
     ],
     "goal": [
@@ -1436,14 +1459,16 @@
       }
     ],
     "seed": 553,
-    "content_revision": "4.1"
+    "content_revision": "4.2",
+    "grid_x": 1,
+    "grid_y": 0
   },
   "r8": {
     "name": "Hidden Treasury",
     "theme": "forgotten_vault",
     "atlas": [
       0,
-      2
+      0
     ],
     "floor": "1F",
     "layout_revision": "4.0",
@@ -1510,32 +1535,22 @@
     "exits": [
       {
         "pos": [
-          2,
+          24,
           8
         ],
         "target": "r7",
         "arrival": [
-          4,
-          7
+          2,
+          8
         ],
         "requires": [],
         "abilities": [],
         "stairs": false,
-        "entrance": "stone"
-      },
-      {
-        "pos": [
-          12,
-          13
-        ],
-        "target": "r5",
-        "arrival": [
-          23,
-          12
-        ],
-        "requires": [],
-        "abilities": [],
-        "entrance": "cave"
+        "entrance": "stone",
+        "direction": "EAST",
+        "id": "r8:r7",
+        "return_id": "r7:r8",
+        "orb_allowed": true
       }
     ],
     "goal": [
@@ -1591,13 +1606,15 @@
       }
     ],
     "seed": 632,
-    "content_revision": "4.1"
+    "content_revision": "4.2",
+    "grid_x": 0,
+    "grid_y": 0
   },
   "r9": {
     "name": "Boots Trial",
     "theme": "guard",
     "atlas": [
-      0,
+      2,
       0
     ],
     "floor": "1F",
@@ -1696,34 +1713,42 @@
     "exits": [
       {
         "pos": [
-          2,
+          1,
           8
         ],
         "target": "r7",
         "arrival": [
-          4,
-          7
+          23,
+          8
         ],
         "requires": [],
         "abilities": [],
         "stairs": false,
-        "entrance": "stone"
+        "entrance": "stone",
+        "direction": "WEST",
+        "id": "r9:r7",
+        "return_id": "r7:r9",
+        "orb_allowed": true
       },
       {
         "pos": [
           12,
-          2
+          14
         ],
         "target": "r3",
         "arrival": [
-          2,
-          7
+          12,
+          2
         ],
         "requires": [
           "boots"
         ],
         "abilities": [],
-        "entrance": "stone"
+        "entrance": "stone",
+        "direction": "SOUTH",
+        "id": "r9:r3",
+        "return_id": "r3:r9",
+        "orb_allowed": true
       }
     ],
     "goal": [
@@ -1778,14 +1803,16 @@
       }
     ],
     "seed": 711,
-    "content_revision": "4.1"
+    "content_revision": "4.2",
+    "grid_x": 2,
+    "grid_y": 0
   },
   "r10": {
     "name": "Lower Landing",
     "theme": "lower_observatory",
     "atlas": [
-      2,
-      0
+      1,
+      2
     ],
     "floor": "B1F",
     "layout_revision": "4.0",
@@ -1795,20 +1822,20 @@
     ],
     "tiles": [
       "##########################",
-      "#.................#......#",
-      "#.............##..#......#",
-      "#.gg...........#..#O.....#",
-      "#.g...............#O.....#",
-      "#.................#......#",
-      "#.................#......#",
-      "#.................#......#",
       "#........................#",
-      "#.................#......#",
-      "#.................#......#",
-      "#..#..............#.O....#",
-      "#..............#..#.O....#",
-      "#.............#...#......#",
-      "#.................#......#",
+      "#.............##.........#",
+      "#.gg...........#...O.....#",
+      "#.g................O.....#",
+      "#........................#",
+      "#........................#",
+      "#........................#",
+      "#........................#",
+      "#........................#",
+      "#........................#",
+      "#..#................O....#",
+      "#..............#....O....#",
+      "#.............#..........#",
+      "#........................#",
       "##########################"
     ],
     "objects": [
@@ -1824,7 +1851,7 @@
         "type": "door",
         "id": "gate",
         "pos": [
-          18,
+          24,
           8
         ],
         "requires": [
@@ -1861,60 +1888,80 @@
         ],
         "target": "r2",
         "arrival": [
-          4,
-          7
+          22,
+          10
         ],
         "requires": [],
         "abilities": [],
         "stairs": true,
-        "entrance": "stairs_up"
+        "entrance": "stairs_up",
+        "direction": "UP",
+        "id": "r10:r2",
+        "return_id": "r2:r10",
+        "landing": [
+          2,
+          7
+        ],
+        "orb_allowed": true
       },
       {
         "pos": [
           12,
-          2
+          1
         ],
         "target": "r11",
         "arrival": [
-          2,
-          7
+          12,
+          13
         ],
         "requires": [],
         "abilities": [],
         "stairs": false,
-        "entrance": "stone"
+        "entrance": "stone",
+        "direction": "NORTH",
+        "id": "r10:r11",
+        "return_id": "r11:r10",
+        "orb_allowed": true
       },
       {
         "pos": [
-          23,
+          24,
           8
         ],
         "target": "r13",
         "arrival": [
           2,
-          7
+          8
         ],
         "requires": [
           "gate"
         ],
         "abilities": [],
         "stairs": false,
-        "entrance": "stone"
+        "entrance": "stone",
+        "direction": "EAST",
+        "id": "r10:r13",
+        "return_id": "r13:r10",
+        "orb_allowed": true
       },
       {
         "pos": [
-          12,
-          13
+          1,
+          8
         ],
         "target": "r21",
         "arrival": [
-          2,
-          7
+          23,
+          8
         ],
         "requires": [],
         "abilities": [],
         "crystal": "blue",
-        "entrance": "stone"
+        "entrance": "stone",
+        "direction": "WEST",
+        "id": "r10:r21",
+        "return_id": "r21:r10",
+        "orb_allowed": true
       }
     ],
     "goal": [
@@ -1969,14 +2016,16 @@
       }
     ],
     "seed": 790,
-    "content_revision": "4.1"
+    "content_revision": "4.2",
+    "grid_x": 1,
+    "grid_y": 2
   },
   "r11": {
     "name": "Magnetic Foundry",
     "theme": "lower_mechanism",
     "atlas": [
       1,
-      0
+      1
     ],
     "floor": "B1F",
     "layout_revision": "4.0",
@@ -1988,7 +2037,7 @@
       "##########################",
       "#........................#",
       "#.............##.........#",
-      "#.gg...........#..######.#",
+      "#.gg...........#...#####.#",
       "#.g................O...#.#",
       "#......................#.#",
       "#........................#",
@@ -2037,6 +2086,16 @@
             "stairs"
           ]
         }
+      },
+      {
+        "id": "engine_pillar",
+        "type": "pillar",
+        "pos": [
+          16,
+          10
+        ],
+        "flag": "pillar_foundry",
+        "optional": true
       }
     ],
     "enemies": [
@@ -2052,45 +2111,53 @@
     "exits": [
       {
         "pos": [
-          2,
-          8
+          12,
+          14
         ],
         "target": "r10",
         "arrival": [
-          4,
-          7
+          12,
+          2
         ],
         "requires": [],
         "abilities": [],
         "stairs": false,
-        "entrance": "stone"
+        "entrance": "stone",
+        "direction": "SOUTH",
+        "id": "r11:r10",
+        "return_id": "r10:r11",
+        "orb_allowed": true
       },
       {
         "pos": [
-          23,
+          24,
           8
         ],
         "target": "r12",
         "arrival": [
           2,
-          7
+          8
         ],
         "requires": [
           "magnet"
         ],
         "abilities": [],
         "stairs": false,
-        "entrance": "stone"
+        "entrance": "stone",
+        "direction": "EAST",
+        "id": "r11:r12",
+        "return_id": "r12:r11",
+        "orb_allowed": true
       },
       {
         "pos": [
-          23,
-          12
+          1,
+          8
         ],
         "target": "r22",
         "arrival": [
           23,
-          11
+          8
         ],
         "requires": [],
         "abilities": [],
@@ -2098,7 +2165,11 @@
         "flag_requires": [
           "flame",
           "warden"
-        ]
+        ],
+        "direction": "WEST",
+        "id": "r11:r22",
+        "return_id": "r22:r11",
+        "orb_allowed": true
       }
     ],
     "goal": [
@@ -2153,14 +2224,16 @@
       }
     ],
     "seed": 869,
-    "content_revision": "4.1"
+    "content_revision": "4.2",
+    "grid_x": 1,
+    "grid_y": 1
   },
   "r12": {
     "name": "Prism Engine",
     "theme": "crystal_hall",
     "atlas": [
-      0,
-      0
+      2,
+      1
     ],
     "floor": "B1F",
     "layout_revision": "4.0",
@@ -2170,20 +2243,20 @@
     ],
     "tiles": [
       "##########################",
-      "#.................#......#",
-      "#.................#......#",
-      "#.gg..............#......#",
-      "#.g...............#......#",
-      "#.................#......#",
-      "#.................#......#",
-      "#.......#.........#......#",
+      "#........................#",
+      "#........................#",
+      "#.gg.....................#",
+      "#.g......................#",
+      "#........................#",
+      "#........................#",
+      "#.......#................#",
       "#.......~................#",
-      "#.......#.........#......#",
-      "#.................#......#",
-      "#..#..............#......#",
-      "#.................#......#",
-      "#.................#......#",
-      "#.................#......#",
+      "#.......#................#",
+      "#........................#",
+      "#..#.....................#",
+      "#........................#",
+      "#........................#",
+      "#........................#",
       "##########################"
     ],
     "objects": [
@@ -2238,7 +2311,7 @@
         ]
       },
       {
-        "type": "door",
+        "type": "gate_control",
         "id": "gate",
         "pos": [
           18,
@@ -2275,7 +2348,10 @@
             "mirror",
             "magnet"
           ]
-        }
+        },
+        "requires": [
+          "gate"
+        ]
       },
       {
         "type": "crystal_barrier",
@@ -2285,59 +2361,45 @@
           8
         ],
         "color": "blue"
+      },
+      {
+        "id": "crystal_cache",
+        "type": "chest",
+        "pos": [
+          15,
+          11
+        ],
+        "hidden": true,
+        "requires": [
+          "gate"
+        ],
+        "crystal_color": "blue",
+        "loot": [
+          "token_cache"
+        ],
+        "optional": true
       }
     ],
     "enemies": [],
     "exits": [
       {
         "pos": [
-          2,
+          1,
           8
         ],
         "target": "r11",
         "arrival": [
-          4,
-          7
+          23,
+          8
         ],
         "requires": [],
         "abilities": [],
         "stairs": false,
-        "entrance": "stone"
-      },
-      {
-        "pos": [
-          12,
-          13
-        ],
-        "target": "r21",
-        "arrival": [
-          2,
-          7
-        ],
-        "requires": [],
-        "abilities": [],
-        "crystal": "blue",
-        "entrance": "stone"
-      },
-      {
-        "pos": [
-          23,
-          12
-        ],
-        "target": "r14",
-        "arrival": [
-          2,
-          7
-        ],
-        "requires": [
-          "gate"
-        ],
-        "abilities": [
-          "boots",
-          "mirror",
-          "magnet"
-        ],
-        "entrance": "stone"
+        "entrance": "stone",
+        "direction": "WEST",
+        "id": "r12:r11",
+        "return_id": "r11:r12",
+        "orb_allowed": true
       }
     ],
     "goal": [
@@ -2393,14 +2455,16 @@
       }
     ],
     "seed": 948,
-    "content_revision": "4.1"
+    "content_revision": "4.2",
+    "grid_x": 2,
+    "grid_y": 1
   },
   "r13": {
     "name": "Hungry Portal",
     "theme": "lower_vault",
     "atlas": [
       2,
-      1
+      2
     ],
     "floor": "B1F",
     "layout_revision": "4.0",
@@ -2410,20 +2474,20 @@
     ],
     "tiles": [
       "##########################",
-      "#.................#......#",
-      "#.................#......#",
-      "#.gg..............#......#",
-      "#.g...............#......#",
-      "#.................#......#",
-      "#.................#......#",
-      "#.................#......#",
       "#........................#",
-      "#.................#......#",
-      "#.................#......#",
-      "#..#..............#......#",
-      "#.................#......#",
-      "#.................#......#",
-      "#.................#......#",
+      "#........................#",
+      "#.gg.....................#",
+      "#.g......................#",
+      "#........................#",
+      "#........................#",
+      "#........................#",
+      "#........................#",
+      "#........................#",
+      "#........................#",
+      "#..#.....................#",
+      "#........................#",
+      "#........................#",
+      "#........................#",
       "##########################"
     ],
     "objects": [
@@ -2467,7 +2531,7 @@
         "type": "door",
         "id": "gate",
         "pos": [
-          18,
+          24,
           8
         ],
         "requires": [
@@ -2488,28 +2552,32 @@
     "exits": [
       {
         "pos": [
-          2,
+          1,
           8
         ],
         "target": "r10",
         "arrival": [
-          4,
-          7
+          23,
+          8
         ],
         "requires": [],
         "abilities": [],
         "stairs": false,
-        "entrance": "stone"
+        "entrance": "stone",
+        "direction": "WEST",
+        "id": "r13:r10",
+        "return_id": "r10:r13",
+        "orb_allowed": true
       },
       {
         "pos": [
-          23,
+          24,
           8
         ],
         "target": "r14",
         "arrival": [
           2,
-          7
+          8
         ],
         "requires": [
           "gate"
@@ -2521,7 +2589,11 @@
         ],
         "stairs": false,
         "portal": true,
-        "entrance": "stone"
+        "entrance": "stone",
+        "direction": "EAST",
+        "id": "r13:r14",
+        "return_id": "r14:r13",
+        "orb_allowed": false
       }
     ],
     "goal": [
@@ -2577,14 +2649,16 @@
       }
     ],
     "seed": 1027,
-    "content_revision": "4.1"
+    "content_revision": "4.2",
+    "grid_x": 2,
+    "grid_y": 2
   },
   "r14": {
     "name": "Threefold Circuit",
     "theme": "crystal_hall",
     "atlas": [
-      1,
-      1
+      3,
+      2
     ],
     "floor": "B1F",
     "layout_revision": "4.0",
@@ -2682,7 +2756,8 @@
           "eye",
           "clock"
         ],
-        "dash_only": true
+        "dash_only": true,
+        "reversible": true
       },
       {
         "type": "chest",
@@ -2701,66 +2776,43 @@
     "exits": [
       {
         "pos": [
-          2,
+          1,
           8
         ],
         "target": "r13",
         "arrival": [
-          4,
-          7
-        ],
-        "requires": [],
-        "abilities": [],
-        "stairs": false,
-        "entrance": "stone"
-      },
-      {
-        "pos": [
-          23,
-          12
-        ],
-        "target": "r13",
-        "arrival": [
-          4,
-          7
-        ],
-        "requires": [],
-        "abilities": [],
-        "stairs": false,
-        "entrance": "stone"
-      },
-      {
-        "pos": [
           23,
           8
+        ],
+        "requires": [],
+        "abilities": [],
+        "stairs": false,
+        "entrance": "stone",
+        "direction": "WEST",
+        "id": "r14:r13",
+        "return_id": "r13:r14",
+        "orb_allowed": true
+      },
+      {
+        "pos": [
+          23,
+          1
         ],
         "target": "r15",
         "arrival": [
-          2,
-          7
+          12,
+          13
         ],
         "requires": [
           "gate"
         ],
         "abilities": [],
         "stairs": false,
-        "entrance": "stone"
-      },
-      {
-        "pos": [
-          12,
-          13
-        ],
-        "target": "r12",
-        "arrival": [
-          2,
-          7
-        ],
-        "requires": [
-          "gate"
-        ],
-        "abilities": [],
-        "entrance": "stone"
+        "entrance": "stone",
+        "direction": "NORTH",
+        "id": "r14:r15",
+        "return_id": "r15:r14",
+        "orb_allowed": true
       }
     ],
     "goal": [
@@ -2816,14 +2868,16 @@
       }
     ],
     "seed": 1106,
-    "content_revision": "4.1"
+    "content_revision": "4.2",
+    "grid_x": 3,
+    "grid_y": 2
   },
   "r15": {
     "name": "Sentinel Gallery",
     "theme": "lower_guard",
     "atlas": [
-      1,
-      2
+      3,
+      1
     ],
     "floor": "B1F",
     "layout_revision": "4.0",
@@ -2833,20 +2887,20 @@
     ],
     "tiles": [
       "##########################",
-      "#.................#......#",
-      "#.............##..#......#",
-      "#.gg...........#..#.O....#",
-      "#.g...............#.O....#",
-      "#.................#......#",
-      "#.................#......#",
-      "#.................#......#",
       "#........................#",
-      "#.................#......#",
-      "#.................#......#",
-      "#..#..............#.O....#",
-      "#..............#..#.O....#",
-      "#.............#...#......#",
-      "#.................#......#",
+      "#.............##.........#",
+      "#.gg...........#....O....#",
+      "#.g.................O....#",
+      "#........................#",
+      "#........................#",
+      "#........................#",
+      "#........................#",
+      "#........................#",
+      "#........................#",
+      "#..#................O....#",
+      "#..............#....O....#",
+      "#.............#..........#",
+      "#........................#",
       "##########################"
     ],
     "objects": [
@@ -2862,8 +2916,8 @@
         "type": "door",
         "id": "gate",
         "pos": [
-          18,
-          8
+          12,
+          1
         ],
         "requires": [
           "clear"
@@ -2942,35 +2996,43 @@
     "exits": [
       {
         "pos": [
-          2,
-          8
+          12,
+          14
         ],
         "target": "r14",
         "arrival": [
-          4,
-          7
+          23,
+          2
         ],
         "requires": [],
         "abilities": [],
         "stairs": false,
-        "entrance": "stone"
+        "entrance": "stone",
+        "direction": "SOUTH",
+        "id": "r15:r14",
+        "return_id": "r14:r15",
+        "orb_allowed": true
       },
       {
         "pos": [
-          23,
-          8
+          12,
+          1
         ],
         "target": "r16",
         "arrival": [
-          2,
-          7
+          12,
+          13
         ],
         "requires": [
           "gate"
         ],
         "abilities": [],
         "stairs": false,
-        "entrance": "locked"
+        "entrance": "locked",
+        "direction": "NORTH",
+        "id": "r15:r16",
+        "return_id": "r16:r15",
+        "orb_allowed": true
       }
     ],
     "goal": [
@@ -3025,14 +3087,16 @@
       }
     ],
     "seed": 1185,
-    "content_revision": "4.1"
+    "content_revision": "4.2",
+    "grid_x": 3,
+    "grid_y": 1
   },
   "r16": {
     "name": "Golem Antechamber",
     "theme": "boss_chamber",
     "atlas": [
-      2,
-      2
+      3,
+      0
     ],
     "floor": "B1F",
     "layout_revision": "4.0",
@@ -3042,20 +3106,20 @@
     ],
     "tiles": [
       "##########################",
-      "#.................#......#",
-      "#.............##..#......#",
-      "#.gg...........#..#.O....#",
-      "#.g...............#.O....#",
-      "#.................#......#",
-      "#.................#......#",
-      "#.................#......#",
       "#........................#",
-      "#.................#......#",
-      "#.................#......#",
-      "#..#..............#.O....#",
-      "#..............#..#.O....#",
-      "#.............#...#......#",
-      "#.................#......#",
+      "#.............##.........#",
+      "#.gg...........#....O....#",
+      "#.g.................O....#",
+      "#........................#",
+      "#........................#",
+      "#........................#",
+      "#........................#",
+      "#........................#",
+      "#........................#",
+      "#..#................O....#",
+      "#..............#....O....#",
+      "#.............#..........#",
+      "#........................#",
       "##########################"
     ],
     "objects": [
@@ -3063,7 +3127,7 @@
         "type": "door",
         "id": "gate",
         "pos": [
-          18,
+          24,
           8
         ],
         "requires": [
@@ -3104,28 +3168,32 @@
     "exits": [
       {
         "pos": [
-          2,
-          8
+          12,
+          14
         ],
         "target": "r15",
         "arrival": [
-          4,
-          7
+          12,
+          2
         ],
         "requires": [],
         "abilities": [],
         "stairs": false,
-        "entrance": "stone"
+        "entrance": "stone",
+        "direction": "SOUTH",
+        "id": "r16:r15",
+        "return_id": "r15:r16",
+        "orb_allowed": true
       },
       {
         "pos": [
-          23,
+          24,
           8
         ],
         "target": "r17",
         "arrival": [
           2,
-          7
+          8
         ],
         "requires": [
           "gate"
@@ -3134,7 +3202,11 @@
           "boots"
         ],
         "stairs": false,
-        "entrance": "boss_gate"
+        "entrance": "boss_gate",
+        "direction": "EAST",
+        "id": "r16:r17",
+        "return_id": "r17:r16",
+        "orb_allowed": true
       }
     ],
     "goal": [
@@ -3189,14 +3261,16 @@
       }
     ],
     "seed": 1264,
-    "content_revision": "4.1"
+    "content_revision": "4.2",
+    "grid_x": 3,
+    "grid_y": 0
   },
   "r17": {
     "name": "Ancient Golem",
     "theme": "boss_chamber",
     "atlas": [
-      3,
-      2
+      4,
+      0
     ],
     "floor": "B1F",
     "layout_revision": "4.0",
@@ -3206,20 +3280,20 @@
     ],
     "tiles": [
       "##########################",
-      "#.................#......#",
-      "#.................#......#",
-      "#.gg..............#......#",
-      "#.g...............#......#",
-      "#.................#......#",
-      "#.................#......#",
-      "#.................#......#",
       "#........................#",
-      "#.................#......#",
-      "#.................#......#",
-      "#..#..............#......#",
-      "#.................#......#",
-      "#.................#......#",
-      "#.................#......#",
+      "#........................#",
+      "#.gg.....................#",
+      "#.g......................#",
+      "#........................#",
+      "#........................#",
+      "#........................#",
+      "#........................#",
+      "#........................#",
+      "#........................#",
+      "#..#.....................#",
+      "#........................#",
+      "#........................#",
+      "#........................#",
       "##########################"
     ],
     "objects": [
@@ -3252,7 +3326,7 @@
         "type": "door",
         "id": "gate",
         "pos": [
-          18,
+          24,
           8
         ],
         "requires": [
@@ -3300,35 +3374,43 @@
     "exits": [
       {
         "pos": [
-          2,
+          1,
           8
         ],
         "target": "r16",
         "arrival": [
-          4,
-          7
+          23,
+          8
         ],
         "requires": [],
         "abilities": [],
         "stairs": false,
-        "entrance": "stone"
+        "entrance": "stone",
+        "direction": "WEST",
+        "id": "r17:r16",
+        "return_id": "r16:r17",
+        "orb_allowed": true
       },
       {
         "pos": [
-          23,
+          24,
           8
         ],
         "target": "r18",
         "arrival": [
           2,
-          7
+          8
         ],
         "requires": [
           "gate"
         ],
         "abilities": [],
         "stairs": false,
-        "entrance": "stone"
+        "entrance": "stone",
+        "direction": "EAST",
+        "id": "r17:r18",
+        "return_id": "r18:r17",
+        "orb_allowed": true
       }
     ],
     "goal": [
@@ -3383,14 +3465,16 @@
       }
     ],
     "seed": 1343,
-    "content_revision": "4.1"
+    "content_revision": "4.2",
+    "grid_x": 4,
+    "grid_y": 0
   },
   "r18": {
     "name": "Dawn Reservoir",
     "theme": "hidden_sanctuary",
     "atlas": [
-      3,
-      3
+      5,
+      0
     ],
     "floor": "B1F",
     "layout_revision": "4.0",
@@ -3400,20 +3484,20 @@
     ],
     "tiles": [
       "##########################",
-      "#.................#......#",
-      "#.............##..#......#",
-      "#.gg...........#..#.O....#",
-      "#.g...............#.O....#",
-      "#.................#......#",
-      "#.................#......#",
-      "#.................#......#",
       "#........................#",
-      "#.................#......#",
-      "#.................#......#",
-      "#..#..............#.O....#",
-      "#..............#..#.O....#",
-      "#.............#...#......#",
-      "#.................#......#",
+      "#.............##.........#",
+      "#.gg...........#....O....#",
+      "#.g.................O....#",
+      "#........................#",
+      "#........................#",
+      "#........................#",
+      "#........................#",
+      "#........................#",
+      "#........................#",
+      "#..#................O....#",
+      "#..............#....O....#",
+      "#.............#..........#",
+      "#........................#",
       "##########################"
     ],
     "objects": [
@@ -3442,7 +3526,7 @@
         "type": "door",
         "id": "gate",
         "pos": [
-          18,
+          24,
           8
         ],
         "requires": [
@@ -3455,34 +3539,42 @@
     "exits": [
       {
         "pos": [
-          2,
+          1,
           8
         ],
         "target": "r17",
         "arrival": [
-          4,
-          7
+          23,
+          8
         ],
         "requires": [],
         "abilities": [],
         "stairs": false,
-        "entrance": "stone"
+        "entrance": "stone",
+        "direction": "WEST",
+        "id": "r18:r17",
+        "return_id": "r17:r18",
+        "orb_allowed": true
       },
       {
         "pos": [
-          23,
+          24,
           8
         ],
         "target": "r18",
         "arrival": [
-          2,
-          7
+          24,
+          8
         ],
         "requires": [
           "gate"
         ],
         "finish": true,
-        "entrance": "stone"
+        "entrance": "stone",
+        "direction": "EAST",
+        "id": "r18:r18",
+        "return_id": null,
+        "orb_allowed": true
       }
     ],
     "goal": [
@@ -3537,14 +3629,16 @@
       }
     ],
     "seed": 1422,
-    "content_revision": "4.1"
+    "content_revision": "4.2",
+    "grid_x": 5,
+    "grid_y": 0
   },
   "r19": {
     "name": "Torch Shrine",
     "theme": "torch_shrine",
     "atlas": [
-      4,
-      0
+      3,
+      2
     ],
     "floor": "1F",
     "layout_revision": "4.0",
@@ -3554,20 +3648,20 @@
     ],
     "tiles": [
       "##########################",
-      "#.................#......#",
-      "#.................#......#",
-      "#.gg..........#...#......#",
-      "#.g....#..#..##...#......#",
-      "#.................#......#",
-      "#.................#......#",
-      "#.................#......#",
       "#........................#",
-      "#.................#......#",
-      "#.................#......#",
-      "#..#..........#...#......#",
-      "#.............#...#......#",
-      "#.................#......#",
-      "#.................#......#",
+      "#........................#",
+      "#.gg..........#..........#",
+      "#.g....#..#..##..........#",
+      "#........................#",
+      "#........................#",
+      "#........................#",
+      "#........................#",
+      "#........................#",
+      "#........................#",
+      "#..#..........#..........#",
+      "#.............#..........#",
+      "#........................#",
+      "#........................#",
       "##########################"
     ],
     "objects": [
@@ -3638,7 +3732,7 @@
         ]
       },
       {
-        "type": "door",
+        "type": "gate_control",
         "id": "gate",
         "pos": [
           18,
@@ -3690,6 +3784,15 @@
           "hidden_fire"
         ],
         "hidden": true
+      },
+      {
+        "type": "crystal_barrier",
+        "id": "library_red",
+        "pos": [
+          12,
+          1
+        ],
+        "color": "red"
       }
     ],
     "enemies": [
@@ -3706,33 +3809,41 @@
     "exits": [
       {
         "pos": [
-          2,
+          1,
           8
         ],
         "target": "r2",
         "arrival": [
-          2,
-          7
-        ],
-        "requires": [],
-        "abilities": [],
-        "entrance": "stone"
-      },
-      {
-        "pos": [
           23,
           8
         ],
+        "requires": [],
+        "abilities": [],
+        "entrance": "stone",
+        "direction": "WEST",
+        "id": "r19:r2",
+        "return_id": "r2:r19",
+        "orb_allowed": true
+      },
+      {
+        "pos": [
+          12,
+          1
+        ],
         "target": "r5",
         "arrival": [
-          2,
-          7
+          12,
+          13
         ],
         "requires": [
           "gate"
         ],
         "abilities": [],
-        "entrance": "stone"
+        "entrance": "stone",
+        "direction": "NORTH",
+        "id": "r19:r5",
+        "return_id": "r5:r19",
+        "orb_allowed": true
       }
     ],
     "goal": [
@@ -3780,14 +3891,16 @@
       }
     ],
     "seed": 1501,
-    "content_revision": "4.1"
+    "content_revision": "4.2",
+    "grid_x": 3,
+    "grid_y": 2
   },
   "r20": {
     "name": "Pot Storage",
     "theme": "pot_storage",
     "atlas": [
       1,
-      2
+      1
     ],
     "floor": "1F",
     "layout_revision": "4.0",
@@ -3797,20 +3910,20 @@
     ],
     "tiles": [
       "##########################",
-      "#.................#......#",
-      "#.................#......#",
-      "#.gg..........#...#......#",
-      "#.g...........#...#......#",
-      "#.................#......#",
-      "#.................#......#",
-      "#.................#......#",
       "#........................#",
-      "#.................#......#",
-      "#.................#......#",
-      "#..#..........#...#......#",
-      "#.............#...#......#",
-      "#.................#......#",
-      "#.................#......#",
+      "#........................#",
+      "#.gg..........#..........#",
+      "#.g...........#..........#",
+      "#........................#",
+      "#........................#",
+      "#........................#",
+      "#........................#",
+      "#........................#",
+      "#........................#",
+      "#..#..........#..........#",
+      "#.............#..........#",
+      "#........................#",
+      "#........................#",
       "##########################"
     ],
     "objects": [
@@ -3897,8 +4010,8 @@
         "type": "door",
         "id": "gate",
         "pos": [
-          18,
-          8
+          12,
+          1
         ],
         "requires": [
           "load",
@@ -3951,6 +4064,16 @@
         ],
         "weight": 2,
         "renewable": true
+      },
+      {
+        "id": "tower_pillar",
+        "type": "pillar",
+        "pos": [
+          15,
+          10
+        ],
+        "flag": "pillar_storage",
+        "optional": true
       }
     ],
     "enemies": [
@@ -3966,33 +4089,68 @@
     "exits": [
       {
         "pos": [
-          2,
-          8
+          12,
+          14
         ],
         "target": "r4",
         "arrival": [
-          2,
-          7
+          12,
+          2
         ],
         "requires": [],
         "abilities": [],
-        "entrance": "stone"
+        "entrance": "stone",
+        "direction": "SOUTH",
+        "id": "r20:r4",
+        "return_id": "r4:r20",
+        "orb_allowed": true
       },
       {
         "pos": [
-          23,
-          8
+          12,
+          1
         ],
         "target": "r7",
         "arrival": [
-          2,
-          7
+          12,
+          13
         ],
         "requires": [
           "gate"
         ],
         "abilities": [],
-        "entrance": "stone"
+        "entrance": "stone",
+        "direction": "NORTH",
+        "id": "r20:r7",
+        "return_id": "r7:r20",
+        "orb_allowed": true
+      },
+      {
+        "id": "r20:r22",
+        "return_id": "r22:r20",
+        "target": "r22",
+        "direction": "DOWN",
+        "pos": [
+          21,
+          13
+        ],
+        "landing": [
+          21,
+          12
+        ],
+        "arrival": [
+          5,
+          12
+        ],
+        "stairs": true,
+        "entrance": "stairs_down",
+        "requires": [],
+        "flag_requires": [
+          "floor_lowered"
+        ],
+        "abilities": [],
+        "transformed": true,
+        "orb_allowed": true
       }
     ],
     "goal": [
@@ -4040,14 +4198,27 @@
       }
     ],
     "seed": 1580,
-    "content_revision": "4.1"
+    "content_revision": "4.2",
+    "grid_x": 1,
+    "grid_y": 1,
+    "orb_spawn": [
+      10,
+      11
+    ],
+    "transformation": {
+      "flags": [
+        "pillar_storage",
+        "pillar_foundry"
+      ],
+      "result": "floor_lowered"
+    }
   },
   "r21": {
     "name": "Crystal Warden",
     "theme": "crystal_hall",
     "atlas": [
-      2,
-      3
+      0,
+      2
     ],
     "floor": "B1F",
     "layout_revision": "4.0",
@@ -4057,20 +4228,20 @@
     ],
     "tiles": [
       "##########################",
-      "#.###.............#..###.#",
-      "#.##..............#...##.#",
-      "#.gg..........#...#......#",
-      "#.g...........#...#......#",
-      "#.................#......#",
-      "#.................#......#",
-      "#.................#......#",
+      "#.###................###.#",
+      "#.##..................##.#",
+      "#.gg..........#..........#",
+      "#.g...........#..........#",
       "#........................#",
-      "#.................#......#",
-      "#.................#......#",
-      "#..#..........#...#......#",
-      "#.............#...#....#.#",
-      "#.##..............#...##.#",
-      "#.................#......#",
+      "#........................#",
+      "#........................#",
+      "#........................#",
+      "#........................#",
+      "#........................#",
+      "#..#..........#..........#",
+      "#.............#........#.#",
+      "#.##..................##.#",
+      "#........................#",
       "##########################"
     ],
     "objects": [
@@ -4106,7 +4277,7 @@
         }
       },
       {
-        "type": "door",
+        "type": "gate_control",
         "id": "gate",
         "pos": [
           18,
@@ -4145,7 +4316,7 @@
         "id": "sanctuary",
         "pos": [
           12,
-          13
+          1
         ]
       }
     ],
@@ -4181,50 +4352,42 @@
     "exits": [
       {
         "pos": [
-          2,
+          24,
           8
         ],
         "target": "r10",
         "arrival": [
           2,
-          7
+          8
         ],
         "requires": [],
         "abilities": [],
-        "entrance": "stone"
-      },
-      {
-        "pos": [
-          23,
-          8
-        ],
-        "target": "r12",
-        "arrival": [
-          2,
-          7
-        ],
-        "requires": [
-          "gate"
-        ],
-        "abilities": [],
-        "entrance": "stone"
+        "entrance": "stone",
+        "direction": "EAST",
+        "id": "r21:r10",
+        "return_id": "r10:r21",
+        "orb_allowed": true
       },
       {
         "pos": [
           12,
-          13
+          1
         ],
         "target": "r22",
         "arrival": [
-          2,
-          7
+          12,
+          13
         ],
         "requires": [
           "sanctuary",
           "clear"
         ],
         "abilities": [],
-        "entrance": "cave"
+        "entrance": "cave",
+        "direction": "NORTH",
+        "id": "r21:r22",
+        "return_id": "r22:r21",
+        "orb_allowed": true
       }
     ],
     "goal": [
@@ -4274,14 +4437,16 @@
     ],
     "on_clear_flag": "warden",
     "seed": 1659,
-    "content_revision": "4.1"
+    "content_revision": "4.2",
+    "grid_x": 0,
+    "grid_y": 2
   },
   "r22": {
     "name": "Hidden Sanctuary",
     "theme": "hidden_sanctuary",
     "atlas": [
-      1,
-      3
+      0,
+      1
     ],
     "floor": "B1F",
     "layout_revision": "4.0",
@@ -4386,6 +4551,86 @@
         "requires": [
           "sequence"
         ]
+      },
+      {
+        "id": "totem_a",
+        "type": "box",
+        "pos": [
+          16,
+          10
+        ],
+        "heavy": true,
+        "mark": 1,
+        "optional": true
+      },
+      {
+        "id": "totem_b",
+        "type": "box",
+        "pos": [
+          20,
+          10
+        ],
+        "heavy": true,
+        "mark": 2,
+        "optional": true
+      },
+      {
+        "id": "arrangement",
+        "type": "ordered_layout",
+        "pos": [
+          22,
+          9
+        ],
+        "placements": [
+          {
+            "object": "totem_a",
+            "pos": [
+              16,
+              9
+            ]
+          },
+          {
+            "object": "totem_b",
+            "pos": [
+              20,
+              9
+            ]
+          }
+        ],
+        "optional": true
+      },
+      {
+        "id": "layout_cache",
+        "type": "chest",
+        "pos": [
+          22,
+          6
+        ],
+        "hidden": true,
+        "requires": [
+          "arrangement"
+        ],
+        "loot": [
+          "token_cache"
+        ],
+        "optional": true
+      },
+      {
+        "id": "orb_cache",
+        "type": "chest",
+        "pos": [
+          6,
+          11
+        ],
+        "hidden": true,
+        "flag_requires": [
+          "floor_lowered"
+        ],
+        "loot": [
+          "heart_fragment",
+          "ticket_bundle"
+        ],
+        "optional": true
       }
     ],
     "enemies": [
@@ -4417,31 +4662,66 @@
     "exits": [
       {
         "pos": [
-          2,
-          8
+          12,
+          14
         ],
         "target": "r21",
         "arrival": [
-          2,
-          7
+          12,
+          2
         ],
         "requires": [],
         "abilities": [],
-        "entrance": "stone"
+        "entrance": "stone",
+        "direction": "SOUTH",
+        "id": "r22:r21",
+        "return_id": "r21:r22",
+        "orb_allowed": true
       },
       {
         "pos": [
-          23,
-          12
+          24,
+          8
         ],
         "target": "r11",
         "arrival": [
-          23,
-          11
+          2,
+          8
         ],
         "requires": [],
         "abilities": [],
-        "entrance": "stone"
+        "entrance": "stone",
+        "direction": "EAST",
+        "id": "r22:r11",
+        "return_id": "r11:r22",
+        "orb_allowed": true
+      },
+      {
+        "id": "r22:r20",
+        "return_id": "r20:r22",
+        "target": "r20",
+        "direction": "UP",
+        "pos": [
+          5,
+          13
+        ],
+        "landing": [
+          5,
+          12
+        ],
+        "arrival": [
+          21,
+          12
+        ],
+        "stairs": true,
+        "entrance": "stairs_up",
+        "requires": [],
+        "flag_requires": [
+          "floor_lowered"
+        ],
+        "abilities": [],
+        "transformed": true,
+        "orb_allowed": true
       }
     ],
     "goal": [
@@ -4495,6 +4775,8 @@
       "mask"
     ],
     "seed": 1738,
-    "content_revision": "4.1"
+    "content_revision": "4.2",
+    "grid_x": 0,
+    "grid_y": 1
   }
 }

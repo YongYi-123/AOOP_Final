@@ -88,7 +88,7 @@ class DungeonPresentationTests(unittest.TestCase):
     def test_dash_into_finish_enters_victory_scene(self):
         game=Game(headless=True);game.start(onboarding=False);s=game.session;s.inventory.abilities.add('boots');s.enter('r18')
         s.puzzles.objects['dawn'].state.active=True;s.puzzles.objects['treasure'].state.active=True;s.tick(0)
-        s.player.x,s.player.y=20,8;s.player.facing=(1,0)
+        finish=next(e for e in s.rooms.data['exits'] if e.get('finish'));s.player.x,s.player.y=finish['pos'][0]-3,finish['pos'][1];s.player.facing=(1,0)
         with patch.object(game,'save'):game.event(pygame.event.Event(pygame.KEYDOWN,key=pygame.K_LSHIFT))
         self.assertTrue(s.finished);self.assertEqual(game.scene,GameScene.VICTORY)
     def test_zero_health_rejects_gameplay_before_scene_update(self):

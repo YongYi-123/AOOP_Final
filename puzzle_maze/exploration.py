@@ -48,6 +48,7 @@ class DungeonAtlas:
 
     def layout(self,visited):
         visible=self.visible_rooms(visited)
+        if all('grid_x' in room and 'grid_y' in room for room in visible.values()):return {name:(room['grid_x'],room['grid_y']) for name,room in visible.items()}
         if all('atlas' in room for room in visible.values()):return {name:tuple(room['atlas']) for name,room in visible.items()}
         # Existing/custom maps without coordinates still derive their graph automatically.
         root=next(iter(visible));queue=deque([(root,0)]);seen={root};result={}
@@ -58,9 +59,16 @@ class DungeonAtlas:
                     seen.add(e['target']);queue.append((e['target'],depth+1))
         return result
 
-    def edges(self,visited):
+    def displayed_layout(self,session,minimap=False):
+        layout=self.layout(session.visited)
+        if 'map' not in session.inventory.abilities:
+            allowed={session.rooms.current} if minimap else session.visited
+            layout={name:pos for name,pos in layout.items() if name in allowed}
+        return layout
+
+    def edges(self,visited,flags=None):
         visible=self.visible_rooms(visited)
-        return {tuple(sorted((name,e['target']))) for name,room in visible.items() for e in room['exits'] if not e.get('finish') and e['target'] in visible}
+        return {tuple(sorted((name,e['target']))) for name,room in visible.items() for e in room['exits'] if not e.get('finish') and e['target'] in visible and (not e.get('transformed') or flags is not None and set(e.get('flag_requires',[]))<=flags)}
 
     def discovered_markers(self,session):
         known=session.exploration.tiles.get(session.rooms.current,set())

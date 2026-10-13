@@ -91,10 +91,13 @@ class Door(PuzzleObject):
             return True
         return False
 
+class GateControl(Door):
+    blocking = False
+
 class Key(PuzzleObject):
     pass
 
-FACTORY = {'box': PushableBox, 'plate': PressurePlate, 'switch': Switch, 'door': Door, 'key': Key}
+FACTORY = {'box': PushableBox, 'plate': PressurePlate, 'switch': Switch, 'door': Door, 'gate_control': GateControl, 'key': Key}
 
 class PuzzleManager(CollisionManager):
     def __init__(self, room, inventory=None):
@@ -163,7 +166,7 @@ class PuzzleManager(CollisionManager):
                 if timed and player is not None and player.x > obj.x:
                     obj.latched = True  # Crossing memory powers later stages, without holding this gate open.
                 occupied = player is not None and obj.pos == (player.x, player.y) or any(isinstance(b, PushableBox) and b.pos == obj.pos for b in self.objects.values())
-                obj.state.active = powered or (obj.latched and not timed) or bool(occupied) or obj.pos in self.occupants
+                obj.state.active = powered or (obj.latched and (not timed or obj.data.get('reversible',False))) or bool(occupied) or obj.pos in self.occupants
 
         for obj in self.objects.values():
             if isinstance(obj, Chest):
@@ -260,7 +263,8 @@ class Chest(PuzzleObject):
         elif self.phase == ChestPhase.HIDDEN:
             if (all(manager.condition(i) for i in self.data.get('requires', []))
                     and set(self.data.get('ability_requires', [])) <= manager.inventory.abilities
-                    and set(self.data.get('flag_requires', [])) <= manager.inventory.flags):
+                    and set(self.data.get('flag_requires', [])) <= manager.inventory.flags
+                    and self.data.get('crystal_color', 'blue' if 'crystal_blue' in manager.inventory.flags else 'red') == ('blue' if 'crystal_blue' in manager.inventory.flags else 'red')):
                 self.phase = ChestPhase.SPAWNING
                 self.spawn_time = self.spawn_duration
         elif self.phase == ChestPhase.SPAWNING:

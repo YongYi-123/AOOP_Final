@@ -98,7 +98,8 @@ def build():
                 objects={o['id']:o for o in room['objects']}
                 gates=[objects[i] for i in exit.get('requires',[]) if i in objects]
                 exit['entrance']='boss_gate' if any(o.get('key')=='boss' for o in gates) else 'locked' if any(o.get('key')=='small' for o in gates) else 'cave' if any(o['type']=='cracked' for o in gates) else 'stone'
-    return rooms
+    from puzzle_maze.layout42 import repair
+    return repair(rooms)
 
 if __name__=='__main__':
     (Path(__file__).parent/'maps/dungeon_v4.json').write_text(json.dumps(build(),indent=2)+'\n')
