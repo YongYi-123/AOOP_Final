@@ -1877,6 +1877,16 @@
           8,
           9
         ]
+      },
+      {
+        "id": "west_crystal",
+        "type": "crystal_barrier",
+        "pos": [
+          1,
+          8
+        ],
+        "color": "red",
+        "optional": true
       }
     ],
     "enemies": [],

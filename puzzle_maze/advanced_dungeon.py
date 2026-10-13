@@ -24,7 +24,7 @@ class AdvancedDungeonSession(DungeonSession):
             self.migration_notice='Previous progress retained in the repaired 4.2 layout.'
         return data
     def make_puzzles(self,room):
-        manager=AdvancedPuzzleManager(room,self.inventory);manager.grant_treasure=self.grant_treasure;return manager
+        manager=AdvancedPuzzleManager(room,self.inventory);manager.grant_treasure=self.grant_treasure;manager.has_external_load=lambda:self.orb.carried;return manager
     def enter(self,name,arrival=None):
         super().enter(name,arrival)
         if self.orb.carried:self.orb.room=name;self.orb.x,self.orb.y=self.player.x,self.player.y
@@ -135,6 +135,9 @@ class AdvancedDungeonSession(DungeonSession):
         self.orb=IronOrb.restore(data.get('orb',IronOrb().capture()),self.rooms.rooms)
         if self.orb.carried and (self.orb.room!=self.rooms.current or self.orb.pos!=(self.player.x,self.player.y)):raise ValueError('Carried orb out of sync')
         self.rewards=DungeonRewardBag.restore(data['rewards'])
+        checkpoint_orb=IronOrb.restore(self.checkpoint.get('orb',IronOrb().capture()),self.rooms.rooms)
+        if self.orb.carried and self.inventory.carried is not None:raise ValueError('Two carried weights')
+        if checkpoint_orb.carried and (checkpoint_orb.room!=self.rooms.current or checkpoint_orb.pos!=tuple(self.checkpoint['pos']) or self.checkpoint.get('carried') is not None):raise ValueError('Invalid checkpoint orb')
         checkpoint=DungeonRewardBag.restore(self.checkpoint['reward_bag'])
         if checkpoint.run_id!=self.rewards.run_id or self.rewards.claimed!=self.finished:raise ValueError('Invalid reward lifecycle')
         id=self.inventory.carried

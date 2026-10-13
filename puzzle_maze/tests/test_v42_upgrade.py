@@ -56,6 +56,16 @@ class Upgrade42Tests(unittest.TestCase):
         bad=copy.deepcopy(rooms);bad['r1']['objects'].append(dict(id='fake',type='switch',pos=[6,10]))
         with self.assertRaises(ValueError):PuzzleDependencyValidator(bad).validate()
 
+    def test_validator_rejects_untriggerable_color_and_object_placement(self):
+        from puzzle_maze.rooms import validate_rooms
+        rooms=AdvancedDungeonSession().rooms.rooms
+        for mutation in ('color','placement','pillar'):
+            bad=copy.deepcopy(rooms)
+            if mutation=='color':next(o for o in bad['r12']['objects'] if o['id']=='crystal_cache')['crystal_color']='green'
+            elif mutation=='placement':next(o for o in bad['r22']['objects'] if o['id']=='arrangement')['placements'][0]['object']='missing'
+            else:next(o for o in bad['r20']['objects'] if o['type']=='pillar')['flag']=''
+            with self.assertRaises(ValueError):validate_rooms(bad)
+
     def test_real_transition_arrives_at_the_opposite_entrance_and_returns(self):
         s=AdvancedDungeonSession();s.puzzles.objects['lever'].state.active=True;s.tick(0)
         exit=next(e for e in s.rooms.data['exits'] if e['target']=='r2');s.player.x,s.player.y=exit['pos']
@@ -86,6 +96,17 @@ class Upgrade42Tests(unittest.TestCase):
         game.event(pygame.event.Event(pygame.KEYDOWN,key=pygame.K_e));self.assertTrue(s.orb.carried)
         game.event(pygame.event.Event(pygame.KEYDOWN,key=pygame.K_g));self.assertFalse(s.orb.carried)
         game.event(pygame.event.Event(pygame.KEYDOWN,key=pygame.K_t));self.assertEqual(s.orb.pos,(10,11));self.assertEqual(s.orb.room,'r20')
+
+    def test_pot_cannot_be_lifted_while_orb_is_carried(self):
+        s=AdvancedDungeonSession();s.inventory.abilities.add('gloves');s.enter('r20');s.orb.carried=True
+        self.assertFalse(s.puzzles.objects['jar'].interact(s.puzzles,s.player));self.assertIsNone(s.inventory.carried)
+
+    def test_carried_orb_prompt_matches_drop_action_instead_of_nearby_pot(self):
+        game=Game(headless=True);game.scene=GameScene.PLAY;s=game.session;s.inventory.abilities.add('gloves');s.enter('r20')
+        s.player.x,s.player.y=10,12;s.interact_orb();game.visual=[10.,12.];game.draw(.016)
+        labels=[command[0] for command in game.renderer.ui.commands]
+        self.assertTrue(any('Drop / G Orb / T Recall' in text for text in labels))
+        self.assertFalse(any('[E] Lift' in text for text in labels))
 
     def test_orb_carries_through_allowed_door_with_correct_room_position(self):
         s=AdvancedDungeonSession();s.inventory.abilities.add('gloves');s.enter('r20');s.player.x,s.player.y=10,12

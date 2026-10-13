@@ -1,9 +1,9 @@
-# Puzzle Maze 4.1 — Emberglass Hollow
+# Puzzle Maze 4.2 — Emberglass Hollow
 
 An original Python / Pygame dungeon adventure upgraded in place. Twenty-two
 rooms over 1F and B1F combine branch exploration, returning routes, cross-room
 circuits, fire sequences, carried weights, enemy weaknesses and five secret
-collections. The original free Arcade cabinet now opens this 4.1 campaign. No story is included.
+collections. The original free Arcade cabinet now opens this 4.2 campaign. No story is included.
 
 ## Run
 
@@ -17,7 +17,7 @@ to silence when mixer initialization fails.
 
 New expedition plays a six-second introduction; Enter skips to the tutorial.
 Left/Right switch the two tutorial pages and Enter begins. Quick start skips both.
-Continue expedition loads 4.1 without onboarding. Pause, full map and onboarding
+Continue expedition loads 4.2 without onboarding. Pause, full map and onboarding
 freeze gameplay clocks, enemy AI and bomb fuses.
 
 ## Controls
@@ -34,6 +34,7 @@ freeze gameplay clocks, enemy AI and bomb fuses.
 | Space | Selected tool; Magnet repels a metal weight |
 | F | Magnetic pull |
 | Shift | Three-tile dash after Boots, 1.2-second cooldown |
+| T | Recall Iron Orb to Pot Storage |
 | H | Spend a potion to heal up to three hearts |
 | Tab | Full map; Left/Right switch floors |
 | R | Reset this room to its entrance checkpoint |
@@ -53,10 +54,10 @@ provides Magic Powder and a flame relay. Library and weight/light relays plus th
 flame relay power the lower stairs; two Small Keys unlock them.
 
 You can first explore the glove branch, then the shrine, then Pot Storage for a
-bomb bundle and the workshop shortcut. Alternatively, take the combat-key watch
-route to the workshop. Boots later unlock another return loop. B1F adds Warden /
-prism connections and a circuit shortcut, so returning need not follow the same
-corridor. Small Key costs remain five, with six authored keys available.
+bomb bundle and the north Workshop route. Boots Trial lies east of Workshop
+and north of Copper Watch. Library has a secret west connection to Watch.
+B1F branches west to Warden, north to Foundry/Prism, and east to Hungry Portal.
+Two Orb pillars unlock a separate floor-changing return loop. Small Key costs remain five, with six authored keys available.
 
 The old eighteen rooms retain their working box, light, magnetic and dash puzzles.
 Four new rooms provide distinct mechanics rather than blank space:
@@ -65,7 +66,7 @@ Four new rooms provide distinct mechanics rather than blank space:
 | --- | --- |
 | Torch Shrine | Powder chest/refill, numbered fire sequence, revealed Ghost, flame relay, secret fire |
 | Pot Storage | Gloves, throwable pots, Pot Hunter, carried three-weight plate, flame-controlled gate and shortcut |
-| Crystal Warden | Red/blue circuit, projectile mini-boss, two finite summons, blue exit and cracked sanctuary wall |
+| Crystal Warden | Red/blue circuit, projectile mini-boss, two finite summons and north cracked sanctuary wall |
 | Hidden Sanctuary | Slime → Bat → Mirror Mask order, hidden skin reward, cross-room relic and optional caches |
 
 The Boss Key still requires returning to the earlier dash room, now after the
@@ -164,7 +165,7 @@ potions, fragments, collection count, global crystal color and floor.
 
 ## Saves and archives
 
-4.1 uses `puzzle_maze/save_v4.json` with atomic replacement. It leaves `save_v3.json`,
+4.2 uses `puzzle_maze/save_v4.json` with atomic replacement. It leaves `save_v3.json`,
 `save_v2.json`, legacy `save.json` and their backups intact. Invalid saves fall back
 without rewriting the file. Dead sessions do not replace the last living save.
 Room reset restores entry inventory, enemy progress, carried objects and pending
@@ -178,7 +179,7 @@ current save. They are also available directly:
 .venv/bin/python -m puzzle_maze --campaign 2
 ```
 
-See `README_V3.md` and `README_V21.md`. The original Arcade cabinet now uses the 4.1 campaign through `lobby_scene.py`.
+See `README_V3.md` and `README_V21.md`. The original Arcade cabinet now uses the 4.2 campaign through `lobby_scene.py`.
 P1 uses J / E / Space / LShift; P2 uses K / Enter / KP0 / RShift. Both use
 B bombs, P powder and G pots. Private reward receipts do not pay lobby currency.
 
@@ -208,16 +209,15 @@ alternatives, and searches all key spending orders in a monotone abstraction.
 .venv/bin/python -m puzzle_maze --headless --screenshot /tmp/puzzle-maze.png
 ```
 
-137 tests pass. They cover all prior regressions, all 22 room visits, the complete
+169 tests pass. They cover all prior regressions, all 22 room visits, the complete
 five-secret victory route, crystals, carried weights, fire/enemy orders, pot combat,
 finite Warden summons, both Bosses, receipt idempotence, death, corrupt/active saves,
 archives and UI bounds at five resolutions. All 341 abstract resource states have
 a winning continuation. Geometry and abilities are separately replayed through
 production movement; coupled mirror movement is searched for a legal approach.
 
-This is not exhaustive proof over every enemy timing or crate arrangement. Route
-walking does not advance the clock per movement step; combat and fuses receive
-explicit ticks. Real-time balance still needs human playtesting. Headless image
+This is not exhaustive proof over every enemy timing or crate arrangement. Puzzle/cleared-room walking advances 0.13 seconds per step; combat uses
+targeted actions plus real damage, AI, fuse and death ticks. Real-time balance still needs human playtesting. Headless image
 review covers the rooms, fire shrine, carried pots, Warden and tutorial.
 A 180-frame cached Warden draw benchmark averaged 1.87 ms/frame here; it measures
 rendering, not full interactive FPS.
@@ -227,54 +227,69 @@ balance, audio volume, native display scaling and actual FPS. All edits are conf
 changes were made. The cabinet selects the current v4 campaign explicitly without changing host modules.
 
 
-## 4.1 hidden treasure and final-level verification
+## 4.2 absolute geometry and progression repair
 
-The original cabinet and standalone game both show **PUZZLE MAZE 4.1**. Restart
-an already running lobby process to load the updated Python modules. Continue
-retains an existing expedition; choose New expedition or Quick start to see
-uncollected rewards from the beginning.
+[Complete Chinese walkthrough](PLAYER_ROUTE.md) documents the actual 4.2
+coordinates, door directions, resource order, puzzle solutions, optional Orb
+route, Boss phases and the final room. The cabinet and standalone menu show
+**PUZZLE MAZE 4.2**; restart a running host process to load the updated modules.
 
-There are 27 chests, including 10 hidden chests. Hidden chests have explicit
-HIDDEN -> SPAWNING (0.45 seconds) -> AVAILABLE -> OPENED states. They do not draw,
-block movement, offer prompts or appear on the compass before their trigger.
-Once revealed they stay available, even after a temporary trigger expires.
-Combat keys now appear in a chest after clearing Copper Watch. Other triggers
-include switches, heavy crates, flame sequence, ordered enemies, cross-room
-flags and the Boots/prism/Warden/timed-crossing Boss Key combination. Rewards
-cannot be collected twice. Spawn timers and opened state survive saving.
+Every room has authoritative floor/grid_x/grid_y coordinates. The atlas derives
+from those fields. DoorConnection/RoomCoordinate and DoorValidator check unique
+room placement, cardinal adjacency, correct wall edge, reciprocal connection
+IDs and opposite-entry landing. Inconsistent loops were replaced with physical
+neighbors. No new main-route cheat portal was added. The existing Hungry Portal
+has its own glow marker and explicitly refuses carried Iron Orbs.
 
-The map has 59 directional entrance records, including two stair entrances
-(one 1F/B1F pair) and four secret entries: two bomb walls, a walk-through library
-wall and a remotely revealed foundry entrance. Entrances use original arch,
-cave, lock, Boss Gate and stair art instead of arrow markers. The library wall
-has a subtle floor seam; the foundry wall opens after the flame and Warden
-signals. Every passage has a return. Newly restored crates or enemies cannot
-occupy the player's landing tile. Secrets stay absent from exit markers until
-revealed/discovered.
+There are 51 entrance records: 49 repaired regular/secret/stair/final records,
+plus two optional transformation stair records. The original 1F/B1F stairs and
+new pair total four stair records. Gates guard their actual exit tiles. Interior
+multi-condition controllers use gear indicators instead of fake door art.
+The lower landing no longer overlaps the Atrium east-door arrival. First success
+on a timed dash gate enables normal return walking; timers still restrict the
+first crossing. Five secret-entry records cover the two bomb walls, reciprocal
+library/watch walk-through and remote foundry/sanctuary connection.
 
-Save geometry revision stays 4.0; additive content is tagged 4.1. Existing
-snapshot IDs and coordinates are preserved, including converting the old
-combat-key pickup into an opened chest if it was already collected. Legacy
-chest snapshots load without requiring new fields. An old player saved on the
-new foundry portal's closed tile moves to adjacent safe floor without losing
-inventory. Loading does not rewrite the save file.
+All 30 chests have interaction routes and actual rewards; 13 are hidden. Library
+Compass and Prism key now require their real puzzle controller. Thirty-six
+actuators have consumers derived by PuzzleDependencyValidator from actual
+objects, exits, global flags, light receivers, enemies and transformation rules.
+ChestValidator supplements the physical campaign witness with post-condition
+local collision checks; it does not assume that connectivity solves puzzles.
+
+IronOrb is one recoverable world object: Gloves/E lift or place, G throws,
+T recalls to Pot Storage. It persists across allowed room/floor transitions,
+save/load and room reset. It cannot coexist with a carried pot. Storage and
+Foundry pillars unlock the optional new stairs and a reward chest; map edges
+appear with the real transformation state. Correctly marked heavy-block
+placement reveals another chest. Blue crystal plus the Prism puzzle reveals a
+third new chest. Original return routes remain intact.
+
+Before Map, minimap shows only the current room and Tab shows visited records.
+Map unlocks gray unvisited outlines; hidden rooms stay undisclosed. Compass only
+marks known reward/Boss scope. New stairs do not draw before their real unlock.
+
+Old saves load read-only through migration42 using archived dungeon_v41.json:
+validate old snapshots, update static gate/entrance positions, add optional
+objects, choose legal landings and retain inventory, locks, enemies, completion,
+exploration and private rewards. The save geometry identifier remains 4.0 with
+content_revision 4.2 identifying this additive migration. Loading never rewrites
+an existing save file.
+
+Validation commands:
 
 ```bash
 .venv/bin/python -m puzzle_maze.integrity
 .venv/bin/python -m unittest discover -s puzzle_maze/tests -q
+.venv/bin/python -m puzzle_maze --headless --frames 60
 ```
 
-Integrity report: 22 rooms, 341 reachable resource states / 341 winning states,
-six small keys / five mandatory key costs, final destination r18. Structural
-checks reject missing returns, unsafe landings, inconsistent floor stairs,
-missing flag producers, empty chests and missing hidden-chest triggers. Crate
-puzzles use state search. The separate production-action campaign regression
-walks all 22 rooms, activates real puzzles, defeats the three-stage Golem,
-reaches Dawn Reservoir and confirms victory plus persisted settlement. This
-route witness does not advance time for every ordinary walk; combat, bomb fuses,
-chest spawning and dash challenges do advance time. A separate 60 FPS timer
-simulation verifies the dash gate after a 0.2-second input delay.
-
-[Playable route and controls](PLAYER_ROUTE.md). Human checks remain for
-continuous real-time difficulty, sound balance, secret clue visibility and FPS
-on the player's machine; headless tests do not replace those checks.
+The integrity search retains 341/341 winning resource states (six Small Keys for
+five costs), plus crate search and door/chest/dependency audits. The extended
+production-action campaign opens every authored chest, traverses both floors
+and the transformed stairs, defeats Warden/Golem and finishes r18 with an
+idempotent saved receipt. Cleared-room/puzzle walking advances 0.13 seconds per
+step; combat uses targeted action witnesses and real AI/damage/fuse/death timers.
+This does not exhaustively simulate continuous human combat or every walking
+trajectory. Real play is still required for difficulty, sound balance, clue
+visibility and FPS on the user's machine.

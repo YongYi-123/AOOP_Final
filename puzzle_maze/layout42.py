@@ -62,6 +62,7 @@ def repair(rooms):
     # Optional multi-room/floor growth never removes the original return routes.
     rooms['r20']['objects'].append(dict(id='tower_pillar',type='pillar',pos=[15,10],flag='pillar_storage',optional=True))
     rooms['r11']['objects'].append(dict(id='engine_pillar',type='pillar',pos=[16,10],flag='pillar_foundry',optional=True))
+    rooms['r10']['objects'].append(dict(id='west_crystal',type='crystal_barrier',pos=[1,8],color='red',optional=True))
     rooms['r20']['orb_spawn']=[10,11]
     for a,b,direction,pos,landing in ((20,22,'DOWN',[21,13],[21,12]),(22,20,'UP',[5,13],[5,12])):
         rooms[f'r{a}']['exits'].append(dict(id=f'r{a}:r{b}',return_id=f'r{b}:r{a}',target=f'r{b}',direction=direction,pos=pos,landing=landing,arrival=[5,12] if a==20 else [21,12],stairs=True,entrance='stairs_down' if a==20 else 'stairs_up',requires=[],flag_requires=['floor_lowered'],abilities=[],transformed=True,orb_allowed=True))

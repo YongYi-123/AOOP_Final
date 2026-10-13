@@ -1,61 +1,128 @@
-# Emberglass Hollow 4.1 — route to the final room
+# Puzzle Maze 4.2 中文完整攻略
 
-A verified route exists through all 22 rooms, with six Small Keys for five
-mandatory lock costs. This is a guide for the live game, not an automatic win.
-The room map uses your actual discovered connections; Tab switches to the full
-map and Left/Right selects 1F/B1F.
+這份攻略對應選單顯示 **PUZZLE MAZE 4.2** 的版本。請先關閉並重新啟動遊戲；新遊戲或 Quick start 從入口開始，Continue 保留既有進度。下文含必要路線、Boss 弱點及秘密獎勵提示。
 
-Controls: WASD/arrows move, J sword, E interact, B bomb, P powder, G throw pot,
-Shift dash, F magnetic pull, Space magnetic push when selected with Q, H heal,
-R reset the current room, Esc pause. Arcade P2 uses K for sword, Enter for
-interaction and Right Shift for dash; B/P/G/F/Q/H remain shared keys.
+自動通關模擬已走遍 22 個房間、開啟全部 30 個寶箱、完成兩層探索與最終結算。一般解謎／清場後移動使用實際的 0.13 秒節奏；戰鬥有實際攻擊、傷害、AI、炸彈倒數與死亡動畫，但沒有模擬真人所有可能的走位。連續戰鬥難度仍需實際試玩。
 
-1. **Stone Vestibule:** open the Map chest and pull the lever; enter Relay Atrium.
-2. Take the weight/light branch for **Gloves**, then return to the Atrium.
-3. Visit **Torch Shrine** for Powder. Light the numbered braziers in order,
-   defeat the revealed ghost, and activate the flame signal behind the gate.
-   The powder pedestal refills supplies. An additional brazier reveals a secret.
-4. Change the Atrium crystal to **blue** to access **Ancient Library**. Use its
-   lever, collect Mirror, push the crate onto the plate, activate the east relay
-   and collect Compass plus a key. A subtle wall seam hides an optional return
-   loop to Hidden Treasury.
-5. Return to the weight/light room. Push the heavy crate onto the plate, use
-   Mirror to reflect the beam and activate the west relay.
-6. Visit **Pot Storage**: lift/throw a pot at its hunter, carry a fresh pot onto
-   the weighted plate, place it down, collect the revealed cache and continue
-   to Powder Workshop. E at the rack renews broken pots.
-7. Open the Workshop bomb chest and lever. Continue to **Boots Trial**, defeat
-   its enemies and weight its plate to reveal Dash Boots.
-8. Take the Boots shortcut to **Copper Watch**. Clear enemies, wait for the key
-   chest to appear, open it for **two Small Keys**, and unlock its gate.
-9. Return through the Workshop. Its cracked wall can be bombed to visit the
-   optional Hidden Treasury. E at bomb supplies refills required bomb stock.
-10. Return to the Atrium. With east, west and flame signals active, spend two
-    keys on the lower gate and descend to **B1F**.
-11. Explore **Crystal Warden** from Lower Landing while the crystal is blue.
-    Strike its crystal to red to reveal its weakness, defeat it and its summoned
-    enemies, then turn blue again. The Warden signal unlocks later progression.
-    Bomb the cracked wall to reach optional Hidden Sanctuary. Its carved enemy
-    order is Slime, Bat, Mask; a wrong order resets the encounter.
-12. Back at Lower Landing, take **Magnetic Foundry**, defeat enemies, pull the
-    lever and obtain Magnet. In **Prism Engine**, push the metal crate remotely
-    onto its plate, reflect the light, activate the prism signal and collect
-    its key chest. Flame + Warden signals also reveal a foundry/sanctuary loop.
-13. Return to 1F and **Returning Runner**. Start the timer beside the gate and
-    immediately dash across. Boots, prism and Warden progress reveal **Boss
-    Key**; it remains available after the timer expires.
-14. Return downstairs. Clear **Hungry Portal** using bombs; its supply pedestal
-    prevents ammunition deadlock. Collect its Small Key and use the portal.
-15. Complete **Threefold Circuit** with Magnet, Mirror and the timed dash. Clear
-    **Sentinel Gallery**, spend two keys on its gate, and open the antechamber
-    Boss Gate with Boss Key and the Warden signal. Refill bombs and heal.
-16. **Ancient Golem:** dash into the anchor to expose phase one, then sword the
-    core; bomb armor in phase two, then sword; in the final phase set the crystal
-    **blue**, dash the anchor, bomb armor, then sword. Supplies remain renewable.
-17. Wait for the Golem's death animation, then enter **Dawn Reservoir (r18)**.
-    Open its treasure and activate the dawn mechanism. Enter the final arch to
-    complete the expedition. Private rewards settle once; no Arcade balance
-    changes are made by Puzzle Maze.
+## 操作與卡關處理
 
-If a crate becomes stuck, R restores room-entry progress. Save/Continue keeps
-opened doors, revealed chests, abilities, keys, enemies and exploration.
+| 按鍵 | 功能 |
+| --- | --- |
+| WASD／方向鍵 | 移動、改變面向；取得 Gloves 後可推重箱 |
+| J | 面向前方揮劍；攻擊紅藍水晶可切換全地下城狀態 |
+| E | 開箱、拉開關、補充物資；拿起／放下罐子或 Iron Orb |
+| G | 投擲手上的罐子或鐵球，最遠四格，牆壁會擋住 |
+| B | 放炸彈，約 1.6 秒後爆炸；會傷到自己，放完先後退 |
+| P | 對面前相鄰的火盆使用 Magic Powder |
+| Shift | 取得 Dash Boots 後衝刺三格，有冷卻 |
+| Q／Space／F | Q 選能力；Space 使用能力／磁力推；F 磁力拉 |
+| H | 使用回血道具 |
+| Tab／左右鍵 | 全圖／切換 1F、B1F |
+| R | 重置目前房間到進房時的狀態 |
+| T | 將 Iron Orb 召回 Pot Storage 原位，不會傳送玩家 |
+| Esc | 暫停；可返回選單／Arcade |
+
+Arcade 的 P2 使用 **K 攻擊、Enter 互動、Right Shift 衝刺**；其他道具鍵相同。基礎劍開局就有，不需要先開箱。攻擊只打面向前方一格，沒有打到時先靠近並轉向。
+
+箱子推錯位置用 R。炸彈和粉末不夠，對補給台按 E。鐵球找不到用 T。敵人打到 HP 歸零會進 Game Over，可重試房間或回主選單，不會關閉整個 Arcade。
+
+## 固定方位：上北、下南、右東、左西
+
+座標格式是 `(grid_x, grid_y)`；往北 y 減一。普通門都只連相鄰房間，進去後會出現在對面入口內側。樓梯連接兩個樓層。Hungry Portal 的傳送門有特殊光環，不能帶鐵球通過。
+
+| 1F 房間 | 座標 | 主要用途 |
+| --- | --- | --- |
+| r1 Stone Vestibule | (2,3) | 入口、Map；北到中樞，東到限時房 |
+| r2 Relay Atrium | (2,2) | 中樞、紅藍水晶、前往 B1F 的鎖樓梯 |
+| r3 Copper Watch | (2,1) | 戰鬥鑰匙、北側一把鑰匙鎖門 |
+| r4 Weight and Light | (1,2) | Gloves、推箱與反光、西側訊號 |
+| r5 Ancient Library | (3,1) | Mirror、Compass、東側訊號 |
+| r6 Returning Runner | (3,3) | 衝刺限時機關、Boss Key |
+| r7 Powder Workshop | (1,0) | 炸彈、補給、隱藏裂牆 |
+| r8 Hidden Treasury | (0,0) | 隱藏獎勵及爆炸機關寶箱 |
+| r9 Boots Trial | (2,0) | 戰鬥與箱子、Dash Boots |
+| r19 Torch Shrine | (3,2) | Powder、火盆順序、火焰訊號 |
+| r20 Pot Storage | (1,1) | 罐子敵人、重物板、Iron Orb、支柱 |
+
+| B1F 房間 | 座標 | 主要用途 |
+| --- | --- | --- |
+| r10 Lower Landing | (1,2) | 下層中樞、回血、水晶、回 1F 樓梯 |
+| r11 Magnetic Foundry | (1,1) | Magnet、第二根支柱、遠端秘密入口 |
+| r12 Prism Engine | (2,1) | 磁力＋反光、稜鏡訊號、鑰匙 |
+| r13 Hungry Portal | (2,2) | Bomb Eater、鑰匙、傳送門 |
+| r14 Threefold Circuit | (3,2) | 磁力＋反光＋限時衝刺 |
+| r15 Sentinel Gallery | (3,1) | 混合戰鬥、兩把鑰匙鎖門 |
+| r16 Golem Antechamber | (3,0) | Boss Key 門、補給 |
+| r17 Ancient Golem | (4,0) | 三階段 Boss |
+| r18 Dawn Reservoir | (5,0) | 最後寶箱、黎明開關、完成地下城 |
+| r21 Crystal Warden | (0,2) | 紅色弱點小 Boss、必要 Warden 訊號 |
+| r22 Hidden Sanctuary | (0,1) | 敵人順序、物件排列、隱藏收藏 |
+
+## 第一段：拿到探索與解謎能力
+
+1. **r1 入口**：E 開 Map 寶箱，再拉 lever，走北門進 r2。東門通往 r6，但現在還不能解限時機關，先留待之後。
+2. **r2 向西 → r4**：拿 Gloves，暫時不要急著解光線。由東門回 r2。
+3. **r2 向東 → r19**：拿 Powder。對標記 1、2、3 的火盆依序按 P；按錯會重置順序，可在補給台補粉末重試。先點亮對應火盆讓 Crystal Ghost 顯形，再用劍擊敗。機關亮起後，E 啟動右側 flame_signal。額外的火盆會浮現 Music Disc 寶箱。
+4. **回 r2，把水晶打成藍色**。再往東進 r19，走北門進 **r5 圖書館**。紅色會擋住這個門，所以不是到中樞北門找圖書館。
+5. **r5**：拉 lever，拿 Mirror；把箱子從 `(6,9)` 往北推到 `(6,8)` 壓力板。指示機關啟動後，E 操作右側 east，開 Compass 寶箱，得到羅盤和一把 Small Key。南門回 r19，再向西回 r2。
+6. **r2 向西 → r4**：用 Gloves 把重箱推上板；E 調整 Mirror，讓光束到接收器。機關亮起後 E 啟動右側 west。現在東、西、火焰三個訊號都完成了。
+
+## 第二段：炸彈、靴子與小鑰匙
+
+7. **r4 往北 → r20**：E 拿起罐子，面向 Pot Hunter 按 G 投擲。普通劍不是它的有效打法；罐子破了可在架子按 E 補充。清場後再拿一個罐子，帶到 `(13,8)` 的三點壓力板，人物加罐子的重量就足夠。門亮起後放下罐子，拿右側 cache；往北進 r7。
+8. **r7**：開炸彈寶箱，得到炸彈及一把 Small Key；拉 lever，東門進 r9。補給台可補炸彈，不必怕必要謎題永久缺彈。
+9. **r9**：清掉 Guardian、Beetle。Guardian 攻擊前會預備，退開再反擊；Beetle 從正面擋劍，繞背或用炸彈。把箱子推上板，等待寶箱浮現，E 拿 Dash Boots。南門進 r3。
+10. **r3**：清場後鑰匙箱才會浮現，等一下再 E 開箱，得到 **兩把 Small Key**。北門花一把鑰匙解鎖，之後不會重複扣。旁邊 Fragment 箱可拿。往南可回 r2。
+
+選做 **r8 隱藏寶庫**：從 r3 北回 r9、向西回 r7。r7 西側有裂牆；站在牆東側，面向西按 B，再退開。炸開後西門進 r8，拿 reward。房內 `(8,8)` 的爆炸機關也可用 B 觸發，再開 bonus 箱。東門回 r7，再經 r9、r3 回中樞。
+
+必要鑰匙來源共六把：Compass 1、Workshop 1、Copper Watch 2、Prism Engine 1、Hungry Portal 1。這條攻略花 Watch 1、下樓梯 2、Sentinel 2，共五把。已開鎖不會再次扣除。
+
+## 第三段：下層、Warden 與 Magnet
+
+11. **r2 鎖樓梯**在房內 `(22,11)`，不是東側門。東／西／火焰訊號都完成後，E 花兩把鑰匙解鎖，走上樓梯進 B1F 的 r10。
+12. **r10**：拿 rest 回血、拉 lever。水晶保持藍色，往西進 **r21 Warden**。若西門升起紅障礙，先用房內水晶切到藍色。
+13. **r21**：攻擊水晶切成紅色，Warden 才會露出弱點。躲開預備攻擊後揮劍；它後期會喚醒有限數量的小怪，要一併清掉。清場會自動送出 **Warden 訊號**，這是 Boss Key 和 Boss 門的必要條件。切回藍色，開 warden_cache；由東門回 r10。
+14. **r10 往北 → r11**：清敵人、拉 lever，拿 Magnet。東門進 r12。
+15. **r12**：站在金屬箱西側，面向東，用 Space 磁力推兩次，讓箱子從 `(9,8)` 到 `(11,8)` 的板；Q 必要時先選 Magnet。用 E 調整反光器，讓光束到 `(11,2)` 接收器。操作 prism_signal，拿 key 箱的一把鑰匙。藍色且解完機關，還有額外 crystal_cache。西門回 r11，南到 r10，再上樓回 r2。
+
+## 第四段：Boss Key、綜合機關與 Boss 門
+
+16. **r2 往南 → r1，再往東 → r6**。你需要 Boots、prism 訊號、Warden 訊號，缺任何一個，Boss Key 不會出現。
+17. **r6 限時門**：到 clock 附近按 E，面向東立即 Shift，穿過 `(18,8)` 的門。首次成功後保留回程，不會把你困在右側。等寶箱浮現後 E 拿 Boss Key。往西回 r1，北回 r2，再下樓到 r10。
+18. **r10 往東 → r13**：Bomb Eater 不吃普通劍，靠近放炸彈後退，讓它追去吞炸彈。補給台能補炸彈。清場後開 portal_key 箱，東側光環門通往 r14。**不能帶鐵球穿這個傳送門**：先 E 放下或 T 召回。
+19. **r14**：先磁力把金屬箱推上板，再調整 Mirror 接收光束，最後 E 開 clock、朝東 Shift 穿限時門。拿 reward，北側門在右半房的上方，通往 r15。成功後也可以正常走回左側返回 r13。
+20. **r15**：躲開遠距離彈與預備攻擊，依弱點清場。拿 rest，E 花兩把鑰匙開北門進 r16。
+21. **r16**：先補炸彈、回血。Warden 訊號完成且持有 Boss Key 時，E 解開東側 Boss 門，進 r17。
+
+## Ancient Golem 與最後房間
+
+- **第一階段**：劍打護盾沒用。面向機關衝刺，撞到 dash anchor，Boss 暫時露出核心；靠近、面向它用劍攻擊。
+- **第二階段**：用 Bomb 爆開護甲，趁露出弱點時揮劍；放炸彈後先退開。
+- **第三階段**：水晶必須是 **藍色**，依序用 **Dash 撞機關 → Bomb 破甲 → Sword 攻擊核心**。冷卻好再重新嘗試，補給台仍能補炸彈。核心關閉時硬揮劍不會有效。
+
+HP 歸零後等 Boss 死亡動畫結束，東門才會開。往東進 **r18 Dawn Reservoir**，開 treasure、操作 dawn，最後走東側石門，出現勝利畫面。這才算完成地下城。獎勵只結算一次，Puzzle Maze 不會改動其他遊戲的 Tokens／Tickets。
+
+## 選做：Iron Orb、兩根支柱、新樓梯與隱藏收藏
+
+**鐵球支柱**：r20 的鐵球在 `(10,11)`，取得 Gloves 後 E 拿起。先清 Pot Hunter，再面向 `(15,10)` 的支柱按 G；鐵球撞柱會破壞它，落在柱前，可以再 E 拿起。帶著鐵球經 r4、r2、樓梯、r10，到 r11，用 G 砸 `(16,10)` 的第二根支柱。普通門和指定樓梯可攜帶鐵球，傳送門不行。
+
+兩根都破壞後，會提示新樓梯：r20 `(21,13)` ↔ r22 `(5,13)`。這是實際可走、可返回的 1F／B1F 捷徑；原本路線仍保留。r22 的 orb_cache 也會浮現。鐵球不見用 T，兩根已破壞的支柱不會因此重生。
+
+**Hidden Sanctuary**：r21 清場後可炸開北側裂牆進 r22；或完成 flame＋Warden 訊號後，從 r11 西側遠端入口進。都可以返回。
+
+**敵人順序**：r22 先 Slime、再 Bat、最後 Mirror Mask。殺錯會重新喚醒，能重試。Mask 模仿你的反向移動；用繞位或炸彈預判，不要只正面一直揮劍。正確清場後開 skin、fragment、cache；flame＋Warden 訊號也會浮現 stamp。
+
+**物件排列**：有 I／II 標記的兩個重箱，分別從 `(16,10)`、`(20,10)` 往北推一格，到對應 `(16,9)`、`(20,9)` 地面標記，不能對調。成功後出現 layout_cache。推錯可以 R 重置。
+
+**圖書館穿牆**：r5 西側看起來像普通牆，有輕微地縫提示，可以走進去通往 r3 東側；兩房都是固定相鄰位置。發現前不會直接在小地圖標出口。
+
+## 寶箱或門沒有反應時
+
+- 寶箱正在浮現的約 0.45 秒內不能開，等動畫完成再 E。
+- Hidden Chest 未出現通常是缺前置條件，不是透明牆；檢查清場、順序、光束或跨房訊號。
+- Boss Key 沒出現：確認 Boots、prism、Warden、限時門首次穿越都完成。
+- Boss 門沒開：先確認 Warden 訊號，並面向門按 E 使用 Boss Key。
+- 門口是紅藍障礙：切換水晶，其他房間的障礙也會同步改變。
+- Portal 不讓你進：先處理手上的罐子／鐵球，以及仍在倒數的炸彈。
+- 想離開房間卻卡在重箱或機關：R；鐵球遺失：T。這兩個功能不需要修改存檔。

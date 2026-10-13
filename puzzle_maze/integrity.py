@@ -50,7 +50,7 @@ class DungeonIntegrityValidator:
                 arrival = tuple(exit['arrival'])
                 if not TileMap(target['tiles']).walkable(*arrival):
                     raise ValueError(f'{name}: blocked arrival')
-                if not exit.get('finish') and any(tuple(o['pos']) == arrival and o['type'] in ('box', 'door', 'pot', 'cracked', 'secret', 'crystal_barrier') for o in target['objects']):
+                if not exit.get('finish') and any(tuple(o['pos']) == arrival and o['type'] in ('box', 'door', 'pot', 'cracked', 'secret', 'crystal_barrier', 'pillar') for o in target['objects']):
                     raise ValueError(f'{name}: arrival overlaps mechanism')
                 if any(tuple(e['pos']) == arrival for e in target.get('enemies', [])):
                     raise ValueError(f'{name}: arrival overlaps enemy')

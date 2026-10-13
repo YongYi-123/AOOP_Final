@@ -266,14 +266,17 @@ class Renderer:
             particle[0]+=particle[2]*dt;particle[1]+=particle[3]*dt;particle[4]-=dt
             if particle[4]<=0:self.particles.remove(particle)
             else:r.rect(s,particle[5],(int(particle[0])-cx,int(particle[1])-cy,2,2))
+        orb_prompt=False
         if hasattr(session,'orb') and session.orb.room==session.rooms.current:
             orb=session.orb
             ox,oy=(p.x*16+8-cx,p.y*16-3-cy) if orb.carried else (orb.x*16+8-cx,orb.y*16+8-cy)
             r.ellipse(s,(20,27,36),(ox-6,oy+4,13,4));r.circle(s,(107,134,153),(ox,oy),6);r.circle(s,(184,201,209),(ox-2,oy-2),2);r.circle(s,(53,77,95),(ox,oy),6,1)
-            if orb.carried or abs(orb.x-p.x)+abs(orb.y-p.y)<=1:
-                r.rect(s,INK,(6,145,220,22));self.text(f"{controls['interact']} Orb / G Throw / T Recall",10,150,GOLD,max_width=208)
+            if (orb.carried or abs(orb.x-p.x)+abs(orb.y-p.y)<=1) and session.inventory.carried is None:
+                orb_prompt=True
+                label=f"{controls['interact']} Drop / G Orb / T Recall" if orb.carried else f"{controls['interact']} Lift Orb / T Recall"
+                r.rect(s,INK,(6,145,288,22));self.text(label,10,150,GOLD,max_width=276)
         near=next((o for o in session.puzzles.objects.values() if abs(o.x-p.x)+abs(o.y-p.y)<=1 and isinstance(o,(Switch,Door,SecretPassage,Chest,Reflector,CrackedWall,BombSupply,LiftablePot,Brazier,CrystalSwitch,PotSupply,PowderSupply)) and not isinstance(o,GateControl) and not (isinstance(o,Chest) and not o.visible) and not (isinstance(o,(Door,SecretPassage)) and o.state.active)),None)
-        if near or getattr(session.inventory,'carried',None):
+        if not orb_prompt and (near or getattr(session.inventory,'carried',None)):
             carrying=getattr(session.inventory,'carried',None)
             label=f"{controls['interact']} Drop / G Throw" if carrying else '[P] Light' if isinstance(near,Brazier) else f"[{controls['attack']}] Crystal" if isinstance(near,CrystalSwitch) else f"[{controls['interact']}] Lift" if isinstance(near,LiftablePot) else '[B] Bomb' if isinstance(near,CrackedWall) else f"[{controls['ability']}] Pulse" if isinstance(near,SecretPassage) else f"[{controls['interact']}] Interact"
             px=int(visual[0]*16)-cx;py=int(visual[1]*16)-cy

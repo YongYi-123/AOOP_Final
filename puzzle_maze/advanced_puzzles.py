@@ -15,7 +15,7 @@ class LiftablePot(PuzzleObject):
     blocking=True
     def interact(self,manager,player,pulse=False):
         inv=manager.inventory
-        if pulse or self.state.active or 'gloves' not in inv.abilities or inv.carried is not None:return False
+        if pulse or self.state.active or 'gloves' not in inv.abilities or inv.carried is not None or getattr(manager,'has_external_load',lambda:False)():return False
         inv.carried=self.id;self.state.active=True;return True
 
 class PowderSupply(PuzzleObject):
