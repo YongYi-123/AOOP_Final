@@ -1,5 +1,6 @@
 """Composable puzzle entities. Doors observe named puzzle conditions."""
 from dataclasses import dataclass, field
+from enum import Enum
 from puzzle_maze.core import CollisionManager, TileMap
 
 @dataclass
@@ -90,10 +91,13 @@ class Door(PuzzleObject):
             return True
         return False
 
+class GateControl(Door):
+    blocking = False
+
 class Key(PuzzleObject):
     pass
 
-FACTORY = {'box': PushableBox, 'plate': PressurePlate, 'switch': Switch, 'door': Door, 'key': Key}
+FACTORY = {'box': PushableBox, 'plate': PressurePlate, 'switch': Switch, 'door': Door, 'gate_control': GateControl, 'key': Key}
 
 class PuzzleManager(CollisionManager):
     def __init__(self, room, inventory=None):
@@ -106,7 +110,8 @@ class PuzzleManager(CollisionManager):
         self.update(0, None)
 
     def blocked(self, x, y, ignore=None):
-        return not self.tilemap.walkable(x, y) or any(o.id != ignore and o.pos == (x, y) and o.blocking and not o.state.active for o in self.objects.values())
+        remote_closed=any(tuple(e['pos'])==(x,y) and e.get('entrance')=='remote' and not set(e.get('flag_requires',[])) <= self.inventory.flags for e in self.room.get('exits',[]))
+        return remote_closed or not self.tilemap.walkable(x, y) or any(o.id != ignore and o.pos == (x, y) and o.blocking and not o.state.active for o in self.objects.values())
 
     def can_enter(self, x, y):
         return not self.blocked(x, y)
@@ -161,7 +166,11 @@ class PuzzleManager(CollisionManager):
                 if timed and player is not None and player.x > obj.x:
                     obj.latched = True  # Crossing memory powers later stages, without holding this gate open.
                 occupied = player is not None and obj.pos == (player.x, player.y) or any(isinstance(b, PushableBox) and b.pos == obj.pos for b in self.objects.values())
-                obj.state.active = powered or (obj.latched and not timed) or bool(occupied) or obj.pos in self.occupants
+                obj.state.active = powered or (obj.latched and (not timed or obj.data.get('reversible',False))) or bool(occupied) or obj.pos in self.occupants
+
+        for obj in self.objects.values():
+            if isinstance(obj, Chest):
+                obj.advance(self, dt)
 
     def update_special(self, dt):
         for obj in self.objects.values():
@@ -229,9 +238,42 @@ class TimedSwitch(Switch):
 
 FACTORY.update(secret=SecretPassage, timed=TimedSwitch)
 
+class ChestPhase(str, Enum):
+    HIDDEN = 'hidden'
+    SPAWNING = 'spawning'
+    AVAILABLE = 'available'
+    OPENED = 'opened'
+
 class Chest(PuzzleObject):
+    spawn_duration = .45
+
+    def __init__(self, data):
+        super().__init__(data)
+        self.phase = ChestPhase.HIDDEN if data.get('hidden') else ChestPhase.AVAILABLE
+        self.spawn_time = 0.
+
+    @property
+    def visible(self):
+        return self.phase != ChestPhase.HIDDEN
+
+    def advance(self, manager, dt):
+        if self.state.active:
+            self.phase = ChestPhase.OPENED
+            self.spawn_time = 0.
+        elif self.phase == ChestPhase.HIDDEN:
+            if (all(manager.condition(i) for i in self.data.get('requires', []))
+                    and set(self.data.get('ability_requires', [])) <= manager.inventory.abilities
+                    and set(self.data.get('flag_requires', [])) <= manager.inventory.flags
+                    and self.data.get('crystal_color', 'blue' if 'crystal_blue' in manager.inventory.flags else 'red') == ('blue' if 'crystal_blue' in manager.inventory.flags else 'red')):
+                self.phase = ChestPhase.SPAWNING
+                self.spawn_time = self.spawn_duration
+        elif self.phase == ChestPhase.SPAWNING:
+            self.spawn_time = max(0., self.spawn_time - dt)
+            if self.spawn_time == 0:
+                self.phase = ChestPhase.AVAILABLE
+
     def interact(self, manager, player, pulse=False):
-        if pulse or self.state.active or not all(manager.condition(i) for i in self.data.get("requires",[])):
+        if pulse or self.state.active or self.phase not in (ChestPhase.AVAILABLE, ChestPhase.OPENED) or (not self.data.get("hidden") and not all(manager.condition(i) for i in self.data.get("requires",[]))):
             return False
         ability=self.data.get('ability')
         if ability:
@@ -247,6 +289,7 @@ class Chest(PuzzleObject):
         manager.inventory.potions+=self.data.get('potions',0)
         manager.inventory.coins+=self.data.get('coins',0)
         self.state.active=True
+        self.phase=ChestPhase.OPENED
         return True
 
 class LightSource(PuzzleObject):

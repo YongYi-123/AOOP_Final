@@ -35,7 +35,7 @@ class DungeonSession(GameSession):
                 o.state.remaining=max(0,o.state.remaining-dt);o.state.active=o.state.remaining>0
     def move(self,dx,dy):
         target=self.player.x+dx,self.player.y+dy
-        if any(o.pos==target and o.data.get("dash_only") for o in self.puzzles.objects.values()):
+        if any(o.pos==target and o.data.get("dash_only") and not (o.data.get("reversible") and o.latched) for o in self.puzzles.objects.values()):
             self.player.facing=(dx,dy);self.player.moving=False;return False
         return super().move(dx,dy)
     def dash(self):

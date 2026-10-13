@@ -20,7 +20,7 @@ class DungeonCampaignTests(unittest.TestCase):
                 return result[::-1]
             for dx,dy in ((1,0),(-1,0),(0,1),(0,-1)):
                 nxt=pos[0]+dx,pos[1]+dy
-                if nxt not in parents and s.can_enter(*nxt) and not any(o.pos==nxt and o.data.get("dash_only") for o in s.puzzles.objects.values()):parents[nxt]=pos;queue.append(nxt)
+                if nxt not in parents and s.can_enter(*nxt) and not any(o.pos==nxt and o.data.get("dash_only") and not (o.data.get("reversible") and o.latched) for o in s.puzzles.objects.values()):parents[nxt]=pos;queue.append(nxt)
         return None
     def walk(self,pos):
         path=self.path(tuple(pos));self.assertIsNotNone(path,f'{self.s.rooms.current}: unreachable {pos}')
@@ -31,6 +31,7 @@ class DungeonCampaignTests(unittest.TestCase):
             candidates=[(o.x+dx,o.y+dy) for dx,dy in ((1,0),(-1,0),(0,1),(0,-1))]
             reachable=[(len(path),pos) for pos in candidates if (path:=self.path(pos)) is not None]
             self.assertTrue(reachable,f'{s.rooms.current} cannot interact with {name}');self.walk(min(reachable)[1])
+        if getattr(o,'spawn_time',0):s.tick(o.spawn_time)
         s.player.facing=o.x-s.player.x,o.y-s.player.y
         if s.player.facing==(0,0):s.player.facing=(1,0)
         result=s.puzzles.interact(s.player);self.assertEqual(result,name);s.tick(0)

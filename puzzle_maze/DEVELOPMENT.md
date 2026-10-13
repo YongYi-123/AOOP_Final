@@ -348,3 +348,105 @@ onboarding, powder input and safe return with identical token/ticket balances.
 
 Cabinet follow-up validation: all 137 Puzzle Maze tests passed in 18.186 seconds;
 `compileall` and `git diff --check` passed. Only Puzzle Maze files were changed.
+
+## 4.1 — Hidden rewards, usable entrances and final access
+
+Continued on feature/puzzle-maze-v4 with only an unrelated untracked root file
+present. Baseline: 137 tests passed. No host files or shared currencies changed.
+
+ChestPhase adds four explicit states, a persistent 0.45-second appearance timer,
+latched availability and one-time collection. Copper Watch's old key ID is now
+a hidden reward chest, preserving old collected state. Ten hidden chests use
+real puzzle/ability/flag conditions. Compass/proximity prompts honor visibility.
+Boss Key requires timed crossing, Boots, prism and Warden progress.
+
+Original entrance drawing replaces arrow exits with arches, caves, locks,
+Boss Gate and direction-specific stairs. Two optional loops add a library
+walk-through and a flame/Warden remote foundry passage. Remote passages block
+movement while closed; room-completion history cannot bypass their conditions.
+Bomb-wall cracks blend into their stone and show no arrow. Landing safety
+checks restored crates and live enemies before creating the room checkpoint.
+
+DungeonIntegrityValidator checks the 59 entrance records, 27 chests, two stair
+records and four secret entries, then runs existing crate/resource search.
+All 341 resource states remain winning; six keys cover five mandatory costs.
+The production campaign witness still reaches r18, completes the expedition,
+visits all rooms, defeats the Golem and reloads its settled save correctly.
+Tests additionally cover 60 FPS timed crossing, legacy chest fields, a legacy
+save on the new closed foundry entrance, safe returns and hidden exit markers.
+
+Human input was unavailable. Headless startup and rendered library/stair/menu
+screens were checked; continuous combat difficulty, sound, FPS and how subtle
+clues feel still need a real play session. PLAYER_ROUTE.md provides a practical
+route through the final room without revealing every optional collectible.
+
+Final 4.1 validation: all 150 Puzzle Maze tests passed in 19.422 seconds.
+The 60-frame default campaign smoke run, integrity CLI, compileall and
+git diff --check passed. Screenshot review covered native crisp UI and
+functional stairs/library entry art. No manual real-time play was performed.
+
+## 4.2 — Absolute coordinates, progression repair and complete walkthrough
+
+Safety: continued feature/puzzle-maze-v4; baseline 150 tests passed in 27.094s.
+The unrelated untracked root file was preserved. All edits stay under
+puzzle_maze; no host modules, shared saves, or external currency balances were
+changed. No push/pull/merge/rebase/squash/reset/clean was performed.
+
+The prior route witness did not validate physical door orientation. Original
+loops included triangles and a six-branch central floor junction incompatible
+with immediate cardinal neighbors. Return paths also depended on duplicate
+exits while dash-only gates refused normal return walking. Fixed the topology
+with 22 authoritative floor/grid_x/grid_y records, cardinal wall entrances,
+reciprocal IDs and destination landings. The lower stairs were relocated away
+from the Atrium east arrival. Five internal multi-condition gates now render as
+gear controllers; actual exit gates sit on their exit tile. Timed doors preserve
+normal return after the first successful timed crossing. Existing portal remains
+special; no main-progression cheat portal was added.
+
+RoomCoordinate / DoorConnection / DoorValidator verify orientation and returns.
+PuzzleDependencyValidator resolves actual consumers for 36 actuators.
+ChestValidator checks interaction routes after conditions; actual campaign
+simulation independently acquires rewards by solving the puzzles. Compass and
+Prism key require their controllers. Current counts: 51 directional entrance
+records (49 repaired plus two new transformation records), four stair records,
+30 chests (27 existing, three new), 13 hidden chests. Five secret-entry records
+represent two bomb passages, reciprocal library/watch passage and remote
+foundry/sanctuary entrance. Before Map, minimap shows the current room only; Tab
+shows visited records. Map/Compass unlock their actual information scopes.
+
+IronOrb is one persistent, recoverable object carried across authorized doors
+and floors. E lifts/drops, G throws, T recalls. A carried pot and Orb are mutually
+exclusive. DestructiblePillar in Storage/Foundry posts saved global flags; both
+unlock a real new stair pair and treasure. OrderedLayoutSeal requires correctly
+identified heavy blocks at marked positions; wrong arrangements reset safely.
+Global blue crystal plus the Prism controller reveals another reward. Original
+return routes survive transformation. Carried-Orb HUD suppresses misleading pot
+prompts. Portal refusal gives a drop/recall hint.
+
+migration42 validates archived 4.1 snapshots before moving static objects,
+adding optional objects and selecting legal landings. Earned inventory, keys,
+locks, combat, exploration and reward escrow remain intact. Current, legacy and
+checkpoint Orb consistency are validated. Loading is read-only. The original
+save_v4.json was not rewritten during development.
+
+The extended production-action route starts from a new session, visits all
+22 rooms, legally opens every one of the 30 chests, moves the Orb through doors
+and transformed stairs, obtains Boss Key, defeats both bosses, finishes r18,
+saves/reloads the settled receipt, and confirms reward idempotence. Cleared-room
+and puzzle walking advances the actual 0.13-second movement interval. Combat
+uses targeted legal action witnesses and real damage/AI/fuse/death timers; it
+does not exhaustively simulate continuous human combat trajectories. Resource
+search remains 341 reachable / 341 winning states, six keys / five costs.
+
+PLAYER_ROUTE.md is now a complete Chinese 4.2 walkthrough including authoritative
+coordinates, door directions, key budget, mechanism solutions, recovery controls,
+optional treasures, Iron Orb route and the three-phase Golem. UI stays English.
+README documents current geometry, architecture, counts and practical limits.
+Headless screenshot review covered the menu, Orb/pot area and transformed stairs.
+Manual input, continuous difficulty, audio balance, clue visibility and machine
+FPS still need human verification.
+
+Final validation: all 169 tests passed in 26.278 seconds; integrity CLI,
+deterministic authoring/JSON equality, 60-frame headless startup, compileall and
+git diff --check passed. Existing lobby bridge regression tests are included in
+the suite. No manual real-time play session was performed.

@@ -1,5 +1,6 @@
 """Visibility and graph presentation derive from room data, never a duplicate atlas."""
 from collections import deque
+from puzzle_maze.entrances import entrance_visible
 
 class Exploration:
     def __init__(self):self.tiles={}
@@ -47,6 +48,7 @@ class DungeonAtlas:
 
     def layout(self,visited):
         visible=self.visible_rooms(visited)
+        if all('grid_x' in room and 'grid_y' in room for room in visible.values()):return {name:(room['grid_x'],room['grid_y']) for name,room in visible.items()}
         if all('atlas' in room for room in visible.values()):return {name:tuple(room['atlas']) for name,room in visible.items()}
         # Existing/custom maps without coordinates still derive their graph automatically.
         root=next(iter(visible));queue=deque([(root,0)]);seen={root};result={}
@@ -57,13 +59,20 @@ class DungeonAtlas:
                     seen.add(e['target']);queue.append((e['target'],depth+1))
         return result
 
-    def edges(self,visited):
+    def displayed_layout(self,session,minimap=False):
+        layout=self.layout(session.visited)
+        if 'map' not in session.inventory.abilities:
+            allowed={session.rooms.current} if minimap else session.visited
+            layout={name:pos for name,pos in layout.items() if name in allowed}
+        return layout
+
+    def edges(self,visited,flags=None):
         visible=self.visible_rooms(visited)
-        return {tuple(sorted((name,e['target']))) for name,room in visible.items() for e in room['exits'] if not e.get('finish') and e['target'] in visible}
+        return {tuple(sorted((name,e['target']))) for name,room in visible.items() for e in room['exits'] if not e.get('finish') and e['target'] in visible and (not e.get('transformed') or flags is not None and set(e.get('flag_requires',[]))<=flags)}
 
     def discovered_markers(self,session):
         known=session.exploration.tiles.get(session.rooms.current,set())
         room=session.rooms.data
-        markers=[('exit',tuple(e['pos'])) for e in room['exits'] if tuple(e['pos']) in known]
-        markers += [(o['type'],tuple(o['pos'])) for o in room['objects'] if o['type'] in ('door','secret','chest','receiver','cracked') and (o['type']!='chest' or 'compass' in session.inventory.abilities) and (not o.get('hidden') or all(session.puzzles.condition(i) for i in o.get('requires',[]))) and tuple(o['pos']) in known]
+        markers=[('exit',tuple(e['pos'])) for e in room['exits'] if tuple(e['pos']) in known and entrance_visible(session,e) and (e.get('entrance')!='walkthrough' or e['target'] in session.visited)]
+        markers += [(o['type'],tuple(o['pos'])) for o in room['objects'] if o['type'] in ('door','secret','chest','receiver','cracked') and (o['type']!='chest' or 'compass' in session.inventory.abilities) and (o['type']!='chest' or session.puzzles.objects[o['id']].visible) and tuple(o['pos']) in known]
         return markers

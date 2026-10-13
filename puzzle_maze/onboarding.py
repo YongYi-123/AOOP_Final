@@ -52,7 +52,7 @@ class TutorialCard:
         c=self.controls
         if self.advanced:
             if self.page==0:return [f'Move: {c["move"]}',f'{c["attack"]} Sword / {c["interact"]} Use / B Bomb',f'P Dust / {c["interact"]} Lift, Drop',f'G Throw / {c["attack"]} Crystal',f'{c["ability"]} Tool / Q Next / F Pull',f'{c["dash"]} Dash / H Heal',f'{c["pages"]} / {c["confirm"]} {"Begin" if begin else "Return"}']
-            return ['TAB Map / R Reset','ESC Pause / H Heal','Powder reveals ghost foes','Pots break hunters and weigh','Crystal changes both floors','Read fire and enemy glyphs',f'{c["pages"]} / {c["confirm"]} {"Begin" if begin else "Return"}']
+            return ['TAB Map / R Reset','ESC Pause / H Heal','Powder reveals ghost foes','Pots break hunters and weigh','Crystal changes both floors','E/G Iron Orb / T Recall',f'{c["pages"]} / {c["confirm"]} {"Begin" if begin else "Return"}']
         return [f"Move: {c['move']}",
                 f"{c['attack']} Sword / {c['interact']} Use"+(" / B Bomb" if self.bombs else ""),
                 f"{c['ability']} Tool / {c['tool']} Next / {c['pull']} Pull",

@@ -3,15 +3,16 @@ import math
 import random
 import pygame
 from puzzle_maze.core import Camera
+from puzzle_maze.entrances import draw_entrance
 from puzzle_maze.ui import NativeText
 from puzzle_maze.icons import IconHUD
 from puzzle_maze.room_art import RoomArt
-from puzzle_maze.advanced_puzzles import Brazier,TorchSequence,WeightPlate,LiftablePot,CrystalSwitch,CrystalBarrier,PowderSupply,PotSupply,OrderedSeal
+from puzzle_maze.advanced_puzzles import Brazier,TorchSequence,WeightPlate,LiftablePot,CrystalSwitch,CrystalBarrier,PowderSupply,PotSupply,OrderedSeal,DestructiblePillar,OrderedLayoutSeal
 from puzzle_maze.combat import EnemyState
 from puzzle_maze.exploration import DungeonAtlas
 from puzzle_maze.environment import EnvironmentPainter
 from puzzle_maze.themes import THEMES
-from puzzle_maze.puzzles import PushableBox, PressurePlate, Door, Key, SecretPassage, TimedSwitch, Switch, Chest, LightSource, Receiver, Reflector,CrackedWall,BombSupply,DashSwitch,BlastSwitch,RemoteRelay
+from puzzle_maze.puzzles import PushableBox, PressurePlate, Door, Key, SecretPassage, TimedSwitch, Switch, Chest, LightSource, Receiver, Reflector,CrackedWall,BombSupply,DashSwitch,BlastSwitch,RemoteRelay,ChestPhase,GateControl
 
 INK=(18,26,39); GOLD=(245,198,96); WHITE=(230,237,219); TEAL=(81,195,165)
 
@@ -71,15 +72,7 @@ class Renderer:
         r.lines(s,(142,170,140),False,[(sx+8,sy+2),(sx+8,sy+14)])
         for e in room['exits']:
             x,y=e['pos'];sx,sy=x*16-cx,y*16-cy
-            r.rect(s,TEAL,(sx+3,sy+2,10,12),1)
-            if e.get("stairs"):
-                for step in range(3):r.line(s,WHITE,(sx+3,sy+4+step*3),(sx+12-step*2,sy+4+step*3))
-            if e.get("portal"):
-                angle=self.time*2
-                r.circle(s,(158,112,234),(sx+8,sy+8),7,1)
-                for spark in range(3):
-                    a=angle+spark*math.tau/3;r.rect(s,TEAL,(int(sx+8+math.cos(a)*6),int(sy+8+math.sin(a)*6),2,2))
-            else:r.polygon(s,GOLD,[(sx+5,sy+5),(sx+11,sy+8),(sx+5,sy+11)])
+            draw_entrance(s,session,e,sx,sy,self.tiles['#'])
         for start,end in session.puzzles.beams:
             r.line(s,(255,227,130),(start[0]*16+8-cx,start[1]*16+8-cy),(end[0]*16+8-cx,end[1]*16+8-cy),2)
         # Hidden passage clue: moss and luminous cracks converge at the wall.
@@ -94,6 +87,16 @@ class Renderer:
                     r.polygon(s,(239,111,62),[(sx+3,sy+8),(sx+5,sy+2+wave),(sx+8,sy+5),(sx+10,sy+1-wave),(sx+13,sy+8)])
                     r.polygon(s,GOLD,[(sx+5,sy+8),(sx+8,sy+3),(sx+11,sy+8)]);r.rect(s,WHITE,(sx+7,sy+6,2,3))
                 if o.data.get('mark'):self.text(str(o.data['mark']),sx+5,sy-9,GOLD,max_width=13)
+            elif isinstance(o,DestructiblePillar):
+                if o.state.active:
+                    for ox,oy in ((2,11),(7,8),(11,12)):r.rect(s,(115,125,139),(sx+ox,sy+oy,4,3))
+                else:
+                    r.ellipse(s,(24,30,44),(sx,sy+12,16,4));r.rect(s,(116,126,147),(sx+3,sy+1,10,13));r.rect(s,(190,181,144),(sx+1,sy+1,14,3))
+                    r.lines(s,(61,73,88),False,[(sx+7,sy+5),(sx+9,sy+8),(sx+6,sy+11)]);r.circle(s,GOLD,(sx+8,sy+6),2,1)
+            elif isinstance(o,OrderedLayoutSeal):
+                for pair in o.data['placements']:
+                    px,py=pair['pos'];r.rect(s,TEAL if o.state.active else GOLD,(px*16-cx+1,py*16-cy+1,14,14),1)
+                    mark=session.puzzles.objects[pair['object']].data['mark'];self.text(str(mark),px*16-cx+5,py*16-cy+4,GOLD,max_width=12)
             elif isinstance(o,CrystalSwitch):
                 color=(110,200,249) if o.state.active else (239,112,130)
                 s.blit(self.environment.glow(theme_name),(sx-24,sy-24))
@@ -117,7 +120,7 @@ class Renderer:
                 for index in range(3):r.rect(s,TEAL if o.state.active else (126,111,103),(sx+3+index*4,sy+7,2,2))
             elif isinstance(o,CrackedWall):
                 if not o.state.active:
-                    s.blit(self.tiles["#"],(sx,sy));r.lines(s,GOLD,False,[(sx+3,sy+1),(sx+9,sy+5),(sx+5,sy+10),(sx+12,sy+15)]);r.rect(s,(104,58,44),(sx+10,sy+4,2,2))
+                    s.blit(self.tiles["#"],(sx,sy));r.lines(s,(102,108,104),False,[(sx+3,sy+1),(sx+9,sy+5),(sx+5,sy+10),(sx+12,sy+15)]);r.rect(s,(104,58,44),(sx+10,sy+4,2,2))
             elif isinstance(o,BombSupply):
                 r.rect(s,(110,91,65),(sx+2,sy+4,12,10));s.blit(self.hud.atlas.get("bomb"),(sx+2,sy+2))
             elif isinstance(o,DashSwitch):
@@ -126,10 +129,12 @@ class Renderer:
                 r.circle(s,TEAL if o.state.active else (112,76,104),(sx+8,sy+8),5,2)
             elif isinstance(o,SecretPassage):
                 if not o.state.active:
-                    s.blit(self.tiles['#'],(sx,sy));r.lines(s,GOLD,False,[(sx+8,sy+2),(sx+5,sy+7),(sx+10,sy+9),(sx+7,sy+14)])
-                    r.line(s,TEAL,(sx-8,sy+8),(sx-2,sy+8));r.line(s,TEAL,(sx-5,sy+5),(sx-2,sy+8))
+                    s.blit(self.tiles['#'],(sx,sy));r.lines(s,(102,108,104),False,[(sx+8,sy+2),(sx+5,sy+7),(sx+10,sy+9),(sx+7,sy+14)])
             elif isinstance(o,Chest):
-                if o.data.get('hidden') and not o.state.active and not all(session.puzzles.condition(i) for i in o.data.get('requires',[])):continue
+                if not o.visible:continue
+                if o.phase == ChestPhase.SPAWNING:
+                    sy += int(o.spawn_time / o.spawn_duration * 10)
+                    r.line(s,GOLD,(sx+2,sy-2),(sx+13,sy-2))
                 key=session.rooms.current,o.id
                 if o.state.active and not self.object_seen.get(key,False):
                     self.opening[key]=.45;self.burst(o.x,o.y,GOLD,8)
@@ -158,6 +163,9 @@ class Renderer:
                 r.polygon(s,c,[(sx+8,sy+3),(sx+13,sy+8),(sx+8,sy+13),(sx+3,sy+8)],2)
                 if isinstance(o,WeightPlate):
                     for dot in range(o.data.get("weight",2)):r.rect(s,GOLD,(sx+3+dot*3,sy+7,2,2))
+            elif isinstance(o,GateControl):
+                r.circle(s,TEAL if o.state.active else (113,120,137),(sx+8,sy+8),6,2)
+                r.rect(s,GOLD if o.state.active else INK,(sx+6,sy+6,4,4))
             elif isinstance(o,Door):
                 if o.state.active:
                     r.rect(s,TEAL,(sx,sy,2,16));r.rect(s,TEAL,(sx+14,sy,2,16))
@@ -241,7 +249,9 @@ class Renderer:
             progress=1-flight['time']/.3;start,end=flight['start'],flight['end']
             x=(start[0]+(end[0]-start[0])*progress)*16-cx;y=(start[1]+(end[1]-start[1])*progress)*16-cy-math.sin(progress*math.pi)*14
             sprite=pygame.transform.scale(self.hud.atlas.get('pot'),(16,16))
-            s.blit(pygame.transform.rotate(sprite,90 if progress>.5 else 0),(int(x),int(y)))
+            if flight.get('kind')=='orb':
+                r.circle(s,(138,166,185),(int(x)+8,int(y)+8),6);r.circle(s,WHITE,(int(x)+6,int(y)+6),2)
+            else:s.blit(pygame.transform.rotate(sprite,90 if progress>.5 else 0),(int(x),int(y)))
         if p.attack_flash>0:
             sx,sy=int(visual[0]*16+8)-cx,int(visual[1]*16+8)-cy
             dx,dy=p.attack_facing
@@ -256,8 +266,17 @@ class Renderer:
             particle[0]+=particle[2]*dt;particle[1]+=particle[3]*dt;particle[4]-=dt
             if particle[4]<=0:self.particles.remove(particle)
             else:r.rect(s,particle[5],(int(particle[0])-cx,int(particle[1])-cy,2,2))
-        near=next((o for o in session.puzzles.objects.values() if abs(o.x-p.x)+abs(o.y-p.y)<=1 and isinstance(o,(Switch,Door,SecretPassage,Chest,Reflector,CrackedWall,BombSupply,LiftablePot,Brazier,CrystalSwitch,PotSupply,PowderSupply)) and not (isinstance(o,(Door,SecretPassage)) and o.state.active)),None)
-        if near or getattr(session.inventory,'carried',None):
+        orb_prompt=False
+        if hasattr(session,'orb') and session.orb.room==session.rooms.current:
+            orb=session.orb
+            ox,oy=(p.x*16+8-cx,p.y*16-3-cy) if orb.carried else (orb.x*16+8-cx,orb.y*16+8-cy)
+            r.ellipse(s,(20,27,36),(ox-6,oy+4,13,4));r.circle(s,(107,134,153),(ox,oy),6);r.circle(s,(184,201,209),(ox-2,oy-2),2);r.circle(s,(53,77,95),(ox,oy),6,1)
+            if (orb.carried or abs(orb.x-p.x)+abs(orb.y-p.y)<=1) and session.inventory.carried is None:
+                orb_prompt=True
+                label=f"{controls['interact']} Drop / G Orb / T Recall" if orb.carried else f"{controls['interact']} Lift Orb / T Recall"
+                r.rect(s,INK,(6,145,288,22));self.text(label,10,150,GOLD,max_width=276)
+        near=next((o for o in session.puzzles.objects.values() if abs(o.x-p.x)+abs(o.y-p.y)<=1 and isinstance(o,(Switch,Door,SecretPassage,Chest,Reflector,CrackedWall,BombSupply,LiftablePot,Brazier,CrystalSwitch,PotSupply,PowderSupply)) and not isinstance(o,GateControl) and not (isinstance(o,Chest) and not o.visible) and not (isinstance(o,(Door,SecretPassage)) and o.state.active)),None)
+        if not orb_prompt and (near or getattr(session.inventory,'carried',None)):
             carrying=getattr(session.inventory,'carried',None)
             label=f"{controls['interact']} Drop / G Throw" if carrying else '[P] Light' if isinstance(near,Brazier) else f"[{controls['attack']}] Crystal" if isinstance(near,CrystalSwitch) else f"[{controls['interact']}] Lift" if isinstance(near,LiftablePot) else '[B] Bomb' if isinstance(near,CrackedWall) else f"[{controls['ability']}] Pulse" if isinstance(near,SecretPassage) else f"[{controls['interact']}] Interact"
             px=int(visual[0]*16)-cx;py=int(visual[1]*16)-cy
@@ -307,15 +326,14 @@ class Renderer:
 
     def atlas_graph(self,session,bounds):
         x,y,w,h=bounds;r=pygame.draw;s=self.surface
-        atlas=DungeonAtlas(session.rooms);layout=atlas.layout(session.visited)
+        atlas=DungeonAtlas(session.rooms);layout=atlas.displayed_layout(session,minimap=w<=100)
         floor=getattr(session,"map_floor",None) if w>100 else session.rooms.data.get("floor")
         if floor:layout={name:pos for name,pos in layout.items() if session.rooms.rooms[name].get("floor","1F")==floor}
-        if "map" not in session.inventory.abilities and hasattr(session,"bombs"):layout={name:pos for name,pos in layout.items() if name in session.visited}
         if not layout:return
         max_x=max(p[0] for p in layout.values())+1;max_y=max(p[1] for p in layout.values())+1
         cell_w=w/max_x;cell_h=h/max_y
         centers={name:(int(x+(pos[0]+.5)*cell_w),int(y+(pos[1]+.5)*cell_h)) for name,pos in layout.items()}
-        for a,b in atlas.edges(session.visited):
+        for a,b in atlas.edges(session.visited,session.inventory.flags):
             if a in centers and b in centers and (a in session.visited or b in session.visited):r.line(s,(65,85,95),centers[a],centers[b])
         for name,center in centers.items():
             color=GOLD if name==session.rooms.current else TEAL if name in session.completed else WHITE if name in session.visited else (61,71,84)
@@ -328,7 +346,7 @@ class Renderer:
                 for step in range(3):r.line(s,WHITE,(rect.x,rect.bottom-1-step),(rect.x+step+1,rect.bottom-1-step))
             if name in session.visited and 'compass' in session.inventory.abilities and any(o.get('ability') or o.get('boss_key') for o in session.rooms.rooms[name]['objects']):
                 r.rect(s,TEAL,(rect.right-3,rect.bottom-3,2,2))
-            if "compass" in session.inventory.abilities and any(e["type"] in ("golem","crystal_warden") for e in session.rooms.rooms[name].get("enemies",[])) and (name in session.visited or any(name in pair and (set(pair)-{name})<=session.visited for pair in atlas.edges(session.visited))):
+            if "compass" in session.inventory.abilities and any(e["type"] in ("golem","crystal_warden") for e in session.rooms.rooms[name].get("enemies",[])) and (name in session.visited or any(name in pair and (set(pair)-{name})<=session.visited for pair in atlas.edges(session.visited,session.inventory.flags))):
                 r.rect(s,(236,98,116),(center[0]-2,center[1]-2,4,4))
 
     def minimap(self,session):

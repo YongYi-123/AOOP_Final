@@ -8,7 +8,7 @@ from puzzle_maze.combat import CombatManager
 from puzzle_maze.exploration import Exploration
 from puzzle_maze.weapons import WEAPONS
 from puzzle_maze.migration import LayoutMigration
-from puzzle_maze.puzzles import PuzzleManager, Inventory, Door
+from puzzle_maze.puzzles import PuzzleManager, Inventory, Door, Chest, ChestPhase
 
 SAVE_PATH = Path(__file__).parent / 'save_v2.json'
 
@@ -29,13 +29,16 @@ class GameSession:
     def make_puzzles(self,room):
         return PuzzleManager(room,self.inventory)
 
+    def prepare_loaded_save(self,data):return data
+
     def save_extension(self):return {}
     def load_extension(self,data):pass
 
     def capture(self):
         return {name: dict(pos=list(o.pos), active=o.state.active,
                            remaining=o.state.remaining,
-                           unlocked=getattr(o,'unlocked',False), latched=getattr(o,'latched',False))
+                           unlocked=getattr(o,'unlocked',False), latched=getattr(o,'latched',False),
+                           **({'chest_phase':o.phase.value,'spawn_time':o.spawn_time} if isinstance(o,Chest) else {}))
                 for name,o in self.puzzles.objects.items()}
 
     def restore(self, snapshot):
@@ -44,6 +47,9 @@ class GameSession:
             obj.x,obj.y=values['pos']
             obj.state.active=values['active']
             obj.state.remaining=values['remaining']
+            if isinstance(obj,Chest):
+                obj.phase=ChestPhase(values.get('chest_phase','opened' if obj.state.active else 'hidden' if obj.data.get('hidden') else 'available'))
+                obj.spawn_time=values.get('spawn_time',0.)
             if isinstance(obj,Door):
                 obj.unlocked=values['unlocked']; obj.latched=values['latched']
         self.puzzles.update(0,self.player)
@@ -60,6 +66,21 @@ class GameSession:
             self.restore(self.snapshots[name])
         self.combat=CombatManager(self.rooms.data,self.puzzles,self.player)
         if name in self.encounters:self.combat.restore(self.encounters[name])
+        # Restored crates/enemies may have moved onto a return entrance.
+        from collections import deque
+        occupied={e.pos for e in self.combat.enemies if e.hp>0 and not e.dormant}
+        start=(self.player.x,self.player.y);queue=deque([start]);seen={start}
+        while queue:
+            pos=queue.popleft()
+            if self.puzzles.can_enter(*pos) and pos not in occupied:
+                self.player.x,self.player.y=pos
+                break
+            for dx,dy in ((1,0),(-1,0),(0,1),(0,-1)):
+                nxt=pos[0]+dx,pos[1]+dy
+                if nxt not in seen and self.puzzles.tilemap.walkable(*nxt):
+                    seen.add(nxt);queue.append(nxt)
+        else:
+            raise ValueError('No safe room landing')
         self.checkpoint = dict(hp=self.player.hp, combat=copy.deepcopy(self.combat.capture()),inventory=copy.deepcopy(self.inventory.keys), abilities=sorted(self.inventory.abilities), potions=self.inventory.potions, coins=self.inventory.coins, powder=self.inventory.powder,heart_fragments=self.inventory.heart_fragments,carried=self.inventory.carried,bombs=self.inventory.bombs,boss_key=self.inventory.boss_key,flags=sorted(self.inventory.flags),objects=self.capture(), pos=[self.player.x,self.player.y])
         self.visited.add(name)
         self.exploration.reveal(name,self.puzzles,self.player)
@@ -157,7 +178,7 @@ class GameSession:
     def save(self, path=SAVE_PATH):
         self.encounters[self.rooms.current]=copy.deepcopy(self.combat.capture())
         self.snapshots[self.rooms.current]=self.capture()
-        data=dict(extension=self.save_extension(),powder=self.inventory.powder,heart_fragments=self.inventory.heart_fragments,carried=self.inventory.carried,bombs=self.inventory.bombs,boss_key=self.inventory.boss_key,flags=sorted(self.inventory.flags),bomb_state=self.bombs.capture() if hasattr(self,"bombs") else {},version=2, facing=list(self.player.facing), attack_facing=list(self.player.attack_facing), map_revision=self.rooms.revision, weapon=self.player.weapon.id, dash_cooldown=self.dash_cooldown, player_status={k:getattr(self.player,k) for k in ('invulnerable','attack_cooldown','attack_flash')}, explored=self.exploration.capture(), hp=self.player.hp, encounters=self.encounters, abilities=sorted(self.inventory.abilities), potions=self.inventory.potions, coins=self.inventory.coins, room=self.rooms.current, player=[self.player.x,self.player.y],
+        data=dict(content_revision=self.rooms.data.get('content_revision',self.rooms.revision),extension=self.save_extension(),powder=self.inventory.powder,heart_fragments=self.inventory.heart_fragments,carried=self.inventory.carried,bombs=self.inventory.bombs,boss_key=self.inventory.boss_key,flags=sorted(self.inventory.flags),bomb_state=self.bombs.capture() if hasattr(self,"bombs") else {},version=2, facing=list(self.player.facing), attack_facing=list(self.player.attack_facing), map_revision=self.rooms.revision, weapon=self.player.weapon.id, dash_cooldown=self.dash_cooldown, player_status={k:getattr(self.player,k) for k in ('invulnerable','attack_cooldown','attack_flash')}, explored=self.exploration.capture(), hp=self.player.hp, encounters=self.encounters, abilities=sorted(self.inventory.abilities), potions=self.inventory.potions, coins=self.inventory.coins, room=self.rooms.current, player=[self.player.x,self.player.y],
                   inventory=self.inventory.keys, snapshots=self.snapshots,
                   completed=sorted(self.completed), visited=sorted(self.visited),
                   finished=self.finished, checkpoint=self.checkpoint)
@@ -215,6 +236,15 @@ class GameSession:
             for flag in ('active', 'unlocked', 'latched'):
                 if type(values[flag]) is not bool:
                     raise ValueError('Invalid state')
+            if isinstance(obj,Chest) and 'chest_phase' in values:
+                phase=ChestPhase(values['chest_phase'])
+                elapsed=values.get('spawn_time',0.)
+                if not isinstance(elapsed,(int,float)) or not math.isfinite(elapsed) or not 0<=elapsed<=obj.spawn_duration:
+                    raise ValueError('Invalid chest spawn timer')
+                if values['active'] != (phase == ChestPhase.OPENED):
+                    raise ValueError('Inconsistent chest state')
+                if phase != ChestPhase.SPAWNING and elapsed != 0:
+                    raise ValueError('Unexpected chest timer')
             timer = values['remaining']
             if not isinstance(timer, (int, float)) or not math.isfinite(timer) or timer < 0 or timer > obj.data.get('duration', 0):
                 raise ValueError('Invalid timer')
@@ -238,6 +268,7 @@ class GameSession:
                 candidate.migration_notice='Loaded 2.0 progress into compact 2.1 chambers.'
             if data['version'] != 2 or data['room'] not in candidate.rooms.rooms:
                 raise ValueError('Unsupported save')
+            data=candidate.prepare_loaded_save(data)
             candidate.exploration.restore(data.get('explored',{}),candidate.rooms.rooms)
             candidate.inventory.powder=data.get('powder',0);candidate.inventory.heart_fragments=data.get('heart_fragments',0);candidate.inventory.carried=data.get('carried')
             candidate.inventory.keys=data['inventory']

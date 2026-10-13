@@ -31,7 +31,7 @@ def validate_rooms(rooms):
             raise ValueError(f'{name}: duplicate object ids')
         occupied = set()
         for obj in room['objects']:
-            if obj['type'] not in ('box', 'plate', 'switch', 'door', 'key', 'secret', 'timed', 'chest', 'light', 'receiver', 'reflector', 'combat','cracked','blast_switch','supply','dash_switch','relay','remote','brazier','torch_order','weight','crystal_switch','crystal_barrier','pot','powder_supply','pot_supply','ordered'):
+            if obj['type'] not in ('box', 'plate', 'switch', 'door', 'key', 'secret', 'timed', 'chest', 'light', 'receiver', 'reflector', 'combat','cracked','blast_switch','supply','dash_switch','relay','remote','brazier','torch_order','weight','crystal_switch','crystal_barrier','pot','powder_supply','pot_supply','ordered','gate_control','pillar','ordered_layout'):
                 raise ValueError(f'{name}: unknown object')
             pos = tuple(obj['pos'])
             if not tilemap.walkable(*pos) or pos in occupied or pos == tuple(room['spawn']):
@@ -41,6 +41,13 @@ def validate_rooms(rooms):
                 raise ValueError(f'{name}: missing condition')
             if obj['type']=='chest' and obj.get('ability') not in (None,'gloves','boots','mirror','magnet','map','compass','powder'):
                 raise ValueError(f'{name}: unknown ability')
+            if obj['type']=='chest' and obj.get('crystal_color') not in (None,'red','blue'):raise ValueError(f'{name}: invalid chest crystal trigger')
+            if obj['type']=='pillar' and (not isinstance(obj.get('flag'),str) or not obj['flag']):raise ValueError(f'{name}: invalid pillar flag')
+            if obj['type']=='ordered_layout':
+                placements=obj.get('placements',[])
+                by_id={o['id']:o for o in room['objects']}
+                if not placements or any(pair.get('object') not in by_id or by_id[pair['object']]['type']!='box' or not tilemap.walkable(*pair.get('pos',[-1,-1])) for pair in placements):raise ValueError(f'{name}: invalid object placement')
+                if len({pair['object'] for pair in placements})!=len(placements) or len({tuple(pair['pos']) for pair in placements})!=len(placements):raise ValueError(f'{name}: duplicate object placement')
             if obj['type']=='light' and obj.get('direction') not in ([1,0],[-1,0],[0,1],[0,-1]):
                 raise ValueError(f'{name}: invalid light direction')
             if obj['type'] == 'timed' and obj.get('duration', 0) <= 0:
