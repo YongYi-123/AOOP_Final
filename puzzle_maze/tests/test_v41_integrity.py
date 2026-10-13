@@ -71,6 +71,15 @@ class Dungeon41Tests(unittest.TestCase):
             self.assertEqual(loaded.puzzles.objects['combat_key'].phase,ChestPhase.OPENED)
             self.assertEqual(path.read_bytes(),original)
 
+    def test_old_save_on_new_closed_portal_keeps_inventory_and_progress(self):
+        s=AdvancedDungeonSession();s.enter('r11');s.player.x,s.player.y=23,12;s.inventory.keys['small']=3
+        with tempfile.TemporaryDirectory() as folder:
+            path=Path(folder)/'old.json';s.save(path);data=json.loads(path.read_text());data.pop('content_revision',None)
+            path.write_text(json.dumps(data));original=path.read_bytes();loaded=AdvancedDungeonSession.load(path)
+            self.assertEqual(loaded.rooms.current,'r11');self.assertEqual(loaded.inventory.keys['small'],3)
+            self.assertEqual((loaded.player.x,loaded.player.y),(23,11));self.assertIn('retained',loaded.migration_notice)
+            self.assertEqual(path.read_bytes(),original)
+
     def test_remote_passage_cannot_be_bypassed_by_room_completion(self):
         s=AdvancedDungeonSession();s.enter('r11');s.completed.add('r11');s.player.x,s.player.y=23,12
         self.assertTrue(s.puzzles.blocked(23,12));self.assertFalse(s.transition())

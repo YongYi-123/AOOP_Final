@@ -1,9 +1,9 @@
-# Puzzle Maze 4.0 — Emberglass Hollow
+# Puzzle Maze 4.1 — Emberglass Hollow
 
 An original Python / Pygame dungeon adventure upgraded in place. Twenty-two
 rooms over 1F and B1F combine branch exploration, returning routes, cross-room
 circuits, fire sequences, carried weights, enemy weaknesses and five secret
-collections. The original free Arcade cabinet now opens this 4.0 campaign. No story is included.
+collections. The original free Arcade cabinet now opens this 4.1 campaign. No story is included.
 
 ## Run
 
@@ -17,7 +17,7 @@ to silence when mixer initialization fails.
 
 New expedition plays a six-second introduction; Enter skips to the tutorial.
 Left/Right switch the two tutorial pages and Enter begins. Quick start skips both.
-Continue expedition loads 4.0 without onboarding. Pause, full map and onboarding
+Continue expedition loads 4.1 without onboarding. Pause, full map and onboarding
 freeze gameplay clocks, enemy AI and bomb fuses.
 
 ## Controls
@@ -164,7 +164,7 @@ potions, fragments, collection count, global crystal color and floor.
 
 ## Saves and archives
 
-4.0 uses `puzzle_maze/save_v4.json` with atomic replacement. It leaves `save_v3.json`,
+4.1 uses `puzzle_maze/save_v4.json` with atomic replacement. It leaves `save_v3.json`,
 `save_v2.json`, legacy `save.json` and their backups intact. Invalid saves fall back
 without rewriting the file. Dead sessions do not replace the last living save.
 Room reset restores entry inventory, enemy progress, carried objects and pending
@@ -178,7 +178,7 @@ current save. They are also available directly:
 .venv/bin/python -m puzzle_maze --campaign 2
 ```
 
-See `README_V3.md` and `README_V21.md`. The original Arcade cabinet now uses the 4.0 campaign through `lobby_scene.py`.
+See `README_V3.md` and `README_V21.md`. The original Arcade cabinet now uses the 4.1 campaign through `lobby_scene.py`.
 P1 uses J / E / Space / LShift; P2 uses K / Enter / KP0 / RShift. Both use
 B bombs, P powder and G pots. Private reward receipts do not pay lobby currency.
 
@@ -224,4 +224,57 @@ rendering, not full interactive FPS.
 
 Manually check input feel, powder/pot discoverability, real-time Warden/Golem
 balance, audio volume, native display scaling and actual FPS. All edits are confined to `puzzle_maze/`; no push, pull, merge or backup-branch
-changes were made. The cabinet selects 4.0 explicitly without changing host modules.
+changes were made. The cabinet selects the current v4 campaign explicitly without changing host modules.
+
+
+## 4.1 hidden treasure and final-level verification
+
+The original cabinet and standalone game both show **PUZZLE MAZE 4.1**. Restart
+an already running lobby process to load the updated Python modules. Continue
+retains an existing expedition; choose New expedition or Quick start to see
+uncollected rewards from the beginning.
+
+There are 27 chests, including 10 hidden chests. Hidden chests have explicit
+HIDDEN -> SPAWNING (0.45 seconds) -> AVAILABLE -> OPENED states. They do not draw,
+block movement, offer prompts or appear on the compass before their trigger.
+Once revealed they stay available, even after a temporary trigger expires.
+Combat keys now appear in a chest after clearing Copper Watch. Other triggers
+include switches, heavy crates, flame sequence, ordered enemies, cross-room
+flags and the Boots/prism/Warden/timed-crossing Boss Key combination. Rewards
+cannot be collected twice. Spawn timers and opened state survive saving.
+
+The map has 59 directional entrance records, including two stair entrances
+(one 1F/B1F pair) and four secret entries: two bomb walls, a walk-through library
+wall and a remotely revealed foundry entrance. Entrances use original arch,
+cave, lock, Boss Gate and stair art instead of arrow markers. The library wall
+has a subtle floor seam; the foundry wall opens after the flame and Warden
+signals. Every passage has a return. Newly restored crates or enemies cannot
+occupy the player's landing tile. Secrets stay absent from exit markers until
+revealed/discovered.
+
+Save geometry revision stays 4.0; additive content is tagged 4.1. Existing
+snapshot IDs and coordinates are preserved, including converting the old
+combat-key pickup into an opened chest if it was already collected. Legacy
+chest snapshots load without requiring new fields. An old player saved on the
+new foundry portal's closed tile moves to adjacent safe floor without losing
+inventory. Loading does not rewrite the save file.
+
+```bash
+.venv/bin/python -m puzzle_maze.integrity
+.venv/bin/python -m unittest discover -s puzzle_maze/tests -q
+```
+
+Integrity report: 22 rooms, 341 reachable resource states / 341 winning states,
+six small keys / five mandatory key costs, final destination r18. Structural
+checks reject missing returns, unsafe landings, inconsistent floor stairs,
+missing flag producers, empty chests and missing hidden-chest triggers. Crate
+puzzles use state search. The separate production-action campaign regression
+walks all 22 rooms, activates real puzzles, defeats the three-stage Golem,
+reaches Dawn Reservoir and confirms victory plus persisted settlement. This
+route witness does not advance time for every ordinary walk; combat, bomb fuses,
+chest spawning and dash challenges do advance time. A separate 60 FPS timer
+simulation verifies the dash gate after a 0.2-second input delay.
+
+[Playable route and controls](PLAYER_ROUTE.md). Human checks remain for
+continuous real-time difficulty, sound balance, secret clue visibility and FPS
+on the player's machine; headless tests do not replace those checks.

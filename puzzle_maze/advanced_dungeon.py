@@ -1,5 +1,6 @@
 """Fourth campaign extension: shared puzzles, pots, escrow, crystals and secrets."""
 from pathlib import Path
+import copy
 from types import SimpleNamespace
 from puzzle_maze.dungeon import DungeonSession
 from puzzle_maze.rooms import MAP_PATH,load_rooms
@@ -14,6 +15,18 @@ class AdvancedDungeonSession(DungeonSession):
     def __init__(self,rooms=None):
         self.rewards=DungeonRewardBag();self.effects=[];self.pot_flights=[]
         super().__init__(rooms or load_rooms(MAP_PATH.with_name('dungeon_v4.json')))
+    def prepare_loaded_save(self,data):
+        # 4.0 had ordinary floor at the new remote portal. Keep that expedition
+        # if its saved player is standing there; move one tile to its entrance.
+        flags=data.get('flags',[])
+        if (data.get('content_revision') in (None,'4.0') and data.get('map_revision')=='4.0'
+                and data.get('room')=='r11' and data.get('player')==[23,12]
+                and isinstance(flags,list) and all(isinstance(flag,str) for flag in flags)
+                and not {'flame','warden'} <= set(flags)):
+            data=copy.deepcopy(data);data['player']=[23,11]
+            if data.get('checkpoint',{}).get('pos')==[23,12]:data['checkpoint']['pos']=[23,11]
+            self.migration_notice='4.0 progress retained; foundry arrival moved to safe floor.'
+        return data
     def make_puzzles(self,room):
         manager=AdvancedPuzzleManager(room,self.inventory);manager.grant_treasure=self.grant_treasure;return manager
     def enter(self,name,arrival=None):

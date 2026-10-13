@@ -29,6 +29,8 @@ class GameSession:
     def make_puzzles(self,room):
         return PuzzleManager(room,self.inventory)
 
+    def prepare_loaded_save(self,data):return data
+
     def save_extension(self):return {}
     def load_extension(self,data):pass
 
@@ -176,7 +178,7 @@ class GameSession:
     def save(self, path=SAVE_PATH):
         self.encounters[self.rooms.current]=copy.deepcopy(self.combat.capture())
         self.snapshots[self.rooms.current]=self.capture()
-        data=dict(extension=self.save_extension(),powder=self.inventory.powder,heart_fragments=self.inventory.heart_fragments,carried=self.inventory.carried,bombs=self.inventory.bombs,boss_key=self.inventory.boss_key,flags=sorted(self.inventory.flags),bomb_state=self.bombs.capture() if hasattr(self,"bombs") else {},version=2, facing=list(self.player.facing), attack_facing=list(self.player.attack_facing), map_revision=self.rooms.revision, weapon=self.player.weapon.id, dash_cooldown=self.dash_cooldown, player_status={k:getattr(self.player,k) for k in ('invulnerable','attack_cooldown','attack_flash')}, explored=self.exploration.capture(), hp=self.player.hp, encounters=self.encounters, abilities=sorted(self.inventory.abilities), potions=self.inventory.potions, coins=self.inventory.coins, room=self.rooms.current, player=[self.player.x,self.player.y],
+        data=dict(content_revision=self.rooms.data.get('content_revision',self.rooms.revision),extension=self.save_extension(),powder=self.inventory.powder,heart_fragments=self.inventory.heart_fragments,carried=self.inventory.carried,bombs=self.inventory.bombs,boss_key=self.inventory.boss_key,flags=sorted(self.inventory.flags),bomb_state=self.bombs.capture() if hasattr(self,"bombs") else {},version=2, facing=list(self.player.facing), attack_facing=list(self.player.attack_facing), map_revision=self.rooms.revision, weapon=self.player.weapon.id, dash_cooldown=self.dash_cooldown, player_status={k:getattr(self.player,k) for k in ('invulnerable','attack_cooldown','attack_flash')}, explored=self.exploration.capture(), hp=self.player.hp, encounters=self.encounters, abilities=sorted(self.inventory.abilities), potions=self.inventory.potions, coins=self.inventory.coins, room=self.rooms.current, player=[self.player.x,self.player.y],
                   inventory=self.inventory.keys, snapshots=self.snapshots,
                   completed=sorted(self.completed), visited=sorted(self.visited),
                   finished=self.finished, checkpoint=self.checkpoint)
@@ -266,6 +268,7 @@ class GameSession:
                 candidate.migration_notice='Loaded 2.0 progress into compact 2.1 chambers.'
             if data['version'] != 2 or data['room'] not in candidate.rooms.rooms:
                 raise ValueError('Unsupported save')
+            data=candidate.prepare_loaded_save(data)
             candidate.exploration.restore(data.get('explored',{}),candidate.rooms.rooms)
             candidate.inventory.powder=data.get('powder',0);candidate.inventory.heart_fragments=data.get('heart_fragments',0);candidate.inventory.carried=data.get('carried')
             candidate.inventory.keys=data['inventory']

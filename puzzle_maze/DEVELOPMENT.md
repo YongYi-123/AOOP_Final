@@ -348,3 +348,39 @@ onboarding, powder input and safe return with identical token/ticket balances.
 
 Cabinet follow-up validation: all 137 Puzzle Maze tests passed in 18.186 seconds;
 `compileall` and `git diff --check` passed. Only Puzzle Maze files were changed.
+
+## 4.1 — Hidden rewards, usable entrances and final access
+
+Continued on feature/puzzle-maze-v4 with only an unrelated untracked root file
+present. Baseline: 137 tests passed. No host files or shared currencies changed.
+
+ChestPhase adds four explicit states, a persistent 0.45-second appearance timer,
+latched availability and one-time collection. Copper Watch's old key ID is now
+a hidden reward chest, preserving old collected state. Ten hidden chests use
+real puzzle/ability/flag conditions. Compass/proximity prompts honor visibility.
+Boss Key requires timed crossing, Boots, prism and Warden progress.
+
+Original entrance drawing replaces arrow exits with arches, caves, locks,
+Boss Gate and direction-specific stairs. Two optional loops add a library
+walk-through and a flame/Warden remote foundry passage. Remote passages block
+movement while closed; room-completion history cannot bypass their conditions.
+Bomb-wall cracks blend into their stone and show no arrow. Landing safety
+checks restored crates and live enemies before creating the room checkpoint.
+
+DungeonIntegrityValidator checks the 59 entrance records, 27 chests, two stair
+records and four secret entries, then runs existing crate/resource search.
+All 341 resource states remain winning; six keys cover five mandatory costs.
+The production campaign witness still reaches r18, completes the expedition,
+visits all rooms, defeats the Golem and reloads its settled save correctly.
+Tests additionally cover 60 FPS timed crossing, legacy chest fields, a legacy
+save on the new closed foundry entrance, safe returns and hidden exit markers.
+
+Human input was unavailable. Headless startup and rendered library/stair/menu
+screens were checked; continuous combat difficulty, sound, FPS and how subtle
+clues feel still need a real play session. PLAYER_ROUTE.md provides a practical
+route through the final room without revealing every optional collectible.
+
+Final 4.1 validation: all 150 Puzzle Maze tests passed in 19.422 seconds.
+The 60-frame default campaign smoke run, integrity CLI, compileall and
+git diff --check passed. Screenshot review covered native crisp UI and
+functional stairs/library entry art. No manual real-time play was performed.
