@@ -47,7 +47,7 @@ class PuzzleMazeScene(MinigameScene):
         # Combat is a Maze action absent from the lobby's generic schemes.
         attack_key=pygame.K_k if self.input.scheme.name=='P2' else pygame.K_j
         if event.key==attack_key:key=pygame.K_j
-        elif event.key in (pygame.K_q,pygame.K_f,pygame.K_h,pygame.K_TAB,pygame.K_r,pygame.K_b,pygame.K_p,pygame.K_g):key=event.key
+        elif event.key in (pygame.K_q,pygame.K_f,pygame.K_h,pygame.K_TAB,pygame.K_r,pygame.K_b,pygame.K_p,pygame.K_g,pygame.K_t):key=event.key
         elif event.key in (pygame.K_LSHIFT,pygame.K_RSHIFT) and (self.input.scheme.name=='SOLO' or self.input.scheme.owns(event.key)):key=pygame.K_LSHIFT
         elif action=='interact':
             key=pygame.K_e if self.maze.scene==GameScene.PLAY else pygame.K_RETURN
