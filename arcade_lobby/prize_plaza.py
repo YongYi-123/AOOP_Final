@@ -36,30 +36,6 @@ LUCKY_POS = (268, 98)
 MOCHI_POS = (COUNTER_POS[0] + 60, COUNTER_POS[1] + 2)      # her feet: the middle of the counter top
 SHELF_ITEMS = (("arcade_trophy", "decor_cat_plush", "mini_cabinet", "golden_token", "lucky_clover"),
                ("retro_badge", "cat_sticker", "star_pin", "neon_cap", "decor_table_lamp"))
-PRIZE_COLORS = ((255, 140, 190), (120, 220, 255), (255, 214, 90), (160, 240, 150),
-                (190, 150, 255), (255, 120, 120))
-
-
-def _prize(color, kind):
-    """One little prize for a shelf: a plush, a gift box or a trophy."""
-    s = pygame.Surface((9, 9), pygame.SRCALPHA)
-    if kind == 0:                                           # plush bear
-        pygame.draw.circle(s, color, (4, 5), 3)
-        s.fill(color, (1, 1, 2, 2))
-        s.fill(color, (6, 1, 2, 2))
-        s.fill((30, 20, 50), (3, 5, 1, 1))
-        s.fill((30, 20, 50), (5, 5, 1, 1))
-    elif kind == 1:                                         # gift box
-        s.fill(color, (1, 3, 7, 6))
-        s.fill(scale_color(color, 0.6), (4, 3, 1, 6))
-        s.fill((255, 244, 200), (1, 5, 7, 1))
-        s.fill((255, 244, 200), (3, 1, 3, 2))
-    else:                                                   # trophy
-        s.fill(color, (2, 1, 5, 4))
-        s.fill(color, (4, 5, 1, 2))
-        s.fill(scale_color(color, 0.6), (2, 7, 5, 2))
-        s.fill((255, 255, 255), (3, 2, 1, 2))
-    return s
 
 
 class PlazaBackdrop(HubBackdrop):
