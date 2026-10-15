@@ -24,8 +24,8 @@ from neon_cat_maze.game import Screen
 from neon_cat_maze.settlement import tickets_for
 from player_profile import PlayerProfile
 from room_testing import goto_room
-from scenes import MINIGAME_DEFINITIONS, MINIGAME_SCENES, MinigamePlaceholderScene, minigame_definition
-from settings import MACHINES, VIEW_H, VIEW_W
+from scenes import MINIGAME_SCENES, MinigamePlaceholderScene, minigame_definition
+from settings import MACHINES, VIEW_W
 
 DT = 1 / 60
 BIG_DESKTOP = (7680, 4320)

@@ -8,7 +8,6 @@ silent for good. A 40 ms silent probe that never finishes exposes it, and reopen
 
 Run from this folder:  python -m unittest test_audio_device -v
 """
-import json
 import os
 import shutil
 import tempfile

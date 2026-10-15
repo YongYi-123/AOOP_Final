@@ -15,6 +15,7 @@ ENV/
 arcade_lobby/save_data.json
 arcade_lobby/save_data.json.*
 arcade_lobby/saves/
+.arcade.lock
 
 # ---- Test / coverage / debug output ----
 .coverage
@@ -25,6 +26,7 @@ htmlcov/
 .hypothesis/
 *.log
 *.prof
+nohup.out
 
 # ---- Type checker / linter caches ----
 .mypy_cache/
@@ -37,6 +39,7 @@ htmlcov/
 !.env.example
 *.local
 .claude/settings.local.json
+.claude/worktrees/
 
 # ---- Editors / IDEs ----
 # Personal editor state is ignored; shared project settings may still be committed.
@@ -64,11 +67,12 @@ dist/
 *.egg
 pip-wheel-metadata/
 
+# ---- Generated screenshots / review output (regenerate locally) ----
+review_screenshots/
+
 # ---- Scratch files ----
 tmp/
 *.tmp
 *.bak
 *.orig
 *.rej
-
-review_screenshots/

@@ -146,6 +146,30 @@ NEON21_DEFAULT_WAGER = 2
 NEON21_TICKETS_PER_TOKEN = 1
 NEON21_DAILY_TICKET_CAP = 30
 
+# NEON COIN PUSHER - KITTY FORTUNE. Opening is free; every DROP costs exactly 1 Token.
+# Coins that fall over the FRONT edge are collected (NORMAL 1 Token, SILVER 3 Tokens,
+# GOLDEN CAT 5 Tickets, MYSTERY a small surprise); coins off the sides are lost.
+# Golden/mystery Tickets are gambling winnings like NEON 21's: capped per profile per
+# calendar day, and beyond the cap a Golden Cat Coin pays COIN_PUSHER_CAPPED_TOKENS instead.
+COIN_PUSHER_DROP_COST = 1
+COIN_PUSHER_NORMAL_TOKENS = 1
+COIN_PUSHER_SILVER_TOKENS = 3
+COIN_PUSHER_GOLDEN_TICKETS = 5
+COIN_PUSHER_CAPPED_TOKENS = 1
+COIN_PUSHER_DAILY_TICKET_CAP = 30
+
+# LUCKY CAT PINBALL. Opening is free; a run costs 1 Token and gives 3 balls. Tickets come from the
+# final score (1 per PINBALL_POINTS_PER_TICKET, at most PINBALL_MAX_TICKETS per run); a rare
+# 50,000+ run also returns 1 Token. Like the other Lucky Corner winnings these are capped per
+# profile per calendar day (Tickets are winnings, not "earned" Tickets) and a run never pays twice.
+PINBALL_RUN_COST = 1
+PINBALL_POINTS_PER_TICKET = 5000
+PINBALL_MAX_TICKETS = 12
+PINBALL_TOKEN_SCORE = 50000
+PINBALL_TOKEN_REWARD = 1
+PINBALL_DAILY_TICKET_CAP = 30
+PINBALL_DAILY_TOKEN_CAP = 2
+
 
 class Col:
     """Neon arcade palette: dark navy/purple base with bright accents."""

@@ -36,19 +36,28 @@ PRIORITY = {"footstep": 0, "meow": 1, "card": 1, "sit": 1, "pet": 1, "pet_b": 1,
             "rainbow": 3, "squeak": 3, "zap": 3, "mystery": 3, "glitch": 4, "purchase": 3, "equip": 3, "spike": 3, "powerup": 3, "win": 4, "loss": 4,
             # NEON CAT MAZE: munching never cuts off a bigger moment, and the big moments are never cut off by it
             "maze_fish": 0, "maze_fish_b": 0, "maze_catnip_end": 1, "maze_golden_spawn": 2, "maze_golden": 3,
-            "maze_catnip": 3, "maze_disable": 3, "maze_life": 4, "maze_clear": 4, "maze_over": 4}
+            "maze_catnip": 3, "maze_disable": 3, "maze_life": 4, "maze_clear": 4, "maze_over": 4,
+            # NEON COIN PUSHER: clinks and the motor hum never cut off a drop or a payout; a Golden Cat Coin outranks everything
+            "coin_clink": 0, "pusher_hum": 0, "coin_drop": 2, "coin_tray": 2, "coin_win": 3, "coin_gold": 4,
+            # LUCKY CAT PINBALL: ticks and flipper clicks never cut off a bumper, a launch or a fanfare; the drain and the bonus outrank everything
+            "pin_rail": 0, "pin_flipper": 0, "pin_bumper": 1, "pin_target": 2, "pin_launch": 2, "pin_scoop": 2, "pin_drain": 3, "pin_bonus": 4}
 SFX_FILES = ("footstep", "confirm", "cancel", "machine", "token", "ticket", "purchase", "card", "equip",
              "pet", "pet_b", "pet_c", "purr", "emote", "sit", "meow", "vend_hum", "vend_select", "vend_drop", "burp", "munch", "rainbow",
              "squeak", "zap", "mystery", "glitch",
              "maze_fish", "maze_fish_b", "maze_golden", "maze_golden_spawn", "maze_catnip", "maze_catnip_end",
-             "maze_disable", "maze_life", "maze_clear", "maze_over")
+             "maze_disable", "maze_life", "maze_clear", "maze_over",
+             "coin_drop", "coin_clink", "coin_tray", "coin_win", "coin_gold", "pusher_hum",
+             "pin_launch", "pin_flipper", "pin_bumper", "pin_rail", "pin_target", "pin_scoop", "pin_bonus", "pin_drain")
 # some effects are meant to be barely there
 SFX_GAIN = {"footstep": 0.3, "card": 0.7, "confirm": 0.8, "cancel": 0.8, "sit": 0.7, "emote": 0.8, "meow": 0.6, "purr": 1.0, "vend_hum": 0.6, "vend_select": 0.7, "vend_drop": 0.8, "burp": 0.7,
             # the shooter fires dozens of these a second of play: keep them a soft texture, not a buzz
             "laser": 0.3, "boom": 0.75, "point": 0.8, "skid": 0.6, "bounce": 0.8,
-            "maze_fish": 0.55, "maze_fish_b": 0.55, "maze_catnip_end": 0.8}
+            "maze_fish": 0.55, "maze_fish_b": 0.55, "maze_catnip_end": 0.8,
+            "coin_clink": 0.5, "pusher_hum": 0.55, "coin_drop": 0.8,
+            "pin_rail": 0.5, "pin_flipper": 0.65, "pin_bumper": 0.85, "pin_launch": 0.85, "pin_drain": 0.8}
 MIN_GAP = {"footstep": 0.16, "pet": 0.35, "pet_b": 0.35, "pet_c": 0.35, "purr": 0.35, "meow": 1.2, "laser": 0.14, "boom": 0.09, "point": 0.1, "bounce": 0.08,
-           "hit": 0.07}                              # seconds between two plays of the same effect (default .06)
+           "hit": 0.07, "coin_clink": 0.11, "pusher_hum": 1.5, "coin_tray": 0.12,
+           "pin_rail": 0.09, "pin_flipper": 0.05, "pin_bumper": 0.07}                              # seconds between two plays of the same effect (default .06)
 DEFAULT_BGM, DEFAULT_SFX = .5, .7      # the music files are mastered at about -14 dB, so .5 is comfortable
 FADE_MS = 700           # music crossfade length, driven by game time (not by the audio clock: a stalled device cannot freeze it)
 WATCHDOG_GRACE = .35    # seconds the music may be missing before it is restarted

@@ -555,7 +555,6 @@ class SceneMouseTests(GameCase):
         self.assertEqual(scene.row, 0)
 
     def test_menu_scenes_map_clicks_to_the_same_canvas_pixel_at_every_size(self):
-        from character_creator import CharacterCreatorScene
         from shop_ui import ShopScene
         from wardrobe_ui import WardrobeScene
         owner = self.game.session.players[0]
@@ -610,7 +609,6 @@ class SceneMouseTests(GameCase):
 
     def test_collection_decoration_and_character_creator_mouse_clicks_work(self):
         """Same audit finding as the wardrobe: CollectionScene overrode MenuScene._click and crashed on a click."""
-        from character_creator import CharacterCreatorScene
         from collection_ui import CollectionScene
         owner = self.game.session.players[0]
         scenes = [CollectionScene(self.game, owner)]

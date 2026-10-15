@@ -11,7 +11,7 @@ from arcade_layout import ArcadeLayout
 from backdrop import (AmbientAnimator, BackgroundRenderer, DustMotes,
                       LightingOverlay, NeonLight, Scanlines, StringLights, neon_tube)
 from font import get_font
-from gfx import neon_rect_glow, scale_color, shade
+from gfx import scale_color, shade
 from lofi_props import make_stool
 from stations import Seat
 from vending_machine import VendingMachine
@@ -94,7 +94,7 @@ class ArcadeFloorScene(BaseRoomScene):
     exits = (RoomExit("right", "home", "left"),)
     cat_spots = {
         "pixel": ((120, 124), (250, 124), (324, 196), (330, 244)),   # curious: patrols the corridor
-        "dash": ((165, 224), (250, 226), (206, 166)),                # playful: hops around the stools
+        "dash": ((165, 240), (250, 226), (206, 166)),                # playful: hops around the stools
         "pepper": ((352, 124), (336, 152)),                          # grumpy: guards the vending corner
     }
     action_hint = "PLAY"

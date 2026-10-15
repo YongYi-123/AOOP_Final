@@ -32,6 +32,13 @@ class PuzzleMazeLobbyTests(unittest.TestCase):
         self.assertIsInstance(self.scene.maze.session,AdvancedDungeonSession)
         self.assertIs(window,pygame.display.get_surface())
 
+    def begin(self):
+        # Keep the normal onboarding path distinct from Quick start.
+        key=pygame.K_e if self.scene.input.scheme.name=='P1' else pygame.K_RETURN
+        for expected in (GameScene.INTRO,GameScene.TUTORIAL,GameScene.PLAY):
+            self.frames(1,key)
+            self.assertEqual(self.scene.maze.scene,expected)
+
     def frames(self,count,key=None,up=False):
         events=[] if key is None else [pygame.event.Event(pygame.KEYUP if up else pygame.KEYDOWN,key=key,mod=0)]
         for i in range(count):self.game.step(events if i==0 else [],1/60)
@@ -42,46 +49,44 @@ class PuzzleMazeLobbyTests(unittest.TestCase):
         self.assertEqual(self.scene.maze.scene,GameScene.PLAY)
 
     def test_free_launch_controls_and_return(self):
-        self.start()
-        self.assertEqual(self.machine.play_cost,0)
-        self.assertFalse(minigame_definition('puzzle_maze').supports(2))
-        self.quick_start()
-        self.assertEqual(self.scene.maze.scene,GameScene.PLAY)
-        self.frames(25,pygame.K_d);self.frames(1,pygame.K_d,True)
-        self.assertGreater(self.scene.maze.session.player.x,2)
-        self.frames(1,pygame.K_r)
-        self.assertEqual(self.scene.maze.session.player.x,2)
-        self.frames(1,pygame.K_TAB)
-        self.assertEqual(self.scene.maze.scene,GameScene.MAP)
-        self.frames(1,pygame.K_TAB);self.frames(1,pygame.K_ESCAPE)
-        self.assertEqual(self.scene.maze.scene,GameScene.PAUSE)
-        self.scene.maze.selection=len(self.scene.maze.options())-1
-        self.frames(1,pygame.K_RETURN);self.frames(40)
-        self.assertIs(self.game.scenes.current,self.room)
-        self.assertEqual(self.profiles[0].tokens,0)
-        self.assertEqual(self.profiles[0].tickets,PlayerProfile().tickets)
-        self.assertNotIn('puzzle_maze',self.profiles[0].high_scores)
+        for entry in ('begin','quick_start'):
+            with self.subTest(entry=entry):
+                self.start()
+                self.assertEqual(self.machine.play_cost,0)
+                self.assertFalse(minigame_definition('puzzle_maze').supports(2))
+                getattr(self,entry)()
+                self.frames(25,pygame.K_d);self.frames(1,pygame.K_d,True)
+                self.assertGreater(self.scene.maze.session.player.x,2)
+                self.frames(1,pygame.K_r)
+                self.assertEqual(self.scene.maze.session.player.x,2)
+                self.frames(1,pygame.K_TAB)
+                self.assertEqual(self.scene.maze.scene,GameScene.MAP)
+                self.frames(1,pygame.K_TAB);self.frames(1,pygame.K_ESCAPE)
+                self.assertEqual(self.scene.maze.scene,GameScene.PAUSE)
+                self.scene.maze.selection=len(self.scene.maze.options())-1
+                self.frames(1,pygame.K_RETURN);self.frames(40)
+                self.assertIs(self.game.scenes.current,self.room)
+                self.assertEqual(self.profiles[0].tokens,0)
+                self.assertEqual(self.profiles[0].tickets,PlayerProfile().tickets)
+                self.assertNotIn('puzzle_maze',self.profiles[0].high_scores)
 
     def test_title_escape_returns(self):
         self.start();self.frames(1,pygame.K_ESCAPE);self.frames(40)
         self.assertIs(self.game.scenes.current,self.room)
 
     def test_second_player_owns_controls(self):
-        self.start(two=True,starter=1);self.quick_start()
-        self.frames(30,pygame.K_d);self.frames(1,pygame.K_d,True)
-        self.assertEqual(self.scene.maze.session.player.x,2)
-        self.frames(25,pygame.K_RIGHT);self.frames(1,pygame.K_RIGHT,True)
-        self.assertGreater(self.scene.maze.session.player.x,2)
-        self.assertEqual(self.scene.participants,[self.profiles[1]])
+        for entry in ('begin','quick_start'):
+            with self.subTest(entry=entry):
+                self.start(two=True,starter=1);getattr(self,entry)()
+                self.frames(30,pygame.K_d);self.frames(1,pygame.K_d,True)
+                self.assertEqual(self.scene.maze.session.player.x,2)
+                self.frames(25,pygame.K_RIGHT);self.frames(1,pygame.K_RIGHT,True)
+                self.assertGreater(self.scene.maze.session.player.x,2)
+                self.assertEqual(self.scene.participants,[self.profiles[1]])
 
     def test_new_expedition_onboarding(self):
         self.start()
-        self.frames(1,pygame.K_RETURN)
-        self.assertEqual(self.scene.maze.scene,GameScene.INTRO)
-        self.frames(1,pygame.K_RETURN)
-        self.assertEqual(self.scene.maze.scene,GameScene.TUTORIAL)
-        self.frames(1,pygame.K_RETURN)
-        self.assertEqual(self.scene.maze.scene,GameScene.PLAY)
+        self.begin()
 
     def test_orb_recall_and_dash_controls(self):
         for two,starter,shift in ((False,0,pygame.K_LSHIFT),(True,0,pygame.K_LSHIFT),(True,1,pygame.K_RSHIFT)):

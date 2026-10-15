@@ -14,7 +14,7 @@ os.environ.setdefault("SDL_AUDIODRIVER", "dummy")
 
 from pixel_volleyball import model
 from pixel_volleyball.ai import VolleyAI
-from pixel_volleyball.court import BALL_GRAVITY, FLOOR, GRAVITY, NET_TOP, NET_X
+from pixel_volleyball.court import BALL_GRAVITY, FLOOR, GRAVITY, NET_X
 from pixel_volleyball.effects import SmashTrail
 from pixel_volleyball.model import (HIT_REACH, MAX_BALL_SPEED, SERVE_DELAY, SERVE_VX, SERVE_VY,
                                     MatchState, VolleyBall, VolleyInput, VolleyMatch)

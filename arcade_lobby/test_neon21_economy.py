@@ -10,7 +10,7 @@ import unittest
 from datetime import date, timedelta
 
 from blackjack_testing import stacked_deck
-from blackjack import BlackjackRound, Card, Outcome
+from blackjack import Outcome
 from game_clock import GameClock
 from neon21 import TICKETS, TOKENS, Neon21Table
 from player_profile import PlayerProfile, ProfileStore

@@ -8,7 +8,6 @@ os.environ.setdefault("SDL_AUDIODRIVER", "dummy")
 
 import pygame
 
-from galaxy_defender import config as cfg
 from galaxy_defender.game import GalaxyGame, Screen
 
 DT = 1 / 60

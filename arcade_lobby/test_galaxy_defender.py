@@ -3,7 +3,6 @@
 Run with:  python -m unittest test_galaxy_defender
 """
 import os
-import tempfile
 import unittest
 
 os.environ.setdefault("SDL_VIDEODRIVER", "dummy")

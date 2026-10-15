@@ -26,14 +26,14 @@ from chance_game import draw_chance_backdrop
 from controls import SOLO_CONTROLS
 from daily_ui import token_icon
 from font import get_font
-from gfx import scale_color, shade
+from gfx import scale_color
 from neon21 import TICKETS, TOKENS, Neon21Table
 from neon21_art import (CARD_H, CARD_W, CHIP, EMERALD, GOLD, card_surface,
                         chip_surface, chips_for, suit_icon)
 from scene_base import BaseScene
 from display import screen_to_canvas
 from settings import (BACK_KEYS, CONFIRM_KEYS, NEON21_DAILY_TICKET_CAP,
-                      NEON21_WAGERS, PIXEL_SCALE, VIEW_H, VIEW_W, Col)
+                      NEON21_WAGERS, VIEW_W, Col)
 
 FELT = (9, 58, 52)
 FELT_DARK = (6, 40, 38)
@@ -333,7 +333,6 @@ class Neon21Scene(BaseScene):
         self.text_rects = []
         self.card_rects = {"dealer": [], "player": []}
         self.buttons = {}
-        t = self.table
         draw_chance_backdrop(surf, (8, 4, 22), (24, 6, 44), GOLD, self.time)
         self._draw_header(surf)
         self._draw_felt(surf)
@@ -431,7 +430,6 @@ class Neon21Scene(BaseScene):
         if player_cards:
             value, soft = hand_value(player_cards)
             p_text += f" {value}" + (" SOFT" if soft and value < 21 else "")
-        r = self.table.round
         color = RED if player_cards and hand_value(player_cards)[0] > 21 else Col.TEXT
         self.text(surf, p_text, VIEW_W // 2, 136, color, glow=(10, 40, 40))
 

@@ -90,18 +90,20 @@ class HubBase(unittest.TestCase):
 
 
 class LuckyCornerLayoutTests(HubBase):
-    def test_arrangement_is_spin_hilo_neon21_and_two_soon_bays(self):
+    def test_arrangement_is_spin_hilo_neon21_then_coin_pusher_and_pinball_with_no_soon_bay_left(self):
         room = self.plaza()
         cabinets = sorted((p for p in room.props if isinstance(p, (ChanceStation, Neon21Station))),
                           key=lambda p: (p.rect.y, p.rect.x))
         self.assertEqual([c.prompt_label for c in cabinets], ["PLAY SPIN", "PLAY HI-LO", "PLAY NEON 21"])
         self.assertEqual([c.rect.topleft for c in cabinets],
                          [(LUCKY_POS[0] + 40 * i, LUCKY_POS[1]) for i in range(3)])
-        soon = [p for p in room.props if isinstance(p, SoonStation)]
-        self.assertEqual(len(soon), 2)
-        self.assertTrue(all(p.rect.y > LUCKY_POS[1] + 40 for p in soon))
-        for s in soon:
-            self.assertNotIn(s, room.interactables)
+        self.assertEqual([p for p in room.props if isinstance(p, SoonStation)], [])      # both spare bays are games now
+        pinball = next(p for p in room.props if p.__class__.__name__ == "PinballStation")
+        self.assertEqual(pinball.rect.topleft, (LUCKY_POS[0] + 40, LUCKY_POS[1] + 70))    # the LAST bay became LUCKY CAT PINBALL
+        self.assertEqual(pinball.prompt_label, "PLAY LUCKY CAT PINBALL")
+        pusher = next(p for p in room.props if p.__class__.__name__ == "CoinPusherStation")
+        self.assertEqual(pusher.rect.topleft, (LUCKY_POS[0], LUCKY_POS[1] + 70))
+        self.assertEqual(pusher.prompt_label, "PLAY COIN PUSHER")
 
     def test_spin_and_hilo_keep_their_games(self):
         room = self.plaza()
@@ -131,7 +133,7 @@ class LuckyCornerLayoutTests(HubBase):
     def test_every_lucky_cabinet_has_its_own_look(self):
         from lucky_cabinets import KINDS, build_cabinet
         images = {k: pygame.image.tobytes(build_cabinet(k), "RGBA") for k in KINDS}
-        self.assertEqual(len(set(images.values())), 3)
+        self.assertEqual(len(set(images.values())), len(KINDS))      # spin, hilo, neon21, pusher, pinball
         self.assertTrue(all(build_cabinet(k).get_size() == (28, 40) for k in KINDS))
 
     def test_every_animation_frame_draws(self):

@@ -13,11 +13,8 @@ import argparse
 import ctypes
 import logging
 import os
-import shutil
 import sys
 import time
-
-import pygame
 
 from audio_manager import AudioManager, MUSIC_FILES
 from settings import SAVES_DIR

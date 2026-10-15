@@ -1,5 +1,4 @@
 """Small pixel car showcase using the racer's original assets and stat data."""
-import pygame
 import assets
 from car_specs import CAR_CATALOG, player_livery
 

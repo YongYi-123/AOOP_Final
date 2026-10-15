@@ -38,6 +38,8 @@ import pygame
 
 from cat_colony import CatColony
 from chance_scene import ChanceGameScene
+from coin_pusher_scene import CoinPusherScene
+from pinball_scene import PinballScene
 from neon21_scene import Neon21Scene
 from daily_ui import TaskPanel
 from inventory_ui import InventoryUI
@@ -666,6 +668,24 @@ class BaseRoomScene(BaseScene):
         player = self._actor(player)
         self._pause_for_minigame()
         self.game.scenes.push(Neon21Scene(self.game, self.session.player_for_avatar(player)))
+
+    def open_coin_pusher(self, player=None):
+        """Walk up to NEON COIN PUSHER. Nothing is charged here: Tokens are only taken, one
+        per coin, from the player who walked up when they press DROP."""
+        if self.active_play is not None or self.game.scenes.transitioning:
+            return
+        player = self._actor(player)
+        self._pause_for_minigame()
+        self.game.scenes.push(CoinPusherScene(self.game, self.session.player_for_avatar(player)))
+
+    def open_pinball(self, player=None):
+        """Walk up to LUCKY CAT PINBALL. Nothing is charged here: the Token is only taken, from the
+        player who walked up, when they press START inside the machine."""
+        if self.active_play is not None or self.game.scenes.transitioning:
+            return
+        player = self._actor(player)
+        self._pause_for_minigame()
+        self.game.scenes.push(PinballScene(self.game, self.session.player_for_avatar(player)))
 
     def _start_game(self, machine, use_coupon=False, player=None, participants=None):
         # A paid game is already starting/running, or a wipe is in progress

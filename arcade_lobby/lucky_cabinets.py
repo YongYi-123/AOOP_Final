@@ -22,7 +22,10 @@ KINDS = {
     "spin": {"neon": (255, 70, 200), "accent": GOLD, "label": "SPIN"},
     "hilo": {"neon": (80, 240, 255), "accent": (90, 255, 150), "label": "HI-LO"},
     "neon21": {"neon": GOLD, "accent": EMERALD, "label": "NEON"},
+    "pusher": {"neon": (255, 110, 214), "accent": (80, 240, 255), "label": "COIN"},
+    "pinball": {"neon": (110, 170, 255), "accent": (255, 206, 84), "label": "PIN"},
 }
+EAR_PINK = (255, 140, 200)
 
 
 def build_cabinet(kind):
@@ -30,8 +33,8 @@ def build_cabinet(kind):
     neon, accent = spec["neon"], spec["accent"]
     w, h = SIZE
     s = pygame.Surface(SIZE, pygame.SRCALPHA)
-    body = (16, 8, 30) if kind == "neon21" else Col.CABINET
-    side = (30, 18, 52) if kind == "neon21" else Col.CABINET_SIDE
+    body = {"neon21": (16, 8, 30), "pusher": (20, 16, 58), "pinball": (12, 18, 62)}.get(kind, Col.CABINET)         # navy-violet casing
+    side = {"neon21": (30, 18, 52), "pusher": (44, 32, 104), "pinball": (28, 40, 110)}.get(kind, Col.CABINET_SIDE)
     s.fill(side, (0, 8, w, h - 8))
     s.fill(body, (3, 8, w - 6, h - 8))
     s.fill(neon, (0, 8, 1, h - 8))
@@ -68,6 +71,29 @@ def build_cabinet(kind):
                 pts = [(x, y + 2), (x + 2, y + 2), (x + 1, y)] if up else [(x, y), (x + 2, y), (x + 1, y + 2)]
                 pygame.draw.polygon(s, neon, pts)
         s.fill(neon, (3, 0, w - 6, 1))
+    elif kind == "pusher":
+        for x, y in ((0, 0), (0, 1), (1, 1), (0, 2), (1, 2), (2, 2),                # pink cat ears on the marquee box
+                     (w - 1, 0), (w - 1, 1), (w - 2, 1), (w - 1, 2), (w - 2, 2), (w - 3, 2)):
+            s.set_at((x, y), EAR_PINK)
+        pygame.draw.circle(s, (255, 214, 90), (14, 28), 2)             # a big gold DROP button
+        s.set_at((13, 27), (255, 250, 200))
+        for x, c in ((6, (80, 240, 255)), (20, (255, 110, 214))):
+            s.fill(c, (x, 28, 2, 1))
+        for y in range(11, 36, 4):                                     # cyan glass-edge piping
+            s.fill((80, 240, 255), (2, y, 1, 2))
+            s.fill((80, 240, 255), (w - 3, y, 1, 2))
+    elif kind == "pinball":
+        for x, y in ((0, 0), (0, 1), (1, 1), (0, 2), (1, 2), (2, 2),                # pink cat ears on the marquee box
+                     (w - 1, 0), (w - 1, 1), (w - 2, 1), (w - 1, 2), (w - 2, 2), (w - 3, 2)):
+            s.set_at((x, y), EAR_PINK)
+        for x in (5, 19):                                              # two pink flipper buttons
+            s.fill((255, 120, 200), (x, 27, 4, 3))
+            s.fill((255, 220, 240), (x, 27, 4, 1))
+        pygame.draw.circle(s, (255, 206, 84), (14, 28), 1)             # a gold plunger knob between them
+        s.fill((255, 206, 84), (13, 29, 2, 2))
+        for y in range(11, 36, 4):                                     # gold star studs down the flanks
+            s.fill((255, 206, 84), (1, y, 1, 2))
+            s.fill((255, 206, 84), (w - 2, y, 1, 2))
     else:                                                              # neon21
         for i, suit in enumerate("SHDC"):                              # the suit motif on the panel
             color = EMERALD if suit in "SC" else RED_SUIT
@@ -94,6 +120,8 @@ def draw_marquee(surf, kind, origin, t):
     label = spec["label"]
     if kind == "neon21" and int(t / 1.1) % 2:
         label = "21"
+    elif kind == "pinball" and int(t / 1.1) % 2:
+        label = "BALL"
     glow = scale_color(spec["neon"], 0.3 + 0.06 * math.sin(t * 3))
     img = font.render_glow(label, GOLD if kind != "hilo" else (200, 252, 255), glow)
     surf.blit(img, img.get_rect(midtop=(x + SIZE[0] // 2, y)))
@@ -104,7 +132,8 @@ def draw_marquee(surf, kind, origin, t):
 
 def draw_screen(surf, kind, origin, t):
     inner = INNER.move(origin)
-    {"spin": _screen_spin, "hilo": _screen_hilo, "neon21": _screen_neon21}[kind](surf, inner, t)
+    {"spin": _screen_spin, "hilo": _screen_hilo, "neon21": _screen_neon21,
+     "pusher": _screen_pusher, "pinball": _screen_pinball}[kind](surf, inner, t)
 
 
 def _screen_spin(surf, inner, t):
@@ -181,3 +210,38 @@ def _screen_neon21(surf, inner, t):
         surf.fill(c, (inner.right - 3, inner.bottom - 2 - i * 2, 2, 1))
     if int(t * 2) % 2:
         surf.set_at((inner.right - 2, inner.top + 2), shade(GOLD, 0.5))   # twinkle
+
+
+def _screen_pusher(surf, inner, t):
+    """A tiny pusher: a moving bar shoving a row of gold coins towards the tray, one drops in."""
+    surf.fill((12, 8, 44), inner)
+    surf.fill((20, 60, 84), (inner.x, inner.bottom - 2, inner.w, 2))               # the cyan tray
+    push = (math.sin(t * 1.6 - math.pi / 2) + 1) / 2                               # 0 back .. 1 forward
+    bar_y = inner.y + 2 + int(push * 3)
+    surf.fill((200, 120, 255), (inner.x, bar_y - 1, inner.w, 2))
+    surf.fill((255, 170, 255), (inner.x, bar_y - 1, inner.w, 1))
+    for i in range(4):                                                             # coins ride in front of the bar
+        cx = inner.x + 3 + i * 4 + (1 if i % 2 else 0)
+        cy = bar_y + 2 + (i % 2) * 2 + int(push * 2)
+        gold = i == 2 and int(t / 3.2) % 2 == 0
+        surf.fill((255, 140, 200) if gold else (255, 214, 90), (cx, cy, 3, 2))
+        surf.fill((255, 250, 210), (cx, cy, 1, 1))
+    k = (t * 0.9) % 1.0                                                            # a coin dropping from the chute
+    surf.fill((255, 214, 90), (inner.x + 4 + int(((t * 0.9) // 1) * 5) % (inner.w - 8), inner.y + int(k * 3), 2, 1))
+
+
+def _screen_pinball(surf, inner, t):
+    """A tiny table: three pink bumpers, a silver ball bouncing between them and two flippers that kick it back up."""
+    surf.fill((20, 12, 58), inner)
+    for x, y in ((3, 2), (9, 2), (6, 5)):                                          # bumpers flash as the ball passes
+        hot = int(t * 3) % 3 == (x // 3) % 3
+        surf.fill((255, 250, 255) if hot else (255, 120, 200), (inner.x + x, inner.y + y, 2, 2))
+    k = (t * 1.1) % 1.0                                                            # one bounce cycle: down, then flipped up
+    x = inner.x + 2 + int(abs(math.sin(t * 1.7)) * (inner.w - 6))
+    y = inner.y + 1 + int((1 - abs(2 * k - 1) ** 2) * (inner.h - 5))
+    surf.fill((236, 244, 255), (x, y, 2, 2))
+    flip = int(k * 8) == 7
+    for fx, up in ((inner.x + 3, flip), (inner.right - 8, flip)):                  # the two flippers, raised for a moment
+        surf.fill((255, 206, 84), (fx, inner.bottom - (3 if up else 2), 5, 1))
+    surf.fill((110, 170, 255), (inner.x, inner.bottom - 1, 3, 1))
+    surf.fill((110, 170, 255), (inner.right - 3, inner.bottom - 1, 3, 1))

@@ -10,7 +10,7 @@ import pygame
 from font import get_font
 from gfx import lerp_color, neon_rect_glow, outlined, scale_color, shade
 from high_low import HighLowGame
-from lucky_cabinets import KINDS, SIZE, build_cabinet, draw_marquee, draw_screen
+from lucky_cabinets import KINDS, build_cabinet, draw_marquee, draw_screen
 from lucky_wheel import LuckyWheelGame
 from room import Prop, make_prize_counter
 from settings import INTERACT_FLASH, Col
@@ -178,6 +178,26 @@ class Neon21Station(LuckyCabinet):
 
     def interact(self, scene):
         scene.open_neon21()
+
+
+class CoinPusherStation(LuckyCabinet):
+    """NEON COIN PUSHER - KITTY FORTUNE. Opening it is free; the coins cost Tokens."""
+
+    def __init__(self, pos):
+        super().__init__(pos, "pusher", "COIN PUSHER")
+
+    def interact(self, scene):
+        scene.open_coin_pusher()
+
+
+class PinballStation(LuckyCabinet):
+    """LUCKY CAT PINBALL. Opening it is free; a run of 3 balls costs 1 Token."""
+
+    def __init__(self, pos):
+        super().__init__(pos, "pinball", "LUCKY CAT PINBALL")
+
+    def interact(self, scene):
+        scene.open_pinball()
 
 
 class LuckySign(Prop):

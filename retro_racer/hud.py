@@ -157,11 +157,6 @@ class Hud:
         else:
             self.text(surf, "NONE", (20, 184), DIM, self.font)
 
-    def card_size(self, n):
-        """Preview size for n track cards side by side."""
-        w = (S.WIDTH - 48 - 16 * (n - 1)) // n
-        return w, int(w * 0.6)
-
     def draw_track_name(self, surf, name, note=""):
         self.text(surf, name, (S.WIDTH - 20, S.HEIGHT - 34), DIM, self.small, "right")
         if note:

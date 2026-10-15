@@ -8,7 +8,7 @@ one legal 52-card deck (a fifth Ace or a repeated card is impossible).
 A label is a rank ("A", "2".."10", "J", "Q", "K"), optionally followed by a
 suit letter (S, H, D, C): "10H". Without a suit the first unused suit is taken.
 """
-from blackjack import RANK_LABELS, SUITS, Card, standard_deck
+from blackjack import RANK_LABELS, SUITS, standard_deck
 
 _RANKS = {v: k for k, v in RANK_LABELS.items()}
 
