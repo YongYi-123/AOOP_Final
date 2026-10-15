@@ -30,6 +30,11 @@ class PuzzleMazeLobbyTests(unittest.TestCase):
         self.assertIsInstance(self.scene,PuzzleMazeScene)
         self.assertIs(window,pygame.display.get_surface())
 
+    def begin(self):
+        # title menu -> intro -> controls card -> play (the 4.x onboarding adds the middle two screens)
+        for _ in range(3):self.frames(1,pygame.K_RETURN)
+        self.assertEqual(self.scene.maze.scene,GameScene.PLAY)
+
     def frames(self,count,key=None,up=False):
         events=[] if key is None else [pygame.event.Event(pygame.KEYUP if up else pygame.KEYDOWN,key=key,mod=0)]
         for i in range(count):self.game.step(events if i==0 else [],1/60)
@@ -38,8 +43,7 @@ class PuzzleMazeLobbyTests(unittest.TestCase):
         self.start()
         self.assertEqual(self.machine.play_cost,0)
         self.assertFalse(minigame_definition('puzzle_maze').supports(2))
-        self.frames(1,pygame.K_RETURN)
-        self.assertEqual(self.scene.maze.scene,GameScene.PLAY)
+        self.begin()
         self.frames(25,pygame.K_d);self.frames(1,pygame.K_d,True)
         self.assertGreater(self.scene.maze.session.player.x,2)
         self.frames(1,pygame.K_r)
@@ -60,7 +64,7 @@ class PuzzleMazeLobbyTests(unittest.TestCase):
         self.assertIs(self.game.scenes.current,self.room)
 
     def test_second_player_owns_controls(self):
-        self.start(two=True,starter=1);self.frames(1,pygame.K_RETURN)
+        self.start(two=True,starter=1);self.begin()
         self.frames(30,pygame.K_d);self.frames(1,pygame.K_d,True)
         self.assertEqual(self.scene.maze.session.player.x,2)
         self.frames(25,pygame.K_RIGHT);self.frames(1,pygame.K_RIGHT,True)

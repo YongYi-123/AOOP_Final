@@ -754,17 +754,18 @@ class ArcadeLayoutTests(unittest.TestCase):
         self.assertTrue(all(isinstance(c, IdleCabinet) for c in idle))
 
     def test_a_new_machine_only_needs_a_data_entry(self):
-        extra = dict(MACHINES[0], id="new_game", name="New Game", slot="island_1", game_id="new_game",
+        slot = next(iter(ArcadeLayout.from_settings().free_slots()))      # whichever cabinet slot is still empty
+        extra = dict(MACHINES[0], id="new_game", name="New Game", slot=slot, game_id="new_game",
                      play_cost=2)
         del extra["x"]
         with tempfile.TemporaryDirectory() as d:
             layout = ArcadeLayout.from_settings(list(MACHINES) + [extra])
-            self.assertEqual(layout.definitions[-1].position, ARCADE_SLOTS["island_1"])
+            self.assertEqual(layout.definitions[-1].position, ARCADE_SLOTS[slot])
             self.assertEqual(layout.definitions[-1].cost, 2)
-            self.assertNotIn("island_1", layout.free_slots())
+            self.assertNotIn(slot, layout.free_slots())
             new = layout.build_machines()[-1]
             self.assertEqual((new.id, new.game_id, new.play_cost), ("new_game", "new_game", 2))
-            self.assertEqual(new.rect.topleft, ARCADE_SLOTS["island_1"])
+            self.assertEqual(new.rect.topleft, ARCADE_SLOTS[slot])
 
     def test_the_room_builds_machines_from_the_layout(self):
         d = tempfile.mkdtemp()
