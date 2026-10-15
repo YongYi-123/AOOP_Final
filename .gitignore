@@ -17,11 +17,6 @@ arcade_lobby/save_data.json.*
 arcade_lobby/saves/
 .arcade.lock
 
-# puzzle_maze keeps its own per-player saves next to the code (save.json, save_v2.json ... save_v4.json,
-# their .tmp files and .v20.bak backups). Test fixtures live in puzzle_maze/tests/fixtures and stay tracked.
-puzzle_maze/save*.json
-puzzle_maze/save*.json.*
-
 # ---- Test / coverage / debug output ----
 .coverage
 .coverage.*

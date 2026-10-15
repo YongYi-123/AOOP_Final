@@ -15,6 +15,7 @@ from puzzle_maze.rooms import validate_rooms
 from puzzle_maze.advanced_dungeon import AdvancedDungeonSession
 from puzzle_maze.exploration import DungeonAtlas
 from puzzle_maze.room_art import RoomArt
+from puzzle_maze.core import TileMap
 
 class FourthPresentationTests(unittest.TestCase):
     def tearDown(self):pygame.quit()

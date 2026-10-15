@@ -1,5 +1,6 @@
 """Absolute geometry, functional mechanisms and optional multi-floor growth."""
 import copy
+import json
 import tempfile
 import unittest
 from pathlib import Path
@@ -11,6 +12,7 @@ from puzzle_maze.dependencies import ChestValidator,PuzzleDependencyValidator
 from puzzle_maze.exploration import DungeonAtlas
 from puzzle_maze.game import Game,GameScene
 from puzzle_maze.entrances import entrance_visible
+from puzzle_maze.orb import IronOrb
 
 class Upgrade42Tests(unittest.TestCase):
     def test_coordinates_are_unique_and_all_cardinal_doors_adjacent(self):
