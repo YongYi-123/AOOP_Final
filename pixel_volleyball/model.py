@@ -4,7 +4,7 @@ from enum import Enum
 import math
 from .ai import VolleyAI
 from .smash import SmashAttack
-from .court import WIDTH, HEIGHT, FLOOR, NET_X, NET_TOP, GRAVITY, BALL_GRAVITY
+from .court import WIDTH, FLOOR, NET_X, NET_TOP, GRAVITY, BALL_GRAVITY
 from .rally import lob_velocity
 
 
