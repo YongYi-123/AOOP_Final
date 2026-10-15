@@ -5,7 +5,6 @@ import tempfile
 import unittest
 from puzzle_maze.dungeon import DungeonSession
 from puzzle_maze.validator import DungeonValidator
-from puzzle_maze.combat import EnemyState
 
 class DungeonCampaignTests(unittest.TestCase):
     def setUp(self):self.s=DungeonSession()

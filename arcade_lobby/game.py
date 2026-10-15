@@ -22,7 +22,7 @@ from arcade_style import STYLES
 from local_session import LocalSession
 from room_scene import RoomHub
 from scene_base import SceneManager
-from settings import (DEBUG, FPS, SAVE_FILE, SCREEN_H, SCREEN_W, TITLE, VIEW_H,
+from settings import (DEBUG, FPS, SAVE_FILE, TITLE, VIEW_H,
                       VIEW_W)
 
 

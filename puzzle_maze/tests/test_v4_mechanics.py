@@ -1,12 +1,8 @@
-import copy
-import json
 from pathlib import Path
 import tempfile
 import unittest
-from types import SimpleNamespace
 from puzzle_maze.advanced_dungeon import AdvancedDungeonSession
 from puzzle_maze.rewards import DungeonRewardBag
-from puzzle_maze.combat import EnemyState
 
 class AdvancedMechanicsTests(unittest.TestCase):
     def setUp(self):self.s=AdvancedDungeonSession()

@@ -10,7 +10,7 @@ import pygame
 from font import get_font
 from gfx import lerp_color, neon_rect_glow, outlined, scale_color, shade
 from high_low import HighLowGame
-from lucky_cabinets import KINDS, SIZE, build_cabinet, draw_marquee, draw_screen
+from lucky_cabinets import KINDS, build_cabinet, draw_marquee, draw_screen
 from lucky_wheel import LuckyWheelGame
 from room import Prop, make_prize_counter
 from settings import INTERACT_FLASH, Col

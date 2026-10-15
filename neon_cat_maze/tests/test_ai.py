@@ -5,7 +5,7 @@ from dataclasses import replace
 
 from neon_cat_maze import ai, config as cfg
 from neon_cat_maze.mazes import MAZES
-from neon_cat_maze.model import Run, STOP
+from neon_cat_maze.model import Run
 from neon_cat_maze.pathing import distance_field, path_distance, shortest_path
 from neon_cat_maze.tests.autopilot import steer_for
 from neon_cat_maze.tests.helpers import DT, advance, play, running

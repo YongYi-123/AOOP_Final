@@ -1,6 +1,5 @@
 """All sprites, drawn from code and cached: the neon cat, the three robots, fish, golden fish and catnip.
 Every sprite is 16x16 (one maze tile) unless noted; the cat and robots are drawn around the tile centre."""
-import math
 
 import pygame
 

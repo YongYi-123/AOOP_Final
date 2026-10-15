@@ -10,7 +10,7 @@ import math
 import pygame
 
 from font import get_font
-from gfx import scale_color, shade
+from gfx import scale_color
 from settings import Col
 
 # ----------------------------------------------------------------- palettes

@@ -2,9 +2,7 @@ import unittest
 from types import SimpleNamespace
 from puzzle_maze.session import GameSession
 from puzzle_maze.items import BombManager
-from puzzle_maze.combat import CombatManager,EnemyState
-from puzzle_maze.puzzles import PuzzleManager,Inventory
-from puzzle_maze.core import Player
+from puzzle_maze.combat import EnemyState
 
 
 def arena(objects=None,enemies=None):

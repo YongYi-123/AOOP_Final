@@ -3,7 +3,6 @@
 The physics board is top-down; the picture is tilted a little: the back of the stage is a bit
 narrower and shorter than the front (a pseudo-perspective), so coins read as flattened discs.
 """
-import math
 
 import pygame
 

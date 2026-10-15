@@ -12,7 +12,7 @@ import pygame
 from neon_cat_maze import config as cfg
 from neon_cat_maze.game import CatMazeGame, Screen
 from neon_cat_maze.settlement import tickets_for
-from neon_cat_maze.tests.helpers import DT, clear_level, play
+from neon_cat_maze.tests.helpers import DT
 from neon_cat_maze.tests.autopilot import steer_for
 
 CANVAS = (cfg.FIELD_W, cfg.FIELD_H)

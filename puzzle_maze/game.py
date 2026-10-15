@@ -5,7 +5,7 @@ import os
 import textwrap
 from enum import Enum, auto
 import pygame
-from puzzle_maze.session import GameSession, SAVE_PATH
+from puzzle_maze.session import GameSession
 from puzzle_maze.dungeon import DungeonSession
 from puzzle_maze.advanced_dungeon import AdvancedDungeonSession
 from puzzle_maze.render import Renderer, GOLD, TEAL

@@ -11,7 +11,6 @@ import random
 import pygame
 
 from font import get_font
-from gfx import scale_color
 from settings import VIEW_H, VIEW_W, Col
 from ui import draw_text
 

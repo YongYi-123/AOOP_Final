@@ -260,8 +260,6 @@ class GameMusicTests(unittest.TestCase):
         self.frames(20)
         starts = self.game.audio.music_starts
         theme = self.game.audio.theme
-        from cosmetics import SLOTS
-        from stations import Station
         owner = self.game.session.players[0]
         for scene in (WardrobeScene(self.game, owner),):
             self.game.scenes.push(scene)

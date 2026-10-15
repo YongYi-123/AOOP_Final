@@ -16,7 +16,6 @@ import pygame
 
 from avatar_style import (FIELD_NAMES, FIELDS, OPTIONS, BasicAppearance, option, random_basic,
                           swatch_color)
-from font import LINE_H
 from gfx import scale_color, shade
 from menus import MenuScene, draw_centered
 from player import styled_sheet

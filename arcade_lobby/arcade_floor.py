@@ -11,7 +11,7 @@ from arcade_layout import ArcadeLayout
 from backdrop import (AmbientAnimator, BackgroundRenderer, DustMotes,
                       LightingOverlay, NeonLight, Scanlines, StringLights, neon_tube)
 from font import get_font
-from gfx import neon_rect_glow, scale_color, shade
+from gfx import scale_color, shade
 from lofi_props import make_stool
 from stations import Seat
 from vending_machine import VendingMachine

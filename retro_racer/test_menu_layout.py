@@ -11,7 +11,6 @@ import unittest
 os.environ.setdefault("SDL_VIDEODRIVER", "dummy")
 os.environ.setdefault("SDL_AUDIODRIVER", "dummy")
 import pygame
-import settings as S
 from game import Game
 from hud import DEFAULT_KEYS
 from menu_layout import CONTENT, FOOTER, MARGIN, SCREEN

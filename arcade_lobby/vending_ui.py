@@ -18,7 +18,7 @@ from font import LINE_H, get_font
 from gfx import scale_color, shade
 from item_icons import item_icon
 from item_registry import ITEM_REGISTRY, NOVELTY_STACK
-from menu_kit import FRAME, GOLD, MenuScene, fit_text, item_icon_for_ticket
+from menu_kit import GOLD, MenuScene, fit_text, item_icon_for_ticket
 from secret_input import SecretSequenceListener
 from settings import VIEW_H, VIEW_W, Col
 from ui import draw_text, wrap_text

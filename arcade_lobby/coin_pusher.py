@@ -19,7 +19,7 @@ The World reports what happened as events; the money side lives in coin_pusher_t
 """
 import math
 import random
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 W, D = 130.0, 96.0
 R = 5.5

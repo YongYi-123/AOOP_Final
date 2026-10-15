@@ -1,5 +1,4 @@
 """The cat's movement, collisions, eating, scoring, lives, levels and Catnip - the whole simulation without a window."""
-import math
 import random
 import unittest
 

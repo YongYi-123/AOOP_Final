@@ -1,6 +1,5 @@
 """Derive switch consumers from real room/object/flag data, not hand-written text."""
 from collections import deque
-from puzzle_maze.puzzles import FACTORY
 
 class PuzzleDependencyValidator:
     ACTUATORS={'switch','timed','remote','crystal_switch','plate','weight','reflector','brazier','torch_order','blast_switch','dash_switch','ordered','ordered_layout','pillar'}
@@ -44,7 +43,7 @@ class ChestValidator:
     def __init__(self,rooms):self.rooms=rooms
     def validate(self):
         from puzzle_maze.advanced_puzzles import AdvancedPuzzleManager
-        from puzzle_maze.puzzles import Inventory,Door
+        from puzzle_maze.puzzles import Inventory
         total=0
         for name,room in self.rooms.items():
             manager=AdvancedPuzzleManager(room,Inventory(abilities={'gloves','boots','mirror','magnet'}))
