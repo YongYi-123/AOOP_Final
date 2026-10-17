@@ -77,7 +77,7 @@ class PrizeCounterScene(BaseScene):
                       (90,240,160) if owned else (255,224,90))
         self.text(surface,self.message,(20,243),(255,224,90))
         self.text(surface,'LEFT/RIGHT CATEGORY  UP/DOWN PRIZE',(20,264))
-        self.text(surface,'E BUY/EQUIP  MENU GARAGE  ESC RETURN',(20,280))
+        self.text(surface,f"E BUY/EQUIP  {self.owner.controls.label('menu') or 'I'} GARAGE / CUSTOMIZE CAR  ESC RETURN",(20,280))
 
 
 class GarageScene(PrizeCounterScene):

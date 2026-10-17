@@ -12,7 +12,7 @@ import math
 
 import pygame
 
-from font import LINE_H
+from font import LINE_H, get_font
 from gfx import scale_color
 from item_registry import ITEM_REGISTRY
 from item_icons import item_icon
@@ -77,6 +77,8 @@ class ShopScene(MenuScene):
             self.select((self.index + (-1 if action == "up" else 1)) % len(rows))
         elif action == "interact":
             self.activate()
+        elif action == "menu" and self.category == RACING:      # the bag key: straight to the Garage
+            self.open_garage()
 
     def set_tab(self, tab):
         if tab != self.tab:
@@ -114,6 +116,13 @@ class ShopScene(MenuScene):
     def open_racing(self):
         from racing_progression.ui import PrizeCounterScene
         self.game.scenes.push(PrizeCounterScene(self.game, self.owner))
+
+    def open_garage(self):
+        """GARAGE / CUSTOMIZE CAR: pick an owned car and paint (the same screen the racing counter's
+        bag key opens)."""
+        from racing_progression.ui import GarageScene
+        self.play("confirm")
+        self.game.scenes.push(GarageScene(self.game, self.owner))
 
     def confirm(self, entry):
         left = self.shop.tickets - entry.cost
@@ -165,7 +174,7 @@ class ShopScene(MenuScene):
     # ------------------------------------------------------------ draw
     def idle_message(self):
         if self.category == RACING:
-            return "CARS, TRACKS AND PAINTS FOR RETRO RACER"
+            return "E: RACING PRIZES    I: GARAGE / CUSTOMIZE CAR"
         entry = self.entry
         if entry is None:
             return ""
@@ -303,7 +312,14 @@ class ShopScene(MenuScene):
         for i, line in enumerate(("CARS, TRACKS, SCENERY AND PAINTS", "ARE SOLD AT THE RACING COUNTER.",
                                   "TICKETS ARE SHARED - YOUR OWN WALLET.")):
             draw_text(surf, line, (box.centerx, box.y + 48 + i * (LINE_H + 2)), Col.TEXT_MUTED, anchor="midtop")
-        button = pygame.Rect(box.centerx - 60, box.y + 112, 120, 18)
+        button = pygame.Rect(box.centerx - 70, box.y + 100, 140, 18)
         self.draw_row_bg(surf, button, True)
         draw_text(surf, "OPEN RACING PRIZES", button.center, Col.TEXT, anchor="center")
         self.hit(button, self.open_racing)
+        garage = pygame.Rect(box.centerx - 70, box.y + 124, 140, 18)
+        self.draw_row_bg(surf, garage, False)
+        draw_text(surf, "GARAGE / CUSTOMIZE CAR", garage.center, Col.CYAN, anchor="center")
+        self.hit(garage, self.open_garage)
+        key = self.owner.controls.label("menu") or "I"
+        draw_text(surf, f"{key} : GARAGE - CHOOSE YOUR CAR AND PAINT", (box.centerx, box.y + 148), Col.TEXT_MUTED,
+                  anchor="midtop")
