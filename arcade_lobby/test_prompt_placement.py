@@ -141,7 +141,7 @@ class SoloHubTests(HubBase):
                 self.assertEqual(overlap(rect, target.rect), 0, f"{rid}/{target.prompt_label}")
                 self.assertTrue(pygame.Rect(0, 0, VIEW_W, VIEW_H).contains(rect))
                 checked += 1
-        self.assertGreaterEqual(checked, 11)             # 5 arcade + daily board + counter + garage + 3 lucky corner
+        self.assertGreaterEqual(checked, 13)             # 5 arcade + daily board + counter + 2 capsules + showcase + 3 lucky corner
 
     def test_the_prompt_that_is_drawn_is_the_prompt_that_was_checked(self):
         room = self.room("prize_plaza")

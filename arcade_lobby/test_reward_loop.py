@@ -161,7 +161,7 @@ class RewardLoopTests(unittest.TestCase):
 
 
 class PlazaHomeNavigationTests(unittest.TestCase):
-    def test_hub_rooms_connect_and_the_plaza_has_its_shop_and_garage(self):
+    def test_hub_rooms_connect_and_the_plaza_has_its_shop_capsules_and_showcase(self):
         profile = PlayerProfile(profile_id="nav", tickets=10)
         game = Game(session=LocalSession([profile]))
         self.addCleanup(game.quit)
@@ -170,7 +170,8 @@ class PlazaHomeNavigationTests(unittest.TestCase):
         plaza = goto_room(game, "prize_plaza")
         self.assertEqual([e.target for e in plaza.exits], ["home"])
         kinds = {type(p).__name__ for p in plaza.props}
-        self.assertTrue({"PrizeCounter", "GarageStation", "ChanceStation", "Neon21Station"} <= kinds)
+        self.assertTrue({"PrizeCounter", "ChanceStation", "Neon21Station", "CapsuleStation", "ShowcaseStation"} <= kinds)
+        self.assertNotIn("GarageStation", kinds)
         for _ in range(120):                                  # the new animations run without error
             game.step([], DT)
         game.scenes.current.draw(game.canvas)

@@ -1,9 +1,9 @@
 """PRIZE PLAZA: the flashy room right of HOME, for TICKET rewards.
 
-A working prize counter, personal garage terminal, shelves of prizes,
-glass display cases for cosmetics and decorations, ticket signage and the
-Lucky Corner with a free bay for the next chance game. Tickets earned in
-the arcade unlock personal racing content here.
+Four zones: the PRIZE COUNTER on the left (Mochi sells things for Tickets), the SHOWCASE in the
+centre (the room's one display: a favourite car / collectible / trophy per player), the CAPSULE
+CORNER at the upper right (CAT CAPSULE and RETRO CAPSULE) and the LUCKY CORNER bonus games below it.
+The back wall carries only decoration (framed neon art, sconces and the two corner signs).
 """
 import pygame
 
@@ -11,48 +11,82 @@ from backdrop import (AmbientAnimator, BackgroundRenderer, DustMotes,
                       LightingOverlay, StringLights)
 import math
 
-from decorations import _cat_plush
+from capsule import CAT, RETRO
+from capsule_ui import CapsuleScene
 from font import get_font
-from gfx import neon_rect_glow, outlined, scale_color
-from item_icons import PAINTERS, item_icon
-from item_registry import ITEM_REGISTRY
+from gfx import neon_rect_glow, scale_color
 from room import Prop, make_gumball, make_plant
 from lucky_cabinets import KINDS
 from neon21_art import suit_icon
 from room_art import HubBackdrop, Twinkles
 from room_scene import BaseRoomScene, RoomExit
 from settings import Col, Lofi, VIEW_H, VIEW_W
+from plaza_stations import CAPSULE_SIZE, SHOWCASE_SIZE, CapsuleStation, ShowcaseStation
 from stations import CoinPusherStation, PinballStation, PrizeCounter, build_lucky_corner
-from racing_progression.station import GarageStation
-from racing_progression.ui import PrizeCounterScene, GarageScene
+from racing_progression.ui import PrizeCounterScene
 from shop_ui import ShopScene
 from shopkeeper import Shopkeeper
+from showcase_ui import ShowcaseScene
 
-CASES = ((158, (255, 140, 190), "plush"), (198, (120, 220, 255), "trophy"))   # x, neon colour, centrepiece
 SIGN = (26, 6, 100, 32)                                    # the PRIZE COUNTER marquee: x, y, w, h
-# three zones, left to right: PRIZE COUNTER, DISPLAY SHELVES, LUCKY CORNER
+# left = PRIZE COUNTER, centre = SHOWCASE, upper right = CAPSULE CORNER, lower right = LUCKY CORNER
 COUNTER_POS = (36, 104)
-LUCKY_POS = (268, 98)
+SHOWCASE_POS = (130, 66)                               # the main display focus: centred against the back wall
+CAPSULE_POS = {CAT: (270, 74), RETRO: (322, 74)}       # the two capsule machines, side by side
+CAPSULE_RUG = (254, 68, 122, 68)                       # the Capsule Corner's floor: x, y, w, h
+CAPSULE_SIGN = (262, 30, 106, 30)                      # its marquee on the back wall
+LUCKY_POS = (268, 158)                                 # the Lucky Corner block sits under the capsules
+DAIS = (122, 122, 128, 36)                             # the showcase's floor stage
 MOCHI_POS = (COUNTER_POS[0] + 60, COUNTER_POS[1] + 2)      # her feet: the middle of the counter top
-SHELF_ITEMS = (("arcade_trophy", "decor_cat_plush", "mini_cabinet", "golden_token", "lucky_clover"),
-               ("retro_badge", "cat_sticker", "star_pin", "neon_cap", "decor_table_lamp"))
+WALL_ART = ((138, 24), (176, 24), (214, 24))           # framed neon pictures on the back wall (decoration only)
 
 
 class PlazaBackdrop(HubBackdrop):
-    """Prize shelves, the TICKET PRIZES sign and a gold-edged carpet."""
-    SHELVES = ((146, 34), (146, 52))                        # (x, y) of each shelf board
-    SHELF_W = 104
+    """The PRIZE COUNTER sign, the back-wall art, the Capsule Corner and Lucky Corner rugs, the showcase dais and a gold-edged carpet."""
 
     def paint_floor(self, surf):
         super().paint_floor(surf)
-        carpet = pygame.Rect(20, 208, 190, 36)               # from the HOME door to the counter
+        carpet = pygame.Rect(20, 208, 96, 36)                # a welcome mat from the HOME door
         surf.fill((120, 30, 90), carpet)
         surf.fill((160, 50, 120), carpet.inflate(-4, -4))
         pygame.draw.rect(surf, (255, 214, 90), carpet.inflate(-2, -2), 1)
         for x in range(carpet.x + 14, carpet.right - 8, 20):
             pygame.draw.polygon(surf, (255, 190, 120), [(x, carpet.centery - 3), (x + 3, carpet.centery),
                                                         (x, carpet.centery + 3), (x - 3, carpet.centery)])
+        self.paint_dais(surf)
+        self.paint_capsule_corner(surf)
         self.paint_lucky_corner(surf)
+
+    def paint_dais(self, surf):
+        """The showcase's stage: a plum ellipse with a gold ring, so the centre reads as the focus."""
+        rect = pygame.Rect(DAIS)
+        pygame.draw.ellipse(surf, (74, 24, 86), rect)
+        pygame.draw.ellipse(surf, (110, 40, 112), rect.inflate(-10, -6))
+        pygame.draw.ellipse(surf, (255, 214, 90), rect, 1)
+        pygame.draw.ellipse(surf, (190, 120, 60), rect.inflate(-10, -6), 1)
+        for x in range(rect.x + 18, rect.right - 12, 20):
+            surf.fill((255, 190, 120), (x, rect.bottom - 7, 3, 1))
+
+    def paint_capsule_corner(self, surf):
+        """The Capsule Corner's floor: a rug split pink / blue under its two machines, a gold edge
+        and a neon pool under each. Paint only - nothing here is solid."""
+        rug = pygame.Rect(CAPSULE_RUG)
+        half = rug.w // 2
+        surf.fill((58, 22, 82), (rug.x, rug.y, half, rug.h))
+        surf.fill((18, 34, 86), (rug.x + half, rug.y, rug.w - half, rug.h))
+        for ty in range(rug.top + 2, rug.bottom - 2, 8):                  # soft checker
+            for tx in range(rug.left + 2, rug.right - 2, 8):
+                if ((tx - rug.left) // 8 + (ty - rug.top) // 8) % 2:
+                    surf.fill((70, 30, 96) if tx < rug.centerx else (26, 46, 104), (tx, ty, 8, 8))
+        pygame.draw.rect(surf, (255, 190, 70), rug, 1)
+        pygame.draw.rect(surf, (255, 120, 200), (rug.x + 2, rug.y + 2, half - 2, rug.h - 4), 1)
+        pygame.draw.rect(surf, (90, 230, 255), (rug.x + half, rug.y + 2, rug.w - half - 2, rug.h - 4), 1)
+        for kind, (x, y) in CAPSULE_POS.items():
+            neon = (255, 110, 210) if kind == CAT else (80, 220, 255)
+            pool = pygame.Surface((46, 14), pygame.SRCALPHA)
+            for yy in range(14):                                          # floor reflection, fading out
+                pool.fill((*neon, int(80 * (1 - yy / 14) ** 2)), (0, yy, 46, 1))
+            surf.blit(pool, (x - 4, y + CAPSULE_SIZE[1] - 8))
 
     def paint_lucky_corner(self, surf):
         """The Lucky Corner's own floor: a plum rug with a gold edge, card
@@ -84,63 +118,54 @@ class PlazaBackdrop(HubBackdrop):
             surf.blit(pool, (x - 1, LUCKY_POS[1] + y + 40))
 
     def paint_room(self, surf):
-        for i, (x, y) in enumerate(self.SHELVES):
-            surf.fill((120, 78, 90), (x, y, self.SHELF_W, 3))
-            surf.fill((176, 128, 110), (x, y, self.SHELF_W, 1))
-            surf.fill((60, 36, 56), (x + 2, y + 3, self.SHELF_W - 4, 1))
-            for j, item_id in enumerate(SHELF_ITEMS[i]):
-                icon = item_icon(ITEM_REGISTRY.get(item_id))
-                surf.blit(icon, (x + 4 + j * 20, y - icon.get_height() + 1))
-            for px in (x + 2, x + self.SHELF_W - 4):           # brackets
-                surf.fill((60, 36, 56), (px, y + 3, 2, 5))
+        for x, y in WALL_ART:
+            self.paint_wall_art(surf, x, y)
         # the PRIZE COUNTER marquee: a gold-edged plate with the name in lights (bulbs chase in SignLights)
+        font = get_font()
         sx, sy, w, h = SIGN
         pygame.draw.rect(surf, (255, 190, 70), (sx, sy, w, h), border_radius=3)
         pygame.draw.rect(surf, (90, 20, 80), (sx + 2, sy + 2, w - 4, h - 4), border_radius=2)
         pygame.draw.rect(surf, (150, 40, 130), (sx + 4, sy + 4, w - 8, h - 8), 1, border_radius=1)
-        font = get_font()
         word = font.render_glow("PRIZE", (255, 236, 160), (200, 110, 30), scale=2)
         surf.blit(word, (sx + (w - word.get_width()) // 2, sy + 6))
         small = font.render_glow("COUNTER", (255, 190, 230), (170, 50, 130))
         surf.blit(small, (sx + (w - small.get_width()) // 2, sy + h - 12))
         self.add_light(neon_rect_glow(w, h, (255, 170, 60), 9, self.style.strength(0.34)), (sx - 9, sy - 9))
-        font = get_font()
-        label = font.render_glow("DISPLAY", (255, 190, 230), (170, 50, 130))   # over the shelves
-        surf.blit(label, (146 + (self.SHELF_W - label.get_width()) // 2, 9))
+        # the CAPSULE CORNER marquee over its two machines
+        sx, sy, w, h = CAPSULE_SIGN
+        pygame.draw.rect(surf, (255, 190, 70), (sx, sy, w, h), border_radius=3)
+        pygame.draw.rect(surf, (36, 18, 76), (sx + 2, sy + 2, w - 4, h - 4), border_radius=2)
+        pygame.draw.rect(surf, (255, 120, 200), (sx + 4, sy + 4, w // 2 - 4, h - 8), 1)
+        pygame.draw.rect(surf, (90, 230, 255), (sx + w // 2, sy + 4, w // 2 - 4, h - 8), 1)
+        word = font.render_glow("CAPSULE", (255, 236, 250), (200, 70, 170))
+        surf.blit(word, (sx + (w - word.get_width()) // 2, sy + 5))
+        small = font.render_glow("CORNER", (200, 245, 255), (40, 130, 190))
+        surf.blit(small, (sx + (w - small.get_width()) // 2, sy + h - 12))
+        self.add_light(neon_rect_glow(w, h, (255, 150, 220), 9, self.style.strength(0.3)), (sx - 9, sy - 9))
 
-
-def _hero(kind):
-    """A 28x28 pixel-art centrepiece for a display case (2x a 14px sprite)."""
-    if kind == "plush":
-        small = _cat_plush()
-    else:
-        small = pygame.Surface((14, 14), pygame.SRCALPHA)
-        PAINTERS[kind](small, (255, 214, 90), (255, 250, 200))
-    return pygame.transform.scale(small, (small.get_width() * 2, small.get_height() * 2))
-
-
-CASE_W, CASE_H = 32, 46
-
-
-def _display_case(color, kind):
-    """A lit glass case: a big centrepiece on a pedestal, a gold plate below."""
-    s = pygame.Surface((CASE_W, CASE_H), pygame.SRCALPHA)
-    s.fill((46, 30, 80), (0, 4, CASE_W, CASE_H - 4))
-    s.fill((16, 10, 40), (2, 6, CASE_W - 4, 30))
-    for y in range(7, 36, 3):                                   # a faint spotlit gradient in the glass
-        k = 1 - abs(y - 20) / 18
-        s.fill((int(34 * k) + 16, int(24 * k) + 10, int(70 * k) + 40), (2, y, CASE_W - 4, 3))
-    s.fill(color, (0, 4, CASE_W, 1))
-    hero = _hero(kind)
-    s.blit(hero, ((CASE_W - hero.get_width()) // 2, 6))
-    s.fill(scale_color(color, 0.6), (5, 33, CASE_W - 10, 3))     # pedestal
-    s.fill(color, (5, 33, CASE_W - 10, 1))
-    s.fill((200, 240, 255), (3, 7, 1, 16))                      # glass shine
-    s.fill((30, 22, 60), (0, 37, CASE_W, 9))
-    s.fill(Col.YELLOW, (CASE_W // 2 - 6, 40, 12, 3))             # name plate
-    s.fill((140, 90, 20), (CASE_W // 2 - 5, 41, 10, 1))
-    s.fill(color, (0, CASE_H - 1, CASE_W, 1))
-    return outlined(s)
+    @staticmethod
+    def paint_wall_art(surf, x, y):
+        """A small framed neon picture (a star, a heart or a cat face) - wall decoration only."""
+        w, h = 28, 22
+        pygame.draw.rect(surf, (255, 190, 70), (x, y, w, h))
+        pygame.draw.rect(surf, (24, 12, 50), (x + 2, y + 2, w - 4, h - 4))
+        pygame.draw.rect(surf, (120, 50, 130), (x + 2, y + 2, w - 4, h - 4), 1)
+        cx, cy = x + w // 2, y + h // 2
+        kind = (x // 38) % 3
+        if kind == 0:
+            pygame.draw.polygon(surf, (255, 220, 110), [(cx, cy - 7), (cx + 2, cy - 2), (cx + 7, cy - 2), (cx + 3, cy + 1),
+                                                        (cx + 4, cy + 6), (cx, cy + 3), (cx - 4, cy + 6), (cx - 3, cy + 1),
+                                                        (cx - 7, cy - 2), (cx - 2, cy - 2)])
+        elif kind == 1:
+            pygame.draw.circle(surf, (255, 110, 170), (cx - 3, cy - 2), 3)
+            pygame.draw.circle(surf, (255, 110, 170), (cx + 3, cy - 2), 3)
+            pygame.draw.polygon(surf, (255, 110, 170), [(cx - 6, cy - 1), (cx + 6, cy - 1), (cx, cy + 6)])
+        else:
+            pygame.draw.circle(surf, (110, 220, 255), (cx, cy + 1), 6)
+            pygame.draw.polygon(surf, (110, 220, 255), [(cx - 6, cy - 2), (cx - 5, cy - 8), (cx - 1, cy - 4)])
+            pygame.draw.polygon(surf, (110, 220, 255), [(cx + 6, cy - 2), (cx + 5, cy - 8), (cx + 1, cy - 4)])
+            surf.fill((24, 12, 50), (cx - 3, cy, 1, 2))
+            surf.fill((24, 12, 50), (cx + 2, cy, 1, 2))
 
 
 class SignLights:
@@ -171,7 +196,7 @@ class SignLights:
 
 
 class SpotBeams:
-    """Soft spotlight cones that fall on the display cases and breathe slowly."""
+    """Soft spotlight cones that fall on the capsule machines and the showcase and breathe slowly."""
 
     def __init__(self, centres, top=64, bottom=150, color=(255, 230, 190)):
         self.beams = []
@@ -199,8 +224,8 @@ class PrizePlazaScene(BaseRoomScene):
     ambience_mix = {"arcade_buzz": 0.1, "machine_hum": 0.06}
     exits = (RoomExit("left", "home", "right"),)
     cat_spots = {
-        "tango": ((92, 172), (150, 166), (62, 188)),         # curious: sniffs around the prize counter
-        "duchess": ((368, 176), (352, 104)),                 # regal: surveys the Lucky Corner
+        "tango": ((92, 172), (62, 188), (104, 182)),          # curious: sniffs around the prize counter
+        "duchess": ((236, 190), (200, 214)),                 # regal: surveys the room from the walkway
     }
     music_id = "prize_plaza"
     hint_rows = (
@@ -213,19 +238,18 @@ class PrizePlazaScene(BaseRoomScene):
     def build_props(self):
         self.mochi = Shopkeeper(MOCHI_POS, sound=self.play_sound, sort_y=COUNTER_POS[1] + 36.5)      # the cat on the counter (not solid)
         counter = PrizeCounter(COUNTER_POS)
-        cases = [Prop(_display_case(color, kind), (x, 104), (x + 1, 142, CASE_W, 8),
-                      neon_rect_glow(CASE_W + 2, CASE_H + 2, color, 6, self.style.strength(0.22)), (x - 6, 98))
-                 for x, color, kind in CASES]
+        capsules = [CapsuleStation(pos, kind) for kind, pos in CAPSULE_POS.items()]
+        showcase = ShowcaseStation(SHOWCASE_POS, owners=lambda: [(p.label, p.profile) for p in self.session])
         lucky = build_lucky_corner(*LUCKY_POS)
         # the two former SOON bays are NEON COIN PUSHER and LUCKY CAT PINBALL
         pusher = CoinPusherStation((LUCKY_POS[0], LUCKY_POS[1] + 70))
         pinball = PinballStation((LUCKY_POS[0] + 40, LUCKY_POS[1] + 70))
         plant = make_plant(Lofi.TERRACOTTA, Lofi.TERRACOTTA_HI)
-        return ([counter, GarageStation((146,186))] + cases + lucky + [pusher, pinball] + [
+        return ([counter] + capsules + [showcase] + lucky + [pusher, pinball] + [
             Prop(plant, (24, 76), (27, 92, 13, 10)),
             Prop(plant, (358, 244), (361, 260, 13, 10)),
-            Prop(make_gumball(), (176, 252), (177, 268, 12, 6)),
-            Prop(make_gumball(), (196, 252), (197, 268, 12, 6)),
+            Prop(make_gumball(), (166, 254), (167, 270, 12, 6)),
+            Prop(make_gumball(), (206, 254), (207, 270, 12, 6)),
         ])
 
     def build_renderer(self):
@@ -234,26 +258,44 @@ class PrizePlazaScene(BaseRoomScene):
         animator = AmbientAnimator()
         animator.add(StringLights(20, VIEW_W - 20, 2, span=40, sag=4,
                                   colors=((255, 214, 90), (255, 110, 190), (190, 150, 255))), "overlay")
-        spots = [(x, y, (x * 7 + y * 3) % 6) for y in (27, 45) for x in range(150, 246, 14)]
+        spots = [(x + 14, y + 11, (x * 7 + y * 3) % 6) for x, y in WALL_ART]          # a glint on each framed picture
         animator.add(Twinkles(spots), "overlay")
+        corner_sign = [(CAPSULE_SIGN[0] + dx, CAPSULE_SIGN[1] + dy, (dx * 3 + dy) % 5)
+                       for dx, dy in ((6, 4), (40, 24), (70, 6), (98, 22))]
+        animator.add(Twinkles(corner_sign, ((255, 190, 230), (170, 240, 255))), "overlay")
         corner = [(LUCKY_POS[0] + dx, LUCKY_POS[1] + dy, (dx * 5 + dy) % 7)
                   for dx, dy in ((-8, -12), (30, -14), (70, -12), (112, -10), (-10, 30), (112, 40),
-                                 (-8, 74), (34, 120), (74, 96), (112, 110))]
+                                 (-8, 74), (34, 108), (74, 96), (112, 100))]
         animator.add(Twinkles(corner, ((255, 214, 90), (255, 140, 220), (120, 255, 190))), "overlay")
         animator.add(SignLights(SIGN), "overlay")
-        animator.add(SpotBeams([x + CASE_W // 2 + 1 for x, _, _ in CASES]), "overlay")
+        animator.add(SignLights(CAPSULE_SIGN), "overlay")
+        animator.add(SpotBeams([x + CAPSULE_SIZE[0] // 2 for x, _ in CAPSULE_POS.values()],
+                               top=62, bottom=120), "overlay")
+        animator.add(SpotBeams([SHOWCASE_POS[0] + SHOWCASE_SIZE[0] // 2], top=132, bottom=196,
+                               color=(255, 220, 190)), "overlay")
         counter = [(COUNTER_POS[0] + dx, COUNTER_POS[1] + dy, (dx * 3 + dy) % 5)
                    for dx, dy in ((4, 2), (30, 6), (56, 2), (76, 8), (14, 16), (66, 18))]
         animator.add(Twinkles(counter), "overlay")             # sparkle over the glass counter top
         animator.add(DustMotes((30, 70, 340, 200), count=14), "overlay")
-        pools = [((200, 170), 150, (24, 10, 30), 0.8),
-                 ((198, 50), 70, (40, 24, 14), 0.5),              # display shelves
-                 ((76, 126), 60, (44, 28, 10), 0.6),              # prize counter
-                 ((322, 118), 56, (40, 14, 34), 0.6),             # lucky corner
-                 ((308, 188), 50, (30, 10, 30), 0.6)]
+        pools = [((186, 190), 150, (24, 10, 30), 0.8),
+                 ((186, 102), 78, (54, 34, 18), 0.7),               # the showcase: the brightest pool in the room
+                 ((186, 144), 66, (60, 24, 50), 0.5),               # its dais
+                 ((192, 40), 66, (40, 24, 14), 0.5),                # the framed wall art
+                 ((76, 126), 60, (44, 28, 10), 0.6),                # prize counter
+                 ((294, 104), 40, (44, 16, 40), 0.55),              # cat capsule
+                 ((342, 104), 40, (10, 28, 44), 0.55),              # retro capsule
+                 ((322, 206), 62, (40, 14, 34), 0.6)]               # lucky corner
         lighting = LightingOverlay((VIEW_W, VIEW_H), edge=t.light_edge, center=t.light_center,
                                    pools=[(pos, r, style.light(c), sq) for pos, r, c, sq in pools])
         return BackgroundRenderer(backdrop, animator, lighting)
+
+    def prompt_avoid_rects(self):
+        """Prompt bubbles keep off every machine's FRONT here (not just its marquee): the capsule
+        machines, the showcase and the Lucky Corner cabinets all stand close together."""
+        rects = super().prompt_avoid_rects()
+        rects += [pygame.Rect(p.rect) for p in self.props
+                  if isinstance(p, (CapsuleStation, ShowcaseStation)) or hasattr(p, "kind")]
+        return rects
 
     # ------------------------------------------------------------ Mochi
     def update_room(self, dt):
@@ -274,6 +316,17 @@ class PrizePlazaScene(BaseRoomScene):
         owner = self.session.player_for_avatar(self._actor())
         self.game.scenes.push(PrizeCounterScene(self.game, owner))
 
-    def open_garage(self):
+    # ------------------------------------------------------------ capsules and showcase
+    def open_capsule(self, kind):
         owner = self.session.player_for_avatar(self._actor())
-        self.game.scenes.push(GarageScene(self.game,owner))
+        self.game.scenes.push(CapsuleScene(self.game, owner, kind))
+
+    def open_showcase(self):
+        owner = self.session.player_for_avatar(self._actor())
+        self.game.scenes.push(ShowcaseScene(self.game, owner))
+
+    def on_resume(self):
+        super().on_resume()
+        for prop in self.props:
+            if isinstance(prop, ShowcaseStation):
+                prop.refresh()              # show the pick that was just made

@@ -271,13 +271,72 @@ def _mystery(s, c, a):
     s.fill(a, (7, 9, 1, 1))
 
 
+def _paw(s, c, a):
+    pygame.draw.circle(s, c, (7, 9), 4)
+    for x, y in ((2, 6), (5, 3), (9, 3), (12, 6)):
+        pygame.draw.circle(s, c, (x, y), 2)
+    s.fill(a, (6, 8, 2, 2))
+
+
+def _yarn(s, c, a):
+    pygame.draw.circle(s, c, (6, 7), 6)
+    pygame.draw.arc(s, a, (1, 2, 10, 10), 0.4, 3.0, 1)
+    pygame.draw.arc(s, a, (2, 1, 9, 12), 3.4, 5.8, 1)
+    s.fill(c, (10, 11, 4, 1))
+    s.fill(c, (13, 12, 1, 1))
+
+
+def _heart(s, c, a):
+    pygame.draw.circle(s, c, (4, 5), 3)
+    pygame.draw.circle(s, c, (9, 5), 3)
+    pygame.draw.polygon(s, c, [(1, 6), (12, 6), (7, 12)])
+    s.fill(a, (3, 3, 2, 2))
+
+
+def _joystick(s, c, a):
+    s.fill(shade(c, -0.4), (2, 10, 10, 3))
+    s.fill(c, (3, 9, 8, 2))
+    s.fill(a, (6, 4, 2, 6))
+    pygame.draw.circle(s, a, (7, 3), 3)
+    s.fill(shade(a, 0.6), (6, 2, 1, 1))
+
+
+def _cartridge(s, c, a):
+    s.fill(c, (2, 1, 10, 12))
+    s.fill((0, 0, 0, 0), (2, 1, 2, 1))
+    s.fill(shade(c, -0.4), (3, 11, 8, 2))
+    s.fill(a, (4, 3, 6, 4))
+    s.fill(shade(c, -0.5), (5, 4, 4, 1))
+    for x in (4, 6, 8):
+        s.fill(Col.YELLOW, (x, 12, 1, 1))
+
+
+def _bell(s, c, a):
+    pygame.draw.circle(s, c, (7, 7), 5)
+    s.fill(c, (2, 8, 10, 3))
+    s.fill(a, (4, 4, 2, 2))
+    s.fill(shade(c, -0.5), (6, 8, 2, 1))
+    s.fill(a, (6, 11, 2, 2))
+    s.fill(shade(c, -0.4), (6, 1, 2, 2))
+
+
+def _fish(s, c, a):
+    pygame.draw.ellipse(s, c, (1, 3, 9, 8))
+    pygame.draw.polygon(s, c, [(9, 7), (13, 3), (13, 11)])
+    s.fill(a, (3, 6, 2, 2))
+    s.fill(Col.OUTLINE, (3, 6, 1, 1))
+    s.fill(shade(c, 0.5), (5, 9, 3, 1))
+
+
 PAINTERS = {"sticker": _sticker, "cap": _cap, "ticket": _ticket, "badge": _badge,
             "lamp": _lamp, "plush": _plush, "plant": _plant, "clock": _clock, "frame": _frame,
             "rug": _rug, "star": _star, "ears": _ears, "glasses": _glasses, "swatch": _swatch,
             "headphones": _headphones, "crown": _crown, "visor": _visor, "medal": _medal,
             "clip": _clip, "tail": _tail, "jacket": _jacket, "trophy": _trophy, "coin": _coin, "clover": _clover, "cabinet": _cabinet,
             "soda": _soda, "sandwich": _sandwich, "rainbow": _rainbow, "duck": _duck,
-            "battery": _battery, "mystery": _mystery}
+            "battery": _battery, "mystery": _mystery,
+            "paw": _paw, "yarn": _yarn, "heart": _heart, "joystick": _joystick, "cartridge": _cartridge,
+            "bell": _bell, "fish": _fish}
 _cache = {}
 
 

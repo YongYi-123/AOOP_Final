@@ -21,7 +21,7 @@ from game import Game  # noqa: E402
 from local_session import LocalSession  # noqa: E402
 from menu_kit import FRAME  # noqa: E402
 from player_profile import PlayerProfile  # noqa: E402
-from prize_plaza import COUNTER_POS, MOCHI_POS, SHELF_ITEMS, SIGN, PlazaBackdrop  # noqa: E402
+from prize_plaza import COUNTER_POS, MOCHI_POS, SIGN, WALL_ART  # noqa: E402
 from prize_shop import entry_for  # noqa: E402
 from room_testing import goto_room  # noqa: E402
 from shopkeeper import Shopkeeper  # noqa: E402
@@ -71,8 +71,8 @@ class PlacementTests(unittest.TestCase):
         self.assertFalse(r.colliderect(counter.zone), "stay out of the counter's interaction zone")
         self.assertFalse(r.colliderect(counter.footprint))
         self.assertFalse(r.colliderect(pygame.Rect(SIGN)), "stay clear of the PRIZE COUNTER sign")
-        shelves = [pygame.Rect(x, y - 16, PlazaBackdrop.SHELF_W, 20) for x, y in PlazaBackdrop.SHELVES]
-        for shelf in shelves:
+        frames = [pygame.Rect(x, y, 28, 22) for x, y in WALL_ART]               # (the back-wall pictures that replaced the shelves)
+        for shelf in frames:
             self.assertFalse(r.colliderect(shelf))
         self.assertTrue(pygame.Rect(0, 0, 400, 300).contains(r))
 

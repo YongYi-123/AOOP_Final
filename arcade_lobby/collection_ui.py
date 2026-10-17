@@ -17,6 +17,7 @@ from settings import Col
 from ui import draw_text, wrap_text
 
 COLS = 3
+ROWS = 2
 CELL_W, CELL_H, GAP = 56, 58, 6
 GRID = pygame.Rect(14, 66, COLS * CELL_W + (COLS - 1) * GAP, 2 * CELL_H + GAP)
 DETAIL = pygame.Rect(GRID.right + 14, 60, FRAME.right - GRID.right - 14 - 8, 9 * 18 + 2)
@@ -40,6 +41,7 @@ class CollectionScene(MenuScene):
         super().__init__(game, owner)
         self.service = CollectionService(owner.profile)
         self.index = 0
+        self.first_row = 0                      # the grid shows ROWS rows; scroll to keep the cursor in view
         self.hints = ("ARROWS SELECT", "E PIN / UNPIN ON THE HOME CASE", "ESC BACK")
 
     # ------------------------------------------------------------ data
@@ -106,6 +108,7 @@ class CollectionScene(MenuScene):
         owned, total = self.service.progress()
         self._draw_progress(surf, owned, total)
         self._draw_grid(surf)
+        self._draw_scroll(surf)
         self._draw_detail(surf)
         self.draw_footer(surf)
 
@@ -119,8 +122,18 @@ class CollectionScene(MenuScene):
 
     def _draw_grid(self, surf):
         shown = set(self.service.displayed())
-        for i, (definition, owned) in enumerate(self.entries):
+        entries = self.entries
+        cursor_row = self.index // COLS
+        self.first_row = max(0, min(self.first_row, (len(entries) - 1) // COLS + 1 - ROWS))
+        if cursor_row < self.first_row:                      # more than ROWS rows: scroll to the cursor
+            self.first_row = cursor_row
+        elif cursor_row >= self.first_row + ROWS:
+            self.first_row = cursor_row - ROWS + 1
+        for i, (definition, owned) in enumerate(entries):
             row, col = divmod(i, COLS)
+            row -= self.first_row
+            if not 0 <= row < ROWS:
+                continue
             rect = pygame.Rect(GRID.x + col * (CELL_W + GAP), GRID.y + row * (CELL_H + GAP) + 8, CELL_W, CELL_H)
             self.draw_row_bg(surf, rect, i == self.index, owned=owned)
             self.hit(rect, lambda i=i: self._click_row(i))
@@ -136,6 +149,12 @@ class CollectionScene(MenuScene):
                     for dx, ch in enumerate(row):
                         if ch == "1":
                             surf.fill(GOLD, (rect.right - 10 + dx, rect.y + 3 + dy, 1, 1))
+
+    def _draw_scroll(self, surf):
+        total_rows = (len(self.entries) - 1) // COLS + 1
+        if total_rows > ROWS:
+            self.draw_scrollbar(surf, pygame.Rect(GRID.x, GRID.y + 8, GRID.w + 3, ROWS * (CELL_H + GAP) - GAP),
+                                self.first_row, ROWS, total_rows)
 
     def _draw_detail(self, surf):
         box = DETAIL

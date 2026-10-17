@@ -229,6 +229,22 @@ class CollectionSceneTests(unittest.TestCase):
             scene.draw(self.game.canvas)
         self.assertTrue(0 <= scene.index < total)
 
+    def test_the_grid_scrolls_to_keep_the_cursor_visible_with_capsule_collectibles(self):
+        scene = self.open_collection()
+        total = len(scene.entries)
+        self.assertGreater(total, 6)                            # capsule collectibles outgrew the old 2x3 grid
+        from collection_ui import COLS, ROWS
+        for _ in range(total - 1):
+            self.key(pygame.K_d)
+            scene.draw(self.game.canvas)
+            row = scene.index // COLS
+            self.assertTrue(scene.first_row <= row < scene.first_row + ROWS)
+        self.assertGreater(scene.first_row, 0)
+        for _ in range(total):
+            self.key(pygame.K_a)
+            scene.draw(self.game.canvas)
+        self.assertTrue(0 <= scene.index < total)
+
     def test_progress_text_matches_the_service(self):
         self.profile.inventory.add_item("cat_sticker")
         scene = self.open_collection()

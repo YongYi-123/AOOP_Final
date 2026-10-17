@@ -9,7 +9,6 @@ from player_profile import PlayerProfile
 from room_testing import goto_room
 from racing_progression.ui import PrizeCounterScene,GarageScene
 from racing_progression.service import PrizeService
-from racing_progression.station import GarageStation
 
 
 class ShopSceneTests(unittest.TestCase):
@@ -46,7 +45,7 @@ class ShopSceneTests(unittest.TestCase):
 
     def test_garage_shows_owned_cars_and_actual_performance(self):
         PrizeService(self.profiles[0]).buy('car','viper')
-        self.room.open_garage()
+        self.game.scenes.push(GarageScene(self.game,self.game.session.primary))
         self.frames()
         scene = self.game.scenes.current
         self.assertIsInstance(scene,GarageScene)
@@ -55,7 +54,6 @@ class ShopSceneTests(unittest.TestCase):
         self.key(pygame.K_e)
         self.assertEqual(scene.shop.garage.selected('car'),'viper')
         self.assertGreater(scene.preview.spec('viper').max_speed,scene.preview.spec('falcon').max_speed)
-        self.assertTrue(any(isinstance(p,GarageStation) for p in self.room.props))
         scene.draw(pygame.Surface((400,300)))
         self.key(pygame.K_ESCAPE)
         self.frames()
@@ -73,18 +71,9 @@ class ShopSceneTests(unittest.TestCase):
         self.frames()
         self.assertIs(self.game.scenes.current,shop)
 
-    def test_e_on_garage_terminal_launches_and_returns_to_plaza(self):
-        terminal = next(p for p in self.room.props if isinstance(p,GarageStation))
-        avatar = self.room.players[0]
-        avatar.x,avatar.y = terminal.zone.centerx,terminal.zone.bottom-2
-        self.frames(5)
-        self.key(pygame.K_e)
-        self.frames(40)
-        self.assertIsInstance(self.game.scenes.current,GarageScene)
-        self.assertIs(self.game.scenes.current.owner,self.game.session.primary)
-        self.key(pygame.K_ESCAPE)
-        self.frames()
-        self.assertIs(self.game.scenes.current,self.room)
+    def test_plaza_no_longer_has_a_garage_terminal(self):
+        self.assertFalse(any(getattr(p,'prompt_label','')=='GARAGE' for p in self.room.props))
+        self.assertFalse(hasattr(self.room,'open_garage'))
 
     def test_expanded_track_catalogue_scrolls_and_prevents_duplicate_charge(self):
         self.room.open_racing_counter()

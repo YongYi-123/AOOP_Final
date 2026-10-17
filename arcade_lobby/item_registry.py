@@ -156,6 +156,46 @@ _SHOP_ITEMS = (
           "cabinet", _VIOLET, _CYAN, _COLLECT_USE),
 )
 
+
+# ---- CAPSULE goods (CAT CAPSULE / RETRO CAPSULE in Prize Plaza, see capsule.py). Stackable
+# collectibles, so a repeat pull is a counted duplicate; they only ever sit in the bag and the
+# HOME collection / showcase and change no score, price or payout.
+_PINKISH, _LILAC, _SKY, _MINT = (255, 150, 200), (200, 150, 255), (110, 200, 255), (130, 255, 210)
+CAPSULE_STACK = 99
+
+
+def _capsule_item(item_id, name, text, rarity, shape, color, accent):
+    return ItemDefinition(item_id, name, text, COLLECTIBLE, rarity, stackable=True, max_stack=CAPSULE_STACK,
+                          icon={"shape": shape, "color": color, "accent": accent}, use_hint=_COLLECT_USE)
+
+
+_CAPSULE_ITEMS = (
+    _capsule_item("cat_paw_sticker", "PAW STICKER", "A pink paw print, still a little sticky.", COMMON,
+                  "paw", _PINKISH, (255, 240, 250)),
+    _capsule_item("cat_bell_charm", "CAT BELL", "Jingles when you look at it.", COMMON,
+                  "bell", _GOLD, (255, 250, 200)),
+    _capsule_item("cat_fish_badge", "FISH BADGE", "A tiny fish badge. The cat approves.", UNCOMMON,
+                  "fish", _SKY, (230, 250, 255)),
+    _capsule_item("cat_yarn_ball", "YARN BALL", "A lilac ball of yarn. Do not unroll.", UNCOMMON,
+                  "yarn", _LILAC, (255, 240, 255)),
+    _capsule_item("cat_mochi_plush", "MOCHI PLUSH", "A palm-sized plush of the shop cat.", RARE,
+                  "plush", (255, 240, 235), _PINKISH),
+    _capsule_item("cat_champion_cup", "CAT CUP", "A pink cup for the best-behaved cat.", RARE,
+                  "trophy", _PINKISH, (255, 250, 230)),
+    _capsule_item("retro_pixel_heart", "PIXEL HEART", "An extra life, forever.", COMMON,
+                  "heart", (255, 90, 120), (255, 200, 210)),
+    _capsule_item("retro_cartridge", "RETRO CARTRIDGE", "A game cartridge. Blow on it for luck.", COMMON,
+                  "cartridge", _SKY, _GOLD),
+    _capsule_item("retro_mini_joystick", "MINI JOYSTICK", "A joystick that fits in a pocket.", UNCOMMON,
+                  "joystick", (60, 90, 200), (255, 70, 90)),
+    _capsule_item("retro_star_medal", "STAR MEDAL", "Awarded for pressing start.", UNCOMMON,
+                  "medal", _CYAN, _GOLD),
+    _capsule_item("retro_silver_cup", "SILVER CUP", "Second place never looked this shiny.", RARE,
+                  "trophy", (200, 220, 240), _CYAN),
+    _capsule_item("retro_gold_trophy", "GOLD PIXEL TROPHY", "The high-score cup of legend.", EPIC,
+                  "trophy", _GOLD, (255, 250, 200)),
+)
+
 # ---- NEON VEND-O-MATIC novelty goods (Arcade Floor). Pure fun: using one only plays a little effect
 # (novelty.py) and never touches scores, tokens, tickets, movement or any minigame.
 NOVELTY_STACK = 9
@@ -195,4 +235,4 @@ _RACING_ITEMS = tuple(
                    if d.id.startswith("racing_decoration_") else d.icon,
                    use_hint=_DECOR_USE if d.id.startswith("racing_decoration_") else "")
     for d in _RACING_ITEMS)
-ITEM_REGISTRY = ItemRegistry(_ITEMS + _SHOP_ITEMS + _NOVELTY_ITEMS + _RACING_ITEMS)
+ITEM_REGISTRY = ItemRegistry(_ITEMS + _SHOP_ITEMS + _CAPSULE_ITEMS + _NOVELTY_ITEMS + _RACING_ITEMS)

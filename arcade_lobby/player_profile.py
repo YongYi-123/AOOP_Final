@@ -32,11 +32,12 @@ from settings import (COIN_PUSHER_DAILY_TICKET_CAP, PINBALL_DAILY_TICKET_CAP, PI
                       TRANSACTION_HISTORY_SIZE)
 
 # field: "tokens", "tickets", "games_played", "high_score", "daily", "tasks",
-#        "chance_games", "cats_petted", "inventory", "decorations", "appearance", "basic_appearance" or "collection"
+#        "chance_games", "cats_petted", "inventory", "decorations", "appearance", "basic_appearance", "collection" or "showcase"
 # delta: signed change (for "high_score": the new score); value: new total
 ProfileChange = namedtuple("ProfileChange", "field delta value")
 
 SAVE_VERSION = 2
+SHOWCASE_SLOTS = ("car", "collectible", "trophy")   # what the Prize Plaza showcase can display
 
 
 def _check_amount(amount):
@@ -60,7 +61,7 @@ class PlayerProfile:
                  daily=None, daily_tasks=None, history=(), clock=None, inventory=None,
                  home_decorations=None, profile_id=None, display_name=None, racing_selection=None,
                  neon21=None, appearance=None, collection_display=None, basic_appearance=None,
-                 secrets=None, coin_pusher=None, pinball=None):
+                 secrets=None, coin_pusher=None, pinball=None, showcase=None):
         # Who this profile is. The id is the save identity (never the name);
         # both are None for a bare profile that is not managed by a ProfileManager.
         self.profile_id = profile_id
@@ -100,6 +101,11 @@ class PlayerProfile:
         self._secrets = {k: True for k, v in (secrets or {}).items() if isinstance(k, str) and v is True}
         # Collectible ids pinned on the HOME display shelf, in order.
         self._collection_display = [i for i in (collection_display or []) if isinstance(i, str)]
+        # What the Prize Plaza showcase displays: {"car": racing car key, "collectible": item id,
+        # "trophy": item id}. Ownership is checked when it is shown (see showcase.py), so a stale
+        # entry just shows an empty pedestal. Absent from the save until the first pick.
+        self._showcase = {k: v for k, v in (showcase if isinstance(showcase, dict) else {}).items()
+                          if k in SHOWCASE_SLOTS and isinstance(v, str) and v}
         self._racing_selection = {k:v for k,v in (racing_selection or {}).items()
                                   if k in ("car","track","scenery","paint") and isinstance(v,str)}
         # NEON 21 state: tickets won per calendar day (the daily cap) and the
@@ -240,6 +246,26 @@ class PlayerProfile:
             self._notify("collection", 0, len(item_ids))
             return True
         return False
+
+    @property
+    def showcase(self):
+        return dict(self._showcase)  # a copy: edit through set_showcase()
+
+    def set_showcase(self, slot, value):
+        """Display `value` (a car key or an item id) in a showcase slot (None empties it).
+        Whether the profile owns it is the ShowcaseService's call."""
+        if slot not in SHOWCASE_SLOTS:
+            raise ValueError("invalid showcase slot")
+        if value is None:
+            changed = self._showcase.pop(slot, None) is not None
+        elif isinstance(value, str) and value:
+            changed = self._showcase.get(slot) != value
+            self._showcase[slot] = value
+        else:
+            raise ValueError("invalid showcase value")
+        if changed:
+            self._notify("showcase", 0, len(self._showcase))
+        return changed
 
     @property
     def racing_selection(self):
@@ -633,6 +659,7 @@ class PlayerProfile:
             "appearance": dict(self._appearance),
             "basic_appearance": self._basic.to_dict(),
             "collection_display": list(self._collection_display),
+            **({"showcase": dict(self._showcase)} if self._showcase else {}),
             **({"secrets": dict(self._secrets)} if self._secrets else {}),
             "neon21": {"date": self._neon21_date, "tickets": self._neon21_tickets,
                        **({"pending": dict(self._neon21_pending)} if self._neon21_pending else {})},
@@ -688,6 +715,7 @@ class PlayerProfile:
             appearance=data.get("appearance") if isinstance(data.get("appearance"), dict) else {},
             basic_appearance=BasicAppearance.from_dict(data.get("basic_appearance")),
             collection_display=data.get("collection_display") if isinstance(data.get("collection_display"), list) else [],
+            showcase=data.get("showcase") if isinstance(data.get("showcase"), dict) else {},
             secrets=data.get("secrets") if isinstance(data.get("secrets"), dict) else {},
             profile_id=data["profile_id"] if isinstance(data.get("profile_id"), str) else None,
             display_name=data["display_name"] if isinstance(data.get("display_name"), str) else None,
