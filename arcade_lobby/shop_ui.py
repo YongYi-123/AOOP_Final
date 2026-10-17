@@ -24,7 +24,8 @@ from settings import Col
 from ui import DialogueBox, draw_text, wrap_text
 
 RACING = "RACING"
-TABS = CATEGORIES + (RACING,)
+EXCHANGE = "EXCHANGE"           # MOCHI'S CAPSULE EXCHANGE (capsule_exchange_ui.py)
+TABS = CATEGORIES + (RACING, EXCHANGE)
 LIST = pygame.Rect(14, 60, 206, 9 * ROW_H + 2)          # 9 rows
 SIDE = pygame.Rect(226, 60, FRAME.right - 226 - 8, 9 * ROW_H + 2)
 BUY_LOCK = 0.4              # seconds after a purchase in which E does nothing (no double buys)
@@ -48,8 +49,11 @@ class ShopScene(MenuScene):
         self.first = 0
         self.lock = 0.0
         self.banner = None              # (text, seconds left) after a purchase
-        self.hints = ("UP/DOWN ITEM", "LEFT/RIGHT CATEGORY", f"{owner.controls.label('interact') or 'E'} BUY",
-                      "ESC LEAVE")
+        e, bag = owner.controls.label("interact") or "E", owner.controls.label("menu") or "I"
+        self._hints = {None: ("UP/DOWN ITEM", "LEFT/RIGHT CATEGORY", f"{e} BUY", "ESC LEAVE"),
+                       RACING: ("LEFT/RIGHT CATEGORY", f"{e} RACING PRIZES", f"{bag} GARAGE", "ESC LEAVE"),
+                       EXCHANGE: ("LEFT/RIGHT CATEGORY", f"{e} RECYCLE", f"{bag} REDEEM", "ESC LEAVE")}
+        self.hints = self._hints[None]
 
     # ------------------------------------------------------------ data
     @property
@@ -58,7 +62,7 @@ class ShopScene(MenuScene):
 
     @property
     def rows(self):
-        return entries_in(self.category) if self.category != RACING else []
+        return entries_in(self.category) if self.category not in (RACING, EXCHANGE) else []
 
     @property
     def entry(self):
@@ -79,6 +83,8 @@ class ShopScene(MenuScene):
             self.activate()
         elif action == "menu" and self.category == RACING:      # the bag key: straight to the Garage
             self.open_garage()
+        elif action == "menu" and self.category == EXCHANGE:    # the bag key: straight to REDEEM
+            self.open_exchange("REDEEM")
 
     def set_tab(self, tab):
         if tab != self.tab:
@@ -95,6 +101,9 @@ class ShopScene(MenuScene):
         """E on the highlighted prize: open the BUY? box (or explain why not)."""
         if self.category == RACING:
             self.open_racing()
+            return
+        if self.category == EXCHANGE:
+            self.open_exchange()
             return
         entry = self.entry
         if entry is None or self.lock > 0:
@@ -116,6 +125,12 @@ class ShopScene(MenuScene):
     def open_racing(self):
         from racing_progression.ui import PrizeCounterScene
         self.game.scenes.push(PrizeCounterScene(self.game, self.owner))
+
+    def open_exchange(self, view="RECYCLE"):
+        """MOCHI'S CAPSULE EXCHANGE for the player who owns this shop screen."""
+        from capsule_exchange_ui import ExchangeScene
+        self.play("confirm")
+        self.game.scenes.push(ExchangeScene(self.game, self.owner, view, keeper=self.keeper))
 
     def open_garage(self):
         """GARAGE / CUSTOMIZE CAR: pick an owned car and paint (the same screen the racing counter's
@@ -175,6 +190,8 @@ class ShopScene(MenuScene):
     def idle_message(self):
         if self.category == RACING:
             return "E: RACING PRIZES    I: GARAGE / CUSTOMIZE CAR"
+        if self.category == EXCHANGE:
+            return "E: RECYCLE SPARES    I: REDEEM STAMPS"
         entry = self.entry
         if entry is None:
             return ""
@@ -183,11 +200,14 @@ class ShopScene(MenuScene):
         return f"{entry.name}: {entry.cost} TICKETS"
 
     def draw_body(self, surf):
+        self.hints = self._hints.get(self.category, self._hints[None])     # the footer names what the tab's keys do
         self.draw_frame(surf)
         self._draw_keeper(surf)
         self.draw_tabs(surf, TABS, self.tab, on_click=self.set_tab)
         if self.category == RACING:
             self._draw_racing(surf)
+        elif self.category == EXCHANGE:
+            self._draw_exchange(surf)
         else:
             self._draw_list(surf)
             self._draw_side(surf, self.entry)
@@ -302,6 +322,29 @@ class ShopScene(MenuScene):
     def _preview(self, entry, size):
         avatar = self.owner.avatar
         return preview_for_item(entry.item_id, avatar.look, avatar.appearance, size)
+
+    def _draw_exchange(self, surf):
+        """The EXCHANGE tab: what Mochi's Capsule Exchange is, your Stamps and a button for each view."""
+        from capsule_exchange_ui import stamp_icon
+        box = pygame.Rect(LIST.x, LIST.y, FRAME.w - 16, LIST.h)
+        surf.fill((14, 9, 34), box)
+        pygame.draw.rect(surf, scale_color(GOLD, 0.5), box, 1)
+        draw_text(surf, "CAPSULE EXCHANGE", (box.centerx, box.y + 10), GOLD, 2, anchor="midtop",
+                  glow=scale_color(ROSE, 0.6))
+        stamps = self.owner.profile.capsule_stamps
+        label = f"{stamps} CAPSULE STAMPS"
+        w = get_font().size(label)[0]
+        surf.blit(stamp_icon(GOLD), (box.centerx - w // 2 - 12, box.y + 31))
+        draw_text(surf, label, (box.centerx + 6, box.y + 32), GOLD, anchor="midtop")
+        for i, line in enumerate(("RECYCLE SPARE CAPSULE COLLECTIBLES", "INTO STAMPS - THEN REDEEM A PRIZE", "YOU CHOOSE. MOCHI ALWAYS KEEPS YOUR LAST ONE.")):
+            draw_text(surf, line, (box.centerx, box.y + 48 + i * (LINE_H + 2)), Col.TEXT_MUTED, anchor="midtop")
+        for n, (text, view, key) in enumerate((("RECYCLE DUPLICATES", "RECYCLE", "E"), ("REDEEM STAMPS", "REDEEM",
+                                                self.owner.controls.label("menu") or "I"))):
+            button = pygame.Rect(box.centerx - 70, box.y + 96 + n * 24, 140, 18)
+            self.draw_row_bg(surf, button, n == 0)
+            draw_text(surf, text, button.center, Col.TEXT if n == 0 else Col.CYAN, anchor="center")
+            self.hit(button, lambda view=view: self.open_exchange(view))
+        draw_text(surf, f"{self.owner.controls.label('interact') or 'E'} : RECYCLE      {self.owner.controls.label('menu') or 'I'} : REDEEM", (box.centerx, box.y + 148), Col.TEXT_MUTED, anchor="midtop")
 
     def _draw_racing(self, surf):
         box = pygame.Rect(LIST.x, LIST.y, FRAME.w - 16, LIST.h)

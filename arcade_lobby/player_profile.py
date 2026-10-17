@@ -32,11 +32,12 @@ from settings import (COIN_PUSHER_DAILY_TICKET_CAP, PINBALL_DAILY_TICKET_CAP, PI
                       TRANSACTION_HISTORY_SIZE)
 
 # field: "tokens", "tickets", "games_played", "high_score", "daily", "tasks",
-#        "chance_games", "cats_petted", "inventory", "decorations", "appearance", "basic_appearance", "collection" or "showcase"
+#        "chance_games", "cats_petted", "inventory", "decorations", "appearance", "basic_appearance", "collection", "showcase" or "capsule_stamps"
 # delta: signed change (for "high_score": the new score); value: new total
 ProfileChange = namedtuple("ProfileChange", "field delta value")
 
 SAVE_VERSION = 2
+MAX_CAPSULE_STAMPS = 999          # the Capsule Stamp book never holds more than this
 SHOWCASE_SLOTS = ("car", "collectible", "trophy")   # what the Prize Plaza showcase can display
 
 
@@ -61,7 +62,7 @@ class PlayerProfile:
                  daily=None, daily_tasks=None, history=(), clock=None, inventory=None,
                  home_decorations=None, profile_id=None, display_name=None, racing_selection=None,
                  neon21=None, appearance=None, collection_display=None, basic_appearance=None,
-                 secrets=None, coin_pusher=None, pinball=None, showcase=None):
+                 secrets=None, coin_pusher=None, pinball=None, showcase=None, capsule_stamps=0):
         # Who this profile is. The id is the save identity (never the name);
         # both are None for a bare profile that is not managed by a ProfileManager.
         self.profile_id = profile_id
@@ -106,6 +107,9 @@ class PlayerProfile:
         # entry just shows an empty pedestal. Absent from the save until the first pick.
         self._showcase = {k: v for k, v in (showcase if isinstance(showcase, dict) else {}).items()
                           if k in SHOWCASE_SLOTS and isinstance(v, str) and v}
+        # CAPSULE STAMPS (Mochi's Capsule Exchange): earned only by recycling duplicate capsule
+        # collectibles, spent only on exchange prizes. Never Tokens, Tickets or cash. Bad data is 0.
+        self._capsule_stamps = min(_count(capsule_stamps, 0), MAX_CAPSULE_STAMPS)
         self._racing_selection = {k:v for k,v in (racing_selection or {}).items()
                                   if k in ("car","track","scenery","paint") and isinstance(v,str)}
         # NEON 21 state: tickets won per calendar day (the daily cap) and the
@@ -266,6 +270,30 @@ class PlayerProfile:
         if changed:
             self._notify("showcase", 0, len(self._showcase))
         return changed
+
+    @property
+    def capsule_stamps(self):
+        return self._capsule_stamps
+
+    def add_capsule_stamps(self, amount):
+        """Add Stamps (the exchange's recycling only). Never goes past MAX_CAPSULE_STAMPS: returns
+        how many were really added (the exchange refuses a recycle that would not fit)."""
+        _check_amount(amount)
+        added = min(amount, MAX_CAPSULE_STAMPS - self._capsule_stamps)
+        if added:
+            self._capsule_stamps += added
+            self._notify("capsule_stamps", added, self._capsule_stamps)
+        return added
+
+    def spend_capsule_stamps(self, amount):
+        """Take `amount` Stamps. False (nothing changes) if the balance is too small."""
+        _check_amount(amount)
+        if self._capsule_stamps < amount:
+            return False
+        if amount:
+            self._capsule_stamps -= amount
+            self._notify("capsule_stamps", -amount, self._capsule_stamps)
+        return True
 
     @property
     def racing_selection(self):
@@ -660,6 +688,7 @@ class PlayerProfile:
             "basic_appearance": self._basic.to_dict(),
             "collection_display": list(self._collection_display),
             **({"showcase": dict(self._showcase)} if self._showcase else {}),
+            **({"capsule_stamps": self._capsule_stamps} if self._capsule_stamps else {}),
             **({"secrets": dict(self._secrets)} if self._secrets else {}),
             "neon21": {"date": self._neon21_date, "tickets": self._neon21_tickets,
                        **({"pending": dict(self._neon21_pending)} if self._neon21_pending else {})},
@@ -716,6 +745,7 @@ class PlayerProfile:
             basic_appearance=BasicAppearance.from_dict(data.get("basic_appearance")),
             collection_display=data.get("collection_display") if isinstance(data.get("collection_display"), list) else [],
             showcase=data.get("showcase") if isinstance(data.get("showcase"), dict) else {},
+            capsule_stamps=data.get("capsule_stamps"),
             secrets=data.get("secrets") if isinstance(data.get("secrets"), dict) else {},
             profile_id=data["profile_id"] if isinstance(data.get("profile_id"), str) else None,
             display_name=data["display_name"] if isinstance(data.get("display_name"), str) else None,
