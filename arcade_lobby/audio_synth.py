@@ -1033,6 +1033,52 @@ def sfx_pin_drain():
     return m.finish(peak=0.45, fade=0.03)
 
 
+# ---- CAT CAPSULE / RETRO CAPSULE (Prize Plaza): turn the handle, the capsule drops, the capsule pops open
+def sfx_capsule_turn():
+    """The crank: five rising ratchet ticks and a little spring wobble at the end."""
+    m = _sfx(0.5)
+    for k in range(5):
+        t = k * 0.07
+        m.noise(t, 0.025, 0.55, decay=140, bright=0.5, seed=60 + k)
+        m.note(t, 0.03, 420 + 55 * k, "tri", 0.4, release=0.02)
+    m.note(0.36, 0.1, 240, "sine", 0.22, release=0.08, vibrato=30, slide=140)
+    return m.finish(peak=0.5, fade=0.02)
+
+
+def sfx_capsule_drop():
+    """The capsule rolls down the chute and bounces twice in the tray with a hollow plastic 'tok'."""
+    m = _sfx(0.6)
+    m.note(0, 0.14, 700, "sine", 0.2, release=0.02, slide=-1800)
+    m.noise(0.14, 0.05, 0.5, decay=70, bright=0.6, seed=71)
+    m.note(0.14, 0.07, 520, "tri", 0.5, release=0.05, slide=-500)
+    m.noise(0.3, 0.035, 0.3, decay=90, bright=0.6, seed=72)
+    m.note(0.3, 0.05, 640, "tri", 0.35, release=0.04, slide=-420)
+    m.note(0.42, 0.03, 760, "tri", 0.2, release=0.03, slide=-300)
+    return m.finish(peak=0.55, fade=0.02)
+
+
+def sfx_capsule_pop_cat():
+    """The lid pops, a cluster of chimes sparkles up and a tiny meow answers."""
+    m = _sfx(0.7)
+    m.noise(0, 0.04, 0.5, decay=90, bright=0.7, seed=81)
+    m.note(0, 0.08, 300, "sine", 0.4, release=0.04, slide=1800)
+    for k, name in enumerate(("E6", "G6", "C7", "E7")):
+        m.note(0.08 + k * 0.065, 0.1, hz(midi(name)), "bell", 0.2, release=0.14)
+    m.note(0.42, 0.18, 760, "sine", 0.2, release=0.1, vibrato=7, slide=240)
+    return m.finish(peak=0.55, fade=0.03)
+
+
+def sfx_capsule_pop_retro():
+    """The lid pops and an 8-bit 'item get' arpeggio runs up to a bright top note."""
+    m = _sfx(0.7)
+    m.noise(0, 0.04, 0.5, decay=90, bright=0.7, seed=82)
+    m.note(0, 0.08, 260, "sq", 0.25, release=0.04, slide=1500)
+    for k, name in enumerate(("C5", "E5", "G5", "C6", "E6")):
+        m.note(0.08 + k * 0.06, 0.07, hz(midi(name)), "p25", 0.26, release=0.05)
+    m.note(0.4, 0.2, hz(midi("G6")), "p25", 0.25, release=0.16, vibrato=8)
+    return m.finish(peak=0.5, fade=0.03)
+
+
 SFX = {"footstep": sfx_footstep, "confirm": sfx_confirm, "cancel": sfx_cancel, "machine": sfx_machine,
        "token": sfx_token, "ticket": sfx_ticket, "purchase": sfx_purchase, "card": sfx_card,
        "equip": sfx_equip, "meow": sfx_meow, "pet": sfx_pet, "pet_b": sfx_pet_b, "pet_c": sfx_pet_c, "purr": sfx_purr, "emote": sfx_emote, "sit": sfx_sit,
@@ -1044,7 +1090,9 @@ SFX = {"footstep": sfx_footstep, "confirm": sfx_confirm, "cancel": sfx_cancel, "
        "coin_drop": sfx_coin_drop, "coin_clink": sfx_coin_clink, "coin_tray": sfx_coin_tray, "coin_win": sfx_coin_win,
        "coin_gold": sfx_coin_gold, "pusher_hum": sfx_pusher_hum,
        "pin_launch": sfx_pin_launch, "pin_flipper": sfx_pin_flipper, "pin_bumper": sfx_pin_bumper, "pin_rail": sfx_pin_rail,
-       "pin_target": sfx_pin_target, "pin_scoop": sfx_pin_scoop, "pin_bonus": sfx_pin_bonus, "pin_drain": sfx_pin_drain}
+       "pin_target": sfx_pin_target, "pin_scoop": sfx_pin_scoop, "pin_bonus": sfx_pin_bonus, "pin_drain": sfx_pin_drain,
+       "capsule_turn": sfx_capsule_turn, "capsule_drop": sfx_capsule_drop, "capsule_pop_cat": sfx_capsule_pop_cat,
+       "capsule_pop_retro": sfx_capsule_pop_retro}
 
 
 def generate(only=None):

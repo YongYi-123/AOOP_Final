@@ -40,21 +40,25 @@ PRIORITY = {"footstep": 0, "meow": 1, "card": 1, "sit": 1, "pet": 1, "pet_b": 1,
             # NEON COIN PUSHER: clinks and the motor hum never cut off a drop or a payout; a Golden Cat Coin outranks everything
             "coin_clink": 0, "pusher_hum": 0, "coin_drop": 2, "coin_tray": 2, "coin_win": 3, "coin_gold": 4,
             # LUCKY CAT PINBALL: ticks and flipper clicks never cut off a bumper, a launch or a fanfare; the drain and the bonus outrank everything
-            "pin_rail": 0, "pin_flipper": 0, "pin_bumper": 1, "pin_target": 2, "pin_launch": 2, "pin_scoop": 2, "pin_drain": 3, "pin_bonus": 4}
+            "pin_rail": 0, "pin_flipper": 0, "pin_bumper": 1, "pin_target": 2, "pin_launch": 2, "pin_scoop": 2, "pin_drain": 3, "pin_bonus": 4,
+            # CAPSULE MACHINES: the crank never cuts off the drop or the pop; the pop is the payoff
+            "capsule_turn": 1, "capsule_drop": 3, "capsule_pop_cat": 3, "capsule_pop_retro": 3}
 SFX_FILES = ("footstep", "confirm", "cancel", "machine", "token", "ticket", "purchase", "card", "equip",
              "pet", "pet_b", "pet_c", "purr", "emote", "sit", "meow", "vend_hum", "vend_select", "vend_drop", "burp", "munch", "rainbow",
              "squeak", "zap", "mystery", "glitch",
              "maze_fish", "maze_fish_b", "maze_golden", "maze_golden_spawn", "maze_catnip", "maze_catnip_end",
              "maze_disable", "maze_life", "maze_clear", "maze_over",
              "coin_drop", "coin_clink", "coin_tray", "coin_win", "coin_gold", "pusher_hum",
-             "pin_launch", "pin_flipper", "pin_bumper", "pin_rail", "pin_target", "pin_scoop", "pin_bonus", "pin_drain")
+             "pin_launch", "pin_flipper", "pin_bumper", "pin_rail", "pin_target", "pin_scoop", "pin_bonus", "pin_drain",
+             "capsule_turn", "capsule_drop", "capsule_pop_cat", "capsule_pop_retro")
 # some effects are meant to be barely there
 SFX_GAIN = {"footstep": 0.3, "card": 0.7, "confirm": 0.8, "cancel": 0.8, "sit": 0.7, "emote": 0.8, "meow": 0.6, "purr": 1.0, "vend_hum": 0.6, "vend_select": 0.7, "vend_drop": 0.8, "burp": 0.7,
             # the shooter fires dozens of these a second of play: keep them a soft texture, not a buzz
             "laser": 0.3, "boom": 0.75, "point": 0.8, "skid": 0.6, "bounce": 0.8,
             "maze_fish": 0.55, "maze_fish_b": 0.55, "maze_catnip_end": 0.8,
             "coin_clink": 0.5, "pusher_hum": 0.55, "coin_drop": 0.8,
-            "pin_rail": 0.5, "pin_flipper": 0.65, "pin_bumper": 0.85, "pin_launch": 0.85, "pin_drain": 0.8}
+            "pin_rail": 0.5, "pin_flipper": 0.65, "pin_bumper": 0.85, "pin_launch": 0.85, "pin_drain": 0.8,
+            "capsule_turn": 0.7, "capsule_drop": 0.8, "capsule_pop_cat": 0.8, "capsule_pop_retro": 0.75}
 MIN_GAP = {"footstep": 0.16, "pet": 0.35, "pet_b": 0.35, "pet_c": 0.35, "purr": 0.35, "meow": 1.2, "laser": 0.14, "boom": 0.09, "point": 0.1, "bounce": 0.08,
            "hit": 0.07, "coin_clink": 0.11, "pusher_hum": 1.5, "coin_tray": 0.12,
            "pin_rail": 0.09, "pin_flipper": 0.05, "pin_bumper": 0.07}                              # seconds between two plays of the same effect (default .06)
