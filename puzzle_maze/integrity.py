@@ -37,7 +37,7 @@ class DungeonIntegrityValidator:
                     raise ValueError(f'{name}: invalid chest ability trigger')
                 if not set(obj.get('flag_requires', [])) <= flags:
                     raise ValueError(f'{name}: missing chest flag producer')
-                if obj.get('hidden') and not any(obj.get(key) for key in ('requires', 'ability_requires', 'flag_requires')):
+                if obj.get('hidden') and not any(obj.get(key) for key in ('requires', 'ability_requires', 'flag_requires','crystal_color','enemy_requires')):
                     raise ValueError(f'{name}: hidden chest lacks a trigger')
                 if not any(obj.get(key) for key in ('ability', 'loot', 'small_keys', 'boss_key', 'bombs', 'powder', 'potions', 'coins')):
                     raise ValueError(f'{name}: empty chest')

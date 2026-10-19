@@ -23,11 +23,12 @@ class AdvancedDungeonSession(DungeonSession):
                 room['safe_landings']=[list(p) for p in sorted(landing_points(name,rooms))]
         super().__init__(rooms)
     def prepare_loaded_save(self,data):
-        if data.get('content_revision')!='4.2':
+        if data.get('content_revision') not in ('4.2','4.3'):
             from puzzle_maze.migration42 import migrate
             data=migrate(data,self.rooms.rooms,self.validate_snapshot)
             self.migration_notice='Previous progress retained in the repaired 4.2 layout.'
-        return data
+        from puzzle_maze.migration43 import migrate
+        return migrate(data,self.rooms.rooms)
     def make_puzzles(self,room):
         manager=AdvancedPuzzleManager(room,self.inventory);manager.grant_treasure=self.grant_treasure;manager.has_external_load=lambda:self.orb.carried;return manager
     def enter(self,name,arrival=None):

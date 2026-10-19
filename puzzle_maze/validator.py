@@ -12,7 +12,7 @@ class DungeonValidator:
     def __init__(self,rooms):self.rooms=rooms
     def validate(self):
         validate_rooms(self.rooms)
-        if not 16<=len(self.rooms)<=24:raise ValueError('Expected sixteen to twenty-four chambers')
+        if not 16<=len(self.rooms)<=32:raise ValueError('Expected sixteen to thirty-two chambers')
         if {r.get('floor') for r in self.rooms.values()}!={'1F','B1F'}:raise ValueError('Missing floor')
         grants={};locks={};keys_total=0;cost_total=0
         for room in self.rooms.values():

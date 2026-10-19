@@ -17,7 +17,7 @@ from puzzle_maze.orb import IronOrb
 class Upgrade42Tests(unittest.TestCase):
     def test_coordinates_are_unique_and_all_cardinal_doors_adjacent(self):
         rooms=AdvancedDungeonSession().rooms.rooms;coordinates={RoomCoordinate.from_room(r) for r in rooms.values()}
-        self.assertEqual(len(coordinates),22);self.assertEqual(DoorValidator(rooms).validate(),51)
+        self.assertEqual(len(coordinates),26);self.assertEqual(DoorValidator(rooms).validate(),59)
         for name,room in rooms.items():
             for e in room['exits']:
                 if e.get('stairs') or e.get('finish'):continue
@@ -50,8 +50,8 @@ class Upgrade42Tests(unittest.TestCase):
 
     def test_all_chests_have_interaction_routes_and_actuators_have_targets(self):
         rooms=AdvancedDungeonSession().rooms.rooms
-        self.assertEqual(ChestValidator(rooms).validate(),30)
-        effects=PuzzleDependencyValidator(rooms).validate();self.assertEqual(len(effects),36)
+        self.assertEqual(ChestValidator(rooms).validate(),34)
+        effects=PuzzleDependencyValidator(rooms).validate();self.assertEqual(len(effects),40)
         self.assertTrue(any(target.startswith('r2:') for target in effects['r19:flame_signal']))
         bad=copy.deepcopy(rooms);bad['r1']['objects'].append(dict(id='fake',type='switch',pos=[6,10]))
         with self.assertRaises(ValueError):PuzzleDependencyValidator(bad).validate()

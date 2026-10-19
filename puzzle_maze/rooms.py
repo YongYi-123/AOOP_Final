@@ -69,6 +69,8 @@ def validate_rooms(rooms):
                 raise ValueError(f'{name}: unsafe enemy spawn')
             if enemy['type']=='crystal_ghost' and enemy.get('torch') not in ids:raise ValueError(f'{name}: missing ghost brazier')
             occupied.add((x,y))
+        for obj in room['objects']:
+            if obj['type']=='chest' and not set(obj.get('enemy_requires',[]))<=enemy_ids:raise ValueError(f'{name}: missing chest enemy trigger')
         if room.get('kill_order') and (len(room['kill_order'])!=len(enemy_ids) or set(room['kill_order'])!=enemy_ids):raise ValueError(f'{name}: invalid kill order')
         if room.get('theme','entrance') not in THEMES:raise ValueError(f'{name}: unknown room theme')
         for decoration in room.get('decorations',[]):

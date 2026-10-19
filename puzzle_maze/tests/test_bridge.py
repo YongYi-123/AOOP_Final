@@ -65,7 +65,7 @@ class BridgeTests(unittest.TestCase):
     def test_original_cabinet_loads_v4_and_routes_powder_pots_and_bombs(self):
         from puzzle_maze.advanced_dungeon import AdvancedDungeonSession
         scene=self.scene();self.assertIsInstance(scene.maze.session,AdvancedDungeonSession)
-        self.assertEqual(len(scene.maze.session.rooms.rooms),22)
+        self.assertEqual(len(scene.maze.session.rooms.rooms),26)
         scene.maze.start(onboarding=False);s=scene.maze.session
         s.inventory.abilities.update(('powder','gloves'));s.inventory.powder=5;s.enter('r19')
         s.player.x,s.player.y=7,6;s.player.facing=(0,-1)

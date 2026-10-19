@@ -178,6 +178,9 @@ class PuzzleManager(CollisionManager):
 
     def update_special(self, dt):
         for obj in self.objects.values():
+            if isinstance(obj, CrackedWall) and obj.state.remaining>0:
+                obj.state.remaining=max(0.,obj.state.remaining-dt)
+                if obj.state.remaining<1e-9:obj.state.remaining=0.;obj.state.active=True
             if isinstance(obj, RemoteRelay):obj.state.active=all(i in self.inventory.flags for i in obj.data.get("flags",[]))
             if isinstance(obj, TimedSwitch):
                 obj.state.remaining = max(0, obj.state.remaining - dt)
@@ -321,8 +324,22 @@ class CombatSeal(PuzzleObject):
 FACTORY['combat']=CombatSeal
 
 
+class EntrancePhase(str,Enum):
+    SEALED='sealed'
+    REVEALING='revealing'
+    OPEN='open'
+
 class CrackedWall(PuzzleObject):
     blocking=True
+    @property
+    def phase(self):
+        return EntrancePhase.OPEN if self.state.active else EntrancePhase.REVEALING if self.state.remaining>0 else EntrancePhase.SEALED
+    def blast(self,dt=0):
+        if self.phase!=EntrancePhase.SEALED:return False
+        duration=self.data.get('duration',0)
+        if duration:self.state.remaining=duration+dt
+        else:self.state.active=True
+        return True
 
 class BlastSwitch(PuzzleObject):
     pass

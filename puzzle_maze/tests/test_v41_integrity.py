@@ -109,7 +109,7 @@ class Dungeon41Tests(unittest.TestCase):
     def test_integrity_rejects_bad_landings_returns_flags_and_floor(self):
         rooms=AdvancedDungeonSession().rooms.rooms;report=DungeonIntegrityValidator(rooms).validate()
         self.assertEqual(report['final_room'],'r18');self.assertEqual(report['resource_states'],report['winning_states'])
-        self.assertEqual(report['chests'],30);self.assertEqual(report['stair_entrances'],4)
+        self.assertEqual(report['chests'],34);self.assertEqual(report['stair_entrances'],4)
         variants=[]
         bad=copy.deepcopy(rooms);bad['r5']['exits'][-1]['arrival']=[0,0];variants.append(bad)
         bad=copy.deepcopy(rooms);bad['r11']['exits'][-1]['flag_requires']=['nonexistent'];variants.append(bad)
@@ -134,7 +134,7 @@ class Dungeon41Tests(unittest.TestCase):
         s=AdvancedDungeonSession();s.enter('r7');wall=s.puzzles.objects['crack'];pos=wall.pos;s.exploration.tiles['r7']={pos}
         self.assertNotIn(('exit',pos),DungeonAtlas(s.rooms).discovered_markers(s))
         s.inventory.bombs=1;s.player.x,s.player.y=wall.x+1,wall.y;s.player.facing=(-1,0)
-        self.assertTrue(s.bombs.place());s.move(1,0);s.move(1,0);s.tick(1.7)
+        self.assertTrue(s.bombs.place());s.move(1,0);s.move(1,0);s.tick(1.7);s.tick(.6)
         self.assertIn(('exit',pos),DungeonAtlas(s.rooms).discovered_markers(s))
 
     def test_stairs_art_has_distinct_up_down_and_no_arrow_marker(self):

@@ -12,7 +12,7 @@ from puzzle_maze.combat import EnemyState
 from puzzle_maze.exploration import DungeonAtlas
 from puzzle_maze.environment import EnvironmentPainter
 from puzzle_maze.themes import THEMES
-from puzzle_maze.puzzles import PushableBox, PressurePlate, Door, Key, SecretPassage, TimedSwitch, Switch, Chest, LightSource, Receiver, Reflector,CrackedWall,BombSupply,DashSwitch,BlastSwitch,RemoteRelay,ChestPhase,GateControl
+from puzzle_maze.puzzles import PushableBox, PressurePlate, Door, Key, SecretPassage, TimedSwitch, Switch, Chest, LightSource, Receiver, Reflector,CrackedWall,BombSupply,DashSwitch,BlastSwitch,RemoteRelay,ChestPhase,GateControl,EntrancePhase
 
 INK=(18,26,39); GOLD=(245,198,96); WHITE=(230,237,219); TEAL=(81,195,165)
 
@@ -119,8 +119,18 @@ class Renderer:
                 r.rect(s,(48,52,66),(sx+1,sy+3,14,10));r.rect(s,TEAL if o.state.active else GOLD,(sx+2,sy+4,12,8),1)
                 for index in range(3):r.rect(s,TEAL if o.state.active else (126,111,103),(sx+3+index*4,sy+7,2,2))
             elif isinstance(o,CrackedWall):
-                if not o.state.active:
-                    s.blit(self.tiles["#"],(sx,sy));r.lines(s,(102,108,104),False,[(sx+3,sy+1),(sx+9,sy+5),(sx+5,sy+10),(sx+12,sy+15)]);r.rect(s,(104,58,44),(sx+10,sy+4,2,2))
+                if o.phase!=EntrancePhase.OPEN:
+                    s.blit(self.tiles['#'],(sx,sy))
+                    shade=tuple(max(0,c-22) for c in theme.wall)
+                    offset=(o.x*7+o.y*11)%4
+                    r.lines(s,shade,False,[(sx+6+offset,sy+2),(sx+8,sy+6),(sx+5+offset,sy+10),(sx+9,sy+13)])
+                    if o.phase==EntrancePhase.REVEALING:
+                        progress=1-min(1,o.state.remaining/o.data['duration'])
+                        r.circle(s,INK,(sx+8,sy+8),max(1,int(progress*8)))
+                        for i in range(7):
+                            a=i*math.tau/7;distance=progress*18
+                            r.rect(s,theme.wall,(int(sx+8+math.cos(a)*distance),int(sy+8+math.sin(a)*distance+progress*6),3,2))
+                            r.circle(s,theme.shadow,(int(sx+8+math.cos(a)*distance*.8),int(sy+8+math.sin(a)*distance*.8)),2)
             elif isinstance(o,BombSupply):
                 r.rect(s,(110,91,65),(sx+2,sy+4,12,10));s.blit(self.hud.atlas.get("bomb"),(sx+2,sy+2))
             elif isinstance(o,DashSwitch):
@@ -281,7 +291,7 @@ class Renderer:
                 orb_prompt=True
                 label=f"{controls['interact']} Drop / G Orb / T Recall" if orb.carried else f"{controls['interact']} Lift Orb / T Recall"
                 r.rect(s,INK,(6,145,288,22));self.text(label,10,150,GOLD,max_width=276)
-        near=next((o for o in session.puzzles.objects.values() if abs(o.x-p.x)+abs(o.y-p.y)<=1 and isinstance(o,(Switch,Door,SecretPassage,Chest,Reflector,CrackedWall,BombSupply,LiftablePot,Brazier,CrystalSwitch,PotSupply,PowderSupply)) and not isinstance(o,GateControl) and not (isinstance(o,Chest) and o.phase!=ChestPhase.AVAILABLE) and not (isinstance(o,(Door,SecretPassage)) and o.state.active)),None)
+        near=next((o for o in session.puzzles.objects.values() if abs(o.x-p.x)+abs(o.y-p.y)<=1 and isinstance(o,(Switch,Door,SecretPassage,Chest,Reflector,CrackedWall,BombSupply,LiftablePot,Brazier,CrystalSwitch,PotSupply,PowderSupply)) and not isinstance(o,(GateControl,CrackedWall)) and not (isinstance(o,Chest) and o.phase!=ChestPhase.AVAILABLE) and not (isinstance(o,(Door,SecretPassage)) and o.state.active)),None)
         if not orb_prompt and (near or getattr(session.inventory,'carried',None)):
             carrying=getattr(session.inventory,'carried',None)
             label=f"{controls['interact']} Drop / G Throw" if carrying else '[P] Light' if isinstance(near,Brazier) else f"[{controls['attack']}] Crystal" if isinstance(near,CrystalSwitch) else f"[{controls['interact']}] Lift" if isinstance(near,LiftablePot) else '[B] Bomb' if isinstance(near,CrackedWall) else f"[{controls['ability']}] Pulse" if isinstance(near,SecretPassage) else f"[{controls['interact']}] Interact"
