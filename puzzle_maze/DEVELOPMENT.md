@@ -491,3 +491,154 @@ The complete Arcade Lobby regression also passed: 1,827 tests in 388.520 seconds
 (`/tmp/puzzle-maze-43-lobby-tests.log` for this development session). Combined
 with the 189-test Puzzle Maze suite, 2,016 tests passed. The working tree after
 committing contains only the two original untracked `tatus` files.
+
+
+## 4.4 — royal circuit, treasure vault and private clear history
+
+Safety: started on feature/puzzle-maze-v4 with no unfinished merge or tracked
+working changes. The two original untracked tatus files were retained. All
+changes remain in puzzle_maze/. No Push, Pull, Merge, Rebase, Squash, reset or
+force operation was performed; other games and the host's core economy were
+not edited. Baseline: 189 Puzzle Maze tests passed in 23.811 seconds.
+
+BossKeyIcon is a larger original gold/jewel sprite shared across HUD, map
+inventory, the acquisition popup and Boss Gate. Small Key is silver. The royal
+chest stays hidden behind actual prerequisites. Its opening/acquisition art,
+2.4-second prioritized notification and special cue persist visibly instead of
+being overwritten by a later pickup message. The larger key also fits archived
+campaign HUD spacing. Boss Gate uses non-consumable key unlocking and saves its
+0.6-second opening timer.
+
+OrbSocket completes the multi-floor causal chain: both original Orb-destroyed
+pillars lower the stairs; placing the Orb on the r22 crown socket posts a global
+royal_resonance flag; the corresponding r6 signal illuminates and the existing
+Boots/timed/Prism/Warden conditions can reveal Boss Key. Old earned/revealed keys
+keep their access. Map/Compass remain separate chest rewards; before Map both
+views show only the current room. All original hidden branches and return routes
+remain. No commercial map, enemy or art was copied.
+
+RoyalVaultArt provides an original independent r27 at B1F (6,0). Golem's death
+animation opens r18 first. The existing dawn gate now leads to r27; it no longer
+finishes the expedition. Gold and silver piles, colored gems, pillars, inlays,
+runes, reliefs, visibly empty open display chests, warm torches and sparks frame
+three actual interactive coffers. All can be reached, opened, saved and revisited
+without duplicate rewards. The east finish requires all three. The minimap moves
+to the upper center in this room so it does not cover a reward coffer.
+
+MysteryScroll at (11,7) bobs with a halo. E/Enter interaction shows COMING SOON;
+Enter/E/Esc returns to play. The modal pauses game clocks. The coming_soon content
+identifier is an extension point; no story, quest or cross-game feature was added.
+
+Reward policy: royal first-clear base 1,000 Tokens / 300 Tickets; replay base
+100 / 30. Existing exploration rewards are added unchanged. The third coffer
+awards the original Emberglass Crown. DungeonRewardBag remains the escrow.
+RoyalClearHistory records immutable, copy-isolated receipts keyed by run ID;
+completion, a living player, all three royal sources and a settled bag are
+required. Exiting early or dying creates no royal receipt. Retry restores the
+entry chest/reward checkpoint. Repeat settlement returns the same receipt.
+Old completed expeditions stay completed and do not consume royal first-clear
+eligibility.
+
+CampaignProfile separates each Lobby owner by the existing player/profile ID in
+hashed directories beneath puzzle_maze/profiles/. New expeditions retain history;
+Continue merges compatible saved receipts with the authoritative history file.
+Writes are atomic; bad or wrong-owner history blocks new royal records rather
+than granting a fresh first clear. A history write failure does not prevent
+saving campaign progress. Standalone retains save_v4.json plus its own history.
+Old shared saves remain compatible through standalone Continue; they are not
+silently assigned to an arbitrary Lobby player. No source save is rewritten by
+migration.
+
+Important scope: these are private expedition records, not a second wallet.
+There is no existing persistent cross-run transaction identifier for this
+cabinet in the host grant API. Therefore the requested safe fallback is used:
+no external account payout; MiniGameResult remains the existing zero-payout
+free trial. get_settlement_receipt() exposes a read-only completed record for
+future host work, not authorization to credit currency. The victory UI explains
+that the trial does not increase the Lobby balance. Core economy changes would
+require a separate host integration task.
+
+New classes: BossKeyIcon, OrbSocket, MysteryScroll, RoyalVaultArt, RoyalRewardPolicy, RoyalClearHistory, CampaignProfile.
+
+New modules: layout44.py, migration44.py, vault.py, royal_rewards.py.
+New test modules: test_v44_key.py, test_v44_circuit.py, test_v44_vault.py,
+test_v44_rewards.py and test_v44_migration.py. Existing tests were retained and
+updated for the new final room, key prerequisite and counts. The full action
+witness starts fresh, visits all 27 rooms and both floors, activates the real
+Orb socket, defeats both Bosses, opens all 37 chests, interacts with the scroll,
+finishes r27 and saves/reloads the receipt. It uses actual puzzle/combat rules,
+not only room connectivity; it does not exhaust every real-time human trajectory.
+
+The dungeon audit reports 27 rooms, 37 chests (24 hidden), 61 entrance records,
+41 actuators, four stair records, six hidden rooms and 409/409 winning resource
+states (six Small Keys, five costs). Integrity CLI, deterministic builder/JSON
+equality, compileall, 60-frame headless startup and git diff --check passed.
+Native image review covered the vault, scroll modal and Boss Key popup. Cached
+vault draws at 960x720 averaged 2.47 ms (p95 4.00 ms) over 180 frames on this host;
+this measures draw cost rather than interactive FPS.
+
+Regression runs use a source-identical temporary tree to isolate runtime saves.
+An initial isolated Lobby run lacked the sibling retro_racer directory and
+therefore failed racer initialization cases. The test environment was corrected
+by copying the unchanged sibling game directories; no production game fix was
+needed. Final source-identical regression: 206 Puzzle Maze tests passed in 38.124 seconds; 1,827 Arcade Lobby tests passed in 314.918 seconds (2,033 total). Logs for this session: /tmp/puzzle-maze-44-final-maze.log and /tmp/puzzle-maze-44-lobby-complete.log. No Python source differences remained between the isolated tree and the final workspace. The final documentation commit brings this development run to seven meaningful commits.
+
+Verified commits before the final documentation record:
+- 1d0b2fe — royal key icon, acquisition and gate presentation.
+- 8cb57ff — cross-floor Orb socket and upper key circuit.
+- d098f54 — independent treasure vault and floating scroll.
+- 189ef66 — private first/replay receipts and per-owner campaigns.
+- 006ae60 — legacy key/completion/gate-save regression tests.
+- b76e9b0 — distinct host key cue and archived HUD spacing.
+
+Manual checks remaining: keyboard feel in standalone and P1/P2 Lobby play,
+continuous Golem/Warden difficulty, Orb socket clarity and recall, perceived
+acquisition/gate timing, sound balance, treasure readability, native window
+scaling and FPS on the target machine. No manual real-time play was performed.
+
+Launch from the repository root:
+- .venv/bin/python -m puzzle_maze
+- .venv/bin/python arcade_lobby/main.py
+Choose New expedition or Quick start for the new royal-key route. Continue
+preserves an existing expedition; old completed saves remain on their victory
+state. In the Lobby, each player's Continue uses that player's isolated save.
+
+Files changed in 4.4 (all scoped to puzzle_maze):
+- puzzle_maze/.gitignore
+- puzzle_maze/DEVELOPMENT.md
+- puzzle_maze/PLAYER_ROUTE.md
+- puzzle_maze/README.md
+- puzzle_maze/advanced_dungeon.py
+- puzzle_maze/advanced_puzzles.py
+- puzzle_maze/audio.py
+- puzzle_maze/build_dungeon_v4.py
+- puzzle_maze/dependencies.py
+- puzzle_maze/dungeon.py
+- puzzle_maze/entrances.py
+- puzzle_maze/exploration.py
+- puzzle_maze/game.py
+- puzzle_maze/icons.py
+- puzzle_maze/integrity.py
+- puzzle_maze/layout44.py
+- puzzle_maze/lobby_scene.py
+- puzzle_maze/maps/dungeon_v4.json
+- puzzle_maze/migration44.py
+- puzzle_maze/puzzles.py
+- puzzle_maze/render.py
+- puzzle_maze/rewards.py
+- puzzle_maze/rooms.py
+- puzzle_maze/royal_rewards.py
+- puzzle_maze/session.py
+- puzzle_maze/tests/test_bridge.py
+- puzzle_maze/tests/test_v3_presentation.py
+- puzzle_maze/tests/test_v41_integrity.py
+- puzzle_maze/tests/test_v42_upgrade.py
+- puzzle_maze/tests/test_v43_lifecycle.py
+- puzzle_maze/tests/test_v44_circuit.py
+- puzzle_maze/tests/test_v44_key.py
+- puzzle_maze/tests/test_v44_migration.py
+- puzzle_maze/tests/test_v44_rewards.py
+- puzzle_maze/tests/test_v44_vault.py
+- puzzle_maze/tests/test_v4_campaign.py
+- puzzle_maze/themes.py
+- puzzle_maze/vault.py
