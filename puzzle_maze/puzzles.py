@@ -151,7 +151,7 @@ class PuzzleManager(CollisionManager):
         return None
 
     def update(self, dt, player):
-        self.player_position=(player.x,player.y) if player is not None else None
+        if player is not None:self.player_position=(player.x,player.y)
         for obj in self.objects.values():
             if isinstance(obj, Key) and player and obj.pos == (player.x, player.y) and not obj.state.active and all(self.condition(i) for i in obj.data.get("requires",[])):
                 for _ in range(obj.data.get("amount",1)):self.inventory.add(obj.data['color'])
@@ -258,6 +258,7 @@ class Chest(PuzzleObject):
         super().__init__(data)
         self.phase = ChestPhase.HIDDEN if data.get('hidden') else ChestPhase.AVAILABLE
         self.spawn_time = 0.
+        self.triggered = False
 
     @property
     def visible(self):
@@ -268,14 +269,16 @@ class Chest(PuzzleObject):
             self.phase = ChestPhase.OPENED
             self.spawn_time = 0.
         elif self.phase == ChestPhase.HIDDEN:
-            clear_spawn=(self.pos!=manager.player_position and self.pos not in manager.occupants
+            clear_spawn=(manager.player_position is not None and self.pos!=manager.player_position and self.pos not in manager.occupants
                          and manager.tilemap.walkable(*self.pos)
                          and not any(o is not self and o.pos==self.pos and o.blocking and not o.state.active for o in manager.objects.values()))
-            if (clear_spawn and set(self.data.get('enemy_requires',[])) <= manager.defeated
+            if (set(self.data.get('enemy_requires',[])) <= manager.defeated
                     and all(manager.condition(i) for i in self.data.get('requires', []))
                     and set(self.data.get('ability_requires', [])) <= manager.inventory.abilities
                     and set(self.data.get('flag_requires', [])) <= manager.inventory.flags
                     and self.data.get('crystal_color', 'blue' if 'crystal_blue' in manager.inventory.flags else 'red') == ('blue' if 'crystal_blue' in manager.inventory.flags else 'red')):
+                self.triggered=True
+            if self.triggered and clear_spawn:
                 self.phase = ChestPhase.SPAWNING
                 self.spawn_time = self.spawn_duration
                 manager.chest_events.append(self.id)

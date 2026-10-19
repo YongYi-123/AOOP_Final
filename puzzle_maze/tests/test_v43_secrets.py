@@ -71,3 +71,25 @@ class Secret43Tests(unittest.TestCase):
             self.assertEqual(loaded.rooms.current,'r5');self.assertEqual(loaded.inventory.coins,17)
             self.assertEqual(loaded.puzzles.objects['secret43'].phase,EntrancePhase.SEALED)
             self.assertEqual(path.read_bytes(),before)
+
+    def test_v42_player_on_new_wall_moves_safely_without_losing_carried_orb(self):
+        s=AdvancedDungeonSession();s.enter('r5');s.inventory.abilities.add('gloves')
+        with tempfile.TemporaryDirectory() as folder:
+            path=Path(folder)/'save.json';s.save(path);data=json.loads(path.read_text())
+            data['content_revision']='4.2';data['player']=[24,8]
+            data['extension']['orb'].update(room='r5',x=24,y=8,carried=True)
+            for snap in [*data['snapshots'].values(),data['checkpoint']['objects']]:snap.pop('secret43',None)
+            path.write_text(json.dumps(data));loaded=AdvancedDungeonSession.load(path)
+            self.assertEqual(loaded.rooms.current,'r5');self.assertTrue(loaded.orb.carried)
+            self.assertEqual(loaded.orb.pos,(loaded.player.x,loaded.player.y))
+            self.assertNotEqual(loaded.orb.pos,(24,8));self.assertIn('gloves',loaded.inventory.abilities)
+
+    def test_v42_visible_locked_chest_does_not_become_a_free_reward(self):
+        s=AdvancedDungeonSession();s.enter('r5')
+        with tempfile.TemporaryDirectory() as folder:
+            path=Path(folder)/'save.json';s.save(path);data=json.loads(path.read_text());data['content_revision']='4.2'
+            for snap in [*data['snapshots'].values(),data['checkpoint']['objects']]:
+                snap.pop('secret43',None);snap['compass'].update(chest_phase='available',spawn_time=0.)
+            path.write_text(json.dumps(data));loaded=AdvancedDungeonSession.load(path)
+            self.assertEqual(loaded.rooms.current,'r5');o=loaded.puzzles.objects['compass']
+            self.assertEqual(o.phase,ChestPhase.HIDDEN);self.assertFalse(o.interact(loaded.puzzles,loaded.player))

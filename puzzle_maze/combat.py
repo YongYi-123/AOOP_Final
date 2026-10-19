@@ -244,6 +244,9 @@ class CombatManager:
                 value=values.get('exposed',2.6)
                 if type(value) not in (int,float) or not 0<=value<=2.6:raise ValueError('Invalid Warden window')
                 e.exposed=value
+                hits=values.get('window_hits',0)
+                if type(hits) is not int or not 0<=hits<=3:raise ValueError('Invalid Warden window hits')
+                e.window_hits=hits
             if e.kind=='golem':
                 for attr in ('exposed','primed'):
                     value=values.get(attr,0)

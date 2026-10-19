@@ -319,7 +319,7 @@ class Renderer:
             top=next((y for y in (5,148,112,38) if not any(pygame.Rect(5,y,222,27).colliderect(actor) for actor in actors)),5)
             self.boss_panel_rect=pygame.Rect(5,top,222,27)
             r.rect(s,INK,(5,top,222,27));r.rect(s,(83,110,130),(5,top,222,27),1)
-            self.text(('CORE OPEN / SWORD' if boss.exposed>0 and 'crystal_blue' not in session.inventory.flags else 'RED / WAIT FOR CORE') if boss.kind=='crystal_warden' else 'CORE OPEN' if boss.exposed>0 else 'BLUE / DASH + BOMB > SWORD' if boss.phase==3 and boss.data.get('crystal_color') else labels[boss.phase],10,top+3,TEAL if getattr(boss,'exposed',0)>0 else GOLD,max_width=211)
+            self.text(('CORE OPEN / SWORD' if boss.exposed>0 and boss.window_hits<3 and 'crystal_blue' not in session.inventory.flags else 'RED / WAIT FOR CORE') if boss.kind=='crystal_warden' else 'CORE OPEN' if boss.exposed>0 else 'BLUE / DASH + BOMB > SWORD' if boss.phase==3 and boss.data.get('crystal_color') else labels[boss.phase],10,top+3,TEAL if getattr(boss,'exposed',0)>0 else GOLD,max_width=211)
             r.rect(s,(51,54,73),(10,top+18,210,3));r.rect(s,(227,107,113),(10,top+18,int(210*boss.hp/boss.max_hp),3))
 
 

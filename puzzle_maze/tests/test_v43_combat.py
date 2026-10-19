@@ -50,3 +50,13 @@ class Combat43Tests(unittest.TestCase):
         self.assertFalse(e.receive_damage(s.combat,1,'sword',s.player))
         s.tick(3);e.move_timer=0;s.tick(.01);self.assertEqual(e.state,EnemyState.WINDUP)
         s.tick(.8);self.assertGreater(e.exposed,2)
+
+    def test_warden_requires_multiple_sword_windows_and_saves_hit_budget(self):
+        s=AdvancedDungeonSession();s.enter('r21');e=s.combat.enemies[0]
+        for _ in range(3):self.assertTrue(e.receive_damage(s.combat,1,'sword',s.player))
+        self.assertEqual(e.hp,3);self.assertFalse(e.receive_damage(s.combat,1,'sword',s.player))
+        snap=s.combat.capture();s.combat.restore(snap);self.assertEqual(e.window_hits,3)
+        s.player.x,s.player.y=e.x-1,e.y
+        e.stagger=0;s.tick(3);e.move_timer=0;s.tick(.01);self.assertEqual(e.state,EnemyState.WINDUP)
+        s.tick(.8);self.assertEqual(e.window_hits,0)
+        self.assertTrue(e.receive_damage(s.combat,1,'sword',s.player))

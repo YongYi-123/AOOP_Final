@@ -72,12 +72,13 @@ class EnvironmentPainter:
         self.cache[key]=s
         return s
 
-    def glow(self,name):
-        if name not in self.glows:
+    def glow(self,name,level=0):
+        key=(name,level)
+        if key not in self.glows:
             g=pygame.Surface((64,64),pygame.SRCALPHA);color=THEMES[name].light
-            for radius in range(28,3,-4):pygame.draw.circle(g,(*color,3+(28-radius)//2),(32,32),radius)
-            self.glows[name]=g
-        return self.glows[name]
+            for radius in range(28,3,-4):pygame.draw.circle(g,(*color,3+level+(28-radius)//2),(32,32),radius)
+            self.glows[key]=g
+        return self.glows[key]
 
     def decorations(self,target,room,camera,time):
         name=room.get('theme','entrance');t=THEMES[name];r=pygame.draw;cx,cy=camera
@@ -86,7 +87,7 @@ class EnvironmentPainter:
             if not -32<sx<352 or not -32<sy<240:continue
             phase=time*5+d.get('phase',0);kind=d['kind']
             if kind in ('torch','crystal','sigil'):
-                target.blit(self.glow(name),(sx-24,sy-24))
+                target.blit(self.glow(name,int(phase)%3),(sx-24,sy-24))
             if kind=='torch':
                 r.rect(target,t.shadow,(sx+6,sy+5,5,10));r.rect(target,t.accent,(sx+7,sy+8,3,5))
                 flicker=int(math.sin(phase*2)*2)
@@ -130,7 +131,7 @@ class EnvironmentPainter:
             sources.extend(sorted(cells)[::3])
         for e in session.combat.enemies:
             if e.hp>0 and e.kind in ('golem','crystal_warden') and (e.state.value=='windup' or getattr(e,'exposed',0)>0):sources.append(e.pos)
-        for x,y in sources[:18]:target.blit(self.glow(name),(x*16-cx-24,y*16-cy-24))
+        for x,y in sources[:18]:target.blit(self.glow(name,int(time*8+x+y)%3),(x*16-cx-24,y*16-cy-24))
         material=THEMES[name].material;r=pygame.draw
         # Dust in libraries, sparks in crystals, falling grit in the mine.
         for i in range(7 if material=='wood' else 4):

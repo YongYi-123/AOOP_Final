@@ -64,20 +64,22 @@ class EliteGuardian(Guardian):
 class CrystalWarden(EliteGuardian):
     max_hp=6
     def __init__(self,data):
-        super().__init__(data);self.exposed=2.6
+        super().__init__(data);self.exposed=2.6;self.window_hits=0
     def special_update(self,manager,dt):
         self.exposed=max(0,self.exposed-dt)
         if self.exposed>0:return True
         before=self.state
         result=super().special_update(manager,dt)
         if before==EnemyState.WINDUP and self.state==EnemyState.HUNT:
-            self.exposed=2.6;manager.events.append('boss_break')
+            self.exposed=2.6;self.window_hits=0;manager.events.append('boss_break')
         return result
-    def capture(self):return dict(super().capture(),exposed=self.exposed)
+    def capture(self):return dict(super().capture(),exposed=self.exposed,window_hits=self.window_hits)
     def receive_damage(self,manager,amount,kind,source):
         color='blue' if 'crystal_blue' in manager.puzzles.inventory.flags else 'red'
-        if color!=self.data.get('weak_color','red') or self.exposed<=0:
+        if color!=self.data.get('weak_color','red') or self.exposed<=0 or self.window_hits>=3:
             manager.events.append('shield');self.flash=.15;return False
-        return Enemy.receive_damage(self,manager,amount,kind,source)
+        hit=Enemy.receive_damage(self,manager,amount,kind,source)
+        if hit:self.window_hits+=1
+        return hit
 
 ENEMIES.update(mirror_mask=MirrorMask,pot_hunter=PotHunter,crystal_ghost=CrystalGhost,elite_guardian=EliteGuardian,crystal_warden=CrystalWarden)

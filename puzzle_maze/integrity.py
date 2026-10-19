@@ -22,6 +22,9 @@ class DungeonIntegrityValidator:
         DoorValidator(self.rooms).validate()
         report['effective_mechanisms']=len(PuzzleDependencyValidator(self.rooms).validate())
         ChestValidator(self.rooms).validate()
+        from puzzle_maze.safety import landing_points
+        for name,room in self.rooms.items():
+            if room.get('content_revision')=='4.3' and {tuple(p) for p in room.get('safe_landings',[])}!=landing_points(name,self.rooms):raise ValueError(f'{name}: incomplete entry safety zones')
         flags = {o['flag'] for room in self.rooms.values() for o in room['objects'] if 'flag' in o}
         flags |= {room['on_clear_flag'] for room in self.rooms.values() if 'on_clear_flag' in room}
         flags |= {r['transformation']['result'] for r in self.rooms.values() if 'transformation' in r}

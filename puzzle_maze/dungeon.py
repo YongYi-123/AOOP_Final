@@ -50,7 +50,9 @@ class DungeonSession(GameSession):
                     if o.pos==pos and o.data['type']=='dash_switch':
                         o.state.active=True;o.state.remaining=6
                         for enemy in self.combat.enemies:
-                            if enemy.kind=='golem' and enemy.hp>0:enemy.dash_trigger()
+                            if enemy.kind=='golem' and enemy.hp>0:
+                                enemy.dash_trigger()
+                                if enemy.exposed>0:self.combat.events.append('boss_break')
             for enemy in self.combat.enemies:
                 if enemy.hp>0 and enemy.kind=='armored_beetle' and abs(enemy.x-self.player.x)+abs(enemy.y-self.player.y)==1:
                     enemy.armor=False;enemy.flash=.3

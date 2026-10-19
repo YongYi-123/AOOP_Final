@@ -38,7 +38,7 @@ class GameSession:
         return {name: dict(pos=list(o.pos), active=o.state.active,
                            remaining=o.state.remaining,
                            unlocked=getattr(o,'unlocked',False), latched=getattr(o,'latched',False),
-                           **({'chest_phase':o.phase.value,'spawn_time':o.spawn_time} if isinstance(o,Chest) else {}))
+                           **({'chest_phase':o.phase.value,'spawn_time':o.spawn_time,'triggered':o.triggered} if isinstance(o,Chest) else {}))
                 for name,o in self.puzzles.objects.items()}
 
     def restore(self, snapshot):
@@ -50,6 +50,7 @@ class GameSession:
             if isinstance(obj,Chest):
                 obj.phase=ChestPhase(values.get('chest_phase','opened' if obj.state.active else 'hidden' if obj.data.get('hidden') else 'available'))
                 obj.spawn_time=values.get('spawn_time',0.)
+                obj.triggered=values.get('triggered',obj.phase!=ChestPhase.HIDDEN)
             if isinstance(obj,Door):
                 obj.unlocked=values['unlocked']; obj.latched=values['latched']
         self.puzzles.update(0,self.player)
@@ -62,6 +63,8 @@ class GameSession:
         self.player.hp=min(health,self.player.max_hp)
         self.player.weapon=weapon
         self.puzzles=self.make_puzzles(self.rooms.data)
+        if name in self.encounters:
+            self.puzzles.occupants={tuple(v['pos']) for v in self.encounters[name]['enemies'].values() if v['hp']>0 and not v.get('dormant',False)}
         if name in self.snapshots:
             self.restore(self.snapshots[name])
         self.combat=CombatManager(self.rooms.data,self.puzzles,self.player)
@@ -85,6 +88,9 @@ class GameSession:
             for enemy in self.combat.enemies:
                 if enemy.hp>0:self.combat.ensure_spawn(enemy)
             self.combat.entry_protection=1.
+        self.puzzles.occupants={e.pos for e in self.combat.enemies if e.hp>0 and not e.dormant}
+        if hasattr(self,'orb') and not self.orb.carried and self.orb.room==name:self.puzzles.occupants.add(self.orb.pos)
+        self.puzzles.update(0,self.player)
         self.checkpoint = dict(hp=self.player.hp, combat=copy.deepcopy(self.combat.capture()),inventory=copy.deepcopy(self.inventory.keys), abilities=sorted(self.inventory.abilities), potions=self.inventory.potions, coins=self.inventory.coins, powder=self.inventory.powder,heart_fragments=self.inventory.heart_fragments,carried=self.inventory.carried,bombs=self.inventory.bombs,boss_key=self.inventory.boss_key,flags=sorted(self.inventory.flags),objects=self.capture(), pos=[self.player.x,self.player.y])
         self.visited.add(name)
         self.exploration.reveal(name,self.puzzles,self.player)
@@ -110,6 +116,10 @@ class GameSession:
         self.player.moving=False
         self.restore(self.checkpoint['objects'])
         self.combat.restore(copy.deepcopy(self.checkpoint['combat']))
+        if self.rooms.data.get('safe_landings'):
+            for enemy in self.combat.enemies:
+                if enemy.hp>0:self.combat.ensure_spawn(enemy)
+            self.combat.entry_protection=1.
         # Remove completion only when checkpoint itself was unsolved.
         if not self.puzzles.solved:
             self.completed.discard(self.rooms.current)
@@ -120,6 +130,7 @@ class GameSession:
         self.combat.update(dt)
         self.puzzles.defeated={e.id for e in self.combat.enemies if e.hp<=0}
         self.puzzles.occupants={e.pos for e in self.combat.enemies if e.hp>0 and not e.dormant}
+        if hasattr(self,'orb') and not self.orb.carried and self.orb.room==self.rooms.current:self.puzzles.occupants.add(self.orb.pos)
         for obj in self.puzzles.objects.values():
             if obj.data['type']=='combat':obj.state.active=self.combat.cleared
         self.puzzles.update(dt,self.player)
@@ -243,6 +254,7 @@ class GameSession:
                     raise ValueError('Invalid state')
             if isinstance(obj,Chest) and 'chest_phase' in values:
                 phase=ChestPhase(values['chest_phase'])
+                if type(values.get('triggered',False)) is not bool:raise ValueError('Invalid chest trigger memory')
                 elapsed=values.get('spawn_time',0.)
                 if not isinstance(elapsed,(int,float)) or not math.isfinite(elapsed) or not 0<=elapsed<=obj.spawn_duration:
                     raise ValueError('Invalid chest spawn timer')

@@ -71,6 +71,10 @@ def validate_rooms(rooms):
             occupied.add((x,y))
         for obj in room['objects']:
             if obj['type']=='chest' and not set(obj.get('enemy_requires',[]))<=enemy_ids:raise ValueError(f'{name}: missing chest enemy trigger')
+        if room.get('safe_landings'):
+            from puzzle_maze.safety import safe_enemy_tile
+            for enemy in room.get('enemies',[]):
+                if not safe_enemy_tile(room,tuple(enemy['pos'])):raise ValueError(f'{name}: enemy overlaps entry safety zone')
         if room.get('kill_order') and (len(room['kill_order'])!=len(enemy_ids) or set(room['kill_order'])!=enemy_ids):raise ValueError(f'{name}: invalid kill order')
         if room.get('theme','entrance') not in THEMES:raise ValueError(f'{name}: unknown room theme')
         for decoration in room.get('decorations',[]):

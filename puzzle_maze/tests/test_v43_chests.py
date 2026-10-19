@@ -42,3 +42,22 @@ class HiddenChest43Tests(unittest.TestCase):
             self.assertTrue(o.interact(loaded.puzzles,loaded.player));self.assertFalse(o.interact(loaded.puzzles,loaded.player))
             loaded.save(path);again=AdvancedDungeonSession.load(path)
             self.assertEqual(again.puzzles.objects['mirror'].phase,ChestPhase.OPENED)
+
+    def test_trigger_latches_while_occupied_and_survives_save(self):
+        s=AdvancedDungeonSession();s.enter('r5');o=s.puzzles.objects['mirror']
+        s.player.x,s.player.y=o.pos;s.puzzles.objects['lever'].state.active=True;s.tick(0)
+        self.assertEqual(o.phase,ChestPhase.HIDDEN);self.assertTrue(o.triggered)
+        s.puzzles.objects['lever'].state.active=False
+        with tempfile.TemporaryDirectory() as folder:
+            path=Path(folder)/'run.json';s.save(path);loaded=AdvancedDungeonSession.load(path)
+            self.assertEqual(loaded.rooms.current,'r5')
+            chest=loaded.puzzles.objects['mirror'];self.assertTrue(chest.triggered)
+            self.assertEqual(chest.phase,ChestPhase.HIDDEN)
+            self.assertTrue(loaded.move(0,1));loaded.tick(.45)
+            self.assertEqual(chest.phase,ChestPhase.AVAILABLE)
+
+    def test_iron_orb_delays_chest_without_losing_trigger(self):
+        s=AdvancedDungeonSession();s.enter('r5');o=s.puzzles.objects['mirror']
+        s.orb.room='r5';s.orb.x,s.orb.y=o.pos;s.puzzles.objects['lever'].state.active=True;s.tick(0)
+        self.assertEqual(o.phase,ChestPhase.HIDDEN);self.assertTrue(o.triggered)
+        s.recall_orb();s.tick(0);self.assertEqual(o.phase,ChestPhase.SPAWNING)
