@@ -75,7 +75,7 @@ class BridgeTests(unittest.TestCase):
         scene.handle_event(pygame.event.Event(pygame.KEYDOWN,key=pygame.K_g));self.assertIsNone(s.inventory.carried)
         s.inventory.bombs=3;scene.handle_event(pygame.event.Event(pygame.KEYDOWN,key=pygame.K_b));self.assertEqual(s.inventory.bombs,2)
         scene.maze.scene=GameScene.MENU;scene.draw(pygame.Surface((960,720)))
-        self.assertTrue(any('4.2' in command[0] for command in scene.maze.renderer.ui.commands))
+        self.assertTrue(any('4.3' in command[0] for command in scene.maze.renderer.ui.commands))
         self.assertEqual(scene.get_result().player_results,())
 
     def test_real_original_cabinet_v4_onboarding_p2_and_safe_return(self):

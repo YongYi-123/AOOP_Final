@@ -25,6 +25,9 @@ class EnvironmentPainter:
             if t.material=='metal':
                 for x,y in ((2,3),(13,3),(7,10)):r.rect(s,t.accent,(x,y,1,1))
                 r.line(s,tint(t.wall,-15),(1,5),(14,5))
+            elif t.material=='ore':
+                r.line(s,(99,72,48),(2,0),(2,15),3);r.line(s,(145,107,67),(3,1),(3,14))
+                r.polygon(s,(189,153,83),[(10,3),(13,6),(11,9),(8,6)])
             elif t.material=='wood':
                 r.rect(s,(74,48,42),(1,2,14,8))
                 for x,c in ((2,(171,82,75)),(5,(117,143,119)),(8,(89,121,148)),(11,(201,163,109))):
@@ -115,3 +118,27 @@ class EnvironmentPainter:
             else:
                 r.circle(target,t.accent,(sx+8,sy+7),5,1)
                 r.lines(target,t.accent,False,[(sx+5,sy+7),(sx+8,sy+4),(sx+11,sy+7),(sx+8,sy+10),(sx+5,sy+7)])
+
+    def lighting(self,target,session,camera,time):
+        """Bounded local lights stay below actors/HUD and never darken the scene."""
+        room=session.rooms.data;name=room.get('theme','entrance');cx,cy=camera
+        sources=[]
+        for obj in session.puzzles.objects.values():
+            if obj.data['type']=='chest' and getattr(obj,'phase',None)=='spawning':sources.append(obj.pos)
+            if obj.data['type']=='crystal_switch' or obj.data['type']=='brazier' and obj.state.active:sources.append(obj.pos)
+        for cells,_ in getattr(getattr(session,'bombs',None),'blasts',[]):
+            sources.extend(sorted(cells)[::3])
+        for e in session.combat.enemies:
+            if e.hp>0 and e.kind in ('golem','crystal_warden') and (e.state.value=='windup' or getattr(e,'exposed',0)>0):sources.append(e.pos)
+        for x,y in sources[:18]:target.blit(self.glow(name),(x*16-cx-24,y*16-cy-24))
+        material=THEMES[name].material;r=pygame.draw
+        # Dust in libraries, sparks in crystals, falling grit in the mine.
+        for i in range(7 if material=='wood' else 4):
+            x=int((i*71+math.sin(time*.6+i)*8)%416);y=int((i*47+time*(9 if material=='ore' else -4))%256)
+            if not (0<=y//16<len(room['tiles']) and 0<=x//16<len(room['tiles'][0]) and room['tiles'][y//16][x//16] in '.g'):continue
+            sx,sy=x-cx,y-cy
+            if material=='ore':r.rect(target,(148,123,87),(sx,sy,2,1))
+            elif material=='crystal':
+                if int(time*5+i)%4==0:r.line(target,THEMES[name].accent,(sx-1,sy),(sx+1,sy));r.line(target,THEMES[name].accent,(sx,sy-1),(sx,sy+1))
+            elif material=='wood':r.rect(target,(188,164,120),(sx,sy,1,1))
+            elif room.get('hidden') and int(time*3+i)%3==0:r.rect(target,THEMES[name].accent,(sx,sy,2,1))
