@@ -188,6 +188,8 @@ class CatNPC(AnimatedSprite):
         self.purr_in = None         # seconds until the purr that follows this pet's meow
         self.chat_timer = self._next_chat()
         self.heart_time = 0.0
+        self.dance = None           # seconds into ALL CATS DANCE, or None (a purely cosmetic overlay on top of the AI)
+        self.dance_phase = 0.0      # per-cat offset of the floating hearts only (the sway itself is shared)
         self.time = 0.0
         self.voice = CatVoice(profile.pitch)
         self.bubble = SpeechBubble()
@@ -227,7 +229,7 @@ class CatNPC(AnimatedSprite):
 
     @property
     def can_pet(self):
-        return self.state != CatState.PET and self.pet_cooldown <= 0
+        return self.state != CatState.PET and self.pet_cooldown <= 0 and self.dance is None
 
     def set_state(self, state, duration=None):
         p = self.personality
@@ -385,6 +387,29 @@ class CatNPC(AnimatedSprite):
         c = self.personality.chatter
         return self.rng.uniform(c * 0.7, c * 1.3) if c else math.inf
 
+    # --------------------------------------------------------------- dance
+    DANCE_BEAT = 0.34       # seconds per sway; every cat flips on the same beat
+    DANCE_HOP = 3           # pixels of the bob
+
+    def begin_dance(self, phase=0.0):
+        """Start ALL CATS DANCE. Only a flag: position, state, timers and goals are left exactly as they were,
+        so when the dance ends the cat simply carries on."""
+        self.dance, self.dance_phase = 0.0, phase
+
+    def end_dance(self):
+        self.dance = None
+
+    def update_dance(self, dt, clock):
+        """One frame of the dance (the AI does not run meanwhile). `clock`: the colony's dance time, shared so
+        every cat sways on the same beat."""
+        self.time += dt
+        self.dance = clock
+        self.bubble.update(dt)
+        self.heart_time = max(0.0, self.heart_time - dt)
+        self.side = "left" if int(clock / self.DANCE_BEAT) % 2 == 0 else "right"
+        self.anim.play(f"sit_{self.side}", sync=self.anim.name.startswith("sit_"))
+        self.anim.update(dt)
+
     # -------------------------------------------------------------- update
     def update(self, dt, world):
         self.time += dt
@@ -475,6 +500,8 @@ class CatNPC(AnimatedSprite):
     # ---------------------------------------------------------------- draw
     def _hop(self):
         """Pixels the cat is lifted by its happy bounce (only while being petted)."""
+        if self.dance is not None:
+            return round(abs(math.sin(self.dance / self.DANCE_BEAT * math.pi)) * self.DANCE_HOP)
         hop = self.personality.hop
         if not hop or self.state != CatState.PET:
             return 0
@@ -495,7 +522,13 @@ class CatNPC(AnimatedSprite):
             rise = int((1.0 - self.heart_time) * 8)
             hx = 5 if self.side == "left" else -12
             surf.blit(heart_sprite(), (int(self.x) + hx, int(self.y) - 16 - rise))
-        if self.state == CatState.SLEEP:
+        if self.dance is not None:
+            for k in range(2):          # two hearts drifting up, staggered
+                rise = (self.dance * 0.9 + self.dance_phase + k * 0.5) % 1.0
+                sway = int(math.sin((self.dance + k) * 5) * 2)
+                surf.blit(heart_sprite(), (int(self.x) - 4 + (k * 7 - 3) + sway,
+                                           int(self.y) - 18 - int(rise * 12)))
+        elif self.state == CatState.SLEEP:
             # a little Z drifting up every couple of seconds
             k = (self.time % 2.4) / 2.4
             if k < 0.85:

@@ -16,6 +16,7 @@ class CatColony:
     INTERACT_RANGE = 24      # player <-> cat distance for the [E] prompt
     AMBIENT_GAP = 4.0        # seconds between unprompted meows, across all cats
     PUSH_TIME = 0.35         # player bumping a cat this long makes it step aside
+    DANCE_TIME = 4.0         # seconds ALL CATS DANCE lasts
 
     def __init__(self, roster, room, rng=None):
         self.rng = rng or random.Random()
@@ -31,6 +32,8 @@ class CatColony:
         self.player = None       # the player this cat is dealing with right now (set per cat)
         self.follower = None
         self.paused = False
+        self.dance_left = 0.0    # > 0 while ALL CATS DANCE is on
+        self.dance_clock = 0.0
         self.ambient_cooldown = self.AMBIENT_GAP
         self.push_time = 0.0
         self._last_pos = {}      # player -> where it was last frame
@@ -76,6 +79,30 @@ class CatColony:
         self.ambient_cooldown = self.AMBIENT_GAP
         return True
 
+    # ------------------------------------------------------ ALL CATS DANCE
+    @property
+    def dancing(self):
+        return self.dance_left > 0
+
+    def start_dance(self, duration=None):
+        """A short, cosmetic, synchronised dance of every cat here (MOCHI'S STAFF PANEL). Cats keep their
+        position, state and goals - only how they are drawn changes - and they go back to normal by
+        themselves. Returns False (nothing happens) while the colony is paused or there are no cats."""
+        if self.paused or not self.cats:
+            return False
+        self.stop_following()
+        self.dance_left = duration or self.DANCE_TIME
+        self.dance_clock = 0.0
+        for i, cat in enumerate(self.cats):
+            cat.begin_dance(phase=i * 0.37)
+            cat.bubble.show("nya~")
+        return True
+
+    def stop_dance(self):
+        self.dance_left = 0.0
+        for cat in self.cats:
+            cat.end_dance()
+
     # ------------------------------------------------------ player side
     def blockers(self, player):
         """Cat collision boxes for the player. A cat already overlapping the
@@ -114,6 +141,15 @@ class CatColony:
         self.player = self.players[0]
         if self.paused:
             return
+        if self.dancing:
+            self.dance_left -= dt
+            self.dance_clock += dt
+            if self.dance_left <= 0:
+                self.stop_dance()
+            else:
+                for cat in self.cats:
+                    cat.update_dance(dt, self.dance_clock)
+                return
         self.ambient_cooldown -= dt
         if busy:
             self.stop_following()
@@ -146,6 +182,7 @@ class CatColony:
     def pause(self):
         """Entering a minigame: stop following, meowing and bubbles."""
         self.paused = True
+        self.stop_dance()
         self.stop_following()
         for cat in self.cats:
             cat.settle()
