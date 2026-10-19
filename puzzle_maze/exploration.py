@@ -62,7 +62,7 @@ class DungeonAtlas:
     def displayed_layout(self,session,minimap=False):
         layout=self.layout(session.visited)
         if 'map' not in session.inventory.abilities:
-            allowed={session.rooms.current} if minimap else session.visited
+            allowed={session.rooms.current}
             layout={name:pos for name,pos in layout.items() if name in allowed}
         return layout
 
@@ -74,5 +74,5 @@ class DungeonAtlas:
         known=session.exploration.tiles.get(session.rooms.current,set())
         room=session.rooms.data
         markers=[('exit',tuple(e['pos'])) for e in room['exits'] if tuple(e['pos']) in known and entrance_visible(session,e) and (e.get('entrance')!='walkthrough' or e['target'] in session.visited)]
-        markers += [(o['type'],tuple(o['pos'])) for o in room['objects'] if o['type'] in ('door','secret','chest','receiver','cracked') and (o['type']!='chest' or 'compass' in session.inventory.abilities) and (o['type']!='chest' or session.puzzles.objects[o['id']].visible) and tuple(o['pos']) in known]
+        markers += [(o['type'],tuple(o['pos'])) for o in room['objects'] if o['type'] in ('door','secret','chest','receiver','cracked') and (o['type']!='cracked' or session.puzzles.objects[o['id']].state.active) and (o['type']!='chest' or 'compass' in session.inventory.abilities) and (o['type']!='chest' or session.puzzles.objects[o['id']].visible) and tuple(o['pos']) in known]
         return markers

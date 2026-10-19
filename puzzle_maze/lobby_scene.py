@@ -9,7 +9,7 @@ class LobbyAudio:
         self.manager=manager
 
     def play(self,name):
-        self.manager.play({'step':'footstep','use':'confirm','key':'equip','solve':'win','pulse':'confirm','attack':'hit','hit':'hit','hurt':'loss','heal':'powerup','defeat':'win'}.get(name,'confirm'))
+        self.manager.play({'step':'footstep','use':'confirm','key':'equip','solve':'win','pulse':'confirm','attack':'hit','hit':'hit','hurt':'loss','heal':'powerup','defeat':'win','chest_spawn':'equip','wall_break':'hit','boss_break':'win','boss_key':'win'}.get(name,'confirm'))
 
     def toggle(self):
         pass  # M is handled by the lobby's audio controls.
@@ -24,6 +24,9 @@ class PuzzleMazeScene(MinigameScene):
 
     def attach_players(self,players,spectators=()):
         super().attach_players(players,spectators)
+        if self.players:
+            owner=getattr(self.players[0],'player_id',None) or self.participants[0].profile_id
+            self.maze.bind_profile(owner)
         scheme=self.input.scheme.name
         controls=self.maze.tutorial.controls
         if scheme=='P2':
@@ -72,6 +75,12 @@ class PuzzleMazeScene(MinigameScene):
         if self.leaving:return
         self.leaving=True
         self.game.scenes.pop()
+
+    def get_settlement_receipt(self):
+        """Read-only expedition record; external Arcade currency is not granted."""
+        s=self.maze.session
+        if not s.finished or s.player.hp<=0:return None
+        return s.history.get(s.rewards.run_id)
 
     def get_result(self):
         return MiniGameResult()  # Trial cabinet never adds tickets or scores.

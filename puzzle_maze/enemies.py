@@ -92,18 +92,21 @@ class AncientGolem(Guardian):
             if color!=self.data['crystal_color']:manager.events.append('shield');return False
         if kind=='bomb':
             if self.phase==2 or self.phase==3 and self.primed>0:
-                self.exposed=5;self.flash=.4;manager.events.append('hit');return True
+                self.exposed=5;self.flash=.4;self.state=EnemyState.HUNT;self.move_timer=1.4
+                manager.events.append('boss_break');return True
             manager.events.append('shield');return False
         if kind not in ('sword','pot') or self.exposed<=0:
             manager.events.append('shield');return False
         phase=self.phase
         # Arena anchor is immune to knockback; exposure requires abilities again after each phase.
-        self.hp=max(0,self.hp-amount);self.flash=.18
+        self.hp=max(0,self.hp-amount);self.flash=.18;self.stagger=.22
         if self.hp<=0:self.state=EnemyState.DYING;self.attack_timer=1.2
         elif self.phase!=phase:self.exposed=0;self.primed=0;self.state=EnemyState.HUNT;self.move_timer=1
         return True
     def special_update(self,manager,dt):
         self.exposed=max(0,self.exposed-dt);self.primed=max(0,self.primed-dt)
+        if self.exposed>0:
+            self.state=EnemyState.HUNT;self.move_timer=max(self.move_timer,1.0);return True
         self.move_timer=max(0,self.move_timer-dt)
         p=manager.player
         if self.state==EnemyState.WINDUP:

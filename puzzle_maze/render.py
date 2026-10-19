@@ -7,12 +7,14 @@ from puzzle_maze.entrances import draw_entrance
 from puzzle_maze.ui import NativeText
 from puzzle_maze.icons import IconHUD
 from puzzle_maze.room_art import RoomArt
-from puzzle_maze.advanced_puzzles import Brazier,TorchSequence,WeightPlate,LiftablePot,CrystalSwitch,CrystalBarrier,PowderSupply,PotSupply,OrderedSeal,DestructiblePillar,OrderedLayoutSeal
+from puzzle_maze.advanced_puzzles import Brazier,TorchSequence,WeightPlate,LiftablePot,CrystalSwitch,CrystalBarrier,PowderSupply,PotSupply,OrderedSeal,DestructiblePillar,OrderedLayoutSeal,OrbSocket,MysteryScroll
 from puzzle_maze.combat import EnemyState
 from puzzle_maze.exploration import DungeonAtlas
 from puzzle_maze.environment import EnvironmentPainter
+from puzzle_maze.vault import RoyalVaultArt
+from puzzle_maze.enemy_art import EnemyPortraits
 from puzzle_maze.themes import THEMES
-from puzzle_maze.puzzles import PushableBox, PressurePlate, Door, Key, SecretPassage, TimedSwitch, Switch, Chest, LightSource, Receiver, Reflector,CrackedWall,BombSupply,DashSwitch,BlastSwitch,RemoteRelay,ChestPhase,GateControl
+from puzzle_maze.puzzles import PushableBox, PressurePlate, Door, Key, SecretPassage, TimedSwitch, Switch, Chest, LightSource, Receiver, Reflector,CrackedWall,BombSupply,DashSwitch,BlastSwitch,RemoteRelay,ChestPhase,GateControl,EntrancePhase
 
 INK=(18,26,39); GOLD=(245,198,96); WHITE=(230,237,219); TEAL=(81,195,165)
 
@@ -25,7 +27,7 @@ class Renderer:
         self.particles=[]
         self.time=0
         self.ui=NativeText()
-        self.environment=EnvironmentPainter()
+        self.vault_art=RoyalVaultArt();self.environment=EnvironmentPainter();self.enemy_portraits=EnemyPortraits()
         self.hud=IconHUD()
         self.room_art=RoomArt();self.object_seen={};self.opening={}
         self.tiles=self.environment.tiles('entrance')
@@ -66,6 +68,8 @@ class Renderer:
                         r.rect(s,(78,131,88),(sx+3,sy+4,2,2))
         self.room_art.draw(s,room,(cx,cy),self.time)
         self.environment.decorations(s,room,(cx,cy),self.time)
+        self.environment.lighting(s,session,(cx,cy),self.time)
+        if theme_name=='royal_vault':self.vault_art.draw(s,(cx,cy),self.time)
         # Inlaid entrance compass; authored art remains entirely local.
         sx,sy=2*16-cx,7*16-cy
         r.circle(s,(98,134,123),(sx+8,sy+8),7,1)
@@ -79,7 +83,14 @@ class Renderer:
         for o in sorted(session.puzzles.objects.values(), key=lambda obj: 0 if isinstance(obj,PressurePlate) else 1):
             sx,sy=o.x*16-cx,o.y*16-cy
             if not (-16<sx<320 and -16<sy<208):continue
-            if isinstance(o,Brazier):
+            if isinstance(o,MysteryScroll):
+                self.vault_art.scroll(s,sx,sy,self.time,self.environment.glow(theme_name))
+            elif isinstance(o,OrbSocket):
+                color=GOLD if o.state.active else (116,132,160)
+                r.circle(s,(32,38,54),(sx+8,sy+8),7);r.circle(s,color,(sx+8,sy+8),6,2)
+                r.lines(s,color,False,[(sx+2,sy+1),(sx+5,sy+4),(sx+8,sy),(sx+11,sy+4),(sx+14,sy+1)])
+                if o.state.active:s.blit(self.environment.glow(theme_name),(sx-24,sy-24))
+            elif isinstance(o,Brazier):
                 r.ellipse(s,(23,26,38),(sx+1,sy+11,14,5));r.rect(s,(99,102,103),(sx+3,sy+8,10,5));r.line(s,(193,177,142),(sx+2,sy+8),(sx+13,sy+8),2)
                 if o.state.active:
                     s.blit(self.environment.glow(theme_name),(sx-24,sy-29))
@@ -119,8 +130,18 @@ class Renderer:
                 r.rect(s,(48,52,66),(sx+1,sy+3,14,10));r.rect(s,TEAL if o.state.active else GOLD,(sx+2,sy+4,12,8),1)
                 for index in range(3):r.rect(s,TEAL if o.state.active else (126,111,103),(sx+3+index*4,sy+7,2,2))
             elif isinstance(o,CrackedWall):
-                if not o.state.active:
-                    s.blit(self.tiles["#"],(sx,sy));r.lines(s,(102,108,104),False,[(sx+3,sy+1),(sx+9,sy+5),(sx+5,sy+10),(sx+12,sy+15)]);r.rect(s,(104,58,44),(sx+10,sy+4,2,2))
+                if o.phase!=EntrancePhase.OPEN:
+                    s.blit(self.tiles['#'],(sx,sy))
+                    shade=tuple(max(0,c-22) for c in theme.wall)
+                    offset=(o.x*7+o.y*11)%4
+                    r.lines(s,shade,False,[(sx+6+offset,sy+2),(sx+8,sy+6),(sx+5+offset,sy+10),(sx+9,sy+13)])
+                    if o.phase==EntrancePhase.REVEALING:
+                        progress=1-min(1,o.state.remaining/o.data['duration'])
+                        r.circle(s,INK,(sx+8,sy+8),max(1,int(progress*8)))
+                        for i in range(7):
+                            a=i*math.tau/7;distance=progress*18
+                            r.rect(s,theme.wall,(int(sx+8+math.cos(a)*distance),int(sy+8+math.sin(a)*distance+progress*6),3,2))
+                            r.circle(s,theme.shadow,(int(sx+8+math.cos(a)*distance*.8),int(sy+8+math.sin(a)*distance*.8)),2)
             elif isinstance(o,BombSupply):
                 r.rect(s,(110,91,65),(sx+2,sy+4,12,10));s.blit(self.hud.atlas.get("bomb"),(sx+2,sy+2))
             elif isinstance(o,DashSwitch):
@@ -143,6 +164,11 @@ class Renderer:
                 r.rect(s,(32,40,47),(sx+2,sy+4,12,10));r.rect(s,(153,98,56),(sx+2,sy+3,12,9))
                 r.rect(s,TEAL if o.state.active else GOLD,(sx+2,sy+3,12,9),1)
                 r.rect(s,GOLD,(sx+7,sy+6,2,3))
+                if o.data.get('royal'):
+                    r.rect(s,GOLD,(sx+1,sy+2,14,11),2);r.rect(s,(207,112,220),(sx+7,sy+5,3,3))
+                if o.data.get('boss_key'):
+                    r.rect(s,GOLD,(sx,sy+1,16,13),2);r.polygon(s,(203,96,207),[(sx+8,sy+3),(sx+11,sy+6),(sx+8,sy+9),(sx+5,sy+6)])
+                    if o.state.active:s.blit(pygame.transform.scale(self.hud.atlas.get('boss_key'),(20,20)),(sx-2,sy-18-int(self.opening[key]*10)))
                 if o.state.active:
                     r.rect(s,INK,(sx+3,sy+4,10,3));r.rect(s,(182,126,68),(sx+2,sy-1-int(self.opening[key]*7),12,3));r.line(s,GOLD,(sx+2,sy-1),(sx+13,sy-1))
             elif isinstance(o,Reflector):
@@ -184,11 +210,19 @@ class Renderer:
                     self.text(f'{o.state.remaining:.1f}',sx-1,sy-9,GOLD)
         for enemy in session.combat.enemies:
             if enemy.state==EnemyState.DEAD or enemy.dormant:continue
-            sx,sy=enemy.x*16-cx,enemy.y*16-cy
+            ex,ey=self.enemy_portraits.position(session.combat,enemy,dt)
+            bob=0 if enemy.state==EnemyState.WINDUP else int(math.sin(enemy.age*(12 if enemy.kind=="slime" else 5))*1.5)
+            sx,sy=ex-cx,ey-cy+bob
             color=(251,210,139) if enemy.flash>0 else {'slime':(112,190,108),'bat':(152,127,208),'guardian':(176,138,96),'blink_mage':(144,106,215),'armored_beetle':(104,168,175),'bomb_eater':(215,133,76),'golem':(154,164,179),'mirror_mask':(184,210,211),'pot_hunter':(194,116,103),'crystal_ghost':(141,211,228),'elite_guardian':(164,153,204),'crystal_warden':(100,202,221)}[enemy.kind]
             if enemy.state==EnemyState.DYING:
-                radius=max(1,int(enemy.attack_timer*20));r.circle(s,color,(sx+8,sy+8),radius,1);continue
-            if enemy.state==EnemyState.WINDUP:r.rect(s,(239,93,91),(sx-1,sy-1,18,18),1)
+                self.enemy_portraits.death(s,enemy,sx,sy);continue
+            if enemy.state==EnemyState.WINDUP:
+                reach=2 if enemy.kind in ('golem','elite_guardian','crystal_warden') else 1
+                for dx in range(-reach,reach+1):
+                    for dy in range(-reach,reach+1):
+                        if abs(dx)+abs(dy)<=reach and session.puzzles.tilemap.walkable(enemy.x+dx,enemy.y+dy):
+                            r.rect(s,(239,118,105),((enemy.x+dx)*16-cx+1,(enemy.y+dy)*16-cy+1,14,14),1)
+                r.rect(s,(239,93,91),(sx-1,sy-1,18,18),1)
             r.ellipse(s,(24,34,44),(sx+1,sy+12,14,4))
             if enemy.kind=='slime':r.ellipse(s,color,(sx+2,sy+5,12,9))
             elif enemy.kind=='bat':
@@ -214,11 +248,11 @@ class Renderer:
             elif enemy.kind=='bomb_eater':
                 r.ellipse(s,color,(sx+1,sy+3,14,12));r.rect(s,INK,(sx+3,sy+8,10,5));r.line(s,WHITE,(sx+4,sy+9),(sx+11,sy+9));r.rect(s,GOLD,(sx+5,sy+2,6,3))
             elif enemy.kind=='golem':
-                r.rect(s,(34,41,58),(sx-7,sy-9,30,28));r.rect(s,color,(sx-5,sy-11,26,28));r.rect(s,(70,87,107),(sx-3,sy-8,22,22),2);r.circle(s,TEAL if enemy.exposed>0 else GOLD,(sx+8,sy+4),5,2);r.rect(s,(225,95,91),(sx+4,sy-5,8,2))
+                r.rect(s,(34,41,58),(sx-7,sy-9,30,28));r.rect(s,color,(sx-5,sy-11,26,28),border_radius=5);r.rect(s,(70,87,107),(sx-3,sy-8,22,22),2);r.circle(s,TEAL if enemy.exposed>0 else GOLD,(sx+8,sy+4),5,2);r.rect(s,(225,95,91),(sx+4,sy-5,8,2))
                 if enemy.exposed<=0:r.circle(s,(121,201,227),(sx+8,sy+6),19,1)
             else:
-                r.rect(s,color,(sx+3,sy+2,10,12));r.rect(s,(88,94,104),(sx+2,sy+7,4,7));r.line(s,GOLD,(sx+13,sy+2),(sx+13,sy+13),2)
-            for ex in (5,10):r.rect(s,INK,(sx+ex,sy+8,1,2))
+                r.rect(s,color,(sx+3,sy+2,10,12),border_radius=3);r.rect(s,(88,94,104),(sx+2,sy+7,4,7));r.line(s,GOLD,(sx+13,sy+2),(sx+13,sy+13),2)
+            self.enemy_portraits.face(s,enemy,sx,sy,self.time)
             r.rect(s,(36,41,54),(sx+2,sy-3,12,2));r.rect(s,(234,108,114),(sx+2,sy-3,int(12*enemy.hp/enemy.max_hp),2))
         for drop in session.combat.loot:
             sx,sy=drop['pos'][0]*16-cx,drop['pos'][1]*16-cy
@@ -236,12 +270,18 @@ class Renderer:
             for cells,remaining in session.bombs.blasts:
                 for bx,by in cells:
                     radius=max(2,int(remaining*20));r.circle(s,GOLD if int(remaining*25)%2 else (240,123,72),(bx*16+8-cx,by*16+8-cy),radius,2)
-        if p.invulnerable<=0 or int(self.time*15)%2==0:self.player(visual,p.facing,p.moving,cx,cy)
+        if (p.invulnerable<=0 and session.combat.entry_protection<=0) or int(self.time*15)%2==0:self.player(visual,p.facing,p.moving,cx,cy)
         if getattr(session.inventory,'carried',None):
             s.blit(pygame.transform.scale(self.hud.atlas.get('pot'),(16,16)),(int(visual[0]*16)-cx,int(visual[1]*16)-cy-12))
         for kind,pos,remaining in getattr(session,'effects',[]):
             ex,ey=pos[0]*16+8-cx,pos[1]*16+8-cy
-            if kind=='shards':
+            if kind=='chest':
+                light=pygame.Surface((320,184),pygame.SRCALPHA);light.fill((255,221,143,int(remaining/.45*28)));s.blit(light,(0,0))
+                s.blit(self.environment.glow(theme_name),(ex-32,ey-32))
+                for i in range(10):
+                    a=i*math.tau/10;distance=(.45-remaining)*38
+                    r.rect(s,GOLD,(int(ex+math.cos(a)*distance),int(ey+math.sin(a)*distance-10),2,2))
+            elif kind=='shards':
                 for i in range(8):
                     a=i*math.pi/4;distance=(.7-remaining)*28;r.rect(s,(209,153,104),(int(ex+math.cos(a)*distance),int(ey+math.sin(a)*distance+distance*.2),2,2))
             else:r.circle(s,TEAL if kind=='crystal' else GOLD,(ex,ey),max(1,int((.6-remaining)*28)),1)
@@ -275,10 +315,10 @@ class Renderer:
                 orb_prompt=True
                 label=f"{controls['interact']} Drop / G Orb / T Recall" if orb.carried else f"{controls['interact']} Lift Orb / T Recall"
                 r.rect(s,INK,(6,145,288,22));self.text(label,10,150,GOLD,max_width=276)
-        near=next((o for o in session.puzzles.objects.values() if abs(o.x-p.x)+abs(o.y-p.y)<=1 and isinstance(o,(Switch,Door,SecretPassage,Chest,Reflector,CrackedWall,BombSupply,LiftablePot,Brazier,CrystalSwitch,PotSupply,PowderSupply)) and not isinstance(o,GateControl) and not (isinstance(o,Chest) and not o.visible) and not (isinstance(o,(Door,SecretPassage)) and o.state.active)),None)
+        near=next((o for o in session.puzzles.objects.values() if abs(o.x-p.x)+abs(o.y-p.y)<=1 and isinstance(o,(Switch,Door,SecretPassage,Chest,Reflector,CrackedWall,BombSupply,LiftablePot,Brazier,CrystalSwitch,PotSupply,PowderSupply,MysteryScroll)) and not isinstance(o,(GateControl,CrackedWall)) and not (isinstance(o,Chest) and o.phase!=ChestPhase.AVAILABLE) and not (isinstance(o,(Door,SecretPassage)) and o.state.active)),None)
         if not orb_prompt and (near or getattr(session.inventory,'carried',None)):
             carrying=getattr(session.inventory,'carried',None)
-            label=f"{controls['interact']} Drop / G Throw" if carrying else '[P] Light' if isinstance(near,Brazier) else f"[{controls['attack']}] Crystal" if isinstance(near,CrystalSwitch) else f"[{controls['interact']}] Lift" if isinstance(near,LiftablePot) else '[B] Bomb' if isinstance(near,CrackedWall) else f"[{controls['ability']}] Pulse" if isinstance(near,SecretPassage) else f"[{controls['interact']}] Interact"
+            label=f"{controls['interact']} Drop / G Throw" if carrying else f"[{controls['interact']}] Read" if isinstance(near,MysteryScroll) else '[P] Light' if isinstance(near,Brazier) else f"[{controls['attack']}] Crystal" if isinstance(near,CrystalSwitch) else f"[{controls['interact']}] Lift" if isinstance(near,LiftablePot) else '[B] Bomb' if isinstance(near,CrackedWall) else f"[{controls['ability']}] Pulse" if isinstance(near,SecretPassage) else f"[{controls['interact']}] Interact"
             px=int(visual[0]*16)-cx;py=int(visual[1]*16)-cy
             hint_y=max(2,min(168,py+18 if carrying or py<18 else py-15))
             hint_x=max(2,min(146,px-30))
@@ -293,7 +333,7 @@ class Renderer:
             top=next((y for y in (5,148,112,38) if not any(pygame.Rect(5,y,222,27).colliderect(actor) for actor in actors)),5)
             self.boss_panel_rect=pygame.Rect(5,top,222,27)
             r.rect(s,INK,(5,top,222,27));r.rect(s,(83,110,130),(5,top,222,27),1)
-            self.text('RED REVEALS THE WARDEN' if boss.kind=='crystal_warden' else 'CORE OPEN' if boss.exposed>0 else 'BLUE / DASH + BOMB > SWORD' if boss.phase==3 and boss.data.get('crystal_color') else labels[boss.phase],10,top+3,TEAL if getattr(boss,'exposed',0)>0 else GOLD,max_width=211)
+            self.text(('CORE OPEN / SWORD' if boss.exposed>0 and boss.window_hits<3 and 'crystal_blue' not in session.inventory.flags else 'RED / WAIT FOR CORE') if boss.kind=='crystal_warden' else 'CORE OPEN' if boss.exposed>0 else 'BLUE / DASH + BOMB > SWORD' if boss.phase==3 and boss.data.get('crystal_color') else labels[boss.phase],10,top+3,TEAL if getattr(boss,'exposed',0)>0 else GOLD,max_width=211)
             r.rect(s,(51,54,73),(10,top+18,210,3));r.rect(s,(227,107,113),(10,top+18,int(210*boss.hp/boss.max_hp),3))
 
 
@@ -350,10 +390,11 @@ class Renderer:
                 r.rect(s,(236,98,116),(center[0]-2,center[1]-2,4,4))
 
     def minimap(self,session):
-        pygame.draw.rect(self.surface,INK,(239,5,77,52))
-        pygame.draw.rect(self.surface,(77,108,112),(239,5,77,52),1)
-        self.text(session.rooms.data.get("floor","1F"),243,7,TEAL,max_width=30)
-        self.atlas_graph(session,(242,23,71,29))
+        x=122 if session.rooms.data.get("theme")=="royal_vault" else 239
+        pygame.draw.rect(self.surface,INK,(x,5,77,52))
+        pygame.draw.rect(self.surface,(77,108,112),(x,5,77,52),1)
+        self.text(session.rooms.data.get("floor","1F"),x+4,7,TEAL,max_width=30)
+        self.atlas_graph(session,(x+3,23,71,29))
 
     def map_panel(self,session):
         self.panel('DUNGEON ATLAS',[])
@@ -378,4 +419,5 @@ class Renderer:
             self.surface.blit(self.hud.atlas.get('ticket_bundle'),(219,199));self.text(str(session.rewards.tickets),234,198,TEAL,max_width=38)
             self.surface.blit(self.hud.atlas.get('golden_cat'),(277,199));self.text(str(len(session.rewards.collections)),292,198,max_width=20)
         else:self.text('Teal: item / receiver',162,199)
+        self.surface.blit(self.hud.atlas.get('boss_key',session.inventory.boss_key),(278,176))
         self.text('TAB closes / LEFT, RIGHT floor',32,218)

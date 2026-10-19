@@ -3,7 +3,7 @@ from collections import deque
 from puzzle_maze.puzzles import FACTORY
 
 class PuzzleDependencyValidator:
-    ACTUATORS={'switch','timed','remote','crystal_switch','plate','weight','reflector','brazier','torch_order','blast_switch','dash_switch','ordered','ordered_layout','pillar'}
+    ACTUATORS={'switch','timed','remote','crystal_switch','plate','weight','reflector','brazier','torch_order','blast_switch','dash_switch','ordered','ordered_layout','pillar','orb_socket'}
     def __init__(self,rooms):self.rooms=rooms
     def targets(self,name,obj):
         room=self.rooms[name];targets=[]

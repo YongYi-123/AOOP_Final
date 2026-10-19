@@ -86,8 +86,9 @@ class DungeonPresentationTests(unittest.TestCase):
         self.assertEqual(report['keys'],report['cost']);self.assertEqual(report['resource_states'],report['winning_states'])
 
     def test_dash_into_finish_enters_victory_scene(self):
-        game=Game(headless=True);game.start(onboarding=False);s=game.session;s.inventory.abilities.add('boots');s.enter('r18')
-        s.puzzles.objects['dawn'].state.active=True;s.puzzles.objects['treasure'].state.active=True;s.tick(0)
+        game=Game(headless=True);game.start(onboarding=False);s=game.session;s.inventory.abilities.add('boots');s.enter('r27')
+        for name in ('royal_tokens','royal_tickets','royal_collection'):s.puzzles.objects[name].state.active=True
+        s.tick(0)
         finish=next(e for e in s.rooms.data['exits'] if e.get('finish'));s.player.x,s.player.y=finish['pos'][0]-3,finish['pos'][1];s.player.facing=(1,0)
         with patch.object(game,'save'):game.event(pygame.event.Event(pygame.KEYDOWN,key=pygame.K_LSHIFT))
         self.assertTrue(s.finished);self.assertEqual(game.scene,GameScene.VICTORY)

@@ -23,9 +23,10 @@ class DungeonSession(GameSession):
         self.trails=[(pos,time-dt) for pos,time in self.trails if time>dt]
         self.bombs.update(dt)
         super().tick(dt)
-        if self.inventory.notifications:
-            kind,label=self.inventory.notifications.pop(0)
-            self.pickup=kind,label,1.2;self.combat.events.append('key')
+        royal=next((i for i,n in enumerate(self.inventory.notifications) if n[0]=='boss_key'),None)
+        if royal is not None or self.inventory.notifications and self.pickup is None:
+            kind,label=self.inventory.notifications.pop(royal if royal is not None else 0)
+            self.pickup=kind,label,2.4 if kind=='boss_key' else 1.2;self.combat.events.append('boss_key' if kind=='boss_key' else 'key')
         for o in self.puzzles.objects.values():
             if o.data['type']=='combat' and any(e.kind=='golem' for e in self.combat.enemies):
                 from puzzle_maze.combat import EnemyState
@@ -50,7 +51,9 @@ class DungeonSession(GameSession):
                     if o.pos==pos and o.data['type']=='dash_switch':
                         o.state.active=True;o.state.remaining=6
                         for enemy in self.combat.enemies:
-                            if enemy.kind=='golem' and enemy.hp>0:enemy.dash_trigger()
+                            if enemy.kind=='golem' and enemy.hp>0:
+                                enemy.dash_trigger()
+                                if enemy.exposed>0:self.combat.events.append('boss_break')
             for enemy in self.combat.enemies:
                 if enemy.hp>0 and enemy.kind=='armored_beetle' and abs(enemy.x-self.player.x)+abs(enemy.y-self.player.y)==1:
                     enemy.armor=False;enemy.flash=.3

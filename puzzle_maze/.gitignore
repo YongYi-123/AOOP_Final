@@ -7,3 +7,6 @@ save_v3.json
 save_v3.json.tmp
 save_v4.json
 save_v4.json.tmp
+
+# Player-specific campaigns and royal-clear history.
+/profiles/

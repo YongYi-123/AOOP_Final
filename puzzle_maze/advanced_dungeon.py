@@ -9,29 +9,40 @@ from puzzle_maze.rewards import DungeonRewardBag,TREASURES
 from puzzle_maze.items import Bomb
 from puzzle_maze.puzzles import Chest,ChestPhase
 from puzzle_maze.orb import IronOrb
+from puzzle_maze.royal_rewards import RoyalClearHistory
 
 V4_SAVE=Path(__file__).parent/'save_v4.json'
 
 class AdvancedDungeonSession(DungeonSession):
     def __init__(self,rooms=None):
+        self.history=RoyalClearHistory()
         self.orb=IronOrb()
         self.rewards=DungeonRewardBag();self.effects=[];self.pot_flights=[]
-        super().__init__(rooms or load_rooms(MAP_PATH.with_name('dungeon_v4.json')))
+        rooms=rooms or load_rooms(MAP_PATH.with_name('dungeon_v4.json'))
+        from puzzle_maze.safety import landing_points
+        for name,room in rooms.items():
+            if room.get('content_revision') in ('4.2','4.3','4.4'):
+                room['safe_landings']=[list(p) for p in sorted(landing_points(name,rooms))]
+        super().__init__(rooms)
     def prepare_loaded_save(self,data):
-        if data.get('content_revision')!='4.2':
+        if data.get('content_revision')=='4.4':return data
+        if data.get('content_revision') not in ('4.2','4.3','4.4'):
             from puzzle_maze.migration42 import migrate
             data=migrate(data,self.rooms.rooms,self.validate_snapshot)
             self.migration_notice='Previous progress retained in the repaired 4.2 layout.'
-        return data
+        from puzzle_maze.migration43 import migrate
+        data=migrate(data,self.rooms.rooms)
+        from puzzle_maze.migration44 import migrate
+        return migrate(data,self.rooms.rooms)
     def make_puzzles(self,room):
-        manager=AdvancedPuzzleManager(room,self.inventory);manager.grant_treasure=self.grant_treasure;manager.has_external_load=lambda:self.orb.carried;return manager
+        manager=AdvancedPuzzleManager(room,self.inventory);manager.grant_treasure=self.grant_treasure;manager.has_external_load=lambda:self.orb.carried;manager.orb=self.orb;manager.room_id=self.rooms.current;return manager
     def enter(self,name,arrival=None):
         super().enter(name,arrival)
         if self.orb.carried:self.orb.room=name;self.orb.x,self.orb.y=self.player.x,self.player.y
         self.checkpoint['orb']=self.orb.capture()
         self.checkpoint['reward_bag']=self.rewards.capture();self.effects=[];self.pot_flights=[]
     def tick(self,dt):
-        pending={o.id for o in self.puzzles.objects.values() if isinstance(o,Chest) and o.phase==ChestPhase.HIDDEN}
+        self.puzzles.orb=self.orb
         super().tick(dt)
         if self.player.hp<=0:return
         self.pot_flights=[dict(flight,time=flight['time']-dt) for flight in self.pot_flights if flight['time']>dt]
@@ -46,10 +57,10 @@ class AdvancedDungeonSession(DungeonSession):
             if rule and set(rule['flags'])<=self.inventory.flags and rule['result'] not in self.inventory.flags:
                 self.inventory.flags.add(rule['result']);self.inventory.notifications.append(('map','PILLARS BROKEN / NEW STAIRS'))
         self.puzzles.update(0,self.player)
-        for name in pending:
+        for name in self.puzzles.chest_events:
             chest=self.puzzles.objects[name]
-            if chest.phase==ChestPhase.SPAWNING:
-                self.combat.events.append('solve');self.effects.append(('chest',chest.pos,.45))
+            self.combat.events.append('chest_spawn');self.effects.append(('chest',chest.pos,.45))
+        self.puzzles.chest_events.clear()
     def move(self,dx,dy):
         moved=super().move(dx,dy)
         if moved:
@@ -96,6 +107,7 @@ class AdvancedDungeonSession(DungeonSession):
             enemy=next((e for e in self.combat.enemies if e.hp>0 and e.pos==pos),None)
             if enemy:
                 enemy.receive_damage(self.combat,3,'pot',p);break
+        self.combat.entry_protection=0
         self.pot_flights.append(dict(start=(p.x,p.y),end=impact,time=.3))
         self.inventory.carried=None;pot.x,pot.y=impact;pot.state.active=True
         for treasure in pot.data.get('loot',[]):self.grant_treasure(pot.id,treasure)
@@ -125,13 +137,16 @@ class AdvancedDungeonSession(DungeonSession):
         if exit and self.orb.carried and not exit.get('orb_allowed',True):
             self.inventory.notifications.append(('magnet','PORTAL: DROP ORB / E OR RECALL / T'));return False
         moved=super().transition()
-        if moved and self.finished:self.rewards.settle(True,self.player.hp>0)
+        if moved and self.finished:
+            self.rewards.settle(True,self.player.hp>0)
+            self.history.finalize(self.rewards,True,self.player.hp>0,self.rooms.current=='r27' and self.puzzles.solved)
         return moved
     def reset(self):
         if self.rewards.claimed:return False
         super().reset();self.orb=IronOrb.restore(self.checkpoint.get('orb',IronOrb().capture()),self.rooms.rooms);self.rewards=DungeonRewardBag.restore(self.checkpoint['reward_bag']);self.effects=[];self.pot_flights=[]
-    def save_extension(self):return dict(rewards=self.rewards.capture(),orb=self.orb.capture())
+    def save_extension(self):return dict(rewards=self.rewards.capture(),orb=self.orb.capture(),royal_history=self.history.capture())
     def load_extension(self,data):
+        self.history=RoyalClearHistory.restore(data['royal_history']) if 'royal_history' in data else RoyalClearHistory()
         self.orb=IronOrb.restore(data.get('orb',IronOrb().capture()),self.rooms.rooms)
         if self.orb.carried and (self.orb.room!=self.rooms.current or self.orb.pos!=(self.player.x,self.player.y)):raise ValueError('Carried orb out of sync')
         self.rewards=DungeonRewardBag.restore(data['rewards'])
