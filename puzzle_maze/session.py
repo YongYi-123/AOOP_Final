@@ -38,6 +38,7 @@ class GameSession:
         return {name: dict(pos=list(o.pos), active=o.state.active,
                            remaining=o.state.remaining,
                            unlocked=getattr(o,'unlocked',False), latched=getattr(o,'latched',False),
+                           **({'opening':o.opening} if isinstance(o,Door) else {}),
                            **({'chest_phase':o.phase.value,'spawn_time':o.spawn_time,'triggered':o.triggered} if isinstance(o,Chest) else {}))
                 for name,o in self.puzzles.objects.items()}
 
@@ -52,7 +53,7 @@ class GameSession:
                 obj.spawn_time=values.get('spawn_time',0.)
                 obj.triggered=values.get('triggered',obj.phase!=ChestPhase.HIDDEN)
             if isinstance(obj,Door):
-                obj.unlocked=values['unlocked']; obj.latched=values['latched']
+                obj.unlocked=values['unlocked']; obj.latched=values['latched'];obj.opening=values.get('opening',0.)
         self.puzzles.update(0,self.player)
 
     def enter(self, name, arrival=None):
@@ -262,6 +263,9 @@ class GameSession:
                     raise ValueError('Inconsistent chest state')
                 if phase != ChestPhase.SPAWNING and elapsed != 0:
                     raise ValueError('Unexpected chest timer')
+            if isinstance(obj,Door):
+                opening=values.get('opening',0.)
+                if type(opening) not in (int,float) or not math.isfinite(opening) or not 0<=opening<=obj.data.get('opening_duration',0):raise ValueError('Invalid gate opening')
             timer = values['remaining']
             if not isinstance(timer, (int, float)) or not math.isfinite(timer) or timer < 0 or timer > obj.data.get('duration', 0):
                 raise ValueError('Invalid timer')

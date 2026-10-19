@@ -155,6 +155,9 @@ class Renderer:
                 r.rect(s,(32,40,47),(sx+2,sy+4,12,10));r.rect(s,(153,98,56),(sx+2,sy+3,12,9))
                 r.rect(s,TEAL if o.state.active else GOLD,(sx+2,sy+3,12,9),1)
                 r.rect(s,GOLD,(sx+7,sy+6,2,3))
+                if o.data.get('boss_key'):
+                    r.rect(s,GOLD,(sx,sy+1,16,13),2);r.polygon(s,(203,96,207),[(sx+8,sy+3),(sx+11,sy+6),(sx+8,sy+9),(sx+5,sy+6)])
+                    if o.state.active:s.blit(pygame.transform.scale(self.hud.atlas.get('boss_key'),(20,20)),(sx-2,sy-18-int(self.opening[key]*10)))
                 if o.state.active:
                     r.rect(s,INK,(sx+3,sy+4,10,3));r.rect(s,(182,126,68),(sx+2,sy-1-int(self.opening[key]*7),12,3));r.line(s,GOLD,(sx+2,sy-1),(sx+13,sy-1))
             elif isinstance(o,Reflector):

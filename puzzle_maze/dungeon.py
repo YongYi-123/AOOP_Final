@@ -25,7 +25,7 @@ class DungeonSession(GameSession):
         super().tick(dt)
         if self.inventory.notifications:
             kind,label=self.inventory.notifications.pop(0)
-            self.pickup=kind,label,1.2;self.combat.events.append('key')
+            self.pickup=kind,label,2.4 if kind=='boss_key' else 1.2;self.combat.events.append('boss_key' if kind=='boss_key' else 'key')
         for o in self.puzzles.objects.values():
             if o.data['type']=='combat' and any(e.kind=='golem' for e in self.combat.enemies):
                 from puzzle_maze.combat import EnemyState

@@ -5,7 +5,7 @@ import math
 ICONS={
  'heart':['............','..rr..rr....','.rrrrrrrr...','.rrrrrrrr...','..rrrrrr....','...rrrr.....','....rr......'],
  'sword':['........s...','.......ss...','......ss....','.....ss.....','..g.ss......','...gg.......','..g.gg......','.gg.........'],
- 'small_key':['..ggg.......','.g...g......','.g...g......','..gggggggg..','........g.g.'],
+ 'small_key':['..sss.......','.s...s......','.s...s......','..ssssssss..','........s.s.'],
  'boss_key':['..g.g.......','..ggg.......','.g...g......','..gggggggg..','.......g.gg.'],
  'bomb':['......g.....','.....g......','....sss.....','...sbbbs....','..sbbbbbs...','..sbbbbbs...','...sbbbs....','....sss.....'],
  'boots':['..tt..tt....','..tt..tt....','..tt..tt....','..ttt.ttt...','..ggg.ggg...','..sss.sss...'],
@@ -33,10 +33,29 @@ ICONS.update({
 ALIASES={'magic_powder':'powder'}
 PALETTE={'p':(184,123,226),'k':(88,59,53),'r':(239,102,119),'g':(245,198,96),'s':(205,223,230),'b':(65,85,127),'t':(81,195,165)}
 
+class BossKeyIcon:
+    """One jewel/crown silhouette shared by keys, locks, HUD and rewards."""
+    cache={}
+    @classmethod
+    def surface(cls,enabled=True):
+        if enabled not in cls.cache:
+            s=pygame.Surface((16,16),pygame.SRCALPHA);r=pygame.draw
+            gold=(245,198,96) if enabled else (66,75,87)
+            edge=(147,94,48) if enabled else (46,55,67)
+            r.circle(s,edge,(5,5),5);r.circle(s,gold,(5,5),4)
+            r.polygon(s,(203,96,207) if enabled else edge,[(5,1),(8,5),(5,8),(2,5)])
+            if enabled:r.line(s,(255,226,245),(4,3),(5,2))
+            r.line(s,edge,(8,8),(14,14),4);r.line(s,gold,(8,8),(14,14),2)
+            r.rect(s,gold,(11,9,3,2));r.rect(s,gold,(9,12,2,3));r.rect(s,gold,(13,12,3,2))
+            r.rect(s,gold,(1,0,2,2));r.rect(s,gold,(8,0,2,2))
+            cls.cache[enabled]=s
+        return cls.cache[enabled]
+
 class IconAtlas:
     def __init__(self):self.cache={}
     def get(self,kind,enabled=True):
         kind=ALIASES.get(kind,kind)
+        if kind=='boss_key':return BossKeyIcon.surface(enabled)
         key=kind,enabled
         if key not in self.cache:
             surface=pygame.Surface((12,12),pygame.SRCALPHA)
@@ -84,6 +103,7 @@ class IconHUD:
         for i in range(session.player.max_hp):s.blit(self.atlas.get('heart',i<session.player.hp),(5+i*12,186))
         for kind,value,x in (('sword',None,108),('small_key',sum(inv.keys.values()),132),('bomb',inv.bombs,180),('powder',inv.powder,230),('boss_key',None,285)):
             enabled=inv.boss_key if kind=='boss_key' else 'powder' in inv.abilities if kind=='powder' else True
+            if kind=='boss_key' and enabled:r.rect(s,(117+int(math.sin(renderer.time*5)*15),92,66),(x-1,185,18,18),1)
             s.blit(self.atlas.get(kind,enabled),(x,186))
             if value is not None:renderer.text(str(value),x+14,186,max_width=30)
         for i,kind in enumerate(('gloves','boots','mirror','magnet','map','compass','pulse')):
@@ -98,6 +118,12 @@ class IconHUD:
         renderer.text(session.rooms.data.get('floor','1F'),285,222,max_width=30)
         if session.pickup:
             kind,label,remaining=session.pickup
+            if kind=='boss_key':
+                r.rect(s,(20,24,43),(45,78,230,92));r.rect(s,(245,198,96),(45,78,230,92),2)
+                pulse=int(math.sin(renderer.time*7)*2)
+                s.blit(pygame.transform.scale(self.atlas.get('boss_key'),(40,40)),(140,88+pulse))
+                renderer.text('BOSS KEY ACQUIRED',61,139,(245,198,96),max_width=204)
+                return
             r.rect(s,(15,23,35),(60,139,202,34));r.rect(s,(245,198,96),(60,139,202,34),1)
             s.blit(pygame.transform.scale(self.atlas.get(kind),(24,24)),(66,143+int(math.sin(renderer.time*10)*2)))
             renderer.text(label,95,149,max_width=161)

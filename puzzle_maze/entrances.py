@@ -1,5 +1,6 @@
 """Original, functional entrance art; visibility shares transition conditions."""
 import pygame
+from puzzle_maze.icons import BossKeyIcon
 
 
 def entrance_visible(session, exit):
@@ -20,6 +21,18 @@ def draw_entrance(surface, session, exit, sx, sy, wall_tile):
         return
     stone = (121, 130, 139)
     edge = (177, 166, 135)
+    if kind=='boss_gate':
+        gate=next((session.puzzles.objects[i] for i in exit.get('requires',[]) if session.puzzles.objects[i].data.get('key')=='boss'),None)
+        opened=all(session.puzzles.condition(i) for i in exit.get('requires',[]))
+        opening=getattr(gate,'opening',0.)
+        progress=1-opening/gate.data.get('opening_duration',.6) if opening and gate else 1 if opened else 0
+        draw.rect(surface,(68,62,81),(sx-4,sy-7,24,24),border_radius=3)
+        draw.rect(surface,(211,177,104),(sx-3,sy-6,22,22),1)
+        draw.rect(surface,(15,21,32),(sx,sy-3,16,19))
+        for sign in (-1,1):
+            draw.rect(surface,(118,109,126),(sx+8+(0 if sign>0 else -8)+int(sign*progress*9),sy-3,8,19))
+        if not opened:surface.blit(BossKeyIcon.surface(),(sx,sy-1-int(progress*8)))
+        return
     if kind.startswith('stairs'):
         draw.rect(surface, (16, 22, 35), (sx+1, sy+1, 14, 14))
         for step in range(4):

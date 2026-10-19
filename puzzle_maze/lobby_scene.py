@@ -9,7 +9,7 @@ class LobbyAudio:
         self.manager=manager
 
     def play(self,name):
-        self.manager.play({'step':'footstep','use':'confirm','key':'equip','solve':'win','pulse':'confirm','attack':'hit','hit':'hit','hurt':'loss','heal':'powerup','defeat':'win','chest_spawn':'equip','wall_break':'hit','boss_break':'win'}.get(name,'confirm'))
+        self.manager.play({'step':'footstep','use':'confirm','key':'equip','solve':'win','pulse':'confirm','attack':'hit','hit':'hit','hurt':'loss','heal':'powerup','defeat':'win','chest_spawn':'equip','wall_break':'hit','boss_break':'win','boss_key':'equip'}.get(name,'confirm'))
 
     def toggle(self):
         pass  # M is handled by the lobby's audio controls.

@@ -76,6 +76,7 @@ class Door(PuzzleObject):
         super().__init__(data)
         self.unlocked = 'key' not in data
         self.latched = False
+        self.opening = 0.
 
     def interact(self, manager, player, pulse=False):
         if pulse or self.unlocked:
@@ -84,7 +85,7 @@ class Door(PuzzleObject):
         key=self.data['key']
         if key=='boss':
             if not manager.inventory.boss_key:return False
-            self.unlocked=True;return True
+            self.unlocked=True;self.opening=self.data.get("opening_duration",0.);return True
         if manager.inventory.keys.get(key,0)>=cost:
             manager.inventory.keys[key]-=cost
             self.unlocked = True
@@ -162,7 +163,9 @@ class PuzzleManager(CollisionManager):
         self.trace_light()
         for obj in self.objects.values():
             if isinstance(obj, Door):
-                powered = all(self.objects[i].state.active or (isinstance(self.objects[i], Door) and self.objects[i].latched) for i in obj.data.get('requires', [])) and obj.unlocked
+                obj.opening=max(0.,obj.opening-dt)
+                if obj.opening<1e-9:obj.opening=0.
+                powered = obj.opening<=0 and all(self.objects[i].state.active or (isinstance(self.objects[i], Door) and self.objects[i].latched) for i in obj.data.get('requires', [])) and obj.unlocked
                 # Non-timed doors latch: the introductory player plate remains fair.
                 timed = any(self.objects[i].data['type'] == 'timed' for i in obj.data.get('requires', []))
                 if powered and not timed:
@@ -297,7 +300,7 @@ class Chest(PuzzleObject):
         manager.inventory.supply_bombs(self.data.get("bombs",0))
         for _ in range(self.data.get("small_keys",0)):manager.inventory.add("small")
         if self.data.get("boss_key"):
-            manager.inventory.boss_key=True;manager.inventory.notifications.append(("boss_key","BOSS KEY"))
+            manager.inventory.boss_key=True;manager.inventory.notifications.append(("boss_key","BOSS KEY ACQUIRED"))
         manager.inventory.supply_powder(self.data.get('powder',0))
         for treasure in self.data.get('loot',[]):
             if hasattr(manager,'grant_treasure'):manager.grant_treasure(self.id,treasure)
