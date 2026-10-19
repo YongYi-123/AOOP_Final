@@ -105,7 +105,10 @@ class Game:
                     actor = self.session.player_for_key(event.key) if self.session else None
                     action = actor.controls.action_for(event.key) if actor else None
                     own = getattr(self.scenes.current, "own_audio", False)    # a minigame has its own click sounds
-                    if action == "interact" or event.key in (pygame.K_RETURN, pygame.K_KP_ENTER):
+                    typing = getattr(self.scenes.current, "captures_text", False)    # a text box: letters are letters
+                    if typing and event.key < (1 << 30) and event.key not in (pygame.K_RETURN, pygame.K_ESCAPE):
+                        pass                                     # (a character key: no confirm blip, and M is not mute)
+                    elif action == "interact" or event.key in (pygame.K_RETURN, pygame.K_KP_ENTER):
                         if not own:
                             self.audio.play("confirm")
                     elif event.key == pygame.K_ESCAPE:

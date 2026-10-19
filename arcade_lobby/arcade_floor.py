@@ -8,11 +8,13 @@ Tokens are spent here; the payment flow lives in BaseRoomScene.
 import pygame
 
 from arcade_layout import ArcadeLayout
+from broken_cabinet import SLOT as BROKEN_SLOT, BrokenCatCade
 from backdrop import (AmbientAnimator, BackgroundRenderer, DustMotes,
                       LightingOverlay, NeonLight, Scanlines, StringLights, neon_tube)
 from font import get_font
 from gfx import scale_color, shade
 from lofi_props import make_stool
+from machine import IdleCabinet
 from stations import Seat
 from vending_machine import VendingMachine
 from room_art import FloorStrips, HubBackdrop
@@ -118,7 +120,10 @@ class ArcadeFloorScene(BaseRoomScene):
         stool = make_stool()
         vend = VendingMachine((332, 32), (333, FLOOR_TOP, 30, 26))
         stools = [Seat(stool, (x, 184), (x + 1, 192, 12, 5)) for x in (123, 207, 291)]
-        return self.layout.build_idle_cabinets() + [vend] + stools
+        # the SOON cabinet of one free island slot is the BROKEN CAT-CADE (same spot, same footprint)
+        idle = [IdleCabinet(pos) for name, pos in self.layout.free_slots().items() if name != BROKEN_SLOT]
+        broken = BrokenCatCade(self.layout.slots[BROKEN_SLOT])
+        return idle + [broken, vend] + stools
 
     def build_renderer(self):
         style = self.style

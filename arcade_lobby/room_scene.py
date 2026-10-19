@@ -46,6 +46,7 @@ from inventory_ui import InventoryUI
 from novelty import use_item
 from novelty_fx import NoveltyFX
 from vending_ui import VendingScene
+from staff_ui import MaintenanceScene
 from item_registry import FREE_PLAY_COUPON
 from local_session import GameEvent, MachineInteraction
 from machine import ArcadeMachine
@@ -735,6 +736,14 @@ class BaseRoomScene(BaseScene):
         player = self._actor(player)
         self.notice.clear()
         self.game.scenes.push(VendingScene(self.game, self.session.player_for_avatar(player)))
+
+    def open_maintenance(self, player=None):
+        """The BROKEN CAT-CADE's fake maintenance screen, owned by the player who pressed the use key."""
+        if self.active_play is not None or self.game.scenes.transitioning or self.game.scenes.current is not self:
+            return
+        player = self._actor(player)
+        self.notice.clear()
+        self.game.scenes.push(MaintenanceScene(self.game, self.session.player_for_avatar(player), room=self))
 
     def use_novelty(self, item_id, player=None):
         """USE from the bag: one copy leaves that player's inventory and a harmless show plays on their avatar."""
