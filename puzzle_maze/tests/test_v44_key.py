@@ -3,7 +3,10 @@ import os
 os.environ.setdefault('SDL_VIDEODRIVER','dummy')
 os.environ.setdefault('SDL_AUDIODRIVER','dummy')
 import tempfile
+import sys
 import unittest
+from unittest.mock import Mock
+from types import SimpleNamespace
 from pathlib import Path
 import pygame
 from puzzle_maze.icons import IconAtlas,BossKeyIcon
@@ -16,6 +19,12 @@ class RoyalKeyTests(unittest.TestCase):
     def test_key_is_larger_gemmed_and_distinct_from_silver_small_key(self):
         atlas=IconAtlas();small=atlas.get('small_key');boss=atlas.get('boss_key')
         self.assertGreater(boss.get_width(),small.get_width());self.assertIs(boss,BossKeyIcon.surface())
+        host=str(Path(__file__).resolve().parents[2]/'arcade_lobby')
+        if host not in sys.path:sys.path.append(host)
+        from puzzle_maze.lobby_scene import LobbyAudio
+        manager=SimpleNamespace(play=Mock());audio=LobbyAudio(manager)
+        audio.play('boss_key');royal_cue=manager.play.call_args.args[0]
+        audio.play('key');self.assertNotEqual(royal_cue,manager.play.call_args.args[0])
         self.assertTrue(any(boss.get_at((x,y))[:3]==(203,96,207) for x in range(16) for y in range(16)))
         self.assertNotEqual(pygame.image.tobytes(boss,'RGBA'),pygame.image.tobytes(atlas.get('boss_key',False),'RGBA'))
     def test_special_chest_acquisition_updates_hud_cue_and_save(self):

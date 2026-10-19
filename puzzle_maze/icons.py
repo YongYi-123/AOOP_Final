@@ -77,7 +77,7 @@ class IconHUD:
         s.blit(self.atlas.get('sword'),(73,186))
         for kind,value,x in (('small_key',sum(inv.keys.values()),94),('bomb',getattr(inv,'bombs',0),145)):
             s.blit(self.atlas.get(kind),(x,186));renderer.text(str(value),x+14,185,max_width=28)
-        s.blit(self.atlas.get('boss_key',getattr(inv,'boss_key',False)),(194,186))
+        s.blit(self.atlas.get('boss_key',getattr(inv,'boss_key',False)),(188,186))
         for i,kind in enumerate(('boots','gloves','mirror','magnet','map','compass')):
             x=219+i*16;s.blit(self.atlas.get(kind,kind in inv.abilities),(x,186))
             if tool==kind:pygame.draw.rect(s,(245,198,96),(x-2,184,15,15),1)
