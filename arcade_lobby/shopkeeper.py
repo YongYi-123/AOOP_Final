@@ -39,6 +39,8 @@ SLEEP_AFTER = 22.0          # ... then she dozes off
 REACTION_TIME = {"wake": 0.55, "greet": 0.8, "celebrate": 1.2, "tilt": 1.2, "wave": 1.3, "lick": 1.8}
 SAYS = {"approach": "WELCOME!", "open": "HELLO, FRIEND!", "purchase": "PURRFECT CHOICE!",
         "insufficient": "NEED MORE TICKETS?", "leave": "COME BACK SOON!"}
+CLUE_EVERY = 6              # every sixth welcome is a mumble about something else entirely...
+CLUE_SAY = "5151... AND 06?"
 MEOW_GAP = 2.5              # seconds between meows: rare and quiet
 
 
@@ -177,6 +179,7 @@ class Shopkeeper:
         self.next_ear = self.rng.uniform(3.0, 6.0)
         self.ear_until, self.ear_side = 0.0, 1
         self.next_lick = self.rng.uniform(9.0, 14.0)
+        self.approaches = 0             # welcomes so far (every CLUE_EVERY-th one is the mumble)
         self.events = []                # (event, time): a log of what reached her (tests, debugging)
 
     # ------------------------------------------------------------ geometry
@@ -240,7 +243,12 @@ class Shopkeeper:
             self._set("tilt")
         elif event == "leave":
             self._set("wave")
-        self.say(SAYS[event])
+        text = SAYS[event]
+        if event == "approach":
+            self.approaches += 1
+            if self.approaches % CLUE_EVERY == 0:
+                text = CLUE_SAY
+        self.say(text)
 
     # ------------------------------------------------------------ per frame
     def update(self, dt, players=()):
