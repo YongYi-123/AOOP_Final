@@ -38,6 +38,7 @@ ProfileChange = namedtuple("ProfileChange", "field delta value")
 
 SAVE_VERSION = 2
 MAX_CAPSULE_STAMPS = 999          # the Capsule Stamp book never holds more than this
+STAFF_BALANCE_CAP = 9999          # a staff-panel grant never lifts a wallet past this (keeps the HUD readable)
 SHOWCASE_SLOTS = ("car", "collectible", "trophy")   # what the Prize Plaza showcase can display
 
 
@@ -62,7 +63,8 @@ class PlayerProfile:
                  daily=None, daily_tasks=None, history=(), clock=None, inventory=None,
                  home_decorations=None, profile_id=None, display_name=None, racing_selection=None,
                  neon21=None, appearance=None, collection_display=None, basic_appearance=None,
-                 secrets=None, coin_pusher=None, pinball=None, showcase=None, capsule_stamps=0):
+                 secrets=None, coin_pusher=None, pinball=None, showcase=None, capsule_stamps=0,
+                 cheats_used=False):
         # Who this profile is. The id is the save identity (never the name);
         # both are None for a bare profile that is not managed by a ProfileManager.
         self.profile_id = profile_id
@@ -100,6 +102,9 @@ class PlayerProfile:
         # Easter eggs this player found: {flag: True}. Pure bookkeeping for future story systems;
         # a flag never grants anything. Absent from the save until the first discovery.
         self._secrets = {k: True for k, v in (secrets or {}).items() if isinstance(k, str) and v is True}
+        # True once MOCHI'S STAFF PANEL has paid this profile (see grant_staff_currency). Pure bookkeeping:
+        # it blocks nothing and unlocks nothing. Absent from the save until then.
+        self._cheats_used = cheats_used is True
         # Collectible ids pinned on the HOME display shelf, in order.
         self._collection_display = [i for i in (collection_display or []) if isinstance(i, str)]
         # What the Prize Plaza showcase displays: {"car": racing car key, "collectible": item id,
@@ -191,6 +196,31 @@ class PlayerProfile:
         self._secrets[flag] = True
         self._notify("secrets", 0, 0)
         return True
+
+    @property
+    def cheats_used(self):
+        return self._cheats_used
+
+    def grant_staff_currency(self, currency, amount):
+        """MOCHI'S STAFF PANEL: add `amount` Tokens or Tickets to the balance and nothing else - no lifetime
+        totals, no history, no daily-task progress, no daily caps. The balance never passes STAFF_BALANCE_CAP;
+        the change and the `cheats_used` flag reach the save as ONE write. Returns how much was really added
+        (0 when the wallet is already full)."""
+        if currency not in (self.TOKEN, self.TICKET):
+            raise ValueError(f"unknown currency {currency!r}")
+        _check_amount(amount)
+        balance = self._tokens if currency == self.TOKEN else self._tickets
+        added = min(amount, max(0, STAFF_BALANCE_CAP - balance))
+        if not added:
+            return 0
+        with self.batch():
+            if currency == self.TOKEN:
+                self._tokens += added
+            else:
+                self._tickets += added
+            self._cheats_used = True
+            self._notify(currency, added, balance + added)
+        return added
 
     @property
     def home_decorations(self):
@@ -690,6 +720,7 @@ class PlayerProfile:
             **({"showcase": dict(self._showcase)} if self._showcase else {}),
             **({"capsule_stamps": self._capsule_stamps} if self._capsule_stamps else {}),
             **({"secrets": dict(self._secrets)} if self._secrets else {}),
+            **({"cheats_used": True} if self._cheats_used else {}),
             "neon21": {"date": self._neon21_date, "tickets": self._neon21_tickets,
                        **({"pending": dict(self._neon21_pending)} if self._neon21_pending else {})},
             **({"coin_pusher": {"date": self._pusher_date, "tickets": self._pusher_tickets,
@@ -746,6 +777,7 @@ class PlayerProfile:
             collection_display=data.get("collection_display") if isinstance(data.get("collection_display"), list) else [],
             showcase=data.get("showcase") if isinstance(data.get("showcase"), dict) else {},
             capsule_stamps=data.get("capsule_stamps"),
+            cheats_used=data.get("cheats_used"),
             secrets=data.get("secrets") if isinstance(data.get("secrets"), dict) else {},
             profile_id=data["profile_id"] if isinstance(data.get("profile_id"), str) else None,
             display_name=data["display_name"] if isinstance(data.get("display_name"), str) else None,
