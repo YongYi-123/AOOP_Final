@@ -3948,19 +3948,18 @@
           24,
           8
         ],
-        "target": "r18",
+        "target": "r27",
         "arrival": [
-          24,
-          8
+          2,
+          7
         ],
         "requires": [
           "gate"
         ],
-        "finish": true,
         "entrance": "stone",
         "direction": "EAST",
-        "id": "r18:r18",
-        "return_id": null,
+        "id": "r18:r27",
+        "return_id": "r27:r18",
         "orb_allowed": true
       }
     ],
@@ -4026,6 +4025,10 @@
       ],
       [
         2,
+        8
+      ],
+      [
+        23,
         8
       ]
     ]
@@ -5755,6 +5758,188 @@
       [
         12,
         13
+      ]
+    ]
+  },
+  "r27": {
+    "name": "Royal Treasure Vault",
+    "floor": "B1F",
+    "grid_x": 6,
+    "grid_y": 0,
+    "atlas": [
+      6,
+      0
+    ],
+    "layout_revision": "4.0",
+    "content_revision": "4.4",
+    "theme": "royal_vault",
+    "architecture": "mosaic",
+    "hint": "The three sealed royal chests fund the expedition receipt. Read the floating scroll; the eastern arch ends your journey.",
+    "spawn": [
+      2,
+      7
+    ],
+    "tiles": [
+      "######################",
+      "#....................#",
+      "#...O............O...#",
+      "#....................#",
+      "#....................#",
+      "#....................#",
+      "#....................#",
+      "#....................#",
+      "#....................#",
+      "#....................#",
+      "#....................#",
+      "#...O............O...#",
+      "#....................#",
+      "######################"
+    ],
+    "enemies": [],
+    "objects": [
+      {
+        "id": "royal_tokens",
+        "type": "chest",
+        "pos": [
+          6,
+          4
+        ],
+        "loot": [
+          "royal_tokens"
+        ],
+        "royal": true
+      },
+      {
+        "id": "royal_tickets",
+        "type": "chest",
+        "pos": [
+          15,
+          4
+        ],
+        "loot": [
+          "royal_tickets"
+        ],
+        "royal": true
+      },
+      {
+        "id": "royal_collection",
+        "type": "chest",
+        "pos": [
+          15,
+          10
+        ],
+        "loot": [
+          "royal_crown"
+        ],
+        "royal": true
+      },
+      {
+        "id": "scroll",
+        "type": "mystery_scroll",
+        "pos": [
+          11,
+          7
+        ],
+        "content_id": "coming_soon"
+      },
+      {
+        "id": "gate",
+        "type": "door",
+        "pos": [
+          20,
+          7
+        ],
+        "requires": [
+          "royal_tokens",
+          "royal_tickets",
+          "royal_collection"
+        ]
+      }
+    ],
+    "goal": [
+      "royal_tokens",
+      "royal_tickets",
+      "royal_collection"
+    ],
+    "decorations": [
+      {
+        "kind": "torch",
+        "pos": [
+          3,
+          0
+        ],
+        "phase": 3
+      },
+      {
+        "kind": "torch",
+        "pos": [
+          8,
+          0
+        ],
+        "phase": 8
+      },
+      {
+        "kind": "torch",
+        "pos": [
+          13,
+          0
+        ],
+        "phase": 13
+      },
+      {
+        "kind": "torch",
+        "pos": [
+          18,
+          0
+        ],
+        "phase": 18
+      }
+    ],
+    "exits": [
+      {
+        "id": "r27:r18",
+        "return_id": "r18:r27",
+        "target": "r18",
+        "pos": [
+          1,
+          7
+        ],
+        "arrival": [
+          23,
+          8
+        ],
+        "direction": "WEST",
+        "entrance": "stone",
+        "requires": [],
+        "abilities": [],
+        "orb_allowed": true
+      },
+      {
+        "id": "r27:finish",
+        "return_id": null,
+        "target": "r27",
+        "pos": [
+          20,
+          7
+        ],
+        "arrival": [
+          20,
+          7
+        ],
+        "direction": "EAST",
+        "entrance": "stone",
+        "requires": [
+          "gate"
+        ],
+        "abilities": [],
+        "finish": true,
+        "orb_allowed": true
+      }
+    ],
+    "safe_landings": [
+      [
+        2,
+        7
       ]
     ]
   }

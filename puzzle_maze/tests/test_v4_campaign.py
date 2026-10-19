@@ -43,7 +43,7 @@ class EmberglassCampaignTests(unittest.TestCase):
         s=self.s;o=s.puzzles.objects[id];self.walk((o.x,o.y+1));s.player.facing=(0,-1);self.assertEqual(s.powder(),id)
     def test_twenty_two_rooms_and_all_key_orders(self):
         s=self.s;report=DungeonValidator(s.rooms.rooms).validate()
-        self.assertEqual(report['rooms'],26);self.assertEqual(report['resource_states'],report['winning_states'])
+        self.assertEqual(report['rooms'],27);self.assertEqual(report['resource_states'],report['winning_states'])
         self.assertEqual(len(s.rooms.rooms['r2']['exits']),5)
         self.assertTrue(any(e['target']=='r7' for e in s.rooms.rooms['r20']['exits']))
     def test_complete_non_linear_secret_and_settlement_witness(self):
@@ -123,11 +123,11 @@ class EmberglassCampaignTests(unittest.TestCase):
         def bomb():
             self.walk((boss.x-1,boss.y));s.player.facing=(1,0);self.assertTrue(s.bombs.place());self.walk((8,11));s.tick(1.7)
         dash();strike();bomb();strike();dash();bomb();strike();s.tick(1.3);self.assertEqual(boss.state,EnemyState.DEAD)
-        self.travel('r18');self.use('treasure');self.use('dawn');self.walk(next(e['pos'] for e in s.rooms.data['exits'] if e.get('finish')));self.assertTrue(s.transition())
-        self.assertTrue(s.finished);self.assertTrue(s.rewards.claimed);self.assertEqual(len(s.rewards.collections),5);self.assertEqual(s.visited,set(s.rooms.rooms))
+        self.travel('r18');self.use('treasure');self.use('dawn');self.travel('r27');self.use('royal_tokens');self.use('royal_tickets');self.use('royal_collection');self.use('scroll');self.walk(next(e['pos'] for e in s.rooms.data['exits'] if e.get('finish')));self.assertTrue(s.transition())
+        self.assertTrue(s.finished);self.assertTrue(s.rewards.claimed);self.assertEqual(len(s.rewards.collections),6);self.assertEqual(s.visited,set(s.rooms.rooms))
         opened={(room,id) for room,snapshot in s.snapshots.items() for id,state in snapshot.items() if state['active'] and next(o for o in s.rooms.rooms[room]['objects'] if o['id']==id)['type']=='chest'}
         opened|={(s.rooms.current,id) for id,o in s.puzzles.objects.items() if o.data['type']=='chest' and o.state.active}
-        self.assertEqual(len(opened),34,'Every authored chest must be legally opened by this witness')
+        self.assertEqual(len(opened),37,'Every authored chest must be legally opened by this witness')
         receipt=s.rewards.settle(True,True);self.assertGreater(receipt['tokens'],0);self.assertGreater(receipt['tickets'],0)
         with tempfile.TemporaryDirectory() as folder:
             path=Path(folder)/'run.json';s.save(path);loaded=AdvancedDungeonSession.load(path)

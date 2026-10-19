@@ -17,6 +17,8 @@ ICONS={
  'potion':['....sss.....','....srs.....','...sttts....','...sttts....','...sttts....','....sss.....'],
  'pulse':['....t.......','..t.t.t.....','...ttt......','.tttgttt....','...ttt......','..t.t.t.....','....t.......']}
 ICONS.update({
+ 'mystery_scroll':['.gg......gg.','gssggggggssg','gssssssssssg','.gssssssssg.','.gssppppssg.','.gssssssssg.','.gssppppssg.','gssssssssssg','gssggggggssg','.gg......gg.'],
+ 'royal_crown':['g....g....g.','gg..ggg..gg.','.ggggggggg..','.ggprgbrgg..','.ggggggggg..','.ggggggggg..'],
  'powder':['....gggg....','...gppppg...','...gppppg...','..gppppppg..','..gppssppg..','..gppssppg..','...gggggg...'],
  'pot':['....kkkk....','...kggggk...','..kggggggk..','..kgkkkkgk..','..kggggggk..','...kggggk...','....kkkk....'],
  'heart_fragment':['....rr......','...rrrr.....','..rrrsrr....','...rsrr.....','....rr......'],
@@ -30,7 +32,7 @@ ICONS.update({
  'ancient_stamp':['..sssssss...','..sppppps...','..sptptps...','..sptgtps...','..sptptps...','..sppppps...','..sssssss...'],
  'bomb_bundle':['..gbb..gbb..','..bbbbb.bbb.','...bbb..bbb.','.....gg.....','....sbbbs...','....sbbbs...','.....sss....'],
 })
-ALIASES={'magic_powder':'powder','royal_circuit':'boss_key'}
+ALIASES={'magic_powder':'powder','royal_circuit':'boss_key','royal_tokens':'token_cache','royal_tickets':'ticket_bundle'}
 PALETTE={'p':(184,123,226),'k':(88,59,53),'r':(239,102,119),'g':(245,198,96),'s':(205,223,230),'b':(65,85,127),'t':(81,195,165)}
 
 class BossKeyIcon:
@@ -112,7 +114,7 @@ class IconHUD:
         s.blit(self.atlas.get('pot',inv.carried is not None),(137,204));renderer.text('G' if inv.carried else 'E',152,202,max_width=12)
         s.blit(self.atlas.get('potion',inv.potions>0),(170,204));renderer.text(str(inv.potions),185,202,max_width=24)
         s.blit(self.atlas.get('heart_fragment'),(211,204));renderer.text(f'{inv.heart_fragments%4}/4',225,202,max_width=40)
-        s.blit(self.atlas.get('golden_cat'),(272,204));renderer.text(f'{len(session.rewards.collections)}/5',286,202,max_width=28)
+        s.blit(self.atlas.get('golden_cat'),(272,204));renderer.text(f'{len(session.rewards.collections)}/6',286,202,max_width=28)
         renderer.text(session.rooms.data['name'],6,222,(245,198,96),max_width=222)
         renderer.text('BLUE' if 'crystal_blue' in inv.flags else 'RED',234,222,(112,190,241) if 'crystal_blue' in inv.flags else (236,117,113),max_width=44)
         renderer.text(session.rooms.data.get('floor','1F'),285,222,max_width=30)

@@ -23,6 +23,7 @@ class GameScene(Enum):
     INTRO=auto()
     TUTORIAL=auto()
     ARCHIVE=auto()
+    SCROLL=auto()
 
 class Game:
     def __init__(self,headless=False,embedded=False,audio=None,legacy=False,campaign=None):
@@ -95,6 +96,9 @@ class Game:
             elif key==pygame.K_ESCAPE and self.scene==GameScene.ARCHIVE:self.scene=GameScene.MENU;self.selection=0
             elif key==pygame.K_ESCAPE and self.scene==GameScene.GAMEOVER:self.choose("Main menu")
             return
+        if self.scene==GameScene.SCROLL:
+            if key in (pygame.K_ESCAPE,pygame.K_RETURN,pygame.K_e):self.scene=GameScene.PLAY
+            return
         if self.scene==GameScene.HELP:
             if self.tutorial.advanced and key in (pygame.K_LEFT,pygame.K_RIGHT):self.tutorial.page=1-self.tutorial.page
             if key in (pygame.K_ESCAPE,pygame.K_RETURN):self.scene=self.previous
@@ -156,6 +160,7 @@ class Game:
                 self.audio.play('pulse' if key==pygame.K_SPACE else 'use')
                 self.renderer.burst(self.session.player.x,self.session.player.y,TEAL)
                 obj_data=self.session.puzzles.objects[obj].data
+                if obj_data['type']=='mystery_scroll':self.scene=GameScene.SCROLL
                 if obj_data.get('ability'):self.notify('Acquired: '+obj_data['ability'])
             else:self.notify('E: chest / mechanism. Q: tool. SPACE: pulse.',2)
 
@@ -237,14 +242,18 @@ class Game:
         elif self.scene==GameScene.TUTORIAL:self.tutorial.draw(r)
         elif self.scene in (GameScene.MENU,GameScene.PAUSE,GameScene.VICTORY,GameScene.GAMEOVER,GameScene.ARCHIVE):
             title={GameScene.MENU:'PUZZLE MAZE',GameScene.PAUSE:'EXPEDITION PAUSED',GameScene.VICTORY:'HOLLOW AWAKENED',GameScene.GAMEOVER:'GAME OVER',GameScene.ARCHIVE:'OLD EXPEDITIONS'}[self.scene]
-            if self.scene==GameScene.MENU and isinstance(self.session,AdvancedDungeonSession):title='PUZZLE MAZE 4.3'
+            if self.scene==GameScene.MENU and isinstance(self.session,AdvancedDungeonSession):title='PUZZLE MAZE 4.4'
             r.panel(title,self.options(),self.selection)
             if self.scene==GameScene.VICTORY and hasattr(self.session,'rewards'):
                 bag=self.session.rewards
                 r.text(f'Tokens {bag.tokens} / Tickets {bag.tickets}',36,151,GOLD,max_width=244)
-                r.text(f'Found {len(bag.collections)}/5 / '+('Settled once' if bag.claimed else 'Pending'),36,170,TEAL,max_width=244)
-            label='4.3 / Emberglass Hollow' if isinstance(self.session,AdvancedDungeonSession) else '3.0 / Clockwork Hollow' if isinstance(self.session,DungeonSession) else '2.1 / The Prism Chambers'
+                r.text(f'Found {len(bag.collections)}/6 / '+('Settled once' if bag.claimed else 'Pending'),36,170,TEAL,max_width=244)
+            label='4.4 / Emberglass Hollow' if isinstance(self.session,AdvancedDungeonSession) else '3.0 / Clockwork Hollow' if isinstance(self.session,DungeonSession) else '2.1 / The Prism Chambers'
             r.text(label,36,193,(133,163,156),max_width=244)
+        elif self.scene==GameScene.SCROLL:
+            r.panel('COMING SOON',[])
+            r.surface.blit(pygame.transform.scale(r.hud.atlas.get('mystery_scroll'),(36,36)),(142,119))
+            r.text('ENTER / ESC: Close',83,173,GOLD,max_width=160)
         elif self.scene==GameScene.HELP:
             r.panel('FIELD GUIDE',self.tutorial.lines(False))
         elif self.scene==GameScene.MAP:r.map_panel(self.session)

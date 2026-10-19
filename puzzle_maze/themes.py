@@ -45,3 +45,5 @@ THEMES.update({
 })
 
 THEMES['mine']=RoomTheme((68,61,52),(119,103,81),(34,33,37),(205,161,92),(244,187,101),'ore','torch')
+
+THEMES['royal_vault']=RoomTheme((76,63,67),(145,128,110),(38,32,46),(245,198,96),(255,206,119),'inlay','torch')

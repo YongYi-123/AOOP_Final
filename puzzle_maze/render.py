@@ -7,10 +7,11 @@ from puzzle_maze.entrances import draw_entrance
 from puzzle_maze.ui import NativeText
 from puzzle_maze.icons import IconHUD
 from puzzle_maze.room_art import RoomArt
-from puzzle_maze.advanced_puzzles import Brazier,TorchSequence,WeightPlate,LiftablePot,CrystalSwitch,CrystalBarrier,PowderSupply,PotSupply,OrderedSeal,DestructiblePillar,OrderedLayoutSeal,OrbSocket
+from puzzle_maze.advanced_puzzles import Brazier,TorchSequence,WeightPlate,LiftablePot,CrystalSwitch,CrystalBarrier,PowderSupply,PotSupply,OrderedSeal,DestructiblePillar,OrderedLayoutSeal,OrbSocket,MysteryScroll
 from puzzle_maze.combat import EnemyState
 from puzzle_maze.exploration import DungeonAtlas
 from puzzle_maze.environment import EnvironmentPainter
+from puzzle_maze.vault import RoyalVaultArt
 from puzzle_maze.enemy_art import EnemyPortraits
 from puzzle_maze.themes import THEMES
 from puzzle_maze.puzzles import PushableBox, PressurePlate, Door, Key, SecretPassage, TimedSwitch, Switch, Chest, LightSource, Receiver, Reflector,CrackedWall,BombSupply,DashSwitch,BlastSwitch,RemoteRelay,ChestPhase,GateControl,EntrancePhase
@@ -26,7 +27,7 @@ class Renderer:
         self.particles=[]
         self.time=0
         self.ui=NativeText()
-        self.environment=EnvironmentPainter();self.enemy_portraits=EnemyPortraits()
+        self.vault_art=RoyalVaultArt();self.environment=EnvironmentPainter();self.enemy_portraits=EnemyPortraits()
         self.hud=IconHUD()
         self.room_art=RoomArt();self.object_seen={};self.opening={}
         self.tiles=self.environment.tiles('entrance')
@@ -68,6 +69,7 @@ class Renderer:
         self.room_art.draw(s,room,(cx,cy),self.time)
         self.environment.decorations(s,room,(cx,cy),self.time)
         self.environment.lighting(s,session,(cx,cy),self.time)
+        if theme_name=='royal_vault':self.vault_art.draw(s,(cx,cy),self.time)
         # Inlaid entrance compass; authored art remains entirely local.
         sx,sy=2*16-cx,7*16-cy
         r.circle(s,(98,134,123),(sx+8,sy+8),7,1)
@@ -81,7 +83,9 @@ class Renderer:
         for o in sorted(session.puzzles.objects.values(), key=lambda obj: 0 if isinstance(obj,PressurePlate) else 1):
             sx,sy=o.x*16-cx,o.y*16-cy
             if not (-16<sx<320 and -16<sy<208):continue
-            if isinstance(o,OrbSocket):
+            if isinstance(o,MysteryScroll):
+                self.vault_art.scroll(s,sx,sy,self.time,self.environment.glow(theme_name))
+            elif isinstance(o,OrbSocket):
                 color=GOLD if o.state.active else (116,132,160)
                 r.circle(s,(32,38,54),(sx+8,sy+8),7);r.circle(s,color,(sx+8,sy+8),6,2)
                 r.lines(s,color,False,[(sx+2,sy+1),(sx+5,sy+4),(sx+8,sy),(sx+11,sy+4),(sx+14,sy+1)])
@@ -160,6 +164,8 @@ class Renderer:
                 r.rect(s,(32,40,47),(sx+2,sy+4,12,10));r.rect(s,(153,98,56),(sx+2,sy+3,12,9))
                 r.rect(s,TEAL if o.state.active else GOLD,(sx+2,sy+3,12,9),1)
                 r.rect(s,GOLD,(sx+7,sy+6,2,3))
+                if o.data.get('royal'):
+                    r.rect(s,GOLD,(sx+1,sy+2,14,11),2);r.rect(s,(207,112,220),(sx+7,sy+5,3,3))
                 if o.data.get('boss_key'):
                     r.rect(s,GOLD,(sx,sy+1,16,13),2);r.polygon(s,(203,96,207),[(sx+8,sy+3),(sx+11,sy+6),(sx+8,sy+9),(sx+5,sy+6)])
                     if o.state.active:s.blit(pygame.transform.scale(self.hud.atlas.get('boss_key'),(20,20)),(sx-2,sy-18-int(self.opening[key]*10)))
@@ -309,10 +315,10 @@ class Renderer:
                 orb_prompt=True
                 label=f"{controls['interact']} Drop / G Orb / T Recall" if orb.carried else f"{controls['interact']} Lift Orb / T Recall"
                 r.rect(s,INK,(6,145,288,22));self.text(label,10,150,GOLD,max_width=276)
-        near=next((o for o in session.puzzles.objects.values() if abs(o.x-p.x)+abs(o.y-p.y)<=1 and isinstance(o,(Switch,Door,SecretPassage,Chest,Reflector,CrackedWall,BombSupply,LiftablePot,Brazier,CrystalSwitch,PotSupply,PowderSupply)) and not isinstance(o,(GateControl,CrackedWall)) and not (isinstance(o,Chest) and o.phase!=ChestPhase.AVAILABLE) and not (isinstance(o,(Door,SecretPassage)) and o.state.active)),None)
+        near=next((o for o in session.puzzles.objects.values() if abs(o.x-p.x)+abs(o.y-p.y)<=1 and isinstance(o,(Switch,Door,SecretPassage,Chest,Reflector,CrackedWall,BombSupply,LiftablePot,Brazier,CrystalSwitch,PotSupply,PowderSupply,MysteryScroll)) and not isinstance(o,(GateControl,CrackedWall)) and not (isinstance(o,Chest) and o.phase!=ChestPhase.AVAILABLE) and not (isinstance(o,(Door,SecretPassage)) and o.state.active)),None)
         if not orb_prompt and (near or getattr(session.inventory,'carried',None)):
             carrying=getattr(session.inventory,'carried',None)
-            label=f"{controls['interact']} Drop / G Throw" if carrying else '[P] Light' if isinstance(near,Brazier) else f"[{controls['attack']}] Crystal" if isinstance(near,CrystalSwitch) else f"[{controls['interact']}] Lift" if isinstance(near,LiftablePot) else '[B] Bomb' if isinstance(near,CrackedWall) else f"[{controls['ability']}] Pulse" if isinstance(near,SecretPassage) else f"[{controls['interact']}] Interact"
+            label=f"{controls['interact']} Drop / G Throw" if carrying else f"[{controls['interact']}] Read" if isinstance(near,MysteryScroll) else '[P] Light' if isinstance(near,Brazier) else f"[{controls['attack']}] Crystal" if isinstance(near,CrystalSwitch) else f"[{controls['interact']}] Lift" if isinstance(near,LiftablePot) else '[B] Bomb' if isinstance(near,CrackedWall) else f"[{controls['ability']}] Pulse" if isinstance(near,SecretPassage) else f"[{controls['interact']}] Interact"
             px=int(visual[0]*16)-cx;py=int(visual[1]*16)-cy
             hint_y=max(2,min(168,py+18 if carrying or py<18 else py-15))
             hint_x=max(2,min(146,px-30))
@@ -384,10 +390,11 @@ class Renderer:
                 r.rect(s,(236,98,116),(center[0]-2,center[1]-2,4,4))
 
     def minimap(self,session):
-        pygame.draw.rect(self.surface,INK,(239,5,77,52))
-        pygame.draw.rect(self.surface,(77,108,112),(239,5,77,52),1)
-        self.text(session.rooms.data.get("floor","1F"),243,7,TEAL,max_width=30)
-        self.atlas_graph(session,(242,23,71,29))
+        x=122 if session.rooms.data.get("theme")=="royal_vault" else 239
+        pygame.draw.rect(self.surface,INK,(x,5,77,52))
+        pygame.draw.rect(self.surface,(77,108,112),(x,5,77,52),1)
+        self.text(session.rooms.data.get("floor","1F"),x+4,7,TEAL,max_width=30)
+        self.atlas_graph(session,(x+3,23,71,29))
 
     def map_panel(self,session):
         self.panel('DUNGEON ATLAS',[])

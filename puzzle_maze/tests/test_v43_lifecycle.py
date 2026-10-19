@@ -44,9 +44,9 @@ class Lifecycle43Tests(unittest.TestCase):
                 for _ in range(35):host.step([],1/60)
                 scene=host.scenes.current;self.assertIsInstance(scene,PuzzleMazeScene)
                 s=scene.maze.session;s.enter('r18');d=witness.DungeonCampaignTests();d.s=s
-                d.use('treasure');d.use('dawn');d.walk(next(e['pos'] for e in s.rooms.data['exits'] if e.get('finish')))
+                d.use('treasure');d.use('dawn');d.travel('r27');d.use('royal_tokens');d.use('royal_tickets');d.use('royal_collection');d.walk(next(e['pos'] for e in s.rooms.data['exits'] if e.get('finish')))
                 self.assertTrue(s.transition());receipt=s.rewards.settle(True,True)
-                self.assertEqual((receipt['tokens'],receipt['tickets']),(10,15))
+                self.assertEqual((receipt['tokens'],receipt['tickets']),(1010,315))
                 with tempfile.TemporaryDirectory() as folder:
                     path=Path(folder)/'run.json';s.save(path);loaded=AdvancedDungeonSession.load(path)
                     self.assertTrue(loaded.finished);self.assertEqual(loaded.rewards.settle(True,True),receipt)

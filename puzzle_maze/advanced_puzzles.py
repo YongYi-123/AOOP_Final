@@ -12,6 +12,10 @@ class DestructiblePillar(PuzzleObject):blocking=True
 class OrderedLayoutSeal(PuzzleObject):pass
 class OrbSocket(PuzzleObject):pass
 
+class MysteryScroll(PuzzleObject):
+    def interact(self,manager,player,pulse=False):
+        return not pulse and self.data.get('content_id')=='coming_soon'
+
 class LiftablePot(PuzzleObject):
     blocking=True
     def interact(self,manager,player,pulse=False):
@@ -34,7 +38,7 @@ class PotSupply(PuzzleObject):
                     pot.x,pot.y=pos;pot.state.active=False;return True
         return False
 
-FACTORY.update(orb_socket=OrbSocket,brazier=Brazier,torch_order=TorchSequence,weight=WeightPlate,crystal_switch=CrystalSwitch,crystal_barrier=CrystalBarrier,pot=LiftablePot,powder_supply=PowderSupply,pot_supply=PotSupply,ordered=OrderedSeal,pillar=DestructiblePillar,ordered_layout=OrderedLayoutSeal)
+FACTORY.update(mystery_scroll=MysteryScroll,orb_socket=OrbSocket,brazier=Brazier,torch_order=TorchSequence,weight=WeightPlate,crystal_switch=CrystalSwitch,crystal_barrier=CrystalBarrier,pot=LiftablePot,powder_supply=PowderSupply,pot_supply=PotSupply,ordered=OrderedSeal,pillar=DestructiblePillar,ordered_layout=OrderedLayoutSeal)
 
 class AdvancedPuzzleManager(PuzzleManager):
     def update(self,dt,player):

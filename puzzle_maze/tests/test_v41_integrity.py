@@ -108,8 +108,8 @@ class Dungeon41Tests(unittest.TestCase):
 
     def test_integrity_rejects_bad_landings_returns_flags_and_floor(self):
         rooms=AdvancedDungeonSession().rooms.rooms;report=DungeonIntegrityValidator(rooms).validate()
-        self.assertEqual(report['final_room'],'r18');self.assertEqual(report['resource_states'],report['winning_states'])
-        self.assertEqual(report['chests'],34);self.assertEqual(report['stair_entrances'],4)
+        self.assertEqual(report['final_room'],'r27');self.assertEqual(report['resource_states'],report['winning_states'])
+        self.assertEqual(report['chests'],37);self.assertEqual(report['stair_entrances'],4)
         variants=[]
         bad=copy.deepcopy(rooms);bad['r5']['exits'][-1]['arrival']=[0,0];variants.append(bad)
         bad=copy.deepcopy(rooms);bad['r11']['exits'][-1]['flag_requires']=['nonexistent'];variants.append(bad)

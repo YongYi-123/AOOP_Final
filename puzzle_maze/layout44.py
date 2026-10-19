@@ -10,6 +10,8 @@ def upgrade(rooms):
     rooms['r6']['hint']='The crowned chest listens to a matching socket below. Two shattered pillars reveal the way.'
     rooms['r22']['hint']='The crown socket wakes beneath the lowered floor. Place the Iron Orb on its round inlay.'
     next(o for o in rooms['r16']['objects'] if o['id']=='gate')['opening_duration']=.6
+    from puzzle_maze.vault import add_vault
+    add_vault(rooms)
     for name,room in rooms.items():
         room['safe_landings']=[list(p) for p in sorted(landing_points(name,rooms))]
         occupied=set()
