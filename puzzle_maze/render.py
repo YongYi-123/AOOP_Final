@@ -241,7 +241,13 @@ class Renderer:
             s.blit(pygame.transform.scale(self.hud.atlas.get('pot'),(16,16)),(int(visual[0]*16)-cx,int(visual[1]*16)-cy-12))
         for kind,pos,remaining in getattr(session,'effects',[]):
             ex,ey=pos[0]*16+8-cx,pos[1]*16+8-cy
-            if kind=='shards':
+            if kind=='chest':
+                light=pygame.Surface((320,184),pygame.SRCALPHA);light.fill((255,221,143,int(remaining/.45*28)));s.blit(light,(0,0))
+                s.blit(self.environment.glow(theme_name),(ex-32,ey-32))
+                for i in range(10):
+                    a=i*math.tau/10;distance=(.45-remaining)*38
+                    r.rect(s,GOLD,(int(ex+math.cos(a)*distance),int(ey+math.sin(a)*distance-10),2,2))
+            elif kind=='shards':
                 for i in range(8):
                     a=i*math.pi/4;distance=(.7-remaining)*28;r.rect(s,(209,153,104),(int(ex+math.cos(a)*distance),int(ey+math.sin(a)*distance+distance*.2),2,2))
             else:r.circle(s,TEAL if kind=='crystal' else GOLD,(ex,ey),max(1,int((.6-remaining)*28)),1)
@@ -275,7 +281,7 @@ class Renderer:
                 orb_prompt=True
                 label=f"{controls['interact']} Drop / G Orb / T Recall" if orb.carried else f"{controls['interact']} Lift Orb / T Recall"
                 r.rect(s,INK,(6,145,288,22));self.text(label,10,150,GOLD,max_width=276)
-        near=next((o for o in session.puzzles.objects.values() if abs(o.x-p.x)+abs(o.y-p.y)<=1 and isinstance(o,(Switch,Door,SecretPassage,Chest,Reflector,CrackedWall,BombSupply,LiftablePot,Brazier,CrystalSwitch,PotSupply,PowderSupply)) and not isinstance(o,GateControl) and not (isinstance(o,Chest) and not o.visible) and not (isinstance(o,(Door,SecretPassage)) and o.state.active)),None)
+        near=next((o for o in session.puzzles.objects.values() if abs(o.x-p.x)+abs(o.y-p.y)<=1 and isinstance(o,(Switch,Door,SecretPassage,Chest,Reflector,CrackedWall,BombSupply,LiftablePot,Brazier,CrystalSwitch,PotSupply,PowderSupply)) and not isinstance(o,GateControl) and not (isinstance(o,Chest) and o.phase!=ChestPhase.AVAILABLE) and not (isinstance(o,(Door,SecretPassage)) and o.state.active)),None)
         if not orb_prompt and (near or getattr(session.inventory,'carried',None)):
             carrying=getattr(session.inventory,'carried',None)
             label=f"{controls['interact']} Drop / G Throw" if carrying else '[P] Light' if isinstance(near,Brazier) else f"[{controls['attack']}] Crystal" if isinstance(near,CrystalSwitch) else f"[{controls['interact']}] Lift" if isinstance(near,LiftablePot) else '[B] Bomb' if isinstance(near,CrackedWall) else f"[{controls['ability']}] Pulse" if isinstance(near,SecretPassage) else f"[{controls['interact']}] Interact"

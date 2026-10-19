@@ -107,6 +107,9 @@ class PuzzleManager(CollisionManager):
         self.objects = {d['id']: FACTORY[d['type']](d) for d in room['objects']}
         self.beams=[]
         self.occupants=set()
+        self.player_position=None
+        self.defeated=set()
+        self.chest_events=[]
         self.update(0, None)
 
     def blocked(self, x, y, ignore=None):
@@ -148,6 +151,7 @@ class PuzzleManager(CollisionManager):
         return None
 
     def update(self, dt, player):
+        self.player_position=(player.x,player.y) if player is not None else None
         for obj in self.objects.values():
             if isinstance(obj, Key) and player and obj.pos == (player.x, player.y) and not obj.state.active and all(self.condition(i) for i in obj.data.get("requires",[])):
                 for _ in range(obj.data.get("amount",1)):self.inventory.add(obj.data['color'])
@@ -261,12 +265,17 @@ class Chest(PuzzleObject):
             self.phase = ChestPhase.OPENED
             self.spawn_time = 0.
         elif self.phase == ChestPhase.HIDDEN:
-            if (all(manager.condition(i) for i in self.data.get('requires', []))
+            clear_spawn=(self.pos!=manager.player_position and self.pos not in manager.occupants
+                         and manager.tilemap.walkable(*self.pos)
+                         and not any(o is not self and o.pos==self.pos and o.blocking and not o.state.active for o in manager.objects.values()))
+            if (clear_spawn and set(self.data.get('enemy_requires',[])) <= manager.defeated
+                    and all(manager.condition(i) for i in self.data.get('requires', []))
                     and set(self.data.get('ability_requires', [])) <= manager.inventory.abilities
                     and set(self.data.get('flag_requires', [])) <= manager.inventory.flags
                     and self.data.get('crystal_color', 'blue' if 'crystal_blue' in manager.inventory.flags else 'red') == ('blue' if 'crystal_blue' in manager.inventory.flags else 'red')):
                 self.phase = ChestPhase.SPAWNING
                 self.spawn_time = self.spawn_duration
+                manager.chest_events.append(self.id)
         elif self.phase == ChestPhase.SPAWNING:
             self.spawn_time = max(0., self.spawn_time - dt)
             if self.spawn_time == 0:

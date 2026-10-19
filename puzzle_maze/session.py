@@ -114,6 +114,7 @@ class GameSession:
         self.dash_cooldown=max(0,self.dash_cooldown-dt)
         self.combat.player=self.player
         self.combat.update(dt)
+        self.puzzles.defeated={e.id for e in self.combat.enemies if e.hp<=0}
         self.puzzles.occupants={e.pos for e in self.combat.enemies if e.hp>0 and not e.dormant}
         for obj in self.puzzles.objects.values():
             if obj.data['type']=='combat':obj.state.active=self.combat.cleared

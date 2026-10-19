@@ -31,7 +31,6 @@ class AdvancedDungeonSession(DungeonSession):
         self.checkpoint['orb']=self.orb.capture()
         self.checkpoint['reward_bag']=self.rewards.capture();self.effects=[];self.pot_flights=[]
     def tick(self,dt):
-        pending={o.id for o in self.puzzles.objects.values() if isinstance(o,Chest) and o.phase==ChestPhase.HIDDEN}
         super().tick(dt)
         if self.player.hp<=0:return
         self.pot_flights=[dict(flight,time=flight['time']-dt) for flight in self.pot_flights if flight['time']>dt]
@@ -46,10 +45,10 @@ class AdvancedDungeonSession(DungeonSession):
             if rule and set(rule['flags'])<=self.inventory.flags and rule['result'] not in self.inventory.flags:
                 self.inventory.flags.add(rule['result']);self.inventory.notifications.append(('map','PILLARS BROKEN / NEW STAIRS'))
         self.puzzles.update(0,self.player)
-        for name in pending:
+        for name in self.puzzles.chest_events:
             chest=self.puzzles.objects[name]
-            if chest.phase==ChestPhase.SPAWNING:
-                self.combat.events.append('solve');self.effects.append(('chest',chest.pos,.45))
+            self.combat.events.append('chest_spawn');self.effects.append(('chest',chest.pos,.45))
+        self.puzzles.chest_events.clear()
     def move(self,dx,dy):
         moved=super().move(dx,dy)
         if moved:
