@@ -22,6 +22,7 @@ class BombManager:
         # Placement against a cracked wall or enemy remains legal, permanent walls reject it.
         if s.puzzles.blocked(*pos):pos=p.x,p.y
         if any(b.pos==pos for b in self.bombs):return False
+        s.combat.entry_protection=0
         s.inventory.bombs-=1;self.bombs.append(Bomb(*pos));self.timer=self.cooldown
         s.combat.events.append('bomb_place');return True
     def footprint(self,pos,radius=2):
@@ -51,7 +52,9 @@ class BombManager:
             if bomb.fuse>0:continue
             cells=self.footprint(bomb.pos)
             for obj in s.puzzles.objects.values():
-                if obj.pos in cells and obj.data['type'] in ('cracked','blast_switch'):obj.state.active=True
+                if obj.pos in cells:
+                    if obj.data['type']=='cracked' and obj.blast(dt):s.combat.events.append('wall_break')
+                    elif obj.data['type']=='blast_switch':obj.state.active=True
             for enemy in s.combat.enemies:
                 if enemy.hp>0 and not enemy.dormant and enemy.pos in cells:
                     enemy.receive_damage(s.combat,6 if enemy.id==bomb.swallowed else 2,'bomb',bomb)

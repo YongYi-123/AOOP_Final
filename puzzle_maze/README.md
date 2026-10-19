@@ -1,9 +1,145 @@
-# Puzzle Maze 4.2 — Emberglass Hollow
+# Puzzle Maze 4.4 — Emberglass Hollow
 
-An original Python / Pygame dungeon adventure upgraded in place. Twenty-two
+An original Python / Pygame dungeon adventure upgraded in place. Twenty-seven
 rooms over 1F and B1F combine branch exploration, returning routes, cross-room
-circuits, fire sequences, carried weights, enemy weaknesses and five secret
-collections. The original free Arcade cabinet now opens this 4.2 campaign. No story is included.
+circuits, fire sequences, carried weights, enemy weaknesses and six secret
+collections. The original free Arcade cabinet now opens this 4.4 campaign. No story is included.
+
+## 4.4 royal key, lower-floor circuit and treasure vault
+
+The live campaign has **27 rooms, 37 chests, 61 entrance records and 41 effective
+actuators**. The resource search retains 409/409 winning states and six Small
+Keys for five costs. The existing 1F/B1F layout, all six hidden rooms, nonlinear
+branches, enemies, Boss phases, abilities and recoverable Iron Orb remain.
+
+Boss Key now has an original 16-pixel golden crown/jewel silhouette; Small Key
+is a smaller silver key. The same royal silhouette appears in HUD, map inventory,
+large acquisition popup and the Boss Gate. Its hidden chest has gold edging and
+a jewel. Acquisition takes priority over ordinary pickup messages, shows
+**BOSS KEY ACQUIRED** for 2.4 seconds and plays a dedicated cue. The stone Boss
+Gate opens over 0.6 seconds, retains the non-consumable key and saves its timer.
+
+New-game key route: shatter the Storage pillar on 1F and the Foundry pillar on
+B1F with the same Orb; their flags lower the optional stairs. Carry the Orb to
+r22 and drop it on the crowned socket at (9,12). The lower circuit posts a saved
+royal resonance flag, visibly waking the matching upper circuit in r6. Finish
+the existing Boots/timed gate, Prism and Warden conditions to reveal the royal
+key chest. Recall remains T; walls and forbidden portals still stop the Orb.
+The design uses original room layouts and pixel art, applying the broad ideas
+of transporting a weight, changing access and returning after a floor changes.
+
+Before Dungeon Map, both map views expose only the current room. The Map chest
+unlocks non-secret outlines; unexplored rooms stay gray and secret rooms stay
+hidden until visited. Compass is a separate obtainable chest reward and adds
+known treasure/Boss scope. New tests cover both acquisitions and the circuit.
+
+Defeating Golem waits for its death animation before opening the route to r18.
+Open r18's original treasure and dawn gate, then walk east into the independent
+**r27 Royal Treasure Vault**. No settlement happens when the Boss dies or when
+the vault is entered. The compact room has gold/silver coin heaps, colored gems,
+gold pillars, stone inlay, runes, reliefs, warm torches and sparse sparkle motes.
+Visibly empty, open display chests differ from the three locked interactive
+coffers. All three have legal walking/interaction approaches and save once-only
+openings. The minimap moves to the top center here to expose the treasure.
+
+The floating central scroll at (11,7) has a bob, halo and orbiting pixels.
+Approach and press E (P2: Enter) for **COMING SOON**. Enter/E/Esc closes the modal;
+gameplay clocks freeze while it is open. No story, quest or achievement is
+implemented. MysteryScroll's content identifier is the extension point.
+
+Royal coffers contain the first-clear base bonus of **1,000 Tokens / 300 Tickets**
+and the original **Emberglass Crown** collection. Open all three and walk through
+the east exit to finish. Existing exploration rewards remain in the escrow too.
+RoyalClearHistory records one immutable receipt per run ID: the first royal clear
+keeps the 1,000/300 bonus; subsequent royal clears reduce that part to **100/30**.
+Revisiting, reloading or calling settlement again does not generate another
+receipt. Death/retry rolls back to the room-entry bag and chest checkpoint.
+Leaving before completion produces no clear receipt.
+
+**External Arcade account payout is disabled.** The host currently supplies no
+persistent cross-run grant identifier for this cabinet. The requested fallback
+is implemented entirely inside Puzzle Maze: reward policy, escrow, per-owner
+receipts and a read-only adapter accessor. MiniGameResult retains the existing
+free-trial zero-payout behavior; no Lobby economy or other game's module changes.
+The victory screen identifies this policy. These records are not a second wallet.
+
+CampaignProfile isolates Lobby players by their existing profile ID under
+`puzzle_maze/profiles/<hashed-owner>/`. Each owns a campaign and authoritative
+royal-history file. New runs preserve history; Continue merges compatible saved
+receipts. Writes are atomic; malformed/wrong-owner histories block new reward
+records rather than resetting first-clear eligibility. Standalone play continues
+using the original `save_v4.json`, with its own isolated royal history. Old shared
+Lobby progress remains available through standalone Continue and is not silently
+copied into another person's profile. 4.0–4.3 saves retain earned keys, opened
+rewards, Orb state and completed runs; old completions do not consume the new
+royal first-clear bonus. Loading leaves source files unchanged.
+
+Validation: all **206 Puzzle Maze + 1,827 Arcade Lobby tests passed** (2,033 total),
+including the full 27-room/37-chest production-action witness. Regression source
+was verified identical in an isolated tree to keep runtime saves separate.
+
+New classes: BossKeyIcon, OrbSocket, MysteryScroll, RoyalVaultArt,
+RoyalRewardPolicy, RoyalClearHistory and CampaignProfile. Full development,
+file/commit and verification records are in [DEVELOPMENT.md](DEVELOPMENT.md).
+Manual checks still needed: sound levels, key/gate timing, Orb socket clarity,
+vault visual readability, P1/P2 keyboard feel and continuous Boss difficulty.
+
+## Historical 4.3 exploration and combat update
+
+The current dungeon has 26 rooms, 34 chests (24 truly hidden), six hidden rooms,
+59 entrance records, and 40 effective puzzle actuators. Four new bomb-only
+branches contain a mineral switch and bat encounter, an archive flame puzzle,
+a weighted mint floor, and a blue-crystal shrine. Their rewards include Heart
+Fragments, the Music Disc, a sword skin, collections, and private Tokens/Tickets.
+Existing nonlinear routes, keys, abilities, multi-floor stairs and Boss progression
+remain intact. The menu and original Arcade cabinet both load 4.3.
+
+Hidden chests are absent from rendering, prompts, collision and Compass markers
+until their conditions complete. They remember a completed trigger even while a
+player, enemy, crate, pot or Iron Orb occupies the spawn tile. A short rise,
+room flash, sparkles and distinct cue announce each reveal. Spawn timers, pending
+triggers and opened rewards survive save/load and revisits.
+
+Bomb walls use SEALED / REVEALING / OPEN states. During the 0.6-second break they
+remain impassable; themed cracks, debris and dust replace explicit bomb prompts.
+Secret rooms remain off the atlas until visited. All entrances have reciprocal
+absolute directions and safe return landings.
+
+Every authored enemy spawn stays at least three Manhattan tiles from each
+entrance landing; doors, stairs and important objects are reserved. Live return
+encounters repair unsafe enemy positions. One second of entry protection permits
+movement; a sword attack, successful bomb placement or a thrown weapon cancels it.
+Damage uses the existing 1.1-second hurt immunity. Boss weakness windows suppress
+attacks and allow Sword approaches. Warden retains color defense and permits at
+most three hits per window, requiring multiple Sword rounds. Golem still requires
+the original dash/bomb/crystal sequence. Hurt stagger and readable danger tiles
+supplement the existing attack windups and recovery timers.
+
+Original pixel expressions, idle bobs, interpolated enemy steps and death motes
+retain each silhouette. Library dust, crystal sparks, mine grit, pulsing local
+lights, chest light and explosion/Boss illumination remain clipped above the HUD.
+Lighting does not darken the scene or use smooth image scaling.
+
+4.2 saves migrate in memory: earned rewards and already-revealed chests persist;
+formerly visible but locked rewards gain real hidden conditions. A save standing
+on a new wall receives a neighboring safe landing, including its carried Orb.
+The existing 4.0/4.1 migration runs first when necessary. Loading does not rewrite
+the source save. New saves still use `save_v4.json` with `content_revision: 4.3`.
+
+Tokens/Tickets remain in the existing private expedition escrow and settle only
+at a living victory. Retry restores the entry checkpoint's reward bag. The free
+Arcade trial cabinet retains its existing **zero external payout** and no-score
+policy; this update does not change the host economy or other games.
+
+Validation passed: 189 Puzzle Maze tests and 1,827 complete Arcade Lobby tests
+(2,016 total), plus integrity, map-builder equality and headless startup.
+
+The production-action campaign visits all 26 rooms and opens all 34 chests, using
+real movement, puzzles, bombs, combat clocks and both Boss mechanics, then checks
+the saved, repeatable settlement receipt. This is a targeted action witness;
+it does not exhaust every possible real-time combat trajectory. Manually verify
+keyboard feel, clue subtlety, continuous Boss difficulty, sound levels and FPS on
+the target computer.
 
 ## Run
 
@@ -17,7 +153,7 @@ to silence when mixer initialization fails.
 
 New expedition plays a six-second introduction; Enter skips to the tutorial.
 Left/Right switch the two tutorial pages and Enter begins. Quick start skips both.
-Continue expedition loads 4.2 without onboarding. Pause, full map and onboarding
+Continue expedition loads 4.4 without onboarding. Pause, full map and onboarding
 freeze gameplay clocks, enemy AI and bomb fuses.
 
 ## Controls
@@ -227,12 +363,12 @@ balance, audio volume, native display scaling and actual FPS. All edits are conf
 changes were made. The cabinet selects the current v4 campaign explicitly without changing host modules.
 
 
-## 4.2 absolute geometry and progression repair
+## Historical 4.2 absolute geometry and progression repair
 
-[Complete Chinese walkthrough](PLAYER_ROUTE.md) documents the actual 4.2
+[Complete Chinese walkthrough](PLAYER_ROUTE.md) documents the current dungeon, extending the 4.2
 coordinates, door directions, resource order, puzzle solutions, optional Orb
 route, Boss phases and the final room. The cabinet and standalone menu show
-**PUZZLE MAZE 4.2**; restart a running host process to load the updated modules.
+**PUZZLE MAZE 4.3**; restart a running host process to load the updated modules.
 
 Every room has authoritative floor/grid_x/grid_y coordinates. The atlas derives
 from those fields. DoorConnection/RoomCoordinate and DoorValidator check unique

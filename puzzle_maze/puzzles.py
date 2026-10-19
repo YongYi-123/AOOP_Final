@@ -76,6 +76,7 @@ class Door(PuzzleObject):
         super().__init__(data)
         self.unlocked = 'key' not in data
         self.latched = False
+        self.opening = 0.
 
     def interact(self, manager, player, pulse=False):
         if pulse or self.unlocked:
@@ -84,7 +85,7 @@ class Door(PuzzleObject):
         key=self.data['key']
         if key=='boss':
             if not manager.inventory.boss_key:return False
-            self.unlocked=True;return True
+            self.unlocked=True;self.opening=self.data.get("opening_duration",0.);return True
         if manager.inventory.keys.get(key,0)>=cost:
             manager.inventory.keys[key]-=cost
             self.unlocked = True
@@ -107,6 +108,9 @@ class PuzzleManager(CollisionManager):
         self.objects = {d['id']: FACTORY[d['type']](d) for d in room['objects']}
         self.beams=[]
         self.occupants=set()
+        self.player_position=None
+        self.defeated=set()
+        self.chest_events=[]
         self.update(0, None)
 
     def blocked(self, x, y, ignore=None):
@@ -148,6 +152,7 @@ class PuzzleManager(CollisionManager):
         return None
 
     def update(self, dt, player):
+        if player is not None:self.player_position=(player.x,player.y)
         for obj in self.objects.values():
             if isinstance(obj, Key) and player and obj.pos == (player.x, player.y) and not obj.state.active and all(self.condition(i) for i in obj.data.get("requires",[])):
                 for _ in range(obj.data.get("amount",1)):self.inventory.add(obj.data['color'])
@@ -158,7 +163,9 @@ class PuzzleManager(CollisionManager):
         self.trace_light()
         for obj in self.objects.values():
             if isinstance(obj, Door):
-                powered = all(self.objects[i].state.active or (isinstance(self.objects[i], Door) and self.objects[i].latched) for i in obj.data.get('requires', [])) and obj.unlocked
+                obj.opening=max(0.,obj.opening-dt)
+                if obj.opening<1e-9:obj.opening=0.
+                powered = obj.opening<=0 and all(self.objects[i].state.active or (isinstance(self.objects[i], Door) and self.objects[i].latched) for i in obj.data.get('requires', [])) and obj.unlocked
                 # Non-timed doors latch: the introductory player plate remains fair.
                 timed = any(self.objects[i].data['type'] == 'timed' for i in obj.data.get('requires', []))
                 if powered and not timed:
@@ -174,6 +181,9 @@ class PuzzleManager(CollisionManager):
 
     def update_special(self, dt):
         for obj in self.objects.values():
+            if isinstance(obj, CrackedWall) and obj.state.remaining>0:
+                obj.state.remaining=max(0.,obj.state.remaining-dt)
+                if obj.state.remaining<1e-9:obj.state.remaining=0.;obj.state.active=True
             if isinstance(obj, RemoteRelay):obj.state.active=all(i in self.inventory.flags for i in obj.data.get("flags",[]))
             if isinstance(obj, TimedSwitch):
                 obj.state.remaining = max(0, obj.state.remaining - dt)
@@ -251,6 +261,7 @@ class Chest(PuzzleObject):
         super().__init__(data)
         self.phase = ChestPhase.HIDDEN if data.get('hidden') else ChestPhase.AVAILABLE
         self.spawn_time = 0.
+        self.triggered = False
 
     @property
     def visible(self):
@@ -261,12 +272,19 @@ class Chest(PuzzleObject):
             self.phase = ChestPhase.OPENED
             self.spawn_time = 0.
         elif self.phase == ChestPhase.HIDDEN:
-            if (all(manager.condition(i) for i in self.data.get('requires', []))
+            clear_spawn=(manager.player_position is not None and self.pos!=manager.player_position and self.pos not in manager.occupants
+                         and manager.tilemap.walkable(*self.pos)
+                         and not any(o is not self and o.pos==self.pos and o.blocking and not o.state.active for o in manager.objects.values()))
+            if (set(self.data.get('enemy_requires',[])) <= manager.defeated
+                    and all(manager.condition(i) for i in self.data.get('requires', []))
                     and set(self.data.get('ability_requires', [])) <= manager.inventory.abilities
                     and set(self.data.get('flag_requires', [])) <= manager.inventory.flags
                     and self.data.get('crystal_color', 'blue' if 'crystal_blue' in manager.inventory.flags else 'red') == ('blue' if 'crystal_blue' in manager.inventory.flags else 'red')):
+                self.triggered=True
+            if self.triggered and clear_spawn:
                 self.phase = ChestPhase.SPAWNING
                 self.spawn_time = self.spawn_duration
+                manager.chest_events.append(self.id)
         elif self.phase == ChestPhase.SPAWNING:
             self.spawn_time = max(0., self.spawn_time - dt)
             if self.spawn_time == 0:
@@ -282,7 +300,7 @@ class Chest(PuzzleObject):
         manager.inventory.supply_bombs(self.data.get("bombs",0))
         for _ in range(self.data.get("small_keys",0)):manager.inventory.add("small")
         if self.data.get("boss_key"):
-            manager.inventory.boss_key=True;manager.inventory.notifications.append(("boss_key","BOSS KEY"))
+            manager.inventory.boss_key=True;manager.inventory.notifications.append(("boss_key","BOSS KEY ACQUIRED"))
         manager.inventory.supply_powder(self.data.get('powder',0))
         for treasure in self.data.get('loot',[]):
             if hasattr(manager,'grant_treasure'):manager.grant_treasure(self.id,treasure)
@@ -312,8 +330,22 @@ class CombatSeal(PuzzleObject):
 FACTORY['combat']=CombatSeal
 
 
+class EntrancePhase(str,Enum):
+    SEALED='sealed'
+    REVEALING='revealing'
+    OPEN='open'
+
 class CrackedWall(PuzzleObject):
     blocking=True
+    @property
+    def phase(self):
+        return EntrancePhase.OPEN if self.state.active else EntrancePhase.REVEALING if self.state.remaining>0 else EntrancePhase.SEALED
+    def blast(self,dt=0):
+        if self.phase!=EntrancePhase.SEALED:return False
+        duration=self.data.get('duration',0)
+        if duration:self.state.remaining=duration+dt
+        else:self.state.active=True
+        return True
 
 class BlastSwitch(PuzzleObject):
     pass

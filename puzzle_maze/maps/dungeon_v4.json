@@ -166,9 +166,23 @@
       }
     ],
     "seed": 79,
-    "content_revision": "4.2",
+    "content_revision": "4.4",
     "grid_x": 2,
-    "grid_y": 3
+    "grid_y": 3,
+    "safe_landings": [
+      [
+        2,
+        7
+      ],
+      [
+        12,
+        2
+      ],
+      [
+        23,
+        8
+      ]
+    ]
   },
   "r2": {
     "name": "Relay Atrium",
@@ -409,9 +423,35 @@
       }
     ],
     "seed": 158,
-    "content_revision": "4.2",
+    "content_revision": "4.4",
     "grid_x": 2,
-    "grid_y": 2
+    "grid_y": 2,
+    "safe_landings": [
+      [
+        2,
+        7
+      ],
+      [
+        2,
+        8
+      ],
+      [
+        12,
+        2
+      ],
+      [
+        12,
+        13
+      ],
+      [
+        22,
+        10
+      ],
+      [
+        23,
+        8
+      ]
+    ]
   },
   "r3": {
     "name": "Copper Watch",
@@ -514,7 +554,7 @@
         "id": "bat",
         "type": "bat",
         "pos": [
-          12,
+          13,
           11
         ]
       }
@@ -632,9 +672,27 @@
       }
     ],
     "seed": 237,
-    "content_revision": "4.2",
+    "content_revision": "4.4",
     "grid_x": 2,
-    "grid_y": 1
+    "grid_y": 1,
+    "safe_landings": [
+      [
+        2,
+        7
+      ],
+      [
+        12,
+        2
+      ],
+      [
+        12,
+        13
+      ],
+      [
+        23,
+        8
+      ]
+    ]
   },
   "r4": {
     "name": "Weight and Light",
@@ -858,9 +916,23 @@
       }
     ],
     "seed": 316,
-    "content_revision": "4.2",
+    "content_revision": "4.4",
     "grid_x": 1,
-    "grid_y": 2
+    "grid_y": 2,
+    "safe_landings": [
+      [
+        2,
+        7
+      ],
+      [
+        12,
+        2
+      ],
+      [
+        23,
+        8
+      ]
+    ]
   },
   "r5": {
     "name": "Ancient Library",
@@ -982,7 +1054,18 @@
         },
         "requires": [
           "gate"
-        ]
+        ],
+        "hidden": true
+      },
+      {
+        "id": "secret43",
+        "type": "cracked",
+        "pos": [
+          24,
+          8
+        ],
+        "optional": true,
+        "duration": 0.6
       }
     ],
     "enemies": [],
@@ -1021,6 +1104,26 @@
           23,
           8
         ],
+        "orb_allowed": true
+      },
+      {
+        "id": "r5:r24",
+        "return_id": "r24:r5",
+        "target": "r24",
+        "pos": [
+          24,
+          8
+        ],
+        "arrival": [
+          2,
+          8
+        ],
+        "direction": "EAST",
+        "entrance": "cave",
+        "requires": [
+          "secret43"
+        ],
+        "abilities": [],
         "orb_allowed": true
       }
     ],
@@ -1077,9 +1180,27 @@
       }
     ],
     "seed": 395,
-    "content_revision": "4.2",
+    "content_revision": "4.4",
     "grid_x": 3,
-    "grid_y": 1
+    "grid_y": 1,
+    "safe_landings": [
+      [
+        2,
+        7
+      ],
+      [
+        2,
+        8
+      ],
+      [
+        12,
+        13
+      ],
+      [
+        23,
+        8
+      ]
+    ]
   },
   "r6": {
     "name": "Returning Runner",
@@ -1163,7 +1284,8 @@
           "needs": [
             "boots",
             "prism",
-            "warden"
+            "warden",
+            "royal_resonance"
           ]
         },
         "loot": [
@@ -1175,8 +1297,31 @@
         ],
         "flag_requires": [
           "prism",
-          "warden"
+          "warden",
+          "royal_resonance"
         ]
+      },
+      {
+        "id": "secret43",
+        "type": "cracked",
+        "pos": [
+          24,
+          8
+        ],
+        "optional": true,
+        "duration": 0.6
+      },
+      {
+        "id": "royal_signal",
+        "type": "relay",
+        "pos": [
+          21,
+          11
+        ],
+        "flags": [
+          "royal_resonance"
+        ],
+        "optional": true
       }
     ],
     "enemies": [],
@@ -1198,12 +1343,32 @@
           8
         ],
         "orb_allowed": true
+      },
+      {
+        "id": "r6:r25",
+        "return_id": "r25:r6",
+        "target": "r25",
+        "pos": [
+          24,
+          8
+        ],
+        "arrival": [
+          2,
+          8
+        ],
+        "direction": "EAST",
+        "entrance": "cave",
+        "requires": [
+          "secret43"
+        ],
+        "abilities": [],
+        "orb_allowed": true
       }
     ],
     "goal": [
       "boss_key"
     ],
-    "hint": "Return with boots and the lower prism signal. E then SHIFT east.",
+    "hint": "The crowned chest listens to a matching socket below. Two shattered pillars reveal the way.",
     "decorations": [
       {
         "kind": "banner",
@@ -1252,9 +1417,23 @@
       }
     ],
     "seed": 474,
-    "content_revision": "4.2",
+    "content_revision": "4.4",
     "grid_x": 3,
-    "grid_y": 3
+    "grid_y": 3,
+    "safe_landings": [
+      [
+        2,
+        7
+      ],
+      [
+        2,
+        8
+      ],
+      [
+        23,
+        8
+      ]
+    ]
   },
   "r7": {
     "name": "Powder Workshop",
@@ -1338,7 +1517,8 @@
         "pos": [
           1,
           8
-        ]
+        ],
+        "duration": 0.6
       }
     ],
     "enemies": [],
@@ -1459,9 +1639,27 @@
       }
     ],
     "seed": 553,
-    "content_revision": "4.2",
+    "content_revision": "4.4",
     "grid_x": 1,
-    "grid_y": 0
+    "grid_y": 0,
+    "safe_landings": [
+      [
+        2,
+        7
+      ],
+      [
+        2,
+        8
+      ],
+      [
+        12,
+        13
+      ],
+      [
+        23,
+        8
+      ]
+    ]
   },
   "r8": {
     "name": "Hidden Treasury",
@@ -1528,7 +1726,18 @@
         "bombs": 4,
         "requires": [
           "blast"
-        ]
+        ],
+        "hidden": true
+      },
+      {
+        "id": "secret43",
+        "type": "cracked",
+        "pos": [
+          12,
+          14
+        ],
+        "optional": true,
+        "duration": 0.6
       }
     ],
     "enemies": [],
@@ -1550,6 +1759,26 @@
         "direction": "EAST",
         "id": "r8:r7",
         "return_id": "r7:r8",
+        "orb_allowed": true
+      },
+      {
+        "id": "r8:r23",
+        "return_id": "r23:r8",
+        "target": "r23",
+        "pos": [
+          12,
+          14
+        ],
+        "arrival": [
+          12,
+          2
+        ],
+        "direction": "SOUTH",
+        "entrance": "cave",
+        "requires": [
+          "secret43"
+        ],
+        "abilities": [],
         "orb_allowed": true
       }
     ],
@@ -1606,9 +1835,23 @@
       }
     ],
     "seed": 632,
-    "content_revision": "4.2",
+    "content_revision": "4.4",
     "grid_x": 0,
-    "grid_y": 0
+    "grid_y": 0,
+    "safe_landings": [
+      [
+        2,
+        7
+      ],
+      [
+        12,
+        13
+      ],
+      [
+        23,
+        8
+      ]
+    ]
   },
   "r9": {
     "name": "Boots Trial",
@@ -1705,7 +1948,7 @@
         "id": "armored_beetle",
         "type": "armored_beetle",
         "pos": [
-          12,
+          13,
           11
         ]
       }
@@ -1803,9 +2046,23 @@
       }
     ],
     "seed": 711,
-    "content_revision": "4.2",
+    "content_revision": "4.4",
     "grid_x": 2,
-    "grid_y": 0
+    "grid_y": 0,
+    "safe_landings": [
+      [
+        2,
+        7
+      ],
+      [
+        2,
+        8
+      ],
+      [
+        12,
+        13
+      ]
+    ]
   },
   "r10": {
     "name": "Lower Landing",
@@ -2026,9 +2283,27 @@
       }
     ],
     "seed": 790,
-    "content_revision": "4.2",
+    "content_revision": "4.4",
     "grid_x": 1,
-    "grid_y": 2
+    "grid_y": 2,
+    "safe_landings": [
+      [
+        2,
+        7
+      ],
+      [
+        2,
+        8
+      ],
+      [
+        12,
+        2
+      ],
+      [
+        23,
+        8
+      ]
+    ]
   },
   "r11": {
     "name": "Magnetic Foundry",
@@ -2095,7 +2370,8 @@
           "needs": [
             "stairs"
           ]
-        }
+        },
+        "hidden": true
       },
       {
         "id": "engine_pillar",
@@ -2113,7 +2389,7 @@
         "id": "blink_mage",
         "type": "blink_mage",
         "pos": [
-          12,
+          13,
           11
         ]
       }
@@ -2234,9 +2510,27 @@
       }
     ],
     "seed": 869,
-    "content_revision": "4.2",
+    "content_revision": "4.4",
     "grid_x": 1,
-    "grid_y": 1
+    "grid_y": 1,
+    "safe_landings": [
+      [
+        2,
+        7
+      ],
+      [
+        2,
+        8
+      ],
+      [
+        12,
+        13
+      ],
+      [
+        23,
+        8
+      ]
+    ]
   },
   "r12": {
     "name": "Prism Engine",
@@ -2361,7 +2655,8 @@
         },
         "requires": [
           "gate"
-        ]
+        ],
+        "hidden": true
       },
       {
         "type": "crystal_barrier",
@@ -2465,9 +2760,19 @@
       }
     ],
     "seed": 948,
-    "content_revision": "4.2",
+    "content_revision": "4.4",
     "grid_x": 2,
-    "grid_y": 1
+    "grid_y": 1,
+    "safe_landings": [
+      [
+        2,
+        7
+      ],
+      [
+        2,
+        8
+      ]
+    ]
   },
   "r13": {
     "name": "Hungry Portal",
@@ -2659,9 +2964,23 @@
       }
     ],
     "seed": 1027,
-    "content_revision": "4.2",
+    "content_revision": "4.4",
     "grid_x": 2,
-    "grid_y": 2
+    "grid_y": 2,
+    "safe_landings": [
+      [
+        2,
+        7
+      ],
+      [
+        2,
+        8
+      ],
+      [
+        23,
+        8
+      ]
+    ]
   },
   "r14": {
     "name": "Threefold Circuit",
@@ -2779,7 +3098,8 @@
         "potions": 2,
         "requires": [
           "gate"
-        ]
+        ],
+        "hidden": true
       }
     ],
     "enemies": [],
@@ -2878,9 +3198,23 @@
       }
     ],
     "seed": 1106,
-    "content_revision": "4.2",
+    "content_revision": "4.4",
     "grid_x": 3,
-    "grid_y": 2
+    "grid_y": 2,
+    "safe_landings": [
+      [
+        2,
+        7
+      ],
+      [
+        2,
+        8
+      ],
+      [
+        23,
+        2
+      ]
+    ]
   },
   "r15": {
     "name": "Sentinel Gallery",
@@ -3097,9 +3431,23 @@
       }
     ],
     "seed": 1185,
-    "content_revision": "4.2",
+    "content_revision": "4.4",
     "grid_x": 3,
-    "grid_y": 1
+    "grid_y": 1,
+    "safe_landings": [
+      [
+        2,
+        7
+      ],
+      [
+        12,
+        2
+      ],
+      [
+        12,
+        13
+      ]
+    ]
   },
   "r16": {
     "name": "Golem Antechamber",
@@ -3143,7 +3491,8 @@
         "requires": [
           "warden_signal"
         ],
-        "key": "boss"
+        "key": "boss",
+        "opening_duration": 0.6
       },
       {
         "type": "supply",
@@ -3271,9 +3620,23 @@
       }
     ],
     "seed": 1264,
-    "content_revision": "4.2",
+    "content_revision": "4.4",
     "grid_x": 3,
-    "grid_y": 0
+    "grid_y": 0,
+    "safe_landings": [
+      [
+        2,
+        7
+      ],
+      [
+        12,
+        13
+      ],
+      [
+        23,
+        8
+      ]
+    ]
   },
   "r17": {
     "name": "Ancient Golem",
@@ -3475,9 +3838,23 @@
       }
     ],
     "seed": 1343,
-    "content_revision": "4.2",
+    "content_revision": "4.4",
     "grid_x": 4,
-    "grid_y": 0
+    "grid_y": 0,
+    "safe_landings": [
+      [
+        2,
+        7
+      ],
+      [
+        2,
+        8
+      ],
+      [
+        23,
+        8
+      ]
+    ]
   },
   "r18": {
     "name": "Dawn Reservoir",
@@ -3571,19 +3948,18 @@
           24,
           8
         ],
-        "target": "r18",
+        "target": "r27",
         "arrival": [
-          24,
-          8
+          2,
+          7
         ],
         "requires": [
           "gate"
         ],
-        "finish": true,
         "entrance": "stone",
         "direction": "EAST",
-        "id": "r18:r18",
-        "return_id": null,
+        "id": "r18:r27",
+        "return_id": "r27:r18",
         "orb_allowed": true
       }
     ],
@@ -3639,9 +4015,23 @@
       }
     ],
     "seed": 1422,
-    "content_revision": "4.2",
+    "content_revision": "4.4",
     "grid_x": 5,
-    "grid_y": 0
+    "grid_y": 0,
+    "safe_landings": [
+      [
+        2,
+        7
+      ],
+      [
+        2,
+        8
+      ],
+      [
+        23,
+        8
+      ]
+    ]
   },
   "r19": {
     "name": "Torch Shrine",
@@ -3901,9 +4291,23 @@
       }
     ],
     "seed": 1501,
-    "content_revision": "4.2",
+    "content_revision": "4.4",
     "grid_x": 3,
-    "grid_y": 2
+    "grid_y": 2,
+    "safe_landings": [
+      [
+        2,
+        7
+      ],
+      [
+        2,
+        8
+      ],
+      [
+        12,
+        2
+      ]
+    ]
   },
   "r20": {
     "name": "Pot Storage",
@@ -4208,7 +4612,7 @@
       }
     ],
     "seed": 1580,
-    "content_revision": "4.2",
+    "content_revision": "4.4",
     "grid_x": 1,
     "grid_y": 1,
     "orb_spawn": [
@@ -4221,7 +4625,25 @@
         "pillar_foundry"
       ],
       "result": "floor_lowered"
-    }
+    },
+    "safe_landings": [
+      [
+        2,
+        7
+      ],
+      [
+        12,
+        2
+      ],
+      [
+        12,
+        13
+      ],
+      [
+        21,
+        12
+      ]
+    ]
   },
   "r21": {
     "name": "Crystal Warden",
@@ -4327,7 +4749,8 @@
         "pos": [
           12,
           1
-        ]
+        ],
+        "duration": 0.6
       }
     ],
     "enemies": [
@@ -4447,9 +4870,23 @@
     ],
     "on_clear_flag": "warden",
     "seed": 1659,
-    "content_revision": "4.2",
+    "content_revision": "4.4",
     "grid_x": 0,
-    "grid_y": 2
+    "grid_y": 2,
+    "safe_landings": [
+      [
+        2,
+        7
+      ],
+      [
+        12,
+        2
+      ],
+      [
+        23,
+        8
+      ]
+    ]
   },
   "r22": {
     "name": "Hidden Sanctuary",
@@ -4545,7 +4982,8 @@
         ],
         "requires": [
           "sequence"
-        ]
+        ],
+        "hidden": true
       },
       {
         "type": "chest",
@@ -4560,7 +4998,8 @@
         ],
         "requires": [
           "sequence"
-        ]
+        ],
+        "hidden": true
       },
       {
         "id": "totem_a",
@@ -4641,6 +5080,37 @@
           "ticket_bundle"
         ],
         "optional": true
+      },
+      {
+        "id": "secret43",
+        "type": "cracked",
+        "pos": [
+          12,
+          1
+        ],
+        "optional": true,
+        "duration": 0.6
+      },
+      {
+        "id": "royal_socket",
+        "type": "orb_socket",
+        "pos": [
+          9,
+          12
+        ],
+        "flag": "royal_resonance",
+        "flag_requires": [
+          "floor_lowered"
+        ],
+        "optional": true,
+        "progression": {
+          "milestone": "royal_resonance",
+          "needs": [
+            "magnet",
+            "gloves",
+            "prism"
+          ]
+        }
       }
     ],
     "enemies": [
@@ -4732,12 +5202,32 @@
         "abilities": [],
         "transformed": true,
         "orb_allowed": true
+      },
+      {
+        "id": "r22:r26",
+        "return_id": "r26:r22",
+        "target": "r26",
+        "pos": [
+          12,
+          1
+        ],
+        "arrival": [
+          12,
+          13
+        ],
+        "direction": "NORTH",
+        "entrance": "cave",
+        "requires": [
+          "secret43"
+        ],
+        "abilities": [],
+        "orb_allowed": true
       }
     ],
     "goal": [
       "skin"
     ],
-    "hint": "Carved order: slime, bat, mask. Wrong order awakens them again.",
+    "hint": "The crown socket wakes beneath the lowered floor. Place the Iron Orb on its round inlay.",
     "decorations": [
       {
         "kind": "banner",
@@ -4785,8 +5275,672 @@
       "mask"
     ],
     "seed": 1738,
-    "content_revision": "4.2",
+    "content_revision": "4.4",
     "grid_x": 0,
-    "grid_y": 1
+    "grid_y": 1,
+    "safe_landings": [
+      [
+        2,
+        7
+      ],
+      [
+        5,
+        12
+      ],
+      [
+        12,
+        2
+      ],
+      [
+        12,
+        13
+      ],
+      [
+        23,
+        8
+      ]
+    ]
+  },
+  "r23": {
+    "name": "Amber Mine",
+    "hint": "Listen to the stone, then study what remains.",
+    "tiles": [
+      "##########################",
+      "#........................#",
+      "#........................#",
+      "#........................#",
+      "#....O.............O.....#",
+      "#........................#",
+      "#........................#",
+      "#........................#",
+      "#........................#",
+      "#........................#",
+      "#........................#",
+      "#....O.............O.....#",
+      "#........................#",
+      "#........................#",
+      "#........................#",
+      "##########################"
+    ],
+    "spawn": [
+      2,
+      7
+    ],
+    "floor": "1F",
+    "grid_x": 0,
+    "grid_y": 1,
+    "atlas": [
+      0,
+      1
+    ],
+    "layout_revision": "4.0",
+    "content_revision": "4.4",
+    "hidden": true,
+    "theme": "mine",
+    "objects": [
+      {
+        "id": "vein",
+        "type": "switch",
+        "pos": [
+          9,
+          7
+        ]
+      },
+      {
+        "id": "cache",
+        "type": "chest",
+        "pos": [
+          15,
+          7
+        ],
+        "hidden": true,
+        "requires": [
+          "vein"
+        ],
+        "enemy_requires": [
+          "ore_bat"
+        ],
+        "loot": [
+          "heart_fragment",
+          "ticket_bundle",
+          "bomb_bundle"
+        ]
+      }
+    ],
+    "enemies": [
+      {
+        "id": "ore_bat",
+        "type": "bat",
+        "pos": [
+          17,
+          10
+        ]
+      }
+    ],
+    "goal": [
+      "cache"
+    ],
+    "decorations": [
+      {
+        "kind": "torch",
+        "pos": [
+          6,
+          0
+        ],
+        "phase": 0
+      }
+    ],
+    "exits": [
+      {
+        "id": "r23:r8",
+        "return_id": "r8:r23",
+        "target": "r8",
+        "pos": [
+          12,
+          1
+        ],
+        "arrival": [
+          12,
+          13
+        ],
+        "direction": "NORTH",
+        "entrance": "cave",
+        "requires": [],
+        "abilities": [],
+        "orb_allowed": true
+      }
+    ],
+    "safe_landings": [
+      [
+        2,
+        7
+      ],
+      [
+        12,
+        2
+      ]
+    ]
+  },
+  "r24": {
+    "name": "Whisper Archive",
+    "hint": "A quiet flame remembers old songs.",
+    "tiles": [
+      "##########################",
+      "#........................#",
+      "#........................#",
+      "#........................#",
+      "#....O.............O.....#",
+      "#........................#",
+      "#........................#",
+      "#........................#",
+      "#........................#",
+      "#........................#",
+      "#........................#",
+      "#....O.............O.....#",
+      "#........................#",
+      "#........................#",
+      "#........................#",
+      "##########################"
+    ],
+    "spawn": [
+      2,
+      7
+    ],
+    "floor": "1F",
+    "grid_x": 4,
+    "grid_y": 1,
+    "atlas": [
+      4,
+      1
+    ],
+    "layout_revision": "4.0",
+    "content_revision": "4.4",
+    "hidden": true,
+    "theme": "underground_library",
+    "objects": [
+      {
+        "id": "candle",
+        "type": "brazier",
+        "pos": [
+          9,
+          7
+        ]
+      },
+      {
+        "id": "powder",
+        "type": "powder_supply",
+        "pos": [
+          7,
+          10
+        ]
+      },
+      {
+        "id": "cache",
+        "type": "chest",
+        "pos": [
+          15,
+          7
+        ],
+        "hidden": true,
+        "requires": [
+          "candle"
+        ],
+        "loot": [
+          "music_disc",
+          "token_cache"
+        ]
+      }
+    ],
+    "enemies": [],
+    "goal": [
+      "cache"
+    ],
+    "decorations": [
+      {
+        "kind": "books",
+        "pos": [
+          6,
+          0
+        ],
+        "phase": 1
+      }
+    ],
+    "exits": [
+      {
+        "id": "r24:r5",
+        "return_id": "r5:r24",
+        "target": "r5",
+        "pos": [
+          1,
+          8
+        ],
+        "arrival": [
+          23,
+          8
+        ],
+        "direction": "WEST",
+        "entrance": "cave",
+        "requires": [],
+        "abilities": [],
+        "orb_allowed": true
+      }
+    ],
+    "safe_landings": [
+      [
+        2,
+        7
+      ],
+      [
+        2,
+        8
+      ]
+    ]
+  },
+  "r25": {
+    "name": "Moonlit Mint",
+    "hint": "Weight leaves a mark on the mint floor.",
+    "tiles": [
+      "##########################",
+      "#........................#",
+      "#........................#",
+      "#........................#",
+      "#....O.............O.....#",
+      "#........................#",
+      "#........................#",
+      "#........................#",
+      "#........................#",
+      "#........................#",
+      "#........................#",
+      "#....O.............O.....#",
+      "#........................#",
+      "#........................#",
+      "#........................#",
+      "##########################"
+    ],
+    "spawn": [
+      2,
+      7
+    ],
+    "floor": "1F",
+    "grid_x": 4,
+    "grid_y": 3,
+    "atlas": [
+      4,
+      3
+    ],
+    "layout_revision": "4.0",
+    "content_revision": "4.4",
+    "hidden": true,
+    "theme": "vault",
+    "objects": [
+      {
+        "id": "box",
+        "type": "box",
+        "pos": [
+          9,
+          9
+        ],
+        "heavy": true
+      },
+      {
+        "id": "plate",
+        "type": "plate",
+        "pos": [
+          9,
+          8
+        ]
+      },
+      {
+        "id": "cache",
+        "type": "chest",
+        "pos": [
+          15,
+          7
+        ],
+        "hidden": true,
+        "requires": [
+          "plate"
+        ],
+        "loot": [
+          "crystal_skin",
+          "ticket_bundle"
+        ]
+      }
+    ],
+    "enemies": [],
+    "goal": [
+      "cache"
+    ],
+    "decorations": [
+      {
+        "kind": "sigil",
+        "pos": [
+          6,
+          0
+        ],
+        "phase": 2
+      }
+    ],
+    "exits": [
+      {
+        "id": "r25:r6",
+        "return_id": "r6:r25",
+        "target": "r6",
+        "pos": [
+          1,
+          8
+        ],
+        "arrival": [
+          23,
+          8
+        ],
+        "direction": "WEST",
+        "entrance": "cave",
+        "requires": [],
+        "abilities": [],
+        "orb_allowed": true
+      }
+    ],
+    "safe_landings": [
+      [
+        2,
+        7
+      ],
+      [
+        2,
+        8
+      ]
+    ]
+  },
+  "r26": {
+    "name": "Starling Shrine",
+    "hint": "Blue light and strong hands reveal the offering.",
+    "tiles": [
+      "##########################",
+      "#........................#",
+      "#........................#",
+      "#........................#",
+      "#....O.............O.....#",
+      "#........................#",
+      "#........................#",
+      "#........................#",
+      "#........................#",
+      "#........................#",
+      "#........................#",
+      "#....O.............O.....#",
+      "#........................#",
+      "#........................#",
+      "#........................#",
+      "##########################"
+    ],
+    "spawn": [
+      2,
+      7
+    ],
+    "floor": "B1F",
+    "grid_x": 0,
+    "grid_y": 0,
+    "atlas": [
+      0,
+      0
+    ],
+    "layout_revision": "4.0",
+    "content_revision": "4.4",
+    "hidden": true,
+    "theme": "hidden_sanctuary",
+    "objects": [
+      {
+        "id": "crystal",
+        "type": "crystal_switch",
+        "pos": [
+          9,
+          7
+        ]
+      },
+      {
+        "id": "cache",
+        "type": "chest",
+        "pos": [
+          15,
+          7
+        ],
+        "hidden": true,
+        "crystal_color": "blue",
+        "ability_requires": [
+          "gloves"
+        ],
+        "loot": [
+          "golden_cat",
+          "token_cache",
+          "heart_fragment"
+        ]
+      }
+    ],
+    "enemies": [],
+    "goal": [
+      "cache"
+    ],
+    "decorations": [
+      {
+        "kind": "sigil",
+        "pos": [
+          6,
+          0
+        ],
+        "phase": 3
+      }
+    ],
+    "exits": [
+      {
+        "id": "r26:r22",
+        "return_id": "r22:r26",
+        "target": "r22",
+        "pos": [
+          12,
+          14
+        ],
+        "arrival": [
+          12,
+          2
+        ],
+        "direction": "SOUTH",
+        "entrance": "cave",
+        "requires": [],
+        "abilities": [],
+        "orb_allowed": true
+      }
+    ],
+    "safe_landings": [
+      [
+        2,
+        7
+      ],
+      [
+        12,
+        13
+      ]
+    ]
+  },
+  "r27": {
+    "name": "Royal Treasure Vault",
+    "floor": "B1F",
+    "grid_x": 6,
+    "grid_y": 0,
+    "atlas": [
+      6,
+      0
+    ],
+    "layout_revision": "4.0",
+    "content_revision": "4.4",
+    "theme": "royal_vault",
+    "architecture": "mosaic",
+    "hint": "The three sealed royal chests fund the expedition receipt. Read the floating scroll; the eastern arch ends your journey.",
+    "spawn": [
+      2,
+      7
+    ],
+    "tiles": [
+      "######################",
+      "#....................#",
+      "#...O............O...#",
+      "#....................#",
+      "#....................#",
+      "#....................#",
+      "#....................#",
+      "#....................#",
+      "#....................#",
+      "#....................#",
+      "#....................#",
+      "#...O............O...#",
+      "#....................#",
+      "######################"
+    ],
+    "enemies": [],
+    "objects": [
+      {
+        "id": "royal_tokens",
+        "type": "chest",
+        "pos": [
+          6,
+          4
+        ],
+        "loot": [
+          "royal_tokens"
+        ],
+        "royal": true
+      },
+      {
+        "id": "royal_tickets",
+        "type": "chest",
+        "pos": [
+          15,
+          4
+        ],
+        "loot": [
+          "royal_tickets"
+        ],
+        "royal": true
+      },
+      {
+        "id": "royal_collection",
+        "type": "chest",
+        "pos": [
+          15,
+          10
+        ],
+        "loot": [
+          "royal_crown"
+        ],
+        "royal": true
+      },
+      {
+        "id": "scroll",
+        "type": "mystery_scroll",
+        "pos": [
+          11,
+          7
+        ],
+        "content_id": "coming_soon"
+      },
+      {
+        "id": "gate",
+        "type": "door",
+        "pos": [
+          20,
+          7
+        ],
+        "requires": [
+          "royal_tokens",
+          "royal_tickets",
+          "royal_collection"
+        ]
+      }
+    ],
+    "goal": [
+      "royal_tokens",
+      "royal_tickets",
+      "royal_collection"
+    ],
+    "decorations": [
+      {
+        "kind": "torch",
+        "pos": [
+          3,
+          0
+        ],
+        "phase": 3
+      },
+      {
+        "kind": "torch",
+        "pos": [
+          8,
+          0
+        ],
+        "phase": 8
+      },
+      {
+        "kind": "torch",
+        "pos": [
+          13,
+          0
+        ],
+        "phase": 13
+      },
+      {
+        "kind": "torch",
+        "pos": [
+          18,
+          0
+        ],
+        "phase": 18
+      }
+    ],
+    "exits": [
+      {
+        "id": "r27:r18",
+        "return_id": "r18:r27",
+        "target": "r18",
+        "pos": [
+          1,
+          7
+        ],
+        "arrival": [
+          23,
+          8
+        ],
+        "direction": "WEST",
+        "entrance": "stone",
+        "requires": [],
+        "abilities": [],
+        "orb_allowed": true
+      },
+      {
+        "id": "r27:finish",
+        "return_id": null,
+        "target": "r27",
+        "pos": [
+          20,
+          7
+        ],
+        "arrival": [
+          20,
+          7
+        ],
+        "direction": "EAST",
+        "entrance": "stone",
+        "requires": [
+          "gate"
+        ],
+        "abilities": [],
+        "finish": true,
+        "orb_allowed": true
+      }
+    ],
+    "safe_landings": [
+      [
+        2,
+        7
+      ]
+    ]
   }
 }

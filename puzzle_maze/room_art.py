@@ -32,7 +32,7 @@ class RoomArt:
             if motif['kind']!='medallion':continue
             x,y=motif['pos'];center=(x*16+8,y*16+8)
             r.circle(surface,(*tint(t.accent,-35),65),center,22,1)
-            for i in range(8):
+            for i in range(3 if t.material in ("wood","crystal","ore") else 6):
                 a=i*math.pi/4;r.line(surface,(*tint(t.accent,-20),65),(int(center[0]+math.cos(a)*15),int(center[1]+math.sin(a)*15)),(int(center[0]+math.cos(a)*21),int(center[1]+math.sin(a)*21)))
         # Clip every motif to actual floor. It cannot visually paint over walls or water.
         for y,row in enumerate(rows):
@@ -44,7 +44,7 @@ class RoomArt:
         cx,cy=camera;target.blit(self.layer(room),(-cx,-cy))
         t=THEMES[room.get('theme','entrance')];r=pygame.draw
         # Sparse drifting motes use deterministic paths and avoid allocating particles.
-        for i in range(8):
+        for i in range(3 if t.material in ("wood","crystal","ore") else 6):
             x=int((i*73+room.get('seed',0)+math.sin(time*.6+i)*9)%416)-cx
             y=int((i*43-time*6)%256)-cy
             if 0<x<320 and 0<y<180:r.rect(target,tint(t.light,-35),(x,y,1,1))

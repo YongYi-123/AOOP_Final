@@ -10,6 +10,11 @@ class OrderedSeal(PuzzleObject):pass
 
 class DestructiblePillar(PuzzleObject):blocking=True
 class OrderedLayoutSeal(PuzzleObject):pass
+class OrbSocket(PuzzleObject):pass
+
+class MysteryScroll(PuzzleObject):
+    def interact(self,manager,player,pulse=False):
+        return not pulse and self.data.get('content_id')=='coming_soon'
 
 class LiftablePot(PuzzleObject):
     blocking=True
@@ -33,13 +38,19 @@ class PotSupply(PuzzleObject):
                     pot.x,pot.y=pos;pot.state.active=False;return True
         return False
 
-FACTORY.update(brazier=Brazier,torch_order=TorchSequence,weight=WeightPlate,crystal_switch=CrystalSwitch,crystal_barrier=CrystalBarrier,pot=LiftablePot,powder_supply=PowderSupply,pot_supply=PotSupply,ordered=OrderedSeal,pillar=DestructiblePillar,ordered_layout=OrderedLayoutSeal)
+FACTORY.update(mystery_scroll=MysteryScroll,orb_socket=OrbSocket,brazier=Brazier,torch_order=TorchSequence,weight=WeightPlate,crystal_switch=CrystalSwitch,crystal_barrier=CrystalBarrier,pot=LiftablePot,powder_supply=PowderSupply,pot_supply=PotSupply,ordered=OrderedSeal,pillar=DestructiblePillar,ordered_layout=OrderedLayoutSeal)
 
 class AdvancedPuzzleManager(PuzzleManager):
     def update(self,dt,player):
         super().update(dt,player)
         for obj in self.objects.values():
             if isinstance(obj,DestructiblePillar):obj.state.active=obj.data['flag'] in self.inventory.flags
+            elif isinstance(obj,OrbSocket):
+                orb=getattr(self,'orb',None)
+                if obj.data['flag'] in self.inventory.flags:obj.state.active=True
+                elif orb and not orb.carried and orb.room==self.room_id and orb.pos==obj.pos and set(obj.data.get('flag_requires',[]))<=self.inventory.flags:
+                    obj.state.active=True;self.inventory.flags.add(obj.data['flag'])
+                    self.inventory.notifications.append(('royal_circuit','ROYAL CIRCUIT / RETURN ABOVE'))
             elif isinstance(obj,OrderedLayoutSeal):obj.state.active=all(self.objects[pair['object']].pos==tuple(pair['pos']) for pair in obj.data['placements'])
             elif isinstance(obj,WeightPlate):
                 weight=(1+(self.objects[self.inventory.carried].data.get('weight',2) if self.inventory.carried in self.objects else 0)) if player and obj.pos==(player.x,player.y) else 0

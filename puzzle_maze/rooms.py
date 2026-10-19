@@ -31,7 +31,7 @@ def validate_rooms(rooms):
             raise ValueError(f'{name}: duplicate object ids')
         occupied = set()
         for obj in room['objects']:
-            if obj['type'] not in ('box', 'plate', 'switch', 'door', 'key', 'secret', 'timed', 'chest', 'light', 'receiver', 'reflector', 'combat','cracked','blast_switch','supply','dash_switch','relay','remote','brazier','torch_order','weight','crystal_switch','crystal_barrier','pot','powder_supply','pot_supply','ordered','gate_control','pillar','ordered_layout'):
+            if obj['type'] not in ('box', 'plate', 'switch', 'door', 'key', 'secret', 'timed', 'chest', 'light', 'receiver', 'reflector', 'combat','cracked','blast_switch','supply','dash_switch','relay','remote','brazier','torch_order','weight','crystal_switch','crystal_barrier','pot','powder_supply','pot_supply','ordered','gate_control','pillar','ordered_layout','orb_socket','mystery_scroll'):
                 raise ValueError(f'{name}: unknown object')
             pos = tuple(obj['pos'])
             if not tilemap.walkable(*pos) or pos in occupied or pos == tuple(room['spawn']):
@@ -69,6 +69,12 @@ def validate_rooms(rooms):
                 raise ValueError(f'{name}: unsafe enemy spawn')
             if enemy['type']=='crystal_ghost' and enemy.get('torch') not in ids:raise ValueError(f'{name}: missing ghost brazier')
             occupied.add((x,y))
+        for obj in room['objects']:
+            if obj['type']=='chest' and not set(obj.get('enemy_requires',[]))<=enemy_ids:raise ValueError(f'{name}: missing chest enemy trigger')
+        if room.get('safe_landings'):
+            from puzzle_maze.safety import safe_enemy_tile
+            for enemy in room.get('enemies',[]):
+                if not safe_enemy_tile(room,tuple(enemy['pos'])):raise ValueError(f'{name}: enemy overlaps entry safety zone')
         if room.get('kill_order') and (len(room['kill_order'])!=len(enemy_ids) or set(room['kill_order'])!=enemy_ids):raise ValueError(f'{name}: invalid kill order')
         if room.get('theme','entrance') not in THEMES:raise ValueError(f'{name}: unknown room theme')
         for decoration in room.get('decorations',[]):

@@ -4,6 +4,8 @@ import copy
 from uuid import uuid4
 
 TREASURES={
+ 'royal_tokens':('ROYAL TOKEN COFFER','tokens',1000),'royal_tickets':('ROYAL TICKET COFFER','tickets',300),
+ 'royal_crown':('EMBERGLASS CROWN','collectible',1),
  'token_cache':('TOKEN CACHE','tokens',10),'ticket_bundle':('TICKET BUNDLE','tickets',15),
  'golden_cat':('GOLDEN CAT','collectible',1),'music_disc':('SECRET MUSIC DISC','collectible',1),
  'crystal_skin':('CRYSTAL SWORD SKIN','cosmetic',1),'lucky_charm':('LUCKY CAT CHARM','collectible',1),

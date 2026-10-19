@@ -32,6 +32,7 @@ class IronOrb:
         self.carried=True;self.room=session.rooms.current;self.x,self.y=p.x,p.y
         session.combat.events.append('pot_lift');return True
     def throw(self,session):
+        session.combat.entry_protection=0
         if not self.carried or session.player.hp<=0:return False
         from puzzle_maze.advanced_puzzles import DestructiblePillar
         p=session.player;dx,dy=p.facing;impact=p.x,p.y

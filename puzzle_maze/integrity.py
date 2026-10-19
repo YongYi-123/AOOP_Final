@@ -22,6 +22,9 @@ class DungeonIntegrityValidator:
         DoorValidator(self.rooms).validate()
         report['effective_mechanisms']=len(PuzzleDependencyValidator(self.rooms).validate())
         ChestValidator(self.rooms).validate()
+        from puzzle_maze.safety import landing_points
+        for name,room in self.rooms.items():
+            if room.get('content_revision') in ('4.3','4.4') and {tuple(p) for p in room.get('safe_landings',[])}!=landing_points(name,self.rooms):raise ValueError(f'{name}: incomplete entry safety zones')
         flags = {o['flag'] for room in self.rooms.values() for o in room['objects'] if 'flag' in o}
         flags |= {room['on_clear_flag'] for room in self.rooms.values() if 'on_clear_flag' in room}
         flags |= {r['transformation']['result'] for r in self.rooms.values() if 'transformation' in r}
@@ -37,7 +40,7 @@ class DungeonIntegrityValidator:
                     raise ValueError(f'{name}: invalid chest ability trigger')
                 if not set(obj.get('flag_requires', [])) <= flags:
                     raise ValueError(f'{name}: missing chest flag producer')
-                if obj.get('hidden') and not any(obj.get(key) for key in ('requires', 'ability_requires', 'flag_requires')):
+                if obj.get('hidden') and not any(obj.get(key) for key in ('requires', 'ability_requires', 'flag_requires','crystal_color','enemy_requires')):
                     raise ValueError(f'{name}: hidden chest lacks a trigger')
                 if not any(obj.get(key) for key in ('ability', 'loot', 'small_keys', 'boss_key', 'bombs', 'powder', 'potions', 'coins')):
                     raise ValueError(f'{name}: empty chest')
