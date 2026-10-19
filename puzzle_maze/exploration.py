@@ -62,7 +62,7 @@ class DungeonAtlas:
     def displayed_layout(self,session,minimap=False):
         layout=self.layout(session.visited)
         if 'map' not in session.inventory.abilities:
-            allowed={session.rooms.current} if minimap else session.visited
+            allowed={session.rooms.current}
             layout={name:pos for name,pos in layout.items() if name in allowed}
         return layout
 

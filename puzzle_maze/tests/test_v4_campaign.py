@@ -110,7 +110,7 @@ class EmberglassCampaignTests(unittest.TestCase):
         self.travel('r11');d.fight();self.use('lever');self.use('magnet')
         self.walk((14,10));s.player.facing=(1,0);self.assertTrue(s.throw_pot());self.assertIn('floor_lowered',s.inventory.flags)
         self.assertTrue(s.interact_orb());self.travel('r22');self.use('orb_cache')
-        self.travel('r20');self.assertTrue(s.orb.carried);self.travel('r22');self.travel('r11')
+        self.travel('r20');self.assertTrue(s.orb.carried);self.travel('r22');self.walk((9,13));s.player.facing=(0,-1);self.assertTrue(s.interact_orb());s.tick(0);self.assertIn('royal_resonance',s.inventory.flags);self.assertTrue(s.interact_orb());self.travel('r11')
         self.travel('r12');d.optics();self.use('prism_signal');self.use('key');self.use('crystal_cache');self.assertTrue(s.recall_orb());self.travel('r11');self.travel('r10');self.travel('r2');self.travel('r6')
         d.timer();self.use('boss_key');self.secret_branch('r25');self.travel('r2');self.travel('r10');self.travel('r13')
         if s.inventory.bombs<8:self.use('supply')

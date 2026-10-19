@@ -31,7 +31,7 @@ def validate_rooms(rooms):
             raise ValueError(f'{name}: duplicate object ids')
         occupied = set()
         for obj in room['objects']:
-            if obj['type'] not in ('box', 'plate', 'switch', 'door', 'key', 'secret', 'timed', 'chest', 'light', 'receiver', 'reflector', 'combat','cracked','blast_switch','supply','dash_switch','relay','remote','brazier','torch_order','weight','crystal_switch','crystal_barrier','pot','powder_supply','pot_supply','ordered','gate_control','pillar','ordered_layout'):
+            if obj['type'] not in ('box', 'plate', 'switch', 'door', 'key', 'secret', 'timed', 'chest', 'light', 'receiver', 'reflector', 'combat','cracked','blast_switch','supply','dash_switch','relay','remote','brazier','torch_order','weight','crystal_switch','crystal_barrier','pot','powder_supply','pot_supply','ordered','gate_control','pillar','ordered_layout','orb_socket'):
                 raise ValueError(f'{name}: unknown object')
             pos = tuple(obj['pos'])
             if not tilemap.walkable(*pos) or pos in occupied or pos == tuple(room['spawn']):

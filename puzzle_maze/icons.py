@@ -30,7 +30,7 @@ ICONS.update({
  'ancient_stamp':['..sssssss...','..sppppps...','..sptptps...','..sptgtps...','..sptptps...','..sppppps...','..sssssss...'],
  'bomb_bundle':['..gbb..gbb..','..bbbbb.bbb.','...bbb..bbb.','.....gg.....','....sbbbs...','....sbbbs...','.....sss....'],
 })
-ALIASES={'magic_powder':'powder'}
+ALIASES={'magic_powder':'powder','royal_circuit':'boss_key'}
 PALETTE={'p':(184,123,226),'k':(88,59,53),'r':(239,102,119),'g':(245,198,96),'s':(205,223,230),'b':(65,85,127),'t':(81,195,165)}
 
 class BossKeyIcon:

@@ -19,24 +19,28 @@ class AdvancedDungeonSession(DungeonSession):
         rooms=rooms or load_rooms(MAP_PATH.with_name('dungeon_v4.json'))
         from puzzle_maze.safety import landing_points
         for name,room in rooms.items():
-            if room.get('content_revision') in ('4.2','4.3'):
+            if room.get('content_revision') in ('4.2','4.3','4.4'):
                 room['safe_landings']=[list(p) for p in sorted(landing_points(name,rooms))]
         super().__init__(rooms)
     def prepare_loaded_save(self,data):
-        if data.get('content_revision') not in ('4.2','4.3'):
+        if data.get('content_revision')=='4.4':return data
+        if data.get('content_revision') not in ('4.2','4.3','4.4'):
             from puzzle_maze.migration42 import migrate
             data=migrate(data,self.rooms.rooms,self.validate_snapshot)
             self.migration_notice='Previous progress retained in the repaired 4.2 layout.'
         from puzzle_maze.migration43 import migrate
+        data=migrate(data,self.rooms.rooms)
+        from puzzle_maze.migration44 import migrate
         return migrate(data,self.rooms.rooms)
     def make_puzzles(self,room):
-        manager=AdvancedPuzzleManager(room,self.inventory);manager.grant_treasure=self.grant_treasure;manager.has_external_load=lambda:self.orb.carried;return manager
+        manager=AdvancedPuzzleManager(room,self.inventory);manager.grant_treasure=self.grant_treasure;manager.has_external_load=lambda:self.orb.carried;manager.orb=self.orb;manager.room_id=self.rooms.current;return manager
     def enter(self,name,arrival=None):
         super().enter(name,arrival)
         if self.orb.carried:self.orb.room=name;self.orb.x,self.orb.y=self.player.x,self.player.y
         self.checkpoint['orb']=self.orb.capture()
         self.checkpoint['reward_bag']=self.rewards.capture();self.effects=[];self.pot_flights=[]
     def tick(self,dt):
+        self.puzzles.orb=self.orb
         super().tick(dt)
         if self.player.hp<=0:return
         self.pot_flights=[dict(flight,time=flight['time']-dt) for flight in self.pot_flights if flight['time']>dt]

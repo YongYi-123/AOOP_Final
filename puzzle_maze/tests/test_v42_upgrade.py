@@ -51,7 +51,7 @@ class Upgrade42Tests(unittest.TestCase):
     def test_all_chests_have_interaction_routes_and_actuators_have_targets(self):
         rooms=AdvancedDungeonSession().rooms.rooms
         self.assertEqual(ChestValidator(rooms).validate(),34)
-        effects=PuzzleDependencyValidator(rooms).validate();self.assertEqual(len(effects),40)
+        effects=PuzzleDependencyValidator(rooms).validate();self.assertEqual(len(effects),41)
         self.assertTrue(any(target.startswith('r2:') for target in effects['r19:flame_signal']))
         bad=copy.deepcopy(rooms);bad['r1']['objects'].append(dict(id='fake',type='switch',pos=[6,10]))
         with self.assertRaises(ValueError):PuzzleDependencyValidator(bad).validate()
@@ -84,7 +84,7 @@ class Upgrade42Tests(unittest.TestCase):
         # Inspect graph API as well as rendered minimap; no future rooms or connections.
         self.assertNotIn('map',s.inventory.abilities)
         self.assertEqual(set(DungeonAtlas(s.rooms).displayed_layout(s,minimap=True)),{'r1'})
-        self.assertEqual(set(DungeonAtlas(s.rooms).displayed_layout(s)),s.visited)
+        self.assertEqual(set(DungeonAtlas(s.rooms).displayed_layout(s)),{s.rooms.current})
         game.renderer.ui.clear();game.renderer.atlas_graph(s,(8,8,94,44))
         s.inventory.abilities.add('map');self.assertGreater(len(DungeonAtlas(s.rooms).displayed_layout(s,minimap=True)),3);game.renderer.atlas_graph(s,(8,8,94,44))
         self.assertEqual(DungeonAtlas(s.rooms).layout(s.visited)['r2'],(2,2))

@@ -7,7 +7,7 @@ from puzzle_maze.entrances import draw_entrance
 from puzzle_maze.ui import NativeText
 from puzzle_maze.icons import IconHUD
 from puzzle_maze.room_art import RoomArt
-from puzzle_maze.advanced_puzzles import Brazier,TorchSequence,WeightPlate,LiftablePot,CrystalSwitch,CrystalBarrier,PowderSupply,PotSupply,OrderedSeal,DestructiblePillar,OrderedLayoutSeal
+from puzzle_maze.advanced_puzzles import Brazier,TorchSequence,WeightPlate,LiftablePot,CrystalSwitch,CrystalBarrier,PowderSupply,PotSupply,OrderedSeal,DestructiblePillar,OrderedLayoutSeal,OrbSocket
 from puzzle_maze.combat import EnemyState
 from puzzle_maze.exploration import DungeonAtlas
 from puzzle_maze.environment import EnvironmentPainter
@@ -81,7 +81,12 @@ class Renderer:
         for o in sorted(session.puzzles.objects.values(), key=lambda obj: 0 if isinstance(obj,PressurePlate) else 1):
             sx,sy=o.x*16-cx,o.y*16-cy
             if not (-16<sx<320 and -16<sy<208):continue
-            if isinstance(o,Brazier):
+            if isinstance(o,OrbSocket):
+                color=GOLD if o.state.active else (116,132,160)
+                r.circle(s,(32,38,54),(sx+8,sy+8),7);r.circle(s,color,(sx+8,sy+8),6,2)
+                r.lines(s,color,False,[(sx+2,sy+1),(sx+5,sy+4),(sx+8,sy),(sx+11,sy+4),(sx+14,sy+1)])
+                if o.state.active:s.blit(self.environment.glow(theme_name),(sx-24,sy-24))
+            elif isinstance(o,Brazier):
                 r.ellipse(s,(23,26,38),(sx+1,sy+11,14,5));r.rect(s,(99,102,103),(sx+3,sy+8,10,5));r.line(s,(193,177,142),(sx+2,sy+8),(sx+13,sy+8),2)
                 if o.state.active:
                     s.blit(self.environment.glow(theme_name),(sx-24,sy-29))
@@ -407,4 +412,5 @@ class Renderer:
             self.surface.blit(self.hud.atlas.get('ticket_bundle'),(219,199));self.text(str(session.rewards.tickets),234,198,TEAL,max_width=38)
             self.surface.blit(self.hud.atlas.get('golden_cat'),(277,199));self.text(str(len(session.rewards.collections)),292,198,max_width=20)
         else:self.text('Teal: item / receiver',162,199)
+        self.surface.blit(self.hud.atlas.get('boss_key',session.inventory.boss_key),(278,176))
         self.text('TAB closes / LEFT, RIGHT floor',32,218)

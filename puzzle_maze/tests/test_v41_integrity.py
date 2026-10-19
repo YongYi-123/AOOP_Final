@@ -41,7 +41,7 @@ class Dungeon41Tests(unittest.TestCase):
         s=AdvancedDungeonSession();s.enter('r6');chest=s.puzzles.objects['boss_key']
         s.puzzles.objects['gate'].latched=True;s.inventory.flags.add('prism');s.puzzles.update(0,s.player)
         self.assertEqual(chest.phase,ChestPhase.HIDDEN)
-        s.inventory.abilities.add('boots');s.inventory.flags.add('warden');s.puzzles.update(0,s.player)
+        s.inventory.abilities.add('boots');s.inventory.flags.update(('warden','royal_resonance'));s.puzzles.update(0,s.player)
         self.assertEqual(chest.phase,ChestPhase.SPAWNING)
         s.puzzles.update(.45,s.player);self.assertTrue(chest.interact(s.puzzles,s.player))
         self.assertTrue(s.inventory.boss_key)
@@ -118,7 +118,7 @@ class Dungeon41Tests(unittest.TestCase):
             with self.assertRaises(ValueError):DungeonIntegrityValidator(bad).validate()
 
     def test_real_frame_timed_gate_can_be_crossed_and_reward_remains(self):
-        s=AdvancedDungeonSession();s.inventory.abilities.add('boots');s.inventory.flags.update(('prism','warden'));s.enter('r6')
+        s=AdvancedDungeonSession();s.inventory.abilities.add('boots');s.inventory.flags.update(('prism','warden','royal_resonance'));s.enter('r6')
         s.player.x,s.player.y=16,8;s.player.facing=(1,0)
         self.assertEqual(s.puzzles.interact(s.player),'clock')
         # Allow realistic key-to-dash latency at 60 FPS, then use the live ability.

@@ -166,7 +166,7 @@
       }
     ],
     "seed": 79,
-    "content_revision": "4.3",
+    "content_revision": "4.4",
     "grid_x": 2,
     "grid_y": 3,
     "safe_landings": [
@@ -423,7 +423,7 @@
       }
     ],
     "seed": 158,
-    "content_revision": "4.3",
+    "content_revision": "4.4",
     "grid_x": 2,
     "grid_y": 2,
     "safe_landings": [
@@ -672,7 +672,7 @@
       }
     ],
     "seed": 237,
-    "content_revision": "4.3",
+    "content_revision": "4.4",
     "grid_x": 2,
     "grid_y": 1,
     "safe_landings": [
@@ -916,7 +916,7 @@
       }
     ],
     "seed": 316,
-    "content_revision": "4.3",
+    "content_revision": "4.4",
     "grid_x": 1,
     "grid_y": 2,
     "safe_landings": [
@@ -1180,7 +1180,7 @@
       }
     ],
     "seed": 395,
-    "content_revision": "4.3",
+    "content_revision": "4.4",
     "grid_x": 3,
     "grid_y": 1,
     "safe_landings": [
@@ -1284,7 +1284,8 @@
           "needs": [
             "boots",
             "prism",
-            "warden"
+            "warden",
+            "royal_resonance"
           ]
         },
         "loot": [
@@ -1296,7 +1297,8 @@
         ],
         "flag_requires": [
           "prism",
-          "warden"
+          "warden",
+          "royal_resonance"
         ]
       },
       {
@@ -1308,6 +1310,18 @@
         ],
         "optional": true,
         "duration": 0.6
+      },
+      {
+        "id": "royal_signal",
+        "type": "relay",
+        "pos": [
+          21,
+          11
+        ],
+        "flags": [
+          "royal_resonance"
+        ],
+        "optional": true
       }
     ],
     "enemies": [],
@@ -1354,7 +1368,7 @@
     "goal": [
       "boss_key"
     ],
-    "hint": "Return with boots and the lower prism signal. E then SHIFT east.",
+    "hint": "The crowned chest listens to a matching socket below. Two shattered pillars reveal the way.",
     "decorations": [
       {
         "kind": "banner",
@@ -1403,7 +1417,7 @@
       }
     ],
     "seed": 474,
-    "content_revision": "4.3",
+    "content_revision": "4.4",
     "grid_x": 3,
     "grid_y": 3,
     "safe_landings": [
@@ -1625,7 +1639,7 @@
       }
     ],
     "seed": 553,
-    "content_revision": "4.3",
+    "content_revision": "4.4",
     "grid_x": 1,
     "grid_y": 0,
     "safe_landings": [
@@ -1821,7 +1835,7 @@
       }
     ],
     "seed": 632,
-    "content_revision": "4.3",
+    "content_revision": "4.4",
     "grid_x": 0,
     "grid_y": 0,
     "safe_landings": [
@@ -2032,7 +2046,7 @@
       }
     ],
     "seed": 711,
-    "content_revision": "4.3",
+    "content_revision": "4.4",
     "grid_x": 2,
     "grid_y": 0,
     "safe_landings": [
@@ -2269,7 +2283,7 @@
       }
     ],
     "seed": 790,
-    "content_revision": "4.3",
+    "content_revision": "4.4",
     "grid_x": 1,
     "grid_y": 2,
     "safe_landings": [
@@ -2496,7 +2510,7 @@
       }
     ],
     "seed": 869,
-    "content_revision": "4.3",
+    "content_revision": "4.4",
     "grid_x": 1,
     "grid_y": 1,
     "safe_landings": [
@@ -2746,7 +2760,7 @@
       }
     ],
     "seed": 948,
-    "content_revision": "4.3",
+    "content_revision": "4.4",
     "grid_x": 2,
     "grid_y": 1,
     "safe_landings": [
@@ -2950,7 +2964,7 @@
       }
     ],
     "seed": 1027,
-    "content_revision": "4.3",
+    "content_revision": "4.4",
     "grid_x": 2,
     "grid_y": 2,
     "safe_landings": [
@@ -3184,7 +3198,7 @@
       }
     ],
     "seed": 1106,
-    "content_revision": "4.3",
+    "content_revision": "4.4",
     "grid_x": 3,
     "grid_y": 2,
     "safe_landings": [
@@ -3417,7 +3431,7 @@
       }
     ],
     "seed": 1185,
-    "content_revision": "4.3",
+    "content_revision": "4.4",
     "grid_x": 3,
     "grid_y": 1,
     "safe_landings": [
@@ -3477,7 +3491,8 @@
         "requires": [
           "warden_signal"
         ],
-        "key": "boss"
+        "key": "boss",
+        "opening_duration": 0.6
       },
       {
         "type": "supply",
@@ -3605,7 +3620,7 @@
       }
     ],
     "seed": 1264,
-    "content_revision": "4.3",
+    "content_revision": "4.4",
     "grid_x": 3,
     "grid_y": 0,
     "safe_landings": [
@@ -3823,7 +3838,7 @@
       }
     ],
     "seed": 1343,
-    "content_revision": "4.3",
+    "content_revision": "4.4",
     "grid_x": 4,
     "grid_y": 0,
     "safe_landings": [
@@ -4001,7 +4016,7 @@
       }
     ],
     "seed": 1422,
-    "content_revision": "4.3",
+    "content_revision": "4.4",
     "grid_x": 5,
     "grid_y": 0,
     "safe_landings": [
@@ -4273,7 +4288,7 @@
       }
     ],
     "seed": 1501,
-    "content_revision": "4.3",
+    "content_revision": "4.4",
     "grid_x": 3,
     "grid_y": 2,
     "safe_landings": [
@@ -4594,7 +4609,7 @@
       }
     ],
     "seed": 1580,
-    "content_revision": "4.3",
+    "content_revision": "4.4",
     "grid_x": 1,
     "grid_y": 1,
     "orb_spawn": [
@@ -4852,7 +4867,7 @@
     ],
     "on_clear_flag": "warden",
     "seed": 1659,
-    "content_revision": "4.3",
+    "content_revision": "4.4",
     "grid_x": 0,
     "grid_y": 2,
     "safe_landings": [
@@ -5072,6 +5087,27 @@
         ],
         "optional": true,
         "duration": 0.6
+      },
+      {
+        "id": "royal_socket",
+        "type": "orb_socket",
+        "pos": [
+          9,
+          12
+        ],
+        "flag": "royal_resonance",
+        "flag_requires": [
+          "floor_lowered"
+        ],
+        "optional": true,
+        "progression": {
+          "milestone": "royal_resonance",
+          "needs": [
+            "magnet",
+            "gloves",
+            "prism"
+          ]
+        }
       }
     ],
     "enemies": [
@@ -5188,7 +5224,7 @@
     "goal": [
       "skin"
     ],
-    "hint": "Carved order: slime, bat, mask. Wrong order awakens them again.",
+    "hint": "The crown socket wakes beneath the lowered floor. Place the Iron Orb on its round inlay.",
     "decorations": [
       {
         "kind": "banner",
@@ -5236,7 +5272,7 @@
       "mask"
     ],
     "seed": 1738,
-    "content_revision": "4.3",
+    "content_revision": "4.4",
     "grid_x": 0,
     "grid_y": 1,
     "safe_landings": [
@@ -5295,7 +5331,7 @@
       1
     ],
     "layout_revision": "4.0",
-    "content_revision": "4.3",
+    "content_revision": "4.4",
     "hidden": true,
     "theme": "mine",
     "objects": [
@@ -5415,7 +5451,7 @@
       1
     ],
     "layout_revision": "4.0",
-    "content_revision": "4.3",
+    "content_revision": "4.4",
     "hidden": true,
     "theme": "underground_library",
     "objects": [
@@ -5530,7 +5566,7 @@
       3
     ],
     "layout_revision": "4.0",
-    "content_revision": "4.3",
+    "content_revision": "4.4",
     "hidden": true,
     "theme": "vault",
     "objects": [
@@ -5646,7 +5682,7 @@
       0
     ],
     "layout_revision": "4.0",
-    "content_revision": "4.3",
+    "content_revision": "4.4",
     "hidden": true,
     "theme": "hidden_sanctuary",
     "objects": [
