@@ -23,8 +23,9 @@ class DungeonSession(GameSession):
         self.trails=[(pos,time-dt) for pos,time in self.trails if time>dt]
         self.bombs.update(dt)
         super().tick(dt)
-        if self.inventory.notifications:
-            kind,label=self.inventory.notifications.pop(0)
+        royal=next((i for i,n in enumerate(self.inventory.notifications) if n[0]=='boss_key'),None)
+        if royal is not None or self.inventory.notifications and self.pickup is None:
+            kind,label=self.inventory.notifications.pop(royal if royal is not None else 0)
             self.pickup=kind,label,2.4 if kind=='boss_key' else 1.2;self.combat.events.append('boss_key' if kind=='boss_key' else 'key')
         for o in self.puzzles.objects.values():
             if o.data['type']=='combat' and any(e.kind=='golem' for e in self.combat.enemies):

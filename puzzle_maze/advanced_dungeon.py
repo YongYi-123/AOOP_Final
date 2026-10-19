@@ -9,11 +9,13 @@ from puzzle_maze.rewards import DungeonRewardBag,TREASURES
 from puzzle_maze.items import Bomb
 from puzzle_maze.puzzles import Chest,ChestPhase
 from puzzle_maze.orb import IronOrb
+from puzzle_maze.royal_rewards import RoyalClearHistory
 
 V4_SAVE=Path(__file__).parent/'save_v4.json'
 
 class AdvancedDungeonSession(DungeonSession):
     def __init__(self,rooms=None):
+        self.history=RoyalClearHistory()
         self.orb=IronOrb()
         self.rewards=DungeonRewardBag();self.effects=[];self.pot_flights=[]
         rooms=rooms or load_rooms(MAP_PATH.with_name('dungeon_v4.json'))
@@ -135,13 +137,16 @@ class AdvancedDungeonSession(DungeonSession):
         if exit and self.orb.carried and not exit.get('orb_allowed',True):
             self.inventory.notifications.append(('magnet','PORTAL: DROP ORB / E OR RECALL / T'));return False
         moved=super().transition()
-        if moved and self.finished:self.rewards.settle(True,self.player.hp>0)
+        if moved and self.finished:
+            self.rewards.settle(True,self.player.hp>0)
+            self.history.finalize(self.rewards,True,self.player.hp>0,self.rooms.current=='r27' and self.puzzles.solved)
         return moved
     def reset(self):
         if self.rewards.claimed:return False
         super().reset();self.orb=IronOrb.restore(self.checkpoint.get('orb',IronOrb().capture()),self.rooms.rooms);self.rewards=DungeonRewardBag.restore(self.checkpoint['reward_bag']);self.effects=[];self.pot_flights=[]
-    def save_extension(self):return dict(rewards=self.rewards.capture(),orb=self.orb.capture())
+    def save_extension(self):return dict(rewards=self.rewards.capture(),orb=self.orb.capture(),royal_history=self.history.capture())
     def load_extension(self,data):
+        self.history=RoyalClearHistory.restore(data['royal_history']) if 'royal_history' in data else RoyalClearHistory()
         self.orb=IronOrb.restore(data.get('orb',IronOrb().capture()),self.rooms.rooms)
         if self.orb.carried and (self.orb.room!=self.rooms.current or self.orb.pos!=(self.player.x,self.player.y)):raise ValueError('Carried orb out of sync')
         self.rewards=DungeonRewardBag.restore(data['rewards'])

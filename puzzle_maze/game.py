@@ -30,6 +30,7 @@ class Game:
         if headless:
             os.environ['SDL_VIDEODRIVER']='dummy';os.environ['SDL_AUDIODRIVER']='dummy'
         pygame.display.init();pygame.font.init()
+        self.profile_store=None;self.reward_history=None
         self.embedded=embedded
         self.screen=pygame.display.get_surface() if embedded else pygame.display.set_mode((960,720),pygame.RESIZABLE)
         if not embedded:pygame.display.set_caption('Puzzle Maze / Clockwork Hollow')
@@ -44,18 +45,45 @@ class Game:
         self.intro=IntroSequence();self.tutorial=TutorialCard()
         self.tutorial.bombs=isinstance(self.session,DungeonSession)
         self.tutorial.advanced=isinstance(self.session,AdvancedDungeonSession);self.tutorial.page=0
+        if isinstance(self.session,AdvancedDungeonSession) and not embedded and not headless:
+            from puzzle_maze.advanced_dungeon import V4_SAVE
+            self.bind_profile('standalone',legacy_save=V4_SAVE)
+
+    def bind_profile(self,player_id,root=None,legacy_save=None):
+        from puzzle_maze.royal_rewards import CampaignProfile,RoyalClearHistory
+        self.profile_store=CampaignProfile(player_id,root,legacy_save)
+        try:self.reward_history=self.profile_store.load_history()
+        except (OSError,ValueError,KeyError,TypeError):
+            self.reward_history=RoyalClearHistory(blocked=True)
+            self.notify('Royal history unavailable; progress remains playable')
+        self.session.history=self.reward_history
 
     def notify(self,message,seconds=3):
         self.toast=message;self.toast_time=seconds
 
     def save(self):
         if self.scene in (GameScene.INTRO,GameScene.TUTORIAL,GameScene.MENU,GameScene.ARCHIVE):return
-        try:self.session.save()
-        except OSError:self.notify('Save unavailable: progress stays in memory')
+        try:
+            if self.profile_store and isinstance(self.session,AdvancedDungeonSession):
+                try:self.profile_store.save_history(self.session.history)
+                except (OSError,ValueError,KeyError,TypeError):
+                    self.session.history.blocked=True
+                    self.notify('Royal history unavailable; saving campaign progress')
+                self.profile_store.save_path.parent.mkdir(parents=True,exist_ok=True)
+                self.session.save(self.profile_store.save_path)
+            else:self.session.save()
+        except (OSError,ValueError):self.notify('Save unavailable: progress stays in memory')
 
     def start(self,continuing=False,onboarding=True,legacy=False,archived=False):
         factory=GameSession if legacy else DungeonSession if archived else self.session_factory
-        self.session=factory.load() if continuing else factory()
+        previous_history=getattr(self.session,'history',None)
+        self.session=(factory.load(self.profile_store.save_path) if self.profile_store and factory is AdvancedDungeonSession else factory.load()) if continuing else factory()
+        if isinstance(self.session,AdvancedDungeonSession):
+            history=self.reward_history or previous_history
+            if history is not None:
+                try:history.merge(self.session.history)
+                except ValueError:history.blocked=True
+                self.session.history=history
         self.tutorial.bombs=isinstance(self.session,DungeonSession)
         self.tutorial.advanced=isinstance(self.session,AdvancedDungeonSession);self.tutorial.page=0
         self.tool="pulse"
@@ -246,8 +274,11 @@ class Game:
             r.panel(title,self.options(),self.selection)
             if self.scene==GameScene.VICTORY and hasattr(self.session,'rewards'):
                 bag=self.session.rewards
-                r.text(f'Tokens {bag.tokens} / Tickets {bag.tickets}',36,151,GOLD,max_width=244)
-                r.text(f'Found {len(bag.collections)}/6 / '+('Settled once' if bag.claimed else 'Pending'),36,170,TEAL,max_width=244)
+                receipt=self.session.history.get(bag.run_id)
+                tokens,tickets=(receipt['tokens'],receipt['tickets']) if receipt else (bag.tokens,bag.tickets)
+                r.text(f'Tokens {tokens} / Tickets {tickets}',36,143,GOLD,max_width=244)
+                r.text(('FIRST CLEAR' if receipt['tier']=='first' else 'REPLAY CLEAR') if receipt else 'EXPEDITION COMPLETE',36,160,TEAL,max_width=244)
+                r.text('Lobby trial: no account payout' if self.embedded else 'Local expedition record',36,177,TEAL,max_width=244)
             label='4.4 / Emberglass Hollow' if isinstance(self.session,AdvancedDungeonSession) else '3.0 / Clockwork Hollow' if isinstance(self.session,DungeonSession) else '2.1 / The Prism Chambers'
             r.text(label,36,193,(133,163,156),max_width=244)
         elif self.scene==GameScene.SCROLL:

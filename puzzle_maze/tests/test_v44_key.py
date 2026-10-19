@@ -29,6 +29,8 @@ class RoyalKeyTests(unittest.TestCase):
             if s.pickup and s.pickup[0]=='boss_key':break
             s.tick(0)
         self.assertTrue(s.inventory.boss_key);self.assertIn('boss_key',s.combat.events)
+        s.tick(1.0);self.assertEqual(s.pickup[0],'boss_key')
+        self.assertGreater(s.pickup[2],1.)
         g.visual=[s.player.x,s.player.y];g.draw(.016)
         self.assertTrue(any('BOSS KEY ACQUIRED'==c[0] for c in g.renderer.ui.commands))
         with tempfile.TemporaryDirectory() as folder:
