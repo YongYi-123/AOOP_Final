@@ -450,3 +450,44 @@ Final validation: all 169 tests passed in 26.278 seconds; integrity CLI,
 deterministic authoring/JSON equality, 60-frame headless startup, compileall and
 git diff --check passed. Existing lobby bridge regression tests are included in
 the suite. No manual real-time play session was performed.
+
+
+## 4.3 — hidden rewards, secret branches and combat safety
+
+Developed on feature/puzzle-maze-v4 after confirming no unfinished merge and no
+tracked working changes. The two pre-existing untracked `tatus` files remain
+untouched. All implementation, test and documentation edits stay in puzzle_maze/.
+No network Git operation or change to another minigame was performed.
+
+Small verified commits cover chest spawn safety/events, entry/Boss balance,
+four new secret branches with a complete action witness, native pixel animation
+and lighting, and save/reward edge cases. The dungeon now has 26 rooms, 34 chests
+(24 hidden), six hidden rooms, 59 entrances and 40 functional actuators. Resource
+search remains 341/341 winning states, six Small Keys and five costs.
+
+New 4.3 tests cover hidden visibility/collision/interaction/Compass behavior,
+occupied spawn deferral and persistent trigger memory, chest effects and timers,
+Iron Orb occupancy, bomb reveal states and save/load, physical secret-room visits
+and returns, room fog, all entrance spawn zones, invulnerability and offensive
+cancellation, Warden/Golem windows, contact immunity, hurt cooldown, multi-round
+Warden hit budgets, native rendering, HUD clipping, death checkpoint rewards,
+legacy-save landings and the actual host victory/return lifecycle. Existing
+production-action witnesses now visit all 26 rooms and open all 34 chests before
+finishing the dungeon and saving/reloading the idempotent receipt.
+
+The host's free-trial zero-external-payout policy is unchanged. Expedition
+Tokens/Tickets stay in the private reward bag; no new host currency grant or
+collection registration was introduced. This preserves the existing economy.
+
+Validation: 189 Puzzle Maze tests passed in 36.344 seconds; integrity CLI,
+deterministic builder/JSON equality, 60-frame headless startup, compileall and
+git diff --check passed. A cached Warden draw at 960x720 with local chest/blast
+lights averaged 3.32 ms (p95 5.07 ms) over 180 frames on this host. This measures
+render cost, not interactive FPS. Headless image review covered six distinct
+rooms and the native-size Boss HUD. Manual keyboard feel, continuous Boss
+balance, sound, crack visibility and target-machine FPS still require playtesting.
+
+The complete Arcade Lobby regression also passed: 1,827 tests in 388.520 seconds
+(`/tmp/puzzle-maze-43-lobby-tests.log` for this development session). Combined
+with the 189-test Puzzle Maze suite, 2,016 tests passed. The working tree after
+committing contains only the two original untracked `tatus` files.

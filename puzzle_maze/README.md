@@ -1,9 +1,66 @@
-# Puzzle Maze 4.2 — Emberglass Hollow
+# Puzzle Maze 4.3 — Emberglass Hollow
 
-An original Python / Pygame dungeon adventure upgraded in place. Twenty-two
+An original Python / Pygame dungeon adventure upgraded in place. Twenty-six
 rooms over 1F and B1F combine branch exploration, returning routes, cross-room
 circuits, fire sequences, carried weights, enemy weaknesses and five secret
-collections. The original free Arcade cabinet now opens this 4.2 campaign. No story is included.
+collections. The original free Arcade cabinet now opens this 4.3 campaign. No story is included.
+
+## 4.3 exploration and combat update
+
+The current dungeon has 26 rooms, 34 chests (24 truly hidden), six hidden rooms,
+59 entrance records, and 40 effective puzzle actuators. Four new bomb-only
+branches contain a mineral switch and bat encounter, an archive flame puzzle,
+a weighted mint floor, and a blue-crystal shrine. Their rewards include Heart
+Fragments, the Music Disc, a sword skin, collections, and private Tokens/Tickets.
+Existing nonlinear routes, keys, abilities, multi-floor stairs and Boss progression
+remain intact. The menu and original Arcade cabinet both load 4.3.
+
+Hidden chests are absent from rendering, prompts, collision and Compass markers
+until their conditions complete. They remember a completed trigger even while a
+player, enemy, crate, pot or Iron Orb occupies the spawn tile. A short rise,
+room flash, sparkles and distinct cue announce each reveal. Spawn timers, pending
+triggers and opened rewards survive save/load and revisits.
+
+Bomb walls use SEALED / REVEALING / OPEN states. During the 0.6-second break they
+remain impassable; themed cracks, debris and dust replace explicit bomb prompts.
+Secret rooms remain off the atlas until visited. All entrances have reciprocal
+absolute directions and safe return landings.
+
+Every authored enemy spawn stays at least three Manhattan tiles from each
+entrance landing; doors, stairs and important objects are reserved. Live return
+encounters repair unsafe enemy positions. One second of entry protection permits
+movement; a sword attack, successful bomb placement or a thrown weapon cancels it.
+Damage uses the existing 1.1-second hurt immunity. Boss weakness windows suppress
+attacks and allow Sword approaches. Warden retains color defense and permits at
+most three hits per window, requiring multiple Sword rounds. Golem still requires
+the original dash/bomb/crystal sequence. Hurt stagger and readable danger tiles
+supplement the existing attack windups and recovery timers.
+
+Original pixel expressions, idle bobs, interpolated enemy steps and death motes
+retain each silhouette. Library dust, crystal sparks, mine grit, pulsing local
+lights, chest light and explosion/Boss illumination remain clipped above the HUD.
+Lighting does not darken the scene or use smooth image scaling.
+
+4.2 saves migrate in memory: earned rewards and already-revealed chests persist;
+formerly visible but locked rewards gain real hidden conditions. A save standing
+on a new wall receives a neighboring safe landing, including its carried Orb.
+The existing 4.0/4.1 migration runs first when necessary. Loading does not rewrite
+the source save. New saves still use `save_v4.json` with `content_revision: 4.3`.
+
+Tokens/Tickets remain in the existing private expedition escrow and settle only
+at a living victory. Retry restores the entry checkpoint's reward bag. The free
+Arcade trial cabinet retains its existing **zero external payout** and no-score
+policy; this update does not change the host economy or other games.
+
+Validation passed: 189 Puzzle Maze tests and 1,827 complete Arcade Lobby tests
+(2,016 total), plus integrity, map-builder equality and headless startup.
+
+The production-action campaign visits all 26 rooms and opens all 34 chests, using
+real movement, puzzles, bombs, combat clocks and both Boss mechanics, then checks
+the saved, repeatable settlement receipt. This is a targeted action witness;
+it does not exhaust every possible real-time combat trajectory. Manually verify
+keyboard feel, clue subtlety, continuous Boss difficulty, sound levels and FPS on
+the target computer.
 
 ## Run
 
@@ -17,7 +74,7 @@ to silence when mixer initialization fails.
 
 New expedition plays a six-second introduction; Enter skips to the tutorial.
 Left/Right switch the two tutorial pages and Enter begins. Quick start skips both.
-Continue expedition loads 4.2 without onboarding. Pause, full map and onboarding
+Continue expedition loads 4.3 without onboarding. Pause, full map and onboarding
 freeze gameplay clocks, enemy AI and bomb fuses.
 
 ## Controls
@@ -227,12 +284,12 @@ balance, audio volume, native display scaling and actual FPS. All edits are conf
 changes were made. The cabinet selects the current v4 campaign explicitly without changing host modules.
 
 
-## 4.2 absolute geometry and progression repair
+## Historical 4.2 absolute geometry and progression repair
 
-[Complete Chinese walkthrough](PLAYER_ROUTE.md) documents the actual 4.2
+[Complete Chinese walkthrough](PLAYER_ROUTE.md) documents the current dungeon, extending the 4.2
 coordinates, door directions, resource order, puzzle solutions, optional Orb
 route, Boss phases and the final room. The cabinet and standalone menu show
-**PUZZLE MAZE 4.2**; restart a running host process to load the updated modules.
+**PUZZLE MAZE 4.3**; restart a running host process to load the updated modules.
 
 Every room has authoritative floor/grid_x/grid_y coordinates. The atlas derives
 from those fields. DoorConnection/RoomCoordinate and DoorValidator check unique
