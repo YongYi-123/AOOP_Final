@@ -22,6 +22,7 @@ class BombManager:
         # Placement against a cracked wall or enemy remains legal, permanent walls reject it.
         if s.puzzles.blocked(*pos):pos=p.x,p.y
         if any(b.pos==pos for b in self.bombs):return False
+        s.combat.entry_protection=0
         s.inventory.bombs-=1;self.bombs.append(Bomb(*pos));self.timer=self.cooldown
         s.combat.events.append('bomb_place');return True
     def footprint(self,pos,radius=2):

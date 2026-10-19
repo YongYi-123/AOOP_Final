@@ -236,7 +236,7 @@ class Renderer:
             for cells,remaining in session.bombs.blasts:
                 for bx,by in cells:
                     radius=max(2,int(remaining*20));r.circle(s,GOLD if int(remaining*25)%2 else (240,123,72),(bx*16+8-cx,by*16+8-cy),radius,2)
-        if p.invulnerable<=0 or int(self.time*15)%2==0:self.player(visual,p.facing,p.moving,cx,cy)
+        if (p.invulnerable<=0 and session.combat.entry_protection<=0) or int(self.time*15)%2==0:self.player(visual,p.facing,p.moving,cx,cy)
         if getattr(session.inventory,'carried',None):
             s.blit(pygame.transform.scale(self.hud.atlas.get('pot'),(16,16)),(int(visual[0]*16)-cx,int(visual[1]*16)-cy-12))
         for kind,pos,remaining in getattr(session,'effects',[]):

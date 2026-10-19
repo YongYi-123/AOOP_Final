@@ -16,7 +16,12 @@ class AdvancedDungeonSession(DungeonSession):
     def __init__(self,rooms=None):
         self.orb=IronOrb()
         self.rewards=DungeonRewardBag();self.effects=[];self.pot_flights=[]
-        super().__init__(rooms or load_rooms(MAP_PATH.with_name('dungeon_v4.json')))
+        rooms=rooms or load_rooms(MAP_PATH.with_name('dungeon_v4.json'))
+        from puzzle_maze.safety import landing_points
+        for name,room in rooms.items():
+            if room.get('content_revision') in ('4.2','4.3'):
+                room['safe_landings']=[list(p) for p in sorted(landing_points(name,rooms))]
+        super().__init__(rooms)
     def prepare_loaded_save(self,data):
         if data.get('content_revision')!='4.2':
             from puzzle_maze.migration42 import migrate
@@ -95,6 +100,7 @@ class AdvancedDungeonSession(DungeonSession):
             enemy=next((e for e in self.combat.enemies if e.hp>0 and e.pos==pos),None)
             if enemy:
                 enemy.receive_damage(self.combat,3,'pot',p);break
+        self.combat.entry_protection=0
         self.pot_flights.append(dict(start=(p.x,p.y),end=impact,time=.3))
         self.inventory.carried=None;pot.x,pot.y=impact;pot.state.active=True
         for treasure in pot.data.get('loot',[]):self.grant_treasure(pot.id,treasure)

@@ -81,6 +81,10 @@ class GameSession:
                     seen.add(nxt);queue.append(nxt)
         else:
             raise ValueError('No safe room landing')
+        if self.rooms.data.get('safe_landings'):
+            for enemy in self.combat.enemies:
+                if enemy.hp>0:self.combat.ensure_spawn(enemy)
+            self.combat.entry_protection=1.
         self.checkpoint = dict(hp=self.player.hp, combat=copy.deepcopy(self.combat.capture()),inventory=copy.deepcopy(self.inventory.keys), abilities=sorted(self.inventory.abilities), potions=self.inventory.potions, coins=self.inventory.coins, powder=self.inventory.powder,heart_fragments=self.inventory.heart_fragments,carried=self.inventory.carried,bombs=self.inventory.bombs,boss_key=self.inventory.boss_key,flags=sorted(self.inventory.flags),objects=self.capture(), pos=[self.player.x,self.player.y])
         self.visited.add(name)
         self.exploration.reveal(name,self.puzzles,self.player)

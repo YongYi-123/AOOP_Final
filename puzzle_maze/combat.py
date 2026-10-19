@@ -15,14 +15,14 @@ class Enemy:
     def __init__(self,data):
         self.data=data;self.dormant=bool(data.get('summon_at'));self.id=data['id'];self.kind=data['type'];self.x,self.y=data['pos']
         self.hp=self.max_hp;self.state=EnemyState.HUNT
-        self.move_timer=self.speed;self.attack_timer=0;self.flash=0;self.age=0;self.dropped=False
+        self.move_timer=self.speed;self.attack_timer=0;self.flash=0;self.age=0;self.dropped=False;self.stagger=0
 
     @property
     def pos(self):return self.x,self.y
 
     def receive_damage(self,manager,amount,kind,source):
         if self.hp<=0:return False
-        self.hp=max(0,self.hp-amount);self.flash=.18
+        self.hp=max(0,self.hp-amount);self.flash=.18;self.stagger=.22
         if self.hp==0:
             self.state=EnemyState.DYING;self.attack_timer=.6 if self.kind=='golem' else .35
             manager.record_defeat(self)
@@ -34,7 +34,7 @@ class Enemy:
     def interval(self):return self.speed
 
     def capture(self):
-        return dict(pos=list(self.pos),hp=self.hp,state=self.state.value,move_timer=self.move_timer,attack_timer=self.attack_timer,flash=self.flash,age=self.age,dropped=self.dropped,dormant=self.dormant)
+        return dict(pos=list(self.pos),hp=self.hp,state=self.state.value,move_timer=self.move_timer,attack_timer=self.attack_timer,flash=self.flash,age=self.age,dropped=self.dropped,dormant=self.dormant,stagger=self.stagger)
 
 class Slime(Enemy):
     pass
@@ -63,6 +63,7 @@ class CombatManager:
         self.enemies=[ENEMIES[d['type']](d) for d in room.get('enemies',[])]
         self.loot=[]
         self.events=[]
+        self.entry_protection=0.
 
     def record_defeat(self,enemy):
         if not self.kill_order:return
@@ -75,6 +76,12 @@ class CombatManager:
             self.puzzles.inventory.notifications.append(('pulse','WRONG ORDER / RESET'))
 
     def ensure_spawn(self,enemy):
+        if self.room.get('safe_landings'):
+            from puzzle_maze.safety import nearest_safe
+            occupied={e.pos for e in self.enemies if e is not enemy and e.hp>0}
+            occupied.add((self.player.x,self.player.y))
+            enemy.x,enemy.y=nearest_safe(self.room,enemy.pos,occupied)
+            return
         if not self.blocked(enemy.pos,enemy) and enemy.pos!=(self.player.x,self.player.y):return
         queue=deque([enemy.pos]);seen={enemy.pos}
         while queue:
@@ -90,6 +97,9 @@ class CombatManager:
         fire(self,enemy,spread)
 
     def blocked(self,pos,ignore=None):
+        if self.room.get('safe_landings'):
+            reserved={tuple(p) for p in self.room['safe_landings']} | {tuple(e['pos']) for e in self.room['exits']}
+            if pos in reserved:return True
         return not self.puzzles.can_enter(*pos) or any(e is not ignore and e.pos==pos and e.hp>0 and not e.dormant for e in self.enemies)
 
     def knockback(self,target,source):
@@ -99,9 +109,10 @@ class CombatManager:
         if not self.blocked(pos, target) and (target is self.player or pos!=(self.player.x,self.player.y)):
             target.x,target.y=pos
 
-    def damage_player(self,source,amount=1):
+    def damage_player(self,source,amount=1,kind="attack"):
         p=self.player
-        if p.hp<=0 or p.invulnerable>0:return False
+        if p.hp<=0 or p.invulnerable>0 or self.entry_protection>0:return False
+        if kind=='contact' and (getattr(source,'exposed',0)>0 or getattr(source,'stagger',0)>0):return False
         p.hp=max(0,p.hp-amount);p.invulnerable=1.1
         self.knockback(p,source);self.events.append('hurt')
         return True
@@ -109,6 +120,7 @@ class CombatManager:
     def attack(self):
         p=self.player
         if p.hp<=0 or p.attack_cooldown>0:return False
+        self.entry_protection=0
         p.attack_cooldown=p.weapon.cooldown;p.attack_flash=p.weapon.swing_duration
         p.attack_facing=p.facing
         hit=False
@@ -138,6 +150,7 @@ class CombatManager:
 
     def update(self,dt):
         p=self.player
+        self.entry_protection=max(0,self.entry_protection-dt)
         p.invulnerable=max(0,p.invulnerable-dt)
         p.attack_cooldown=max(0,p.attack_cooldown-dt)
         p.attack_flash=max(0,p.attack_flash-dt)
@@ -160,6 +173,9 @@ class CombatManager:
                         e.dropped=True
                         self.events.append('defeat')
                 continue
+            if e.stagger>0:
+                e.stagger=max(0,e.stagger-dt)
+                if e.stagger>0:continue
             if e.special_update(self,dt):continue
             distance=abs(e.x-p.x)+abs(e.y-p.y)
             if e.state==EnemyState.WINDUP:
@@ -187,10 +203,13 @@ class CombatManager:
         if any(e.kind in ("golem","crystal_warden") for e in self.enemies):return all(e.state==EnemyState.DEAD for e in self.enemies)
         return all(e.hp==0 for e in self.enemies)
 
-    def capture(self):return dict(order_index=self.order_index,enemies={e.id:e.capture() for e in self.enemies},loot=self.loot.copy(),projectiles=[vars(b).copy() for b in self.projectiles])
+    def capture(self):return dict(entry_protection=self.entry_protection,order_index=self.order_index,enemies={e.id:e.capture() for e in self.enemies},loot=self.loot.copy(),projectiles=[vars(b).copy() for b in self.projectiles])
 
     def restore(self,snapshot):
         from puzzle_maze.enemies import Projectile
+        protection=snapshot.get('entry_protection',0.)
+        if type(protection) not in (float,int) or not 0<=protection<=1:raise ValueError('Invalid entry protection')
+        self.entry_protection=protection
         self.projectiles=[]
         for values in snapshot.get('projectiles',[]):
             bolt=Projectile(**values)
@@ -212,12 +231,19 @@ class CombatManager:
                 setattr(e,attr,v)
             if type(values['dropped']) is not bool:raise ValueError('Invalid drop flag')
             e.dropped=values['dropped']
+            stagger=values.get('stagger',0.)
+            if type(stagger) not in (float,int) or not 0<=stagger<=.35:raise ValueError('Invalid stagger')
+            e.stagger=stagger
             if type(values.get('dormant',False)) is not bool:raise ValueError('Invalid summon state')
             e.dormant=values.get('dormant',False)
             if e.kind in ('armored_beetle','mirror_mask'):
                 facing=tuple(values.get('facing',(0,1)))
                 if facing not in DIRECTIONS or type(values.get('armor',True)) is not bool:raise ValueError('Invalid armor state')
                 e.facing=facing;e.armor=values.get('armor',True)
+            if e.kind=='crystal_warden':
+                value=values.get('exposed',2.6)
+                if type(value) not in (int,float) or not 0<=value<=2.6:raise ValueError('Invalid Warden window')
+                e.exposed=value
             if e.kind=='golem':
                 for attr in ('exposed','primed'):
                     value=values.get(attr,0)
