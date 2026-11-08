@@ -28,7 +28,7 @@ from settings import (DEBUG, FPS, SAVE_FILE, TITLE, VIEW_H,
 
 class Game:
     def __init__(self, style=None, save_path=SAVE_FILE, debug=DEBUG, clock=None,
-                 profiles=None, session=None, audio_prefs=None, display_prefs=None):
+                 profiles=None, session=None, audio_prefs=None, display_prefs=None, opening=False):
         self.debug = debug
         self.clock = clock or GameClock()
         self.profiles = profiles            # ProfileManager, when the startup flow is used
@@ -63,7 +63,7 @@ class Game:
         self.scenes = SceneManager()
         self.style = STYLES.get(style)      # None: the default (neon_lofi); unknown names fall back
         if session is not None:
-            self.start_session(session)
+            self.start_session(session, opening=opening)
         else:
             self.startup = StartupFlow(self, profiles)
             self.startup.begin()
@@ -78,11 +78,13 @@ class Game:
         """P1's profile (the only one in a one-player game); None until players are chosen."""
         return self.session.primary.profile if self.session else None
 
-    def start_session(self, session, from_menu=False):
+    def start_session(self, session, from_menu=False, opening=None):
         """Begin play with `session`. The hub owns the three rooms and what they
         share; the game starts in HOME."""
         self.session = session
         self.hub = RoomHub(self, self.style)
+        # a real game start (the startup flow) plays the opening once; tools and tests only if they ask (opening=True)
+        self.hub.story.opening_enabled = from_menu if opening is None else opening
         self.hub.start(replace=from_menu)
 
     def step(self, events, dt):

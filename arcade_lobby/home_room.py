@@ -218,8 +218,8 @@ class HomeRoomScene(BaseRoomScene):
         once a player has put theirs off with ESC. A profile refuses a second
         claim, so re-offering can never pay twice - and a bonus is only ever
         claimed into the profile it was offered to."""
-        if self.popup is not None:
-            return
+        if self.popup is not None or self.hub.story.opening_pending:
+            return                  # (the opening plays first; its end offers the bonus)
         for player in self.players:
             profile = player.profile
             today = profile.clock.today()
