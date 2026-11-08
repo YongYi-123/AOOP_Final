@@ -1629,6 +1629,7 @@ def way_out_manager(title=None, objective=None):
 class TrackerLayoutTests(unittest.TestCase):
     def rects(self, spec):
         out = [("label", spec["label"]), ("chip", spec["chip"])]
+        out += [("hint", spec["hint"])]
         out += [(f"title{i}", r) for i, (_, r) in enumerate(spec["title"])]
         out += [(f"detail{i}", r) for i, (_, _, r) in enumerate(spec["detail"])]
         return out
@@ -2199,6 +2200,313 @@ class LegacyTerminalTwoPlayerTests(LegacyBase):
         term = self.open_as_p2()
         self.assertEqual(term.status(TRIALS[2]).code, "available")                    # P2's 500 / 50 qualify
         self.assertEqual(term.status(TRIALS[2]).tickets_have, 620)
+
+
+# ------------------------------------------------------------------ the collapsible quest drawer
+class DrawerBase(unittest.TestCase):
+    PLAYERS = 1
+
+    def setUp(self):
+        names = ["a", "b"][:self.PLAYERS]
+        self.profiles = [fresh(n) for n in names]
+        for pr in self.profiles:
+            pr.set_story({"opening_done": True, "completed": [q.id for q in QUESTS[:3]]})
+        self.game = Game(session=session_of(*self.profiles))
+        self.addCleanup(self.game.quit)
+        self.story = self.game.hub.story
+        self.tracker = self.story.tracker
+        self.room = goto_room(self.game, "arcade_floor")
+        for pl in self.room.players:
+            pl.profile.claim_daily_reward()
+        self.room.popup = None
+        self.frames(240)                                           # let any opening flourish settle
+
+    def frames(self, n, events=()):
+        for i in range(n):
+            self.game.step(list(events) if i == 0 else [], DT)
+
+    def seconds(self, s):
+        self.frames(int(round(s / DT)))
+
+    def progress(self):
+        self.story.manager.handle("secret_item_found", f"g{len(self.story.manager.state.get('stats', {}).get('secret_items', []))}")
+
+
+class DrawerTests(DrawerBase):
+    def test_it_starts_folded_with_only_the_small_tab_showing(self):
+        t = self.tracker
+        self.assertEqual((t.slide, t.pinned, t.auto_left), (0.0, False, 0.0))
+        self.assertEqual(t.appear, 1.0)
+        surf = pygame.Surface((400, 300), pygame.SRCALPHA)
+        t.draw(surf, self.room)
+        shown = surf.get_bounding_rect()
+        self.assertEqual(shown, t.tab_rect(self.room))
+        self.assertLessEqual(shown.w, 24)                                      # a small tab, not a panel
+        self.assertGreater(shown.left, 400 - 30)                                # on the right edge
+
+    def test_the_tab_shows_the_key_that_opens_it(self):
+        t = self.tracker
+        self.assertIsNotNone(t._tab_image(False))
+        self.assertEqual(self.tracker.layout()["hint"].width, get_font_width("TAB HIDE"))
+
+    def test_progress_opens_it_for_about_three_seconds_then_it_folds_itself(self):
+        t = self.tracker
+        self.progress()
+        self.assertEqual(t.auto_left, ObjectiveTracker.AUTO_TIME)
+        self.seconds(0.5)
+        self.assertEqual(t.slide, 1.0)
+        self.seconds(2.0)
+        self.assertEqual(t.slide, 1.0)                                          # still open at 2.5 s
+        self.seconds(1.2)
+        self.assertEqual(t.slide, 0.0)                                          # folded again by ~3.7 s
+        self.assertFalse(t.pinned)
+
+    def test_a_new_quest_or_completion_also_opens_it(self):
+        t = self.tracker
+        play(self.story.manager, "a")                                         # completes a quest and starts the next
+        self.seconds(0.5)
+        self.assertGreater(t.slide, 0.9)
+
+    def test_the_automatic_three_seconds_only_run_while_it_is_on_screen(self):
+        t = self.tracker
+        self.room.inventory_ui = type("W", (), {"update": lambda s, dt: None, "closed": False, "draw": lambda s, x: None})()
+        self.progress()                                                       # happens while a window covers the screen
+        self.seconds(6)
+        self.assertGreater(t.auto_left, 2.9)                                  # the clock did not run behind the window
+        self.assertEqual(t.slide, 0.0)
+        self.room.inventory_ui = None
+        self.seconds(0.6)
+        self.assertEqual(t.slide, 1.0)                                        # it opens once the screen is clear ...
+        self.seconds(3.5)
+        self.assertEqual(t.slide, 0.0)                                        # ... and then keeps its full three seconds
+
+    def test_tab_opens_it_and_keeps_it_open_until_tab_again(self):
+        t = self.tracker
+        self.frames(1, [down(K.K_TAB)])
+        self.seconds(0.5)
+        self.assertTrue(t.pinned)
+        self.assertEqual(t.slide, 1.0)
+        self.seconds(8)
+        self.assertEqual(t.slide, 1.0)                                          # no timeout while the player holds it open
+        self.frames(1, [down(K.K_TAB)])
+        self.seconds(0.5)
+        self.assertFalse(t.pinned)
+        self.assertEqual(t.slide, 0.0)
+
+    def test_tab_while_it_is_open_by_itself_folds_it_at_once(self):
+        t = self.tracker
+        self.progress()
+        self.seconds(0.6)
+        self.assertEqual(t.slide, 1.0)
+        self.frames(1, [down(K.K_TAB)])
+        self.seconds(0.5)
+        self.assertEqual((t.slide, t.pinned, t.auto_left), (0.0, False, 0.0))
+
+    def test_q_still_opens_the_full_quest_log_and_the_log_hides_the_drawer(self):
+        t = self.tracker
+        self.frames(1, [down(K.K_TAB)])
+        self.seconds(0.4)
+        self.frames(1, [down(K.K_q)])
+        self.frames(30)
+        self.assertIsNotNone(self.story.log)
+        self.assertEqual(t.appear, 0.0)                                         # hidden while the log is open
+        self.assertTrue(t.pinned)                                               # ... but the player's choice is remembered
+        self.frames(1, [down(K.K_TAB)])                                         # TAB belongs to the open window now
+        self.assertTrue(t.pinned)
+        self.frames(1, [down(K.K_q)])
+        self.seconds(0.6)
+        self.assertIsNone(self.story.log)
+        self.assertEqual(t.appear, 1.0)
+        self.assertEqual(t.slide, 1.0)                                          # and it is back, open as it was
+
+    def test_tab_is_nobodys_game_key_and_needs_no_new_control(self):
+        for scheme in (SOLO_CONTROLS, P1_CONTROLS, P2_CONTROLS):
+            self.assertFalse(scheme.owns(K.K_TAB), scheme.name)
+        self.assertEqual(self.room.session.input.route(down(K.K_TAB)), (None, None))
+
+    def test_tab_does_not_disturb_a_window_that_uses_it(self):
+        """The bag switches tabs with TAB: while it is open the key is the bag's, not the drawer's."""
+        self.frames(1, [down(K.K_i)])
+        self.frames(10)
+        self.assertIsNotNone(self.room.inventory_ui)
+        before = self.tracker.pinned
+        self.frames(1, [down(K.K_TAB)])
+        self.assertEqual(self.tracker.pinned, before)
+        self.assertIsNotNone(self.room.inventory_ui)
+
+    def test_it_hides_while_a_dialogue_or_a_window_is_open_and_comes_back(self):
+        t = self.tracker
+        self.frames(1, [down(K.K_TAB)])
+        self.seconds(0.5)
+        self.story.open_dialogue(self.room, self.room.player, [D.Line("MIAO MEOW", "Hi")])
+        self.seconds(0.5)
+        self.assertEqual(t.appear, 0.0)
+        blank = pygame.Surface((400, 300), pygame.SRCALPHA)
+        self.tracker.draw(blank, self.room)
+        self.assertEqual(blank.get_bounding_rect().size, (0, 0))               # nothing of the drawer is drawn while it is hidden
+        self.story.dialogue.closed = True
+        self.seconds(0.6)
+        self.assertEqual(t.appear, 1.0)
+        self.assertEqual(t.slide, 1.0)
+
+    def test_it_hides_while_the_opening_plays(self):
+        fresh_game = Game(session=session_of(fresh("op")), opening=True)
+        self.addCleanup(fresh_game.quit)
+        room = fresh_game.scenes.current
+        for _ in range(120):
+            fresh_game.step([], DT)
+        story = fresh_game.hub.story
+        self.assertTrue(story.locked)
+        self.assertEqual(story.tracker.appear, 0.0)
+        fresh_game.step([down(K.K_TAB)], DT)
+        self.assertFalse(story.tracker.pinned)                                  # TAB does nothing during the opening
+        self.assertIsNotNone(room)
+
+    def test_it_is_not_drawn_in_a_minigame_and_is_there_again_afterwards(self):
+        from menu_kit import MenuScene
+
+        class Game2(MenuScene):
+            def on_action(self, action):
+                pass
+
+            def draw(self, surf):
+                surf.fill((9, 9, 9))
+        t = self.tracker
+        self.frames(1, [down(K.K_TAB)])
+        self.seconds(0.5)
+        self.game.scenes.push(Game2(self.game, self.game.session.primary))
+        self.seconds(1.5)
+        self.assertIsInstance(self.game.scenes.current, Game2)
+        self.game.scenes.draw(self.game.canvas, pygame.Surface((800, 600)))
+        self.assertEqual(self.game.canvas.get_at((390, 240))[:3], (9, 9, 9))       # nothing of the room, nothing of the drawer
+        self.game.scenes.pop()
+        self.seconds(1.5)
+        self.assertIs(self.game.scenes.current, self.room)
+        self.assertEqual((t.pinned, t.slide, t.appear), (True, 1.0, 1.0))        # restored, still open
+
+    def test_the_slide_is_short_smooth_and_never_jumps(self):
+        t = self.tracker
+        self.frames(1, [down(K.K_TAB)])
+        seen = []
+        for _ in range(int(0.5 / DT)):
+            self.game.step([], DT)
+            seen.append(t.eased)
+        self.assertEqual(seen, sorted(seen))                                    # opens one way only
+        self.assertEqual(seen[-1], 1.0)
+        steps = [b - a for a, b in zip(seen, seen[1:])]
+        self.assertLess(max(steps), 0.2)                                        # no big jumps
+        self.assertGreater(len([s for s in seen if 0 < s < 1]), 5)              # and it really is a slide, not a pop
+        self.assertLessEqual(next(i for i, s in enumerate(seen) if s >= 1.0) * DT, ObjectiveTracker.SLIDE_TIME + 0.1)
+
+    def test_animation_speed_does_not_depend_on_the_frame_rate(self):
+        for dt in (1 / 30, 1 / 120):
+            q = QuestManager(session_of(fresh("fr")))
+            q.finish_opening()
+            tr = ObjectiveTracker(q)
+            tr.toggle()
+            for _ in range(int(0.1 / dt)):
+                tr.update(dt)
+            self.assertAlmostEqual(tr.slide, 0.1 / ObjectiveTracker.SLIDE_TIME, delta=0.15)
+
+    def test_the_visible_part_never_covers_the_wallet_controls_or_leaves_the_screen(self):
+        t = self.tracker
+        for pinned in (False, True):
+            t.pinned, t.slide = pinned, 1.0 if pinned else 0.0
+            self.room.draw(pygame.Surface((400, 300)))
+            for animated in (True, False):
+                rect = t.rect(self.room, animated)
+                self.assertTrue(pygame.Rect(0, 0, 400, 300).contains(rect), (pinned, rect))
+                for hud in self.room.huds:
+                    self.assertFalse(rect.colliderect(hud.rect), "wallet")
+                box = self.room.instructions.image.get_rect(bottomleft=(4, 296))
+                self.assertFalse(rect.colliderect(box), "controls box")
+        full = t.panel_rect(self.room)
+        self.assertGreaterEqual(full.left, 4 + self.room.instructions.image.get_width() + 8)
+        self.assertEqual(t.rect(self.room, animated=False).union(t.tab_rect(self.room)), t.rect(self.room, animated=False))
+
+    def test_prompts_keep_clear_of_the_part_that_is_showing(self):
+        t = self.tracker
+        t.slide = 0.0
+        self.assertIn(t.rect(self.room), self.room.prompt_avoid_rects())
+        self.assertEqual(t.rect(self.room).size, t.tab_rect(self.room).size)
+        t.pinned, t.slide = True, 1.0
+        self.assertGreater(t.rect(self.room).w, 60)
+        self.assertIn(t.rect(self.room), self.room.prompt_avoid_rects())
+
+    def test_the_text_fits_inside_the_open_panel_at_the_real_resolution(self):
+        t = self.tracker
+        spec = t.layout(t._free_width(self.room))
+        w, h = spec["size"]
+        panel = pygame.Rect(0, 0, w, h)
+        for name, r in ([("label", spec["label"]), ("chip", spec["chip"]), ("hint", spec["hint"])]
+                        + [(f"t{i}", r) for i, (_, r) in enumerate(spec["title"])] + [(f"d{i}", r) for i, (_, _, r) in enumerate(spec["detail"])]):
+            self.assertTrue(panel.inflate(-2, -2).contains(r), (name, r, panel))
+
+    def test_a_long_title_still_fits_the_open_drawer(self):
+        quests = (QuestDef("long", "A Quest With A Really Rather Long Title Indeed Yes And Then Some More", "Do it all.", "DO IT ALL", ("played", 99), ("h",)),)
+        self.story.manager.quests = quests
+        self.story.manager.by_id = {q.id: q for q in quests}
+        self.story.manager.state["completed"] = []
+        self.tracker.pinned, self.tracker.slide = True, 1.0
+        self.room.draw(pygame.Surface((400, 300)))
+        spec = self.tracker.layout(self.tracker._free_width(self.room))
+        self.assertGreater(len(spec["title"]), 1)
+        rect = self.tracker.rect(self.room, animated=False)
+        self.assertTrue(pygame.Rect(0, 0, 400, 300).contains(rect))
+        for hud in self.room.huds:
+            self.assertFalse(rect.colliderect(hud.rect))
+
+
+class DrawerTwoPlayerTests(DrawerBase):
+    PLAYERS = 2
+
+    def test_it_works_the_same_in_two_player_sessions_with_either_players_tab_key(self):
+        t = self.tracker
+        self.assertEqual((t.slide, t.pinned), (0.0, False))
+        self.progress()
+        self.seconds(0.6)
+        self.assertEqual(t.slide, 1.0)
+        self.seconds(3.5)
+        self.assertEqual(t.slide, 0.0)
+        self.frames(1, [down(K.K_TAB)])                                         # TAB is shared: it belongs to neither player
+        self.seconds(0.5)
+        self.assertTrue(t.pinned)
+        self.frames(1, [down(K.K_TAB)])
+        self.seconds(0.5)
+        self.assertFalse(t.pinned)
+
+    def test_the_open_drawer_clears_both_wallet_boxes_and_the_controls(self):
+        t = self.tracker
+        t.pinned, t.slide = True, 1.0
+        self.room.draw(pygame.Surface((400, 300)))
+        rect = t.rect(self.room, animated=False)
+        self.assertEqual(len(self.room.huds), 2)
+        for hud in self.room.huds:
+            self.assertFalse(rect.colliderect(hud.rect))
+        box = self.room.instructions.image.get_rect(bottomleft=(4, 296))
+        self.assertFalse(rect.colliderect(box))
+        self.assertTrue(pygame.Rect(0, 0, 400, 300).contains(rect))
+
+    def test_every_room_draws_the_drawer_in_both_states_with_two_players(self):
+        surf = pygame.Surface((400, 300))
+        for rid in ("home", "arcade_floor", "prize_plaza"):
+            room = goto_room(self.game, rid)
+            for pl in room.players:
+                pl.profile.claim_daily_reward()
+            room.popup = None
+            self.frames(30)
+            for pinned, slide in ((False, 0.0), (True, 1.0)):
+                self.tracker.pinned, self.tracker.slide = pinned, slide
+                room.draw(surf)
+                rect = self.tracker.rect(room, animated=False)
+                for hud in room.huds:
+                    self.assertFalse(rect.colliderect(hud.rect), (rid, pinned))
+
+
+def get_font_width(text):
+    from font import get_font
+    return get_font().size(text)[0]
+
 
 
 class StoryGameTests(unittest.TestCase):
