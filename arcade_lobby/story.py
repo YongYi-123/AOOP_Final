@@ -431,11 +431,17 @@ class StoryDirector:
         """Screen areas an interaction prompt must not cover: the objective tracker, while it is showing."""
         if self.tracker.appear <= 0 or not self.manager.opening_done or self.manager.active is None:
             return []
-        return [self.tracker.rect(room, animated=False)]
+        return [self.tracker.rect(room)]                  # the tab, plus whatever of the panel has slid out
 
     def on_room_enter(self, room):
         self.brain.on_room_enter(room)
         self._sync_anchor()
+
+    def toggle_tracker(self, room=None):
+        """TAB: fold or open the quest drawer. Ignored while the opening plays or a window is open (the room checks too)."""
+        if self.locked or (room is not None and room.modal is not None):
+            return
+        self.tracker.toggle()
 
     def handle_locked_event(self, event):
         """A key while the opening plays and no dialogue is open (the intro, the run-in): ESC skips ahead."""
@@ -453,7 +459,7 @@ class StoryDirector:
         if self.cutscene is None and self.opening_enabled and not m.opening_done and self._can_start(room):
             self.cutscene = OpeningCutscene(self, room)
         self._sync_anchor()
-        self.tracker.update(dt)
+        self.tracker.update(dt, visible=room.modal is None and not self.locked and not self.hides_hud)
         if room.modal is None:                          # announcements wait for any open window (a popup, the bag ...)
             self.banner.update(dt)
             if not self.locked:
