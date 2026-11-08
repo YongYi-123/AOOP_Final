@@ -54,6 +54,60 @@ def _count(value, default):
     return value
 
 
+STORY_MAX_ITEMS = 64            # a saved story never holds more than this many entries per list / dict
+
+
+def _story_value(value, depth=0):
+    """A JSON-safe copy of saved story data (str / int / bool / list / dict only); anything else is dropped."""
+    if isinstance(value, bool) or isinstance(value, int):
+        return value
+    if isinstance(value, str):
+        return value[:120]
+    if depth < 4 and isinstance(value, list):
+        return [_story_value(v, depth + 1) for v in value[:STORY_MAX_ITEMS]
+                if isinstance(v, (str, int, bool, list, dict))]
+    if depth < 4 and isinstance(value, dict):
+        return {k: _story_value(v, depth + 1) for k, v in list(value.items())[:STORY_MAX_ITEMS]
+                if isinstance(k, str) and isinstance(v, (str, int, bool, list, dict))}
+    return None
+
+
+def clean_story(data):
+    """The saved main-story progress (see quests.py), validated: unknown or damaged data is dropped, never raised.
+    {} means 'no story progress saved'."""
+    if not isinstance(data, dict):
+        return {}
+    out = {}
+    if data.get("opening_done") is True:
+        out["opening_done"] = True
+    done = data.get("completed")
+    if isinstance(done, list):
+        ids = []
+        for q in done:
+            if isinstance(q, str) and q and q not in ids:
+                ids.append(q)
+        if ids:
+            out["completed"] = ids[:STORY_MAX_ITEMS]
+    if isinstance(data.get("active"), str) and data["active"]:
+        out["active"] = data["active"]
+    for key in ("progress", "stats"):
+        if isinstance(data.get(key), dict):
+            value = _story_value(data[key])
+            if value:
+                out[key] = value
+    flags = data.get("flags")
+    if isinstance(flags, dict):
+        flags = {k: True for k, v in flags.items() if isinstance(k, str) and v is True}
+        if flags:
+            out["flags"] = flags
+    hints = data.get("hints")
+    if isinstance(hints, dict):
+        hints = {k: _count(v, 0) for k, v in hints.items() if isinstance(k, str) and _count(v, None) is not None}
+        if hints:
+            out["hints"] = hints
+    return out
+
+
 class PlayerProfile:
     TOKEN, TICKET = "tokens", "tickets"
 
@@ -64,7 +118,7 @@ class PlayerProfile:
                  home_decorations=None, profile_id=None, display_name=None, racing_selection=None,
                  neon21=None, appearance=None, collection_display=None, basic_appearance=None,
                  secrets=None, coin_pusher=None, pinball=None, showcase=None, capsule_stamps=0,
-                 cheats_used=False):
+                 cheats_used=False, story=None):
         # Who this profile is. The id is the save identity (never the name);
         # both are None for a bare profile that is not managed by a ProfileManager.
         self.profile_id = profile_id
@@ -102,6 +156,10 @@ class PlayerProfile:
         # Easter eggs this player found: {flag: True}. Pure bookkeeping for future story systems;
         # a flag never grants anything. Absent from the save until the first discovery.
         self._secrets = {k: True for k, v in (secrets or {}).items() if isinstance(k, str) and v is True}
+        # The main story (opening seen, quests done, progress): see quests.py, which owns the shape and rules.
+        # Plain data, validated by clean_story(); absent from the save until the story starts.
+        self._story = clean_story(story)
+        self._event_listeners = []
         # True once MOCHI'S STAFF PANEL has paid this profile (see grant_staff_currency). Pure bookkeeping:
         # it blocks nothing and unlocks nothing. Absent from the save until then.
         self._cheats_used = cheats_used is True
@@ -196,6 +254,29 @@ class PlayerProfile:
         self._secrets[flag] = True
         self._notify("secrets", 0, 0)
         return True
+
+    @property
+    def story(self):
+        """The main-story progress as a copy (see quests.py); {} before the story has started."""
+        return copy.deepcopy(self._story)
+
+    def set_story(self, data):
+        """Replace the story progress (validated). Saves like any other change, and only when it really changed."""
+        data = clean_story(data)
+        if data == self._story:
+            return False
+        self._story = data
+        self._notify("story", 0, 0)
+        return True
+
+    def subscribe_events(self, callback):
+        """callback(event, key, game_id) hears the gameplay events the daily tasks use: game_played, machine_visited,
+        cat_petted, coupon_used, high_score. (A second, richer door than subscribe(), which carries no keys.)"""
+        self._event_listeners.append(callback)
+
+    def unsubscribe_events(self, callback):
+        if callback in self._event_listeners:
+            self._event_listeners.remove(callback)
 
     @property
     def cheats_used(self):
@@ -616,6 +697,8 @@ class PlayerProfile:
         self.sync_daily_tasks()
         if self._tasks.on_event(event, amount, key, game_id):
             self._notify("tasks", amount, len(self._tasks.claimable))
+        for callback in list(self._event_listeners):
+            callback(event, key, game_id)
 
     # ------------------------------------------------------------ stats
     def record_game_played(self, game_id=None):
@@ -721,6 +804,7 @@ class PlayerProfile:
             **({"capsule_stamps": self._capsule_stamps} if self._capsule_stamps else {}),
             **({"secrets": dict(self._secrets)} if self._secrets else {}),
             **({"cheats_used": True} if self._cheats_used else {}),
+            **({"story": copy.deepcopy(self._story)} if self._story else {}),
             "neon21": {"date": self._neon21_date, "tickets": self._neon21_tickets,
                        **({"pending": dict(self._neon21_pending)} if self._neon21_pending else {})},
             **({"coin_pusher": {"date": self._pusher_date, "tickets": self._pusher_tickets,
@@ -778,6 +862,7 @@ class PlayerProfile:
             showcase=data.get("showcase") if isinstance(data.get("showcase"), dict) else {},
             capsule_stamps=data.get("capsule_stamps"),
             cheats_used=data.get("cheats_used"),
+            story=data.get("story") if isinstance(data.get("story"), dict) else {},
             secrets=data.get("secrets") if isinstance(data.get("secrets"), dict) else {},
             profile_id=data["profile_id"] if isinstance(data.get("profile_id"), str) else None,
             display_name=data["display_name"] if isinstance(data.get("display_name"), str) else None,

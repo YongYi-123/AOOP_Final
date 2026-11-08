@@ -39,6 +39,10 @@ EVENT_HANDLERS = {
     "machine_visited": lambda profile, e: profile.record_machine_visit(e.key),
     "coupon_used": lambda profile, e: profile.record_coupon_used(),
     "game_played": lambda profile, e: profile.record_game_played(e.game_id),
+    # story events: nothing happens to the profile itself; the quest system hears them through add_listener()
+    "vending_secret": lambda profile, e: None,
+    "secret_item_found": lambda profile, e: None,
+    "secret_trial_done": lambda profile, e: None,
 }
 
 
@@ -86,6 +90,7 @@ class LocalSession:
         self.players = [LocalPlayer(i, p, schemes[i], looks[i], f"P{i + 1}" if count > 1 else "")
                         for i, p in enumerate(profiles)]
         self.input = InputRouter(self)
+        self._listeners = []
 
     @property
     def player_count(self):
@@ -137,7 +142,17 @@ class LocalSession:
         if owner is None or handler is None:
             return False
         handler(owner.profile, event)
+        for callback in list(self._listeners):
+            callback(owner, event)
         return True
+
+    def add_listener(self, callback):
+        """callback(LocalPlayer, GameEvent) hears every event that was delivered (the story / quest system)."""
+        self._listeners.append(callback)
+
+    def remove_listener(self, callback):
+        if callback in self._listeners:
+            self._listeners.remove(callback)
 
 
 @dataclass(frozen=True)
