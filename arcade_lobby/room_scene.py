@@ -230,8 +230,13 @@ class BaseRoomScene(BaseScene):
         return player or self.acting_player or self.player
 
     @property
+    def music_duck(self):
+        """The music level the story wants right now (the opening muffles it); None leaves it alone. Read by Game.duck_for."""
+        return self.hub.story.music_duck
+
+    @property
     def modal(self):
-        return self.popup or self.panel or self.inventory_ui or self.dialogue
+        return self.popup or self.panel or self.inventory_ui or self.dialogue or self.hub.story.modal
 
     @property
     def modal_owner(self):
@@ -305,6 +310,7 @@ class BaseRoomScene(BaseScene):
         self.title.show(delay=TRANSITION_TIME)
         for profile in self.session.profiles:
             profile.sync_daily_tasks()
+        self.hub.story.on_room_enter(self)
         self.on_room_enter()
 
     def on_exit(self):
@@ -436,7 +442,13 @@ class BaseRoomScene(BaseScene):
             return
         if event.type != pygame.KEYDOWN or self.leaving:
             return
+        if self.hub.story.locked:                       # the opening plays: only the dialogue (a modal) answers keys
+            self.hub.story.handle_locked_event(event)
+            return
         if self.game.debug and self._debug_key(event.key):
+            return
+        if event.key == pygame.K_q:                     # the Quest Log (Q belongs to no player's controls)
+            self.hub.story.toggle_log(self)
             return
         local, action = self.session.input.route(event)
         if local is None:
@@ -797,11 +809,13 @@ class BaseRoomScene(BaseScene):
     # ------------------------------------------------------------ update
     def _is_busy(self, player):
         """Is this player held still by a window of theirs, the E-flash or a room change?"""
-        return self.leaving or player.activating is not None or self.modal_owner is player
+        return (self.leaving or player.activating is not None or self.modal_owner is player
+                or self.hub.story.locked)
 
     def update(self, dt):
         self.time += dt
         self.arrival_grace = max(0.0, self.arrival_grace - dt)
+        self.hub.story.update(dt, self)
         self.renderer.update(dt)
         for prop in self.props:
             prop.update(dt)
@@ -834,7 +848,7 @@ class BaseRoomScene(BaseScene):
         self.title.update(dt)
         for p in self.players:
             direction = (0, 0) if self._is_busy(p) else p.direction
-            p.update(dt, direction, self.solids + self.cats.blockers(p))
+            p.update(dt, direction, self.solids + self.cats.blockers(p) + self.hub.story.blockers(self, p))
             if p.footstep:                      # a foot just came down
                 p.footstep = False
                 self.play_sound("footstep")
@@ -893,6 +907,7 @@ class BaseRoomScene(BaseScene):
         rects = [pygame.Rect(t.rect.x, t.rect.y, t.rect.w, min(self.SIGN_BAND, t.rect.h))
                  for t in self.machines + self.props if getattr(t, "rect", None) is not None]   # incl. idle SOON cabinets
         rects += [pygame.Rect(p.sign_rect) for p in self.props if getattr(p, "sign_rect", None)]
+        rects += self.hub.story.avoid_rects(self)
         return rects
 
     # ------------------------------------------------------------ draw
@@ -920,21 +935,25 @@ class BaseRoomScene(BaseScene):
         if self.edit_mode:
             return
 
-        avoid = self.prompt_avoid_rects()
-        for p in self.players:
-            if p.nearby is not None and p.prompt.alpha > 0:        # which machine is selected
-                selection_brackets(surf, p.nearby.rect, p.look.accent if p.label else Col.YELLOW, self.time)
-            mine = [p.nearby.rect] if p.nearby is not None else []   # keep the selected machine visible too
-            used = p.prompt.draw(surf, self.time, avoid + mine, below_first=p.nearby is not None)
-            if used is not None:
-                avoid.append(used.inflate(2, 2))                    # the next player's bubble keeps clear of this one
-            p.draw_tag(surf)
-        self._draw_waiting(surf)
-        self.instructions.draw(surf)
-        for hud in self.huds:
-            hud.draw(surf)
-        self.notice.draw(surf)
-        self.title.draw(surf)
+        story = self.hub.story
+        story.draw_world(surf, self)
+        if not story.hides_hud:
+            avoid = self.prompt_avoid_rects()
+            for p in self.players:
+                if p.nearby is not None and p.prompt.alpha > 0:        # which machine is selected
+                    selection_brackets(surf, p.nearby.rect, p.look.accent if p.label else Col.YELLOW, self.time)
+                mine = [p.nearby.rect] if p.nearby is not None else []   # keep the selected machine visible too
+                used = p.prompt.draw(surf, self.time, avoid + mine, below_first=p.nearby is not None)
+                if used is not None:
+                    avoid.append(used.inflate(2, 2))                    # the next player's bubble keeps clear of this one
+                p.draw_tag(surf)
+            self._draw_waiting(surf)
+            self.instructions.draw(surf)
+            for hud in self.huds:
+                hud.draw(surf)
+            story.draw_hud(surf, self)
+            self.notice.draw(surf)
+            self.title.draw(surf)
         if self.dialogue:
             self.dialogue.draw(surf)
         if self.panel:
@@ -943,6 +962,7 @@ class BaseRoomScene(BaseScene):
             self.inventory_ui.draw(surf)
         if self.popup:
             self.popup.draw(surf)
+        story.draw_front(surf, self)
 
     def _draw_waiting(self, surf):
         text = self.waiting_text
