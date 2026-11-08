@@ -123,7 +123,7 @@ class ArcadeFloorScene(BaseRoomScene):
         # the SOON cabinet of one free island slot is the BROKEN CAT-CADE (same spot, same footprint)
         idle = [IdleCabinet(pos) for name, pos in self.layout.free_slots().items() if name != BROKEN_SLOT]
         broken = BrokenCatCade(self.layout.slots[BROKEN_SLOT])
-        return idle + [broken, vend] + stools
+        return idle + [broken, vend, self.make_miao()] + stools
 
     def build_renderer(self):
         style = self.style

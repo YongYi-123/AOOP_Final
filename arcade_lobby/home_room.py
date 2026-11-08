@@ -135,6 +135,7 @@ class HomeRoomScene(BaseRoomScene):
             WardrobeStation(),
             DecorStation(),
             CollectionStation(self.profile),
+            self.make_miao(),
         ]
         return self.furniture + self.decorations.props
 

@@ -51,6 +51,7 @@ from item_registry import FREE_PLAY_COUPON
 from local_session import GameEvent, MachineInteraction
 from machine import ArcadeMachine
 from rewards import RewardService
+from miao_meow import MiaoMeow
 from room import room_walls
 from font import get_font
 from scene_base import BaseScene
@@ -144,7 +145,8 @@ class BaseRoomScene(BaseScene):
         roster = [data for data in CATS if data.get("room", "home") == self.room_id]
         self.cats = CatColony(roster, self)
         # everything the player can walk up to and press E on
-        self.interactables = self.machines + [p for p in self.props if isinstance(p, Station)]
+        # (Miao Meow is not in this fixed list: she moves, and is only there while she is in the room; see _candidates)
+        self.interactables = self.machines + [p for p in self.props if isinstance(p, Station) and not isinstance(p, MiaoMeow)]
 
         self.dialogue = None
         self.popup = None       # the daily login bonus (HOME)
@@ -252,6 +254,11 @@ class BaseRoomScene(BaseScene):
 
     def build_props(self):
         return []
+
+    def make_miao(self):
+        """Miao Meow as this room sees her (a Station: it draws her only while she is here). A room's build_props adds it."""
+        self.miao = MiaoMeow(self.hub.story.brain, self.room_id)
+        return self.miao
 
     def build_renderer(self):
         raise NotImplementedError
@@ -869,8 +876,13 @@ class BaseRoomScene(BaseScene):
     def _find_nearby(self, player=None):
         player = player or self.player
         feet = player.feet
-        close = [m for m in self.interactables if m.zone.colliderect(feet)]
+        close = [m for m in self._candidates() if m.zone.colliderect(feet)]
         return min(close, key=lambda m: abs(m.rect.centerx - player.x), default=None)
+
+    def _candidates(self):
+        """Everything the player could press E on right now: the fixed machines and stations, plus Miao Meow while she is here."""
+        miao = getattr(self, "miao", None)
+        return self.interactables + [miao] if miao is not None and miao.present else self.interactables
 
     SIGN_BAND = 12      # the marquee strip across the top of every cabinet / station sprite
 

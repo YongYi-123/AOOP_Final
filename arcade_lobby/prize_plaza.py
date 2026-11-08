@@ -250,6 +250,7 @@ class PrizePlazaScene(BaseRoomScene):
             Prop(plant, (358, 244), (361, 260, 13, 10)),
             Prop(make_gumball(), (166, 254), (167, 270, 12, 6)),
             Prop(make_gumball(), (206, 254), (207, 270, 12, 6)),
+            self.make_miao(),
         ])
 
     def build_renderer(self):
