@@ -71,6 +71,11 @@ DEFAULT_PLAY_COST = 1           # tokens per play, unless a machine sets play_co
 PLACEHOLDER_REWARD_TICKETS = 5
 TRANSACTION_HISTORY_SIZE = 30   # how many recent token changes are saved
 
+# Secret Trial 03 (THE FINAL LOCK) asks the player to hold this much. PROVISIONAL numbers, not finished balancing: they
+# are only compared with the wallet (nothing is ever charged for looking at, or entering, the legacy terminal).
+TRIAL_FINAL_TICKETS = 300
+TRIAL_FINAL_TOKENS = 30
+
 # Daily login: the reward for streak day 1, 2, 3, ... Each entry is a token
 # amount, or a dict such as {"tokens": 15, "items": {"free_play_coupon": 1}}.
 DAILY_REWARDS = (5, 6, 7, 8, 10, 12, 15)
