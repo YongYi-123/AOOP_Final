@@ -43,35 +43,79 @@ def _star(surf, cx, cy, color, size=3):
 
 # ------------------------------------------------------------------ objective tracker
 class ObjectiveTracker:
-    """The corner readout of the active quest, drawn bottom-right just above the TOKENS / TICKETS box(es).
+    """A collapsible quest drawer on the right edge, just above the TOKENS / TICKETS box(es).
 
-        MAIN QUEST                [Q]       <- small label on the left, the Q shortcut alone in the right corner
+    Normally only a small tab shows (a "!" over the key that opens it, TAB). It slides out to the left when
+
+      * a quest starts, or its progress / completion changes: it opens by itself for AUTO_TIME seconds, then folds away
+      * the player presses TAB (the story director passes the key on): open until TAB again
+
+    and it is hidden (fades away) while a cutscene, a dialogue, the Quest Log or any other window is open, and is simply
+    not drawn while another scene (a minigame) is on top. The panel inside:
+
+        MAIN QUEST                [Q]       <- small label on the left, the Q shortcut (Quest Log) alone in the right corner
         ------------------------------
         THE WAY OUT                         <- the title (wraps onto more rows when it is long)
-        ITEMS 0/3    TRIALS 0/3             <- the objective, or the two secret counters, legible and apart
+        ITEMS 0/3    TRIALS 0/3             <- the objective, or the two secret counters
+        TAB HIDE                            <- what the other key does
 
-    The panel is as wide as its text needs (MIN_W..MAX_W, never wider than the free space left of the wallet box), has
-    a single border and no glow on the text, and never overflows: long titles and objectives wrap onto more rows."""
+    It is as wide as its text needs (MIN_W..MAX_W, never wider than the free space between the controls box and the tab),
+    has one border and no glow on the text, and never overflows: long titles and objectives wrap onto more rows."""
     PAD = 6                     # space between the border and the text
     GAP = 8                     # minimum space between two things on the same row
     ROW = 10                    # row pitch of wrapped text
-    MIN_W, MAX_W = 118, 196
+    MIN_W, MAX_W = 118, 190
+    TAB_SIZE = (21, 30)         # the always-visible handle
+    AUTO_TIME = 3.0             # seconds it stays open by itself after a change
+    SLIDE_TIME = 0.22           # seconds to slide fully open or shut
+    FADE_TIME = 0.15            # seconds to fade away / back while a window is open
 
     def __init__(self, manager):
         self.manager = manager
         self.pulse = 0.0
-        self.appear = 0.0
+        self.appear = 0.0       # 0..1: faded away .. shown (windows and cutscenes take it to 0)
+        self.slide = 0.0        # 0..1: folded .. fully out
+        self.pinned = False     # the player opened it with TAB and it stays open
+        self.auto_left = 0.0    # seconds of automatic opening still to go (counted only while it is visible)
         self._cache = (None, None)
+        self._icon = None
         manager.on_change(self._changed)
 
+    # ------------------------------------------------------------ behaviour
     def _changed(self, kind):
         if kind in ("progress", "complete", "opening"):
             self.pulse = 1.0
+            self.auto_left = self.AUTO_TIME
 
-    def update(self, dt):
+    @property
+    def wants_open(self):
+        return self.pinned or self.auto_left > 0
+
+    def toggle(self):
+        """TAB: if it is open (by hand or by itself) fold it; otherwise open it and keep it open."""
+        if self.wants_open:
+            self.pinned = False
+            self.auto_left = 0.0
+        else:
+            self.pinned = True
+
+    def update(self, dt, visible=True):
+        """`visible`: no cutscene, dialogue or window is covering the screen. The automatic 3 seconds only run while it is."""
+        shown = visible and self.manager.opening_done and self.manager.active is not None
+        step_fade = dt / self.FADE_TIME
+        self.appear = min(1.0, self.appear + step_fade) if shown else max(0.0, self.appear - step_fade)
         self.pulse = max(0.0, self.pulse - dt / 1.0)
-        shown = self.manager.opening_done and self.manager.active is not None
-        self.appear = min(1.0, self.appear + dt * 4) if shown else 0.0
+        if shown:
+            self.auto_left = max(0.0, self.auto_left - dt)
+        target = 1.0 if (shown and self.wants_open) else 0.0
+        step = dt / self.SLIDE_TIME
+        self.slide = min(target, self.slide + step) if self.slide < target else max(target, self.slide - step)
+
+    @property
+    def eased(self):
+        """The slide with a soft start and stop (smoothstep)."""
+        s = self.slide
+        return s * s * (3 - 2 * s)
 
     # ------------------------------------------------------------ layout (separate from drawing so it can be tested)
     def _detail(self):
@@ -84,8 +128,8 @@ class ObjectiveTracker:
         return [(m.hud_text(), Col.TEXT)]
 
     def layout(self, max_width=None):
-        """Where everything goes: {"size": (w, h), "label": Rect, "chip": Rect, "title": [(text, Rect)], "detail": [(text, colour, Rect)]}.
-        All rects are inside the panel with PAD to spare; none overlap. `max_width` caps the panel (free space on screen)."""
+        """Where everything in the panel goes: {"size", "label", "chip", "title": [(text, Rect)], "detail": [(text, colour, Rect)],
+        "hint": Rect}. All rects are inside the panel with PAD to spare; none overlap. `max_width` caps the panel."""
         font = get_font()
         q = self.manager.active
         cap = min(self.MAX_W, max_width or self.MAX_W)
@@ -95,12 +139,12 @@ class ObjectiveTracker:
         title_rows = wrap_text(q.title.upper(), inner_cap)
         groups = self._detail()
         if len(groups) == 1:
-            detail_rows = [[(t, c)] for t, c in
-                           [(row, groups[0][1]) for row in wrap_text(groups[0][0], inner_cap)]]
+            detail_rows = [[(row, groups[0][1])] for row in wrap_text(groups[0][0], inner_cap)]
         else:
             joined = sum(font.size(t)[0] for t, _ in groups) + self.GAP * 2 * (len(groups) - 1)
             detail_rows = [groups] if joined <= inner_cap else [[g] for g in groups]
-        content_w = max([header_w] + [font.size(r)[0] for r in title_rows]
+        hint = "TAB HIDE"
+        content_w = max([header_w, font.size(hint)[0]] + [font.size(r)[0] for r in title_rows]
                         + [sum(font.size(t)[0] for t, _ in row) + self.GAP * 2 * (len(row) - 1) for row in detail_rows])
         w = max(self.MIN_W, min(cap, content_w + 2 * self.PAD))
         y = self.PAD
@@ -120,16 +164,45 @@ class ObjectiveTracker:
                 detail.append((text, colour, r))
                 x = r.right + self.GAP * 2 if len(row) > 1 else r.right
             y += self.ROW
-        h = y + self.PAD - 3
+        hint_rect = pygame.Rect(self.PAD, y + 1, font.size(hint)[0], 7)
+        h = hint_rect.bottom + self.PAD - 1
         return {"size": (w, h), "label": label_rect, "chip": chip_rect, "title": title, "detail": detail,
-                "rule_y": self.PAD + 11}
+                "hint": hint_rect, "rule_y": self.PAD + 11}
+
+    def _anchor(self, room):
+        """(right edge, bottom edge) the drawer hangs from: the right margin, just above the wallet box(es)."""
+        tops = [h.rect.top for h in room.huds if getattr(h, "rect", None) is not None]
+        return VIEW_W - 4, (min(tops) if tops else VIEW_H - 34) - 3
+
+    def tab_rect(self, room):
+        right, bottom = self._anchor(room)
+        w, h = self.TAB_SIZE
+        return pygame.Rect(right - w, bottom - h, w, h)
 
     def _free_width(self, room):
-        """The width the tracker may use: from the right margin back to the controls box (plus a gap), never the whole screen."""
+        """The width the panel may use: from the tab back to the controls box (plus a gap)."""
         box = getattr(getattr(room, "instructions", None), "image", None)
         left = (4 + box.get_width() + 8) if box is not None else 0
-        return VIEW_W - 4 - max(left, VIEW_W - 4 - self.MAX_W)
+        return self.tab_rect(room).left - 1 - max(left, 0)
 
+    def panel_rect(self, room):
+        """The panel when it is fully out (the tab sits against its right edge)."""
+        size = self._image(room).get_size()
+        tab = self.tab_rect(room)
+        return pygame.Rect(tab.left - 1 - size[0], tab.bottom - size[1], *size)
+
+    def rect(self, room, animated=True):
+        """What is on screen right now: the tab plus however much of the panel has slid out. (animated=False: the tab plus
+        the whole panel.)"""
+        tab = self.tab_rect(room)
+        s = self.eased if animated else 1.0
+        if s <= 0:
+            return tab
+        panel = self.panel_rect(room)
+        out = int(round(panel.w * s))
+        return tab.union(pygame.Rect(tab.left - 1 - out, panel.top, out, panel.h))
+
+    # ------------------------------------------------------------ drawing
     def _image(self, room=None):
         q = self.manager.active
         lit = self.pulse > 0 and int(self.pulse * 8) % 2 == 0
@@ -147,23 +220,36 @@ class ObjectiveTracker:
             draw_text(img, text, rect.topleft, Col.YELLOW)
         for text, colour, rect in spec["detail"]:
             draw_text(img, text, rect.topleft, colour)
+        draw_text(img, "TAB HIDE", spec["hint"].topleft, scale_color(Col.TEXT_MUTED, 0.85))
         self._cache = (key, img)
         return img
 
-    def rect(self, room, animated=True):
-        """Where the tracker sits: bottom-right, just above the TOKENS / TICKETS box (or both boxes in a two-player game)."""
-        img = self._image(room)
-        tops = [h.rect.top for h in room.huds if getattr(h, "rect", None) is not None]
-        bottom = (min(tops) if tops else VIEW_H - 34) - 3
-        rise = int((1 - self.appear) * 8) + int(math.sin(self.pulse * math.pi * 3) * 2 * (self.pulse > 0)) if animated else 0
-        return img.get_rect(bottomright=(VIEW_W - 4, bottom + rise))
+    def _tab_image(self, lit):
+        key = ("tab", lit)
+        if self._icon is None or self._icon[0] != key:
+            w, h = self.TAB_SIZE
+            img = solid_panel(w, h, Col.YELLOW if lit else Col.MAGENTA, None, 240)
+            draw_text(img, "!", (w // 2, 5), Col.YELLOW, 2, "midtop")
+            draw_text(img, "TAB", (w // 2, h - 11), scale_color(Col.TEXT_MUTED, 0.95), anchor="midtop")
+            self._icon = (key, img)
+        return self._icon[1]
 
     def draw(self, surf, room):
         if self.appear <= 0 or not self.manager.opening_done or self.manager.active is None:
             return
-        img = self._image(room)
-        img.set_alpha(int(255 * self.appear))
-        surf.blit(img, self.rect(room))
+        lit = self.pulse > 0 and int(self.pulse * 8) % 2 == 0
+        tab = self.tab_rect(room)
+        if self.slide > 0:                                                  # the panel slides out from behind the tab
+            panel = self._image(room)
+            x = tab.left - 1 - int(round(panel.get_width() * self.eased))
+            panel.set_alpha(int(255 * self.appear))
+            clip = surf.get_clip()
+            surf.set_clip(pygame.Rect(0, 0, tab.left, VIEW_H))
+            surf.blit(panel, (x, tab.bottom - panel.get_height()))
+            surf.set_clip(clip)
+        icon = self._tab_image(lit)
+        icon.set_alpha(int(255 * self.appear))
+        surf.blit(icon, tab)
 
 
 # ------------------------------------------------------------------ banner
