@@ -450,6 +450,9 @@ class BaseRoomScene(BaseScene):
         if event.key == pygame.K_q:                     # the Quest Log (Q belongs to no player's controls)
             self.hub.story.toggle_log(self)
             return
+        if event.key == pygame.K_TAB:                   # fold / open the quest drawer (TAB is only a window key elsewhere)
+            self.hub.story.toggle_tracker(self)
+            return
         local, action = self.session.input.route(event)
         if local is None:
             return
