@@ -974,6 +974,8 @@ class RoomHub:
         self.hud = self.huds[0]
         self.ambience = AmbienceManager()
         self.ambience.start()
+        from story import StoryDirector         # (imported here: the story layer imports the room modules' helpers)
+        self.story = StoryDirector(self)
         self._rooms = {}
         self._arrival = None
         self.registry = room_registry()
@@ -1019,6 +1021,7 @@ class RoomHub:
         return arrival
 
     def close(self):
+        self.story.close()
         for hud in self.huds:
             hud.close()
 
