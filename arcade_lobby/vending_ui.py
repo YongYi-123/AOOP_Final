@@ -18,6 +18,7 @@ from font import LINE_H, get_font
 from gfx import scale_color, shade
 from item_icons import item_icon
 from item_registry import ITEM_REGISTRY, NOVELTY_STACK
+from local_session import GameEvent
 from menu_kit import GOLD, MenuScene, fit_text, item_icon_for_ticket
 from secret_input import SecretSequenceListener
 from settings import VIEW_H, VIEW_W, Col
@@ -144,6 +145,9 @@ class VendingScene(MenuScene):
         self.secret = {"t": 0.0, "new": self.profile.discover_secret(SECRET_FLAG)}
         self.music_duck = SECRET_DUCK
         self.play("glitch")
+        session = getattr(self.game, "session", None)
+        if session is not None:                         # the main quest hears about the real secret screen, and only about it
+            session.dispatch(GameEvent("vending_secret", self.owner.player_id))
 
     def _secret_event(self, event):
         """While the secret is up the shop is frozen; ESC leaves at any time, the use key once the page is typed."""
