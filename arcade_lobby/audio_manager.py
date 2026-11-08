@@ -737,7 +737,8 @@ class AudioManager:
         return out
 
     # ------------------------------------------------------------ effects
-    def play(self, name):
+    def play(self, name, volume=1.0):
+        """Play an effect. `volume` (0..1) is an extra gain on top of the player's effects volume (a quiet cue)."""
         if not self.enabled or self.muted or (name not in self.EFFECTS and name not in SFX_FILES):
             return
         self.sfx_requested[name] = self.sfx_requested.get(name, 0) + 1
@@ -750,7 +751,7 @@ class AudioManager:
                     return
                 self.sounds[name] = sound
             if self._play_on_scene_channel(self.sounds[name], name, PRIORITY.get(name, 1),
-                                           self.sfx_volume * SFX_GAIN.get(name, 1.0)):
+                                           self.sfx_volume * SFX_GAIN.get(name, 1.0) * max(0.0, min(1.0, volume))):
                 self.last_effect[name] = self.time
         except pygame.error as exc:
             self._fail(f"play effect '{name}'", exc)
