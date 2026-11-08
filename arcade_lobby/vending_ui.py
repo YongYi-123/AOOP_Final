@@ -18,6 +18,7 @@ from font import LINE_H, get_font
 from gfx import scale_color, shade
 from item_icons import item_icon
 from item_registry import ITEM_REGISTRY, NOVELTY_STACK
+from legacy_terminal import LegacyTerminalScene
 from local_session import GameEvent
 from menu_kit import GOLD, MenuScene, fit_text, item_icon_for_ticket
 from secret_input import SecretSequenceListener
@@ -68,6 +69,8 @@ class VendingScene(MenuScene):
         self.music_duck = None          # set while the secret page is up (see Game.duck_for)
         self.listener = SecretSequenceListener(owner.controls)
         self.secret = None              # None, or {"t": seconds, "new": first discovery?}
+        self._terminal_opened = False   # the mission terminal has taken over the hidden page
+        self._leave = False             # ... and was closed: this screen goes too, on the next frame
         self._frozen = None             # the frozen shop frame the glitch tears apart
         self._scan = None
         interact = owner.controls.label("interact") or "E"
@@ -150,23 +153,35 @@ class VendingScene(MenuScene):
             session.dispatch(GameEvent("vending_secret", self.owner.player_id))
 
     def _secret_event(self, event):
-        """While the secret is up the shop is frozen; ESC leaves at any time, the use key once the page is typed."""
+        """While the secret is up the shop is frozen; ESC leaves at any time. After the glitch the hidden page is the
+        ARCADE LEGACY SYSTEM (legacy_terminal.py): it opens by itself on top of this screen, and leaving it leaves this one."""
         if event.type != pygame.KEYDOWN:
             return
-        leave = event.key == pygame.K_ESCAPE or (self.secret["t"] > GLITCH_TIME + TERMINAL_TYPED
-                                                 and self.input.action(event) == "interact")
-        if leave:
+        if event.key == pygame.K_ESCAPE:
             self.play("cancel")
             self.close()
+
+    def on_resume(self):
+        """The mission terminal was closed (ESC there): leave the hidden page too, back to the arcade floor.
+        (The pop is asked for on the next frame: the scene manager ignores a pop requested from inside another one.)"""
+        if self._terminal_opened:
+            self._leave = True
 
     # ------------------------------------------------------------ update
     def update(self, dt):
         super().update(dt)
+        if self._leave and self.game.scenes.current is self:
+            self._leave = False
+            self.close()
+            return
         self.lock = max(0.0, self.lock - dt)
         self.shake = max(0.0, self.shake - dt)
         self.flash = max(0.0, self.flash - dt)
         if self.secret is not None:
             self.secret["t"] += dt
+            if self.secret["t"] > GLITCH_TIME and not self._terminal_opened and self.game.scenes.current is self:
+                self._terminal_opened = True                  # the glitch is over: the hidden page becomes the mission terminal
+                self.game.scenes.push(LegacyTerminalScene(self.game, self.owner))
         if self.purchase is not None:
             p = self.purchase
             p["t"] += dt
