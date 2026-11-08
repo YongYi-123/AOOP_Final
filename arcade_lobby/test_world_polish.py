@@ -570,7 +570,8 @@ class PopulationTests(Base):
                     if (nx, ny) not in seen and free(nx, ny):
                         seen.add((nx, ny))
                         todo.append((nx, ny))
-            goals = [m.zone for m in room.machines] + [p.zone for p in room.props if hasattr(p, "zone")]
+            goals = [m.zone for m in room.machines] + [p.zone for p in room.props
+                                                       if hasattr(p, "zone") and getattr(p, "present", True)]   # (Miao Meow only while she is in this room)
             goals += [e.zone for e in room.exits]
             for zone in goals:
                 self.assertTrue(any(zone.collidepoint(p) for p in seen), (rid, zone))
