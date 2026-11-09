@@ -116,7 +116,7 @@ class Hud:
     # ---- in-race HUD (one layout per mode, same screen positions) -----------
     def draw_hud(self, surf, player, manager):
         kmh = int(player.speed_ratio * S.DISPLAY_MAX_KMH)
-        km = player.distance / S.SEGMENT_LENGTH / 100     # 1 segment = 10 m
+        km = max(0.0, player.distance) / S.SEGMENT_LENGTH / 100     # 1 segment = 10 m
         self.text(surf, "SPEED", (20, 12), CYAN)
         self.text(surf, f"{kmh:3d} KM/H", (20, 38), RED if player.speed_percent > 0.9 else YELLOW, self.big)
         self.text(surf, "SCORE", (20, 84), CYAN)

@@ -41,7 +41,7 @@ class EndlessManager(BaseModeManager):
             self.level = level
             self.banner, self.banner_time = [f"LEVEL {level}", "TRAFFIC UP"], S.BANNER_TIME
         if player.collisions >= self.max_crashes:
-            self.result = {"score": int(player.score), "distance_km": player.distance / S.SEGMENT_LENGTH / 100,
+            self.result = {"score": int(player.score), "distance_km": max(0.0, player.distance) / S.SEGMENT_LENGTH / 100,
                            "collisions": player.collisions, "elapsed": self.elapsed, "level": self.level}
             return State.GAME_OVER
         return State.PLAYING
