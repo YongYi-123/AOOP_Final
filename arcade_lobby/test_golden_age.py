@@ -332,3 +332,258 @@ class PowerTests(TrialCase):
         self.d.restore_power()
         scene.draw(surf)
         self.assertGreater(sum(surf.get_at((x, 150))[0] for x in range(40, 360, 8)), 0)
+
+
+# ------------------------------------------------------------------ 5. the telephone
+class MorseTests(unittest.TestCase):
+    def test_the_encoding_is_the_standard_one(self):
+        self.assertEqual({ch: G.MORSE[ch] for ch in "SHELF"}, {"S": "...", "H": "....", "E": ".", "L": ".-..", "F": "..-."})
+        self.assertEqual(G.encode("SHELF"), "... / .... / . / .-.. / ..-.")
+        self.assertEqual(len(G.MORSE), 26)
+        for code in G.MORSE.values():
+            self.assertTrue(set(code) <= {".", "-"})
+
+    def test_the_timing_is_dot_dash_and_the_standard_gaps(self):
+        u = G.MORSE_UNIT
+        pulses = G.morse_pulses("SHELF")
+        self.assertEqual(len(pulses), 16)
+        self.assertEqual("".join(p.symbol for p in pulses), "".join(G.MORSE[c] for c in "SHELF"))
+        for p in pulses:
+            self.assertAlmostEqual(p.length, u if p.symbol == "." else 3 * u, places=6)
+        for a, b in zip(pulses, pulses[1:]):
+            gap = b.start - a.end
+            expected = 1 * u if a.letter == b.letter else 3 * u                # 1 unit inside a letter, 3 between letters
+            self.assertAlmostEqual(gap, expected, places=5)
+        self.assertAlmostEqual(pulses[0].start, G.LEAD_IN)
+        self.assertAlmostEqual(G.morse_duration("SHELF"), pulses[-1].end)
+
+    def test_the_synth_and_the_rules_agree_on_one_unit(self):
+        self.assertEqual(audio_synth.MORSE_UNIT, G.MORSE_UNIT)
+
+    def test_the_tone_files_are_exactly_a_dot_and_a_dash_long(self):
+        for name, units in (("morse_dot", 1), ("morse_dash", 3)):
+            path = os.path.join(HERE, "assets", "sfx", f"{name}.wav")
+            with wave.open(path) as w:
+                seconds = w.getnframes() / w.getframerate()
+            self.assertAlmostEqual(seconds, units * G.MORSE_UNIT, delta=0.01, msg=name)
+
+    def test_playback_fires_each_tone_once_on_the_frame_the_lamp_lights(self):
+        play = G.MorsePlayback("SHELF")
+        fired, lamp_frames, t = [], [], 0.0
+        while play.playing:
+            started = play.advance(DT)
+            t += DT
+            fired += [(round(t, 4), p) for p in started]
+            lamp_frames.append(play.lit)
+            if started:
+                self.assertTrue(play.lit or started[0].start < play.t - DT)      # (it is lit from the very frame a tone starts)
+        self.assertEqual([p for _, p in fired], list(G.morse_pulses("SHELF")))
+        for when, p in fired:
+            self.assertLessEqual(when - p.start, DT + 1e-3)                       # never late by more than one frame
+            self.assertGreaterEqual(when - p.start, -1e-6)
+        self.assertEqual(play.advance(1.0), [])                                  # finished: nothing more
+
+    def test_the_lamp_is_lit_exactly_while_a_tone_sounds(self):
+        play = G.MorsePlayback("SHELF")
+        while play.playing:
+            play.advance(DT)
+            inside = any(p.start <= play.t < p.end for p in play.pulses)
+            self.assertEqual(play.lit, inside and play.playing)
+
+    def test_the_same_message_every_time(self):
+        a, b = G.morse_pulses(), G.morse_pulses()
+        self.assertEqual(a, b)
+
+
+class PhoneTests(TrialCase):
+    def setUp(self):
+        super().setUp()
+        self.scene = self.enter()
+        self.d.restore_power()
+
+    def test_it_plays_the_message_with_the_lamp_in_step_and_can_be_repeated(self):
+        self.d.use("phone")
+        panel = self.scene.panel
+        self.assertIsInstance(panel, UI.PhonePanel)
+        first = len(self.d.sounds)
+        t0 = self.d.clock
+        lit_ok = []
+        self.d.tap(K.K_e)
+        for _ in range(int((G.morse_duration() + 0.5) / DT)):
+            self.d.frames(1)
+            lit_ok.append((panel.lit, panel.playback.lit))
+        tones = [(t, n) for t, n in self.d.sounds[first:] if n.startswith("morse")]
+        self.assertEqual(len(tones), 16)
+        pulses = G.morse_pulses()
+        for (when, name), p in zip(tones, pulses):
+            self.assertEqual(name, p.sound)
+            self.assertLessEqual(abs((when - t0) - p.start), 3 * DT)             # on the beat (the tap itself takes two frames)
+        self.assertTrue(all(a == b for a, b in lit_ok))
+        self.assertFalse(panel.playing)
+        before = len(self.d.sounds)
+        self.d.tap(K.K_e)                                                        # again
+        self.d.seconds(G.morse_duration() + 0.5)
+        self.assertEqual(len([1 for _, n in self.d.sounds[before:] if n.startswith("morse")]), 16)
+        self.assertEqual(panel.plays, 2)
+        self.assertEqual(self.scene.run.phone_plays, 2)
+
+    def test_pressing_again_while_it_plays_does_not_double_the_tones(self):
+        self.d.use("phone")
+        before = len(self.d.sounds)
+        self.d.tap(K.K_e)
+        self.d.seconds(1.0)
+        self.d.tap(K.K_e)
+        self.d.tap(K.K_e)
+        self.d.seconds(G.morse_duration())
+        self.assertEqual(len([1 for _, n in self.d.sounds[before:] if n.startswith("morse")]), 16)
+
+    def test_the_answer_is_never_shown_on_the_phone_screen(self):
+        self.d.use("phone")
+        self.d.tap(K.K_e)
+        shown = []
+        real = UI.draw_text
+
+        def spy(surf, text, *a, **k):
+            shown.append(str(text))
+            return real(surf, text, *a, **k)
+        with patch.object(UI, "draw_text", spy):
+            for _ in range(int(G.morse_duration() / DT)):
+                self.d.frames(1)
+        self.assertTrue(shown)
+        for text in shown:
+            self.assertNotRegex(text.upper(), r"SHELF")
+            self.assertIsNone(re.fullmatch(r"[.\- /]+", text), text)                # no dots-and-dashes text spelling it out either
+
+    def test_the_phone_only_plays_but_opens_the_morse_note_once_the_drawer_gave_it(self):
+        self.d.use("phone")
+        self.d.tap(K.K_c)
+        self.assertIsInstance(self.scene.panel, UI.PhonePanel)                      # no note yet: C does nothing
+        self.d.tap(K.K_ESCAPE)
+        self.d.read_drawer()
+        self.d.use("phone")
+        self.d.tap(K.K_c)
+        self.assertIsInstance(self.scene.panel, UI.PagedPanel)
+        self.assertTrue(self.scene.panel.pages[0]["chart"])
+        self.d.tap(K.K_e)                                                           # "back to the phone"
+        self.assertIsInstance(self.scene.panel, UI.PhonePanel)
+        self.assertEqual(self.scene.run.phone_plays, 0)                            # reading the note is not listening
+        self.d.tap(K.K_e)
+        self.d.seconds(2.0)
+        self.assertEqual(self.scene.panel.shown and True, True)
+        pixels = pygame.Surface((400, 300))
+        self.scene.panel.draw(pixels)                                               # (nothing draws the dots and dashes any more)
+
+    def test_it_asks_for_the_next_step_after_the_phone_is_used(self):
+        self.assertEqual(self.scene.run.objective, "phone")
+        self.d.listen_to_phone()
+        self.assertEqual(self.scene.run.objective, "cabinet")
+
+
+# ------------------------------------------------------------------ 6. the desk drawer and the file cabinet
+class CabinetRuleTests(unittest.TestCase):
+    def powered(self):
+        run = G.TrialRun()
+        run.circuit.rots = run.circuit.solution()
+        run.restore_power()
+        return run
+
+    def test_it_accepts_shelf_in_any_case(self):
+        for code in ("SHELF", "shelf", " Shelf "):
+            run = self.powered()
+            self.assertEqual(run.try_cabinet(code), "open")
+            self.assertTrue(run.cabinet_open)
+
+    def test_wrong_passwords_do_not_unlock_it(self):
+        run = self.powered()
+        for code in ("", "SHELL", "SHELVE", "BOOKS", "FLESH", "SHELFS", "12345", "HELFS"):
+            self.assertEqual(run.try_cabinet(code), "wrong", code)
+        self.assertFalse(run.cabinet_open)
+        self.assertEqual(run.wrong_codes, 8)
+        self.assertNotIn("note", run.clues)
+
+    def test_it_stays_shut_without_power_even_for_the_right_word(self):
+        run = G.TrialRun()
+        self.assertEqual(run.try_cabinet("SHELF"), "locked")
+        self.assertFalse(run.cabinet_open)
+
+    def test_the_drawer_hints_never_spell_out_the_answer(self):
+        for line in G.DRAWER_PAPER:
+            self.assertNotRegex(line.upper(), r"\bSHELF\b")
+        self.assertEqual(G.DRAWER_PAPER[1], 'It reads: "When words fail, patterns speak."')
+        for key in ("paper", "chart"):
+            for page in UI.paper_pages(key):
+                self.assertNotRegex((page.get("text") or "").upper(), r"\bSHELF\b")
+        self.assertTrue(UI.paper_pages("chart")[0]["chart"])                      # the chart is a table of every letter, not of this word
+        self.assertEqual(G.CABINET_NOTE, ("The best ideas were never locked in drawers.", "Look where stories sleep."))
+
+    def test_the_drawer_adds_the_paper_and_the_chart_once(self):
+        run = self.powered()
+        self.assertTrue(run.open_drawer())
+        self.assertFalse(run.open_drawer())
+        self.assertEqual(run.clues, ["paper", "chart"])
+
+
+class CabinetPlayTests(TrialCase):
+    def setUp(self):
+        super().setUp()
+        self.scene = self.enter()
+        self.d.restore_power()
+        self.d.read_drawer()
+        self.d.listen_to_phone()
+
+    def test_the_keyboard_opens_it_with_shelf_and_the_note_is_kept(self):
+        self.d.open_cabinet("shelf")
+        self.assertTrue(self.scene.run.cabinet_open)
+        self.assertIsInstance(self.scene.panel, UI.PagedPanel)
+        self.assertEqual(self.scene.panel.pages[0]["text"], "The best ideas were never locked in drawers.\nLook where stories sleep.")
+        self.d.read_note()
+        self.assertIn("note", self.scene.run.clues)
+        self.assertEqual(self.scene.run.objective, "bookshelf")
+        names = [n for _, n in self.d.sounds]
+        self.assertGreaterEqual(names.count("drawer_open"), 2)                    # the desk drawer, then the cabinet
+
+    def test_a_wrong_word_gives_access_denied_and_clears_the_keys(self):
+        self.d.open_cabinet("shell")
+        self.assertFalse(self.scene.run.cabinet_open)
+        self.assertEqual(self.scene.run.wrong_codes, 1)
+        self.assertIsInstance(self.scene.panel, UI.KeypadPanel)
+        self.assertEqual(self.scene.panel.text, "")
+        self.d.type_word("shelf")                                                 # and it can be tried again
+        self.d.tap(K.K_RETURN)
+        self.d.seconds(2.0)
+        self.assertTrue(self.scene.run.cabinet_open)
+
+    def test_too_few_letters_are_not_sent(self):
+        self.d.use("cabinet")
+        self.d.type_word("she")
+        self.d.tap(K.K_RETURN)
+        self.assertEqual(self.scene.run.wrong_codes, 0)
+        self.assertFalse(self.scene.run.cabinet_open)
+
+    def test_the_note_can_be_read_again_from_the_cabinet_and_from_the_notes(self):
+        self.d.open_cabinet()
+        self.d.read_note()
+        self.d.use("cabinet")
+        self.assertIsInstance(self.scene.panel, UI.PagedPanel)
+        self.d.tap(K.K_ESCAPE)
+        self.d.tap(K.K_TAB)
+        self.assertIsInstance(self.scene.panel, UI.NotesPanel)
+        self.assertEqual(self.scene.panel.entries, ["paper", "chart", "note"])
+        self.d.tap(K.K_DOWN)
+        self.d.tap(K.K_DOWN)
+        self.d.tap(K.K_e)
+        self.assertIsInstance(self.scene.panel, UI.PagedPanel)
+        self.d.tap(K.K_ESCAPE)
+        self.assertIsInstance(self.scene.panel, UI.NotesPanel)                    # back to the list
+        self.d.tap(K.K_TAB)
+        self.assertIsNone(self.scene.panel)
+
+    def test_the_keypad_takes_letters_and_not_the_players_movement_keys(self):
+        self.d.use("cabinet")
+        x, y = self.scene.avatar.x, self.scene.avatar.y
+        self.d.type_word("wasd")                                                  # W A S D are letters here
+        self.assertEqual(self.scene.panel.text, "WASD")
+        self.assertEqual((self.scene.avatar.x, self.scene.avatar.y), (x, y))
+        self.assertTrue(self.scene.captures_text)
+        self.d.tap(K.K_BACKSPACE)
+        self.assertEqual(self.scene.panel.text, "WAS")
