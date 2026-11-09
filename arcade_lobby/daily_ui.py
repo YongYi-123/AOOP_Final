@@ -33,7 +33,7 @@ class DailyBonusPopup:
 
     def __init__(self, day, reward_lines, on_claim, owner=None):
         """reward_lines: RewardBundle.lines(); the first is the headline.
-        owner: whose bonus it is, shown beside the day in a two-player session."""
+        owner: whose bonus it is (None: no name shown)."""
         self.day, self.on_claim, self.owner = day, on_claim, owner
         reward_lines = list(reward_lines) or ["+0 TOKENS"]
         self.reward_lines = reward_lines

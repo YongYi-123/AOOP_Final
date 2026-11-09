@@ -67,7 +67,6 @@ def next_slot(slots, current, direction):
 
 class DecorationScene(MenuScene):
     title = "DECORATE"
-    spectator_pos = "topright"
 
     def __init__(self, game, owner, room):
         super().__init__(game, owner)

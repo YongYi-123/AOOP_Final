@@ -67,7 +67,6 @@ class MenuScene(BaseScene):
         self.owner = owner                      # the LocalPlayer
         self.profile = owner.profile
         self.input = PlayerInput(owner.controls)
-        self.spectators = [p for p in game.session if p is not owner]
         self.time = 0.0
         self.message = ""
         self.message_color = Col.TEXT_MUTED
@@ -141,8 +140,7 @@ class MenuScene(BaseScene):
         self._chase(surf)
         draw_text(surf, title or self.title, (16, 12), shade(self.accent, 0.4), 2,
                   glow=scale_color(self.glow, 0.8))
-        draw_text(surf, subtitle or self.owner.tag, (16, 30), self.owner.avatar.look.accent
-                  if self.owner.label else Col.CYAN)
+        draw_text(surf, subtitle or self.owner.tag, (16, 30), Col.CYAN)
         self.draw_balance(surf)
 
     def draw_balance(self, surf):
@@ -233,21 +231,6 @@ class MenuScene(BaseScene):
 
     def idle_message(self):
         return ""
-
-    spectator_pos = "bottom"            # "bottom": inside the frame; "topright": over a room view
-
-    def draw_overlay(self, surf, px=1):
-        """The quiet 'P2 BO - SPECTATING' tag, kept inside the menu frame (the default
-        corner tag would sit on top of the frame's border)."""
-        if not self.spectators:
-            return
-        text = "  ".join(f"{p.tag} - SPECTATING" for p in self.spectators)
-        img = get_font().render_glow(text, Col.TEXT_MUTED, (40, 30, 70), scale=px)
-        if self.spectator_pos == "topright":
-            rect = img.get_rect(topright=(surf.get_width() - 6 * px, 4 * px))
-        else:
-            rect = img.get_rect(midbottom=(surf.get_width() // 2, surf.get_height() - 9 * px))
-        surf.blit(img, rect)
 
     def draw(self, surf):
         self._hit = []

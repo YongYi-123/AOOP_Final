@@ -6,8 +6,7 @@ The ITEM tabs are the cosmetic slots. The highlighted item is tried on the avata
 straight away (a preview, even for items the player does not own yet); E wears
 it - only if it is owned and made for that slot, which CosmeticService checks -
 and E on the item that is already worn takes it off. The first row of every
-tab is the plain default. Everything is that player's own profile: P1 and P2
-change their own avatar.
+tab is the plain default. Everything is the playing profile's own.
 """
 import pygame
 

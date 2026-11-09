@@ -16,7 +16,7 @@ never takes anything from the wallet and never records progress. The three escap
 choosing an available trial shows TRIAL NOT YET AVAILABLE. When one is built it registers a scene factory in
 TRIAL_SCENES and the terminal starts it; nothing else here changes.
 
-It is a MenuScene, so only the player who opened it can use it (P1 / P2 keys stay separate).
+It is a MenuScene, and answers to the player's keys.
 """
 import random
 

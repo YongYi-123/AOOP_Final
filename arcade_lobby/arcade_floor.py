@@ -48,13 +48,13 @@ class ArcadeBackdropArt(HubBackdrop):
 
 
 class HighScorePlates:
-    """A small LED plate above each machine: best score of the players here (LOCAL BEST),
+    """A small LED plate above each machine: best score of the profile here (LOCAL BEST),
     with whose score it is (name over score). Re-rendered only when it changes.
     With nobody having scored, it shows dashes and no name."""
     W, H = 52, 18
 
     def __init__(self, machines, profile):
-        """profile: a PlayerProfile, or a list of them (two players)."""
+        """profile: the playing PlayerProfile (a one-item list is accepted too)."""
         self.machines = machines
         self.profiles = list(profile) if isinstance(profile, (list, tuple)) else [profile]
         self._cache = {}

@@ -71,21 +71,17 @@ class PromptBubble:
     """Animated '[E] PLAY' prompt: fades in, bobs and pulses. The label can
     change per target ('PLAY', 'PET', ...); each label is rendered once.
 
-    In a two-player session each player's bubble wears that player's colour and
-    a P1 / P2 chip. The bubble normally floats above the player's head; draw()
-    is told which screen areas must stay readable (cabinet marquees, signs, the
-    other player's bubble) and moves the bubble - below the player, or sideways
+    The bubble normally floats above the player's head; draw()
+    is told which screen areas must stay readable (cabinet marquees, signs) and moves the bubble - below the player, or sideways
     - to the first spot that covers none of them. Nothing here knows about any
     particular machine."""
     FADE_SPEED = 6.0
     HEAD_GAP = 22                   # the anchor sits this far above the feet
     H = 15
 
-    def __init__(self, label="PLAY", key="E", tag="", accent=None):
+    def __init__(self, label="PLAY", key="E"):
         self._frames = {}
         self.key = key              # what the bracketed key says: [E], [ENTER]
-        self.tag = tag              # "P1" / "P2" in a two-player session, else ""
-        self.accent = accent        # the player's colour (None: the default cyan)
         self.label = label
         self.alpha = 0.0
         self.anchor = None
@@ -100,7 +96,7 @@ class PromptBubble:
         key = (self.label, tail_up)
         frames = self._frames.get(key)
         if frames is None:
-            border = self.accent or Col.CYAN
+            border = Col.CYAN
             frames = self._frames[key] = [
                 self._build(border, Col.TEXT, self.label, tail_up),
                 self._build(shade(border, 0.5), Col.YELLOW, self.label, tail_up)]
@@ -110,18 +106,12 @@ class PromptBubble:
         font = get_font()
         key = font.render_glow(f"[{self.key}]", key_color, scale_color(key_color, 0.35))
         label = font.render_glow(text, Col.TEXT, scale_color(Col.MAGENTA, 0.6))
-        tag = font.render_glow(self.tag, self.accent or Col.CYAN, scale_color(self.accent or Col.CYAN, 0.4)) \
-            if self.tag else None
-        tag_w = tag.get_width() + 4 if tag else 0
-        w = tag_w + key.get_width() + label.get_width() + 12
+        w = key.get_width() + label.get_width() + 12
         h = self.H
         top = 4 if tail_up else 0                       # room for the tail on whichever side points at the player
         s = pygame.Surface((w, h + 4), pygame.SRCALPHA)
         s.blit(neon_panel(w, h, border, None, 235), (0, top))
         x = 5
-        if tag:
-            s.blit(tag, (x, top + 4))
-            x += tag_w
         s.blit(key, (x, top + 4))
         s.blit(label, (x + 3 + key.get_width(), top + 4))
         cx = w // 2
@@ -525,50 +515,3 @@ class Notice:
         rect = self.image.get_rect(center=(self.center[0], self.center[1] + int((1 - k) * 6)))
         self.image.set_alpha(int(255 * k))
         surf.blit(self.image, rect)
-
-
-class JoinPrompt:
-    """'P1 READY / P2 PRESS [ENTER] TO JOIN': the second player confirms with
-    their own interact key (nobody is charged before that); ESC cancels.
-    `on_result(True | False)` runs once. The room accepts the joiner's keys
-    for this modal (see `extra_players`)."""
-
-    def __init__(self, title, starter, joiner, on_result, accent=Col.CYAN, glow=Col.MAGENTA):
-        self.starter, self.joiner = starter, joiner
-        self.extra_players = [joiner]          # whose keys may operate it besides the owner's
-        self.on_result = on_result
-        self.closed = False
-        self.time = 0.0
-        self.anim = 0.0
-        font = get_font()
-        self.image = neon_panel(216, 82, accent, glow).copy()
-        draw_text(self.image, title, (108, 8), shade(accent, 0.55), 2, anchor="midtop",
-                  glow=scale_color(glow, 0.8))
-        self.image.fill(scale_color(accent, 0.6), (12, 27, 192, 1))
-        draw_text(self.image, f"{starter.label} READY - {starter.name}", (108, 34), Col.GREEN, anchor="midtop")
-        self.prompt = font.render_glow(f"{joiner.label} PRESS [{joiner.controls.interact_hint}] TO JOIN",
-                                       Col.YELLOW, scale_color(Col.YELLOW, 0.4))
-        draw_text(self.image, "ESC CANCEL", (108, 68), scale_color(Col.TEXT_MUTED, 0.75), anchor="midtop")
-
-    def handle_event(self, event):
-        if event.type != pygame.KEYDOWN or self.closed:
-            return
-        if event.key in self.joiner.controls.interact:
-            self._close(True)
-        elif event.key in BACK_KEYS:
-            self._close(False)
-
-    def _close(self, joined):
-        self.closed = True
-        self.on_result(joined)
-
-    def update(self, dt):
-        self.time += dt
-        self.anim = min(1.0, self.anim + dt * 7)
-
-    def draw(self, surf):
-        dim_screen(surf, int(140 * self.anim))
-        rect = self.image.get_rect(center=(VIEW_W // 2, VIEW_H // 2))
-        surf.blit(self.image, rect)
-        if int(self.time * 2.5) % 2 == 0:
-            surf.blit(self.prompt, self.prompt.get_rect(midtop=(rect.centerx, rect.y + 50)))

@@ -32,8 +32,7 @@ DETAIL = pygame.Rect(GRID_X + COLS * (SLOT + GAP) + 8, GRID_Y - 2, W - 12 - (GRI
 
 class InventoryUI:
     def __init__(self, inventory, owner=None, accent=Col.CYAN, use_keys=(), on_use=None):
-        """owner: whose bag this is ('P1 YONGYI'), shown in the header; None
-        in a one-player session. use_keys / on_use: the owner's "use item" keys and the callback
+        """owner: whose bag this is, shown in the header; None for no owner line. use_keys / on_use: the owner's "use item" keys and the callback
         `on_use(item_id)` that uses one (novelty items); without them the bag is read-only."""
         self.inventory = inventory
         self.owner, self.accent = owner, accent

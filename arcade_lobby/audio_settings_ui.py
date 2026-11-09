@@ -28,7 +28,6 @@ LEFT_KEYS, RIGHT_KEYS = (pygame.K_LEFT, pygame.K_a), (pygame.K_RIGHT, pygame.K_d
 class AudioSettingsScene(BaseScene):
     own_audio = True            # it plays its own click sounds
     audio_hud_anchor = "bottomleft"
-    spectator_corner = "topleft"
 
     def __init__(self, game):
         super().__init__(game)

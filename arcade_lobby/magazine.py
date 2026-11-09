@@ -6,7 +6,7 @@ free and repeatable and changes nothing: no tokens, no tickets, no notification,
 anywhere; the vending machine's secret only counts when the REAL hidden screen opens.
 
 MagazineStation  the magazine rack beside the couch (small, against the wall, so it never blocks anybody)
-MagazineScene    the reader (a MenuScene owned by whoever pressed E; the other player spectates)
+MagazineScene    the reader (a MenuScene owned by the player who pressed E)
 ARTICLES         the text of every page, as data (so it can be proofread and tested)
 """
 import math

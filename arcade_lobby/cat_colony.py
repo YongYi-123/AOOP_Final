@@ -28,7 +28,7 @@ class CatColony:
         self.cats = [CatNPC(CatProfile.from_data(data), room.cat_spots[data["id"]],
                             random.Random(self.rng.random()))
                      for data in roster]
-        self.players = []        # everyone in the room (one or two)
+        self.players = []        # the player in the room
         self.player = None       # the player this cat is dealing with right now (set per cat)
         self.follower = None
         self.paused = False

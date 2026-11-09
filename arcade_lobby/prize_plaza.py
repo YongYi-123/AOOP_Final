@@ -239,7 +239,7 @@ class PrizePlazaScene(BaseRoomScene):
         self.mochi = Shopkeeper(MOCHI_POS, sound=self.play_sound, sort_y=COUNTER_POS[1] + 36.5)      # the cat on the counter (not solid)
         counter = PrizeCounter(COUNTER_POS)
         capsules = [CapsuleStation(pos, kind) for kind, pos in CAPSULE_POS.items()]
-        showcase = ShowcaseStation(SHOWCASE_POS, owners=lambda: [(p.label, p.profile) for p in self.session])
+        showcase = ShowcaseStation(SHOWCASE_POS, owners=lambda: [("", p.profile) for p in self.session])
         lucky = build_lucky_corner(*LUCKY_POS)
         # the two former SOON bays are NEON COIN PUSHER and LUCKY CAT PINBALL
         pusher = CoinPusherStation((LUCKY_POS[0], LUCKY_POS[1] + 70))

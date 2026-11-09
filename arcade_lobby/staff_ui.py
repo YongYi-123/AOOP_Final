@@ -6,8 +6,7 @@ so no hub interaction can happen meanwhile).
 
 Typing: while the password box is up the scene says `captures_text`, so the Game does not let the keyboard
 double as shortcuts (an M typed into the box would otherwise mute the audio). Letters and digits are accepted
-from the shared keyboard - there is no other way to type a word on one keyboard in a two-player session - but
-ENTER only submits for the player who owns it, TAB submits for anyone, and nothing typed can buy, move or
+from the shared keyboard - but ENTER and TAB submit, and nothing typed can buy, move or
 grant anything. The panel's buttons answer only to the owner.
 """
 import math
@@ -280,7 +279,7 @@ class MaintenanceScene(MenuScene):
 
     def _draw_panel(self, surf):
         self.draw_frame(surf, PANEL_TITLE, PANEL_SUBTITLE)
-        draw_text(surf, self.owner.tag, (16, 44), self.owner.avatar.look.accent if self.owner.label else Col.CYAN)
+        draw_text(surf, self.owner.tag, (16, 44), Col.CYAN)
         top = 62
         for r, row in enumerate(ROWS[:2]):
             currency = row[0][0]

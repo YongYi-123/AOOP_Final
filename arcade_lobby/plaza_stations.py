@@ -241,9 +241,9 @@ def _showcase_sprite():
 class ShowcaseStation(Station):
     """The SHOWCASE: a lit display stand. E lets the player choose what stands on it.
 
-    `owners` is a callable giving [(label, profile), ...] for the people in the room; their
-    picks are read from the profiles every REFRESH seconds (and on refresh()), so the stand
-    always shows what each profile has saved."""
+    `owners` is a callable giving [(label, profile)] for the player in the room; their
+    picks are read from the profile every REFRESH seconds (and on refresh()), so the stand
+    always shows what the profile has saved."""
     prompt_label = "SHOWCASE"
     REFRESH = 0.2
 
@@ -274,28 +274,19 @@ class ShowcaseStation(Station):
     def draw(self, surf):
         super().draw(surf)
         ox, oy = self.rect.topleft
-        two = len(self._shown) > 1
-        row_h = GLASS.h // max(1, len(self._shown)) if self._shown else GLASS.h
-        for r, (label, picks, profile) in enumerate(self._shown):
-            top = oy + GLASS.y + r * row_h
-            if two:
-                tag = get_font().render(label, (255, 214, 240))
-                surf.blit(tag, (ox + 4, top + 1))
+        for _label, picks, profile in self._shown[:1]:
             for slot, bx in zip(SHOWCASE_SLOTS, SLOT_X):
                 option = picks.get(slot)
                 cx = ox + bx + BAY_W // 2
-                if two:
-                    base = top + row_h - 2
-                else:
-                    base = oy + GLASS.bottom - 9
+                base = oy + GLASS.bottom - 9
                 if option is None:
                     q = get_font().render("?", (120, 90, 170))
                     surf.blit(q, (cx - q.get_width() // 2, base - 10))
                     continue
-                icon = option_icon(option, 1 if two else 2, profile)
-                bob = int(round(math.sin(self.time * 2.0 + bx) * 1.0)) if not two else 0
+                icon = option_icon(option, 2, profile)
+                bob = int(round(math.sin(self.time * 2.0 + bx) * 1.0))
                 surf.blit(icon, icon.get_rect(midbottom=(cx, base + bob)))
-                if option.count > 1 and not two:
+                if option.count > 1:
                     n = get_font().render(f"X{option.count}", (255, 238, 170))
                     surf.blit(n, (cx + 6, oy + GLASS.y + 2))
         # a slow glass shine and sparkles over the cabinet

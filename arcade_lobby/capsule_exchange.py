@@ -80,7 +80,7 @@ def _fail(code, message, item_id="", name=""):
 
 
 class ExchangeService:
-    """The exchange for one profile (so P1 and P2 each have their own)."""
+    """The exchange for one profile (each profile has its own)."""
 
     def __init__(self, profile, registry=ITEM_REGISTRY):
         self.profile = profile
