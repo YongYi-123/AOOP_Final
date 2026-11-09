@@ -1079,6 +1079,146 @@ def sfx_capsule_pop_retro():
     return m.finish(peak=0.5, fade=0.03)
 
 
+# ---- TRIAL 01 · THE GOLDEN AGE (the old bedroom): wires, the telephone's Morse, a drawer, a book, a disk, a CRT
+MORSE_UNIT = 0.15           # seconds in one Morse unit; golden_age.MORSE_UNIT must say the same (a test checks it)
+
+
+def sfx_circuit_click():
+    """A tile of the fuse board turns: a dry plastic tick with a small ratchet behind it."""
+    m = _sfx(0.12)
+    m.noise(0, 0.03, 0.5, decay=110, bright=0.5, seed=91)
+    m.note(0, 0.04, 620, "tri", 0.4, release=0.03, slide=-200)
+    m.note(0.05, 0.03, 880, "tri", 0.22, release=0.03)
+    return m.finish(peak=0.5, fade=0.01)
+
+
+def sfx_circuit_connect():
+    """The wire closes: a crackle of sparks, a rising whine and a low thud as the current finds the end."""
+    m = _sfx(0.78)
+    for k in range(5):
+        m.noise(k * 0.05, 0.02, 0.4, decay=120, bright=0.8, seed=100 + k)
+    m.note(0.0, 0.42, 180, "saw", 0.12, release=0.15, slide=700)
+    m.note(0.4, 0.1, hz(midi("E5")), "p25", 0.3, release=0.06)
+    m.note(0.5, 0.12, hz(midi("B5")), "p25", 0.3, release=0.12)
+    m.kick(0.38, 0.45)
+    return m.finish(peak=0.55, fade=0.03)
+
+
+def sfx_power_on():
+    """The whole room wakes up: a relay clunk, a transformer hum that climbs, a warm chime on top."""
+    m = _sfx(1.6)
+    m.kick(0.0, 0.6)
+    m.noise(0.0, 0.05, 0.5, decay=60, bright=0.4, seed=111)
+    m.note(0.1, 1.2, 55, "sine", 0.35, attack=0.3, release=0.4, slide=22)
+    m.note(0.1, 1.2, 110, "tri", 0.12, attack=0.4, release=0.4, slide=40)
+    for k, name in enumerate(("C5", "E5", "G5", "C6")):
+        m.note(0.55 + k * 0.12, 0.3, hz(midi(name)), "bell", 0.18, release=0.35)
+    return m.finish(peak=0.55, fade=0.05)
+
+
+def sfx_phone_blip():
+    """The telephone wakes with two soft electronic chirps."""
+    m = _sfx(0.4)
+    m.note(0, 0.07, 880, "sine", 0.4, release=0.04)
+    m.note(0.12, 0.07, 1175, "sine", 0.4, release=0.06)
+    return m.finish(peak=0.4, fade=0.02)
+
+
+def _morse_beep(units):
+    """One telephone tone `units` long, exactly: it starts and ends with the lamp (the scene plays it on the pulse)."""
+    seconds = MORSE_UNIT * units
+    m = _sfx(seconds)
+    m.note(0, seconds - 0.012, 640, "sine", 0.55, attack=0.006, release=0.008)
+    m.note(0, seconds - 0.012, 1280, "sine", 0.08, attack=0.006, release=0.008)
+    return m.finish(peak=0.5, fade=0.004)
+
+
+def sfx_morse_dot():
+    return _morse_beep(1)
+
+
+def sfx_morse_dash():
+    return _morse_beep(3)
+
+
+def sfx_drawer_open():
+    """A wooden drawer slides out on its runners and stops against the catch."""
+    m = _sfx(0.5)
+    m.noise(0, 0.28, 0.3, decay=6, bright=0.12, seed=121)
+    m.note(0, 0.28, 95, "sine", 0.22, attack=0.03, release=0.1, slide=-25)
+    m.noise(0.3, 0.04, 0.55, decay=70, bright=0.3, seed=122)
+    m.note(0.3, 0.08, 130, "tri", 0.4, release=0.06)
+    return m.finish(peak=0.5, fade=0.03)
+
+
+def sfx_page_turn():
+    """A page lifts and falls: a soft airy swish."""
+    m = _sfx(0.35)
+    m.noise(0, 0.16, 0.25, decay=12, bright=0.9, seed=131)
+    m.noise(0.14, 0.08, 0.18, decay=30, bright=0.5, seed=132)
+    return m.finish(peak=0.4, fade=0.03)
+
+
+def sfx_disk_insert():
+    """A floppy disk slides into the drive: a slide, a click, the little motor spinning up."""
+    m = _sfx(0.75)
+    m.noise(0, 0.15, 0.25, decay=9, bright=0.35, seed=141)
+    m.noise(0.17, 0.03, 0.6, decay=100, bright=0.5, seed=142)
+    m.note(0.17, 0.05, 210, "sq", 0.25, release=0.03)
+    for k in range(6):
+        m.noise(0.3 + k * 0.07, 0.02, 0.22, decay=90, bright=0.6, seed=150 + k)
+    m.note(0.3, 0.3, 150, "saw", 0.07, attack=0.1, release=0.12, slide=120)
+    return m.finish(peak=0.5, fade=0.03)
+
+
+def sfx_crt_boot():
+    """A CRT starts: the degauss thump, the high whine climbing and settling, a three-note boot chime."""
+    m = _sfx(1.4)
+    m.kick(0, 0.5)
+    m.noise(0.0, 0.12, 0.3, decay=14, bright=0.3, seed=161)
+    m.note(0.05, 0.9, 2000, "sine", 0.04, attack=0.2, release=0.3, slide=650)
+    m.note(0.05, 1.2, 60, "sine", 0.2, attack=0.15, release=0.3)
+    for k, name in enumerate(("G5", "C6", "E6")):
+        m.note(0.7 + k * 0.1, 0.18, hz(midi(name)), "p25", 0.22, release=0.12)
+    return m.finish(peak=0.5, fade=0.04)
+
+
+def sfx_trial_complete():
+    """A warm, unhurried fanfare: a rising major arpeggio on bells, then a long held chord."""
+    m = _sfx(2.2)
+    for k, name in enumerate(("C5", "E5", "G5", "C6", "E6")):
+        m.note(k * 0.16, 0.3, hz(midi(name)), "bell", 0.26, release=0.4)
+    for name in ("C5", "G5", "E6", "C6"):
+        m.note(0.85, 1.2, hz(midi(name)), "bell", 0.16, attack=0.01, release=0.9)
+    m.note(0.85, 1.2, hz(midi("C3")), "tri", 0.2, attack=0.05, release=0.8)
+    return m.finish(peak=0.55, fade=0.1)
+
+
+def golden_age():
+    """The old bedroom at night: a slow music-box melody over a soft pad, a clock ticking somewhere in the room.
+    Quiet and warm on purpose (the scene ducks it further while the power is out). 56 BPM, 8 bars."""
+    bpm, bars = 56, 8
+    beat = 60 / bpm
+    bar = beat * 4
+    m = Mix(bars * bar)
+    prog = ["Cmaj7", "Am7", "Fmaj7", "G7", "Cmaj7", "Em7", "Fmaj7", "G7"]
+    tune = ["E6 . G6 . E6 . D6 .", "C6 . E6 . A5 . . .", "A5 . C6 . F6 . E6 .", "D6 . B5 . G5 . . .",
+            "E6 . G6 . C7 . B6 .", "G6 . E6 . B5 . . .", "A5 . C6 . E6 . F6 .", "D6 . . . G5 . . ."]
+    for b in range(bars):
+        t0, sym = b * bar, prog[b]
+        root, tones = chord_tones(sym)
+        m.note(t0, bar * 0.98, hz(midi(root + "2")), "sine", 0.3, attack=0.3, release=0.5)
+        for off in tones:
+            m.note(t0, bar * 0.98, hz(midi(root + "3") + off), "tri", 0.05, attack=0.6, release=0.8)
+        grid(m, t0, beat / 2, tune[b], "bell", 0.16, attack=0.003, release=0.9)
+        for k in range(4):                                                   # the clock
+            m.noise(t0 + k * beat, 0.012, 0.07, decay=220, bright=0.9, seed=b * 5 + k)
+    return m.finish(lowpass=0.3, rms=-15, peak=0.7)
+
+
+ROOM_MUSIC["golden_age"] = MUSIC["golden_age"] = golden_age
+
+
 SFX = {"footstep": sfx_footstep, "confirm": sfx_confirm, "cancel": sfx_cancel, "machine": sfx_machine,
        "token": sfx_token, "ticket": sfx_ticket, "purchase": sfx_purchase, "card": sfx_card,
        "equip": sfx_equip, "meow": sfx_meow, "pet": sfx_pet, "pet_b": sfx_pet_b, "pet_c": sfx_pet_c, "purr": sfx_purr, "emote": sfx_emote, "sit": sfx_sit,
@@ -1092,7 +1232,11 @@ SFX = {"footstep": sfx_footstep, "confirm": sfx_confirm, "cancel": sfx_cancel, "
        "pin_launch": sfx_pin_launch, "pin_flipper": sfx_pin_flipper, "pin_bumper": sfx_pin_bumper, "pin_rail": sfx_pin_rail,
        "pin_target": sfx_pin_target, "pin_scoop": sfx_pin_scoop, "pin_bonus": sfx_pin_bonus, "pin_drain": sfx_pin_drain,
        "capsule_turn": sfx_capsule_turn, "capsule_drop": sfx_capsule_drop, "capsule_pop_cat": sfx_capsule_pop_cat,
-       "capsule_pop_retro": sfx_capsule_pop_retro}
+       "capsule_pop_retro": sfx_capsule_pop_retro,
+       "circuit_click": sfx_circuit_click, "circuit_connect": sfx_circuit_connect, "power_on": sfx_power_on,
+       "phone_blip": sfx_phone_blip, "morse_dot": sfx_morse_dot, "morse_dash": sfx_morse_dash,
+       "drawer_open": sfx_drawer_open, "page_turn": sfx_page_turn, "disk_insert": sfx_disk_insert,
+       "crt_boot": sfx_crt_boot, "trial_complete": sfx_trial_complete}
 
 
 def generate(only=None):

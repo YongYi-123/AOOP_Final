@@ -14,7 +14,7 @@ ASSET_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets")
 # theme -> music file (assets/music/<file>.wav, composed by audio_synth.py). The hub's own
 # theme keeps its old name "lobby". Minigame themes below are short synthesized loops.
 MUSIC_FILES = {"lobby": "arcade_floor", "prize_plaza": "prize_plaza", "lucky_corner": "lucky_corner",
-               "home": "home",
+               "home": "home", "golden_age": "golden_age",
                # one theme per minigame (the key is the machine / game id the scene reports)
                "retro_racer": "retro_racer", "pixel_volleyball": "pixel_volleyball", "cat_minesweeper": "cat_minesweeper",
                "galaxy_defender": "galaxy_defender", "puzzle_drop": "neon_cat_maze", "neon21": "neon21", "lucky_wheel": "lucky_wheel",
@@ -42,7 +42,10 @@ PRIORITY = {"footstep": 0, "meow": 1, "card": 1, "sit": 1, "pet": 1, "pet_b": 1,
             # LUCKY CAT PINBALL: ticks and flipper clicks never cut off a bumper, a launch or a fanfare; the drain and the bonus outrank everything
             "pin_rail": 0, "pin_flipper": 0, "pin_bumper": 1, "pin_target": 2, "pin_launch": 2, "pin_scoop": 2, "pin_drain": 3, "pin_bonus": 4,
             # CAPSULE MACHINES: the crank never cuts off the drop or the pop; the pop is the payoff
-            "capsule_turn": 1, "capsule_drop": 3, "capsule_pop_cat": 3, "capsule_pop_retro": 3}
+            "capsule_turn": 1, "capsule_drop": 3, "capsule_pop_cat": 3, "capsule_pop_retro": 3,
+            # TRIAL 01: a Morse tone is never cut off by a menu click; the power surge and the finale outrank everything
+            "circuit_click": 1, "circuit_connect": 3, "power_on": 4, "phone_blip": 2, "morse_dot": 3, "morse_dash": 3,
+            "drawer_open": 2, "page_turn": 1, "disk_insert": 3, "crt_boot": 3, "trial_complete": 4}
 SFX_FILES = ("footstep", "confirm", "cancel", "machine", "token", "ticket", "purchase", "card", "equip",
              "pet", "pet_b", "pet_c", "purr", "emote", "sit", "meow", "vend_hum", "vend_select", "vend_drop", "burp", "munch", "rainbow",
              "squeak", "zap", "mystery", "glitch",
@@ -50,7 +53,9 @@ SFX_FILES = ("footstep", "confirm", "cancel", "machine", "token", "ticket", "pur
              "maze_disable", "maze_life", "maze_clear", "maze_over",
              "coin_drop", "coin_clink", "coin_tray", "coin_win", "coin_gold", "pusher_hum",
              "pin_launch", "pin_flipper", "pin_bumper", "pin_rail", "pin_target", "pin_scoop", "pin_bonus", "pin_drain",
-             "capsule_turn", "capsule_drop", "capsule_pop_cat", "capsule_pop_retro")
+             "capsule_turn", "capsule_drop", "capsule_pop_cat", "capsule_pop_retro",
+             "circuit_click", "circuit_connect", "power_on", "phone_blip", "morse_dot", "morse_dash", "drawer_open",
+             "page_turn", "disk_insert", "crt_boot", "trial_complete")
 # some effects are meant to be barely there
 SFX_GAIN = {"footstep": 0.3, "card": 0.7, "confirm": 0.8, "cancel": 0.8, "sit": 0.7, "emote": 0.8, "meow": 0.6, "purr": 1.0, "vend_hum": 0.6, "vend_select": 0.7, "vend_drop": 0.8, "burp": 0.7,
             # the shooter fires dozens of these a second of play: keep them a soft texture, not a buzz
@@ -81,7 +86,7 @@ DUCK_PAUSED = .4        # music level while a game is paused
 _SOUND_CACHE = {}       # (path, mixer format) -> Sound: a theme is read from disk once per run
 
 
-THEME_TITLES = {"lobby": "ARCADE FLOOR", "prize_plaza": "PRIZE PLAZA", "lucky_corner": "LUCKY CORNER", "home": "HOME",
+THEME_TITLES = {"lobby": "ARCADE FLOOR", "prize_plaza": "PRIZE PLAZA", "lucky_corner": "LUCKY CORNER", "home": "HOME", "golden_age": "THE GOLDEN AGE",
                 "retro_racer": "RETRO RACER", "pixel_volleyball": "CAT VOLLEYBALL", "cat_minesweeper": "CAT TERRITORY",
                 "galaxy_defender": "STARFALL ASSAULT", "puzzle_drop": "NEON CAT MAZE", "neon21": "NEON 21", "lucky_wheel": "SPIN", "high_low": "HI-LO"}
 
