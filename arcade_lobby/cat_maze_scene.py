@@ -1,7 +1,6 @@
 """Thin input and settlement adapter for the independent neon_cat_maze package (the NEON CAT MAZE minigame).
 
-Single-player: only the player who started the machine plays, scores and is paid; the other player spectates and none of
-their keys reach the game. The best run of the play session is the one reported, so Play Again and Restart can never
+Single-player: the player who started the machine plays, scores and is paid; the best run of the play session is the one reported, so Play Again and Restart can never
 pay twice."""
 import pygame
 from audio_manager import GameSoundBus
@@ -15,8 +14,6 @@ DIRECTIONS = ("up", "down", "left", "right")
 
 
 class CatMazeScene(MinigameScene):
-    spectator_corner = "bottomright"
-
     def __init__(self, game, machine):
         super().__init__(game, machine)
         self.cat_maze = CatMazeGame()
@@ -31,11 +28,10 @@ class CatMazeScene(MinigameScene):
 
     def _refresh_keys(self):
         scheme = self.input.scheme
-        move = "WASD/ARROWS" if scheme.name == "SOLO" else scheme.move_hint
-        self.cat_maze.keys = {"move": move, "pause": scheme.label("menu", "pause") or "P"}
+        self.cat_maze.keys = {"move": "WASD/ARROWS", "pause": scheme.label("menu", "pause") or "P"}
 
-    def attach_players(self, players, spectators=()):
-        super().attach_players(players, spectators)
+    def attach_players(self, players):
+        super().attach_players(players)
         self._refresh_keys()
         profile = self.participants[0] if self.participants else None
         if profile is not None:

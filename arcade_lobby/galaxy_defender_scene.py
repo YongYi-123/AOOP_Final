@@ -13,8 +13,6 @@ WAVE_KEY = "galaxy_defender_wave"       # the highest wave, kept in the profile'
 
 
 class GalaxyDefenderScene(MinigameScene):
-    spectator_corner = "topleft"
-
     def __init__(self, game, machine):
         super().__init__(game, machine)
         self.galaxy = GalaxyGame()
@@ -25,8 +23,8 @@ class GalaxyDefenderScene(MinigameScene):
         if hasattr(self.game, "audio"):
             self.galaxy.audio = GameSoundBus(self.game.audio)
 
-    def attach_players(self, players, spectators=()):
-        super().attach_players(players, spectators)
+    def attach_players(self, players):
+        super().attach_players(players)
         profile = self.participants[0] if self.participants else None
         if profile is not None:
             self.galaxy.saved_score = profile.high_score(SCORE_KEY)

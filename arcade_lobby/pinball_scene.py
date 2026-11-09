@@ -3,11 +3,11 @@
 The scene only draws and routes input. The physics is pinball.py and every Token / Ticket
 movement is pinball_table.py, so nothing here can pay twice: a key press just asks the table.
 
-Controls follow the acting player's own scheme (the other player only watches):
-    left / right (hold)   left / right flipper     (solo A/D or arrows, P1 A/D, P2 arrows)
+Controls follow the player's control scheme:
+    left / right (hold)   left / right flipper     (A/D or arrows)
     launch (hold, release) pull the plunger back, let go to launch; also starts a run (1 Token)
-                          (the player's item key or interact key: SPACE/E, SPACE/E, RSHIFT/ENTER)
-    pause key             pause / resume           (solo P, P1 I, P2 O)
+                          (the player's item key or interact key: SPACE/E/ENTER)
+    pause key             pause / resume           (P or I)
     ESC                   leave (a run in progress is cashed out first; ESC while playing pauses first)
 """
 import math
@@ -32,16 +32,11 @@ TRAIL = 7
 
 class PinballScene(BaseScene):
     music_id = "lucky_corner"            # the Lucky Corner theme (no new music: the machine's own sounds carry it)
-    spectator_corner = "topleft"
-    spectator_offset = (4, 3)
 
     def __init__(self, game, player=None, table=None, rng=None):
-        """player: the LocalPlayer at the cabinet - their profile pays and wins, the other player
-        (if any) only watches."""
+        """player: the LocalPlayer at the cabinet - their profile pays and wins."""
         super().__init__(game)
         self.player = player
-        if player is not None:
-            self.spectators = [p for p in game.session if p is not player]
         self.table = table or PinballTable(self.profile)
         self.rand = rng or random.Random()
         self.time = 0.0                  # animation clock (stops while paused)
@@ -96,8 +91,6 @@ class PinballScene(BaseScene):
             return
         if event.type != pygame.KEYDOWN or getattr(event, "repeat", False):
             return
-        if self.player and not self.game.session.allows(self.player, event.key):
-            return                           # the other player's keys do nothing here (they only watch)
         if event.key in BACK_KEYS:
             self._escape()
             return
@@ -388,9 +381,8 @@ class PinballScene(BaseScene):
     # ---- the two side panels
     def _draw_panels(self, surf, world, lucky):
         left, right = pygame.Rect(16, 40, 106, 232), pygame.Rect(278, 40, 106, 232)
-        who = f"{self.player.tag} " if self.player and self.player.label else ""
         cx = left.centerx
-        self.text(surf, f"{who}SCORE", cx, left.y + 6, Col.TEXT_MUTED, max_w=left.w - 6)
+        self.text(surf, "SCORE", cx, left.y + 6, Col.TEXT_MUTED, max_w=left.w - 6)
         score = world.score if self.table.state != "idle" or self.table.result is None else self.table.result.score
         self.text(surf, f"{score:,}", cx, left.y + 17, art.GOLD, 2, glow=scale_color(art.GOLD, 0.3), max_w=left.w - 8)
         self.text(surf, "BALL", cx, left.y + 42, Col.TEXT_MUTED)
@@ -405,7 +397,7 @@ class PinballScene(BaseScene):
                 pygame.draw.circle(surf, scale_color(Col.GREEN, 0.5), (x, left.y + 60), 7, 1)
         timer, flash = self.token_flash
         color = flash if timer > 0 else Col.YELLOW
-        self.text(surf, f"{who}TOKENS", cx, left.y + 80, Col.TEXT_MUTED, max_w=left.w - 6)
+        self.text(surf, "TOKENS", cx, left.y + 80, Col.TEXT_MUTED, max_w=left.w - 6)
         rect = self.text(surf, f"{self.profile.tokens}", cx + 5, left.y + 92, color, 2, glow=scale_color(color, 0.3), max_w=left.w - 26)
         surf.blit(self.icon, self.icon.get_rect(midright=(rect.left - 4, rect.centery)))
         self.text(surf, f"RUN COST {PINBALL_RUN_COST} TOKEN", cx, left.y + 112, Col.TEXT_MUTED, max_w=left.w - 6)

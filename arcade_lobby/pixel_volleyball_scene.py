@@ -9,19 +9,16 @@ from pixel_volleyball.keyboard_hints import hint_lines
 
 
 class PixelVolleyballScene(MinigameScene):
-    spectator_corner = "topleft"       # the bottom corners hold the help text
-    spectator_offset = (4, 50)         # under the title and score line, left of the net
-
     def __init__(self, game, machine):
         super().__init__(game, machine)
         self.volley = VolleyGame()
         self.leaving = False
         self._tapped = set()    # item presses since the last frame, even if already released
 
-    def attach_players(self, players, spectators=()):
-        super().attach_players(players, spectators)
+    def attach_players(self, players):
+        super().attach_players(players)
         self.volley.audio.stop()
-        self.volley = VolleyGame(len(self.players) or 1)
+        self.volley = VolleyGame()
         if hasattr(self.game, "audio"):
             self.volley.audio.stop()
             self.volley.audio = GameSoundBus(self.game.audio)
@@ -29,12 +26,12 @@ class PixelVolleyballScene(MinigameScene):
         self.volley.hints = self._hints()
 
     def _hints(self):
-        """Each player's own key names, so the screen matches the real bindings."""
-        names = ("P1", "P2") if len(self.players) > 1 else ("",)
-        keys = [(name, *(p.controls.label(action, limit=limit) for action, limit in
-                         (("left", 1), ("right", 1), ("up", 1), ("item", 2))))
-                for name, p in zip(names, self.players)]
-        return hint_lines(keys) if keys else self.volley.hints
+        """The player's own key names, so the screen matches the real bindings."""
+        if not self.players:
+            return self.volley.hints
+        c = self.players[0].controls
+        return hint_lines(*(c.label(action, limit=limit) for action, limit in
+                            (("left", 1), ("right", 1), ("up", 1), ("item", 2))))
 
     def handle_event(self, event):
         if self.leaving:
@@ -45,11 +42,9 @@ class PixelVolleyballScene(MinigameScene):
             if self.volley.match.state is MatchState.PLAYING:
                 self.volley.match.toggle_pause()
             return
-        actors = self.players or [None]
-        actions = [self.input_for(player).feed(event) for player in actors]
-        for player, action in zip(actors, actions):
-            if action == "item":
-                self._tapped.add(id(player))
+        action = self.input.feed(event)
+        if action == "item":
+            self._tapped.add("item")
         if event.type != pygame.KEYDOWN:
             return
         if event.key == pygame.K_ESCAPE:
@@ -58,20 +53,18 @@ class PixelVolleyballScene(MinigameScene):
             self.game.scenes.pop()
         elif event.key == pygame.K_BACKSPACE:
             self.volley.restart()
-        elif any(action in ("menu", "pause") for action in actions):
+        elif action in ("menu", "pause"):
             self.volley.match.toggle_pause()
-        elif "interact" in actions or (event.key in (pygame.K_RETURN, pygame.K_KP_ENTER)
+        elif action == "interact" or (event.key in (pygame.K_RETURN, pygame.K_KP_ENTER)
                                       and not self.game.session.player_for_key(event.key)):
             self.volley.confirm()
 
     def update(self, dt):
         if self.leaving:
             return
-        controls = []
-        for player in self.players or [None]:
-            input_ = self.input_for(player)
-            controls.append(VolleyInput(input_.axis("left", "right"), input_.held("up"),
-                                        input_.held("item") or id(player) in self._tapped))
+        held = self.input
+        controls = [VolleyInput(held.axis("left", "right"), held.held("up"),
+                                held.held("item") or "item" in self._tapped)]
         self._tapped.clear()
         self.volley.update(dt, controls)
 

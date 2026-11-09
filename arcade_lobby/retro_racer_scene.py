@@ -65,7 +65,6 @@ RACER_KEYS = {
 # the window offers, so the window size can never crop or stretch the game.
 ENGINE_BOOST = 1.2          # the engine sits above the hub music: +2 dB at idle to +8 dB flat out
 RACER_SIZE = (800, 600)
-SPECTATOR_Y = 148           # logical y of the spectator tag: under the DISTANCE readout, clear of the HUD
 
 
 def fit_rect(source, target):
@@ -189,7 +188,7 @@ class RetroRacerScene(MinigameScene):
     # ------------------------------------------------------------ input
     def racer_event(self, event):
         """The racer-side key event for `event`, or None if it is not the
-        playing player's (the other player's keys vanish here)."""
+        playing player's."""
         inp = self.input
         action = inp.feed(event)
         if event.type != pygame.KEYDOWN:
@@ -275,7 +274,6 @@ class RetroRacerScene(MinigameScene):
         else:
             self.racer.screen = self.surface
             self.racer.render()
-            self._draw_spectators(self.surface)
             self._present(surf)
 
     def _present(self, surf):
@@ -286,22 +284,6 @@ class RetroRacerScene(MinigameScene):
             return
         surf.fill((0, 0, 0))
         pygame.transform.smoothscale(self.surface, rect.size, surf.subsurface(rect))
-
-    def _draw_spectators(self, surf):
-        """A small 'P2 ALICE - SPECTATING' tag, always in free space: while racing, just under the DISTANCE
-        readout between the two HUD columns (clear of the stat blocks and the minimap); on the menu and
-        result screens, the bottom-right corner."""
-        if not self.spectators or self.racer.paused:      # (the pause card owns the centre)
-            return
-        text = "  ".join(f"{p.tag} - SPECTATING" for p in self.spectators)
-        img = get_font().render_glow(text, Col.TEXT_MUTED, (30, 24, 60), scale=2)
-        if self.racer.state.name in ("PLAYING", "COUNTDOWN", "SECRET"):
-            surf.blit(img, img.get_rect(midtop=(RACER_SIZE[0] // 2, SPECTATOR_Y)))
-        else:           # menus and result screens have no HUD: the bottom-right corner is free there
-            surf.blit(img, img.get_rect(bottomright=(RACER_SIZE[0] - 10, RACER_SIZE[1] - 6)))
-
-    def draw_overlay(self, surf, px=1):
-        pass            # the spectator tag is part of the racer's own screen (see _draw_spectators)
 
     def _draw_card(self, surf):
         surf.fill(Col.FADE)

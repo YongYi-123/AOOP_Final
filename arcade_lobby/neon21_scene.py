@@ -10,7 +10,7 @@ Cards are dealt and flipped as a short scripted animation; the rules have
 already settled by then, and the balance readout is held back until the result
 banner appears so it never spoils the flip.
 
-Controls follow the acting player's own scheme (the other player only watches):
+Controls follow the player's control scheme:
     betting   left/right wager    up/down payout currency    E/ENTER/SPACE deal
     playing   left HIT   right STAND   up DOUBLE DOWN
     ESC       leave (twice mid-hand: the hand stands and settles)
@@ -75,16 +75,11 @@ class CardView:
 
 class Neon21Scene(BaseScene):
     music_id = "neon21"
-    spectator_corner = "bottomright"
-    spectator_offset = (4, 3)
 
     def __init__(self, game, player=None, rng=None, table=None):
-        """player: the LocalPlayer at the cabinet - their profile pays and wins,
-        the other player (if any) only watches."""
+        """player: the LocalPlayer at the cabinet - their profile pays and wins."""
         super().__init__(game)
         self.player = player
-        if player is not None:
-            self.spectators = [p for p in game.session if p is not player]
         self.table = table or Neon21Table(self.profile, rng=rng)
         self.time = 0.0
         self.player_views, self.dealer_views = [], []
@@ -143,8 +138,6 @@ class Neon21Scene(BaseScene):
             if name:
                 self._press(name)
         elif event.type == pygame.KEYDOWN:
-            if self.player and not self.game.session.allows(self.player, event.key):
-                return                      # the other player's keys do nothing here
             if event.key in BACK_KEYS:
                 self._press("exit")
                 return
@@ -357,8 +350,6 @@ class Neon21Scene(BaseScene):
         r = self.text(surf, "NEON 21", VIEW_W // 2, 4, GOLD, 2, glow=glow)
         surf.blit(suit_icon("S", EMERALD, big=True), (r.left - 14, 6))
         surf.blit(suit_icon("H", RED, big=True), (r.right + 7, 6))
-        if self.player and self.player.label:
-            self.text(surf, self.player.tag, VIEW_W - 8, 6, Col.TEXT_MUTED, anchor="topright", max_w=120)
 
     def _draw_felt(self, surf):
         felt = pygame.Rect(12, 24, VIEW_W - 24, 208)

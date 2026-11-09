@@ -8,8 +8,6 @@ from cat_minesweeper.mouse import MineMouseInput
 
 
 class CatTerritoryScene(MinigameScene):
-    spectator_corner = "topleft"       # the bottom corners hold the help text
-
     def __init__(self, game, machine):
         super().__init__(game, machine)
         self.territory = TerritoryGame()

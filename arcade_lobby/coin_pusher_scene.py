@@ -3,10 +3,10 @@
 The scene only draws and routes input. The physics is coin_pusher.py and every Token / Ticket
 movement is coin_pusher_table.py, so nothing here can pay twice: a key press just asks the table.
 
-Controls follow the acting player's own scheme (the other player only watches):
-    left / right (hold)   slide the coin chute          (solo A/D or arrows, P1 A/D, P2 arrows)
+Controls follow the player's control scheme:
+    left / right (hold)   slide the coin chute          (A/D or arrows)
     DROP                  spend 1 Token and drop a coin (the player's item key or interact key)
-    pause key             pause / resume               (solo P, P1 I, P2 O)
+    pause key             pause / resume               (P or I)
     ESC                   leave (the board is saved; any coin in the air lands first)
 """
 import math
@@ -33,16 +33,11 @@ GOLD_TIME = 2.2
 
 class CoinPusherScene(BaseScene):
     music_id = "lucky_corner"            # the Lucky Corner theme (no new music: the machine's own sounds carry it)
-    spectator_corner = "topleft"
-    spectator_offset = (4, 3)
 
     def __init__(self, game, player=None, table=None, rng=None):
-        """player: the LocalPlayer at the cabinet - their profile pays and wins, the other player
-        (if any) only watches."""
+        """player: the LocalPlayer at the cabinet - their profile pays and wins."""
         super().__init__(game)
         self.player = player
-        if player is not None:
-            self.spectators = [p for p in game.session if p is not player]
         self.table = table or CoinPusherTable(self.profile)
         self.rand = rng or random.Random()
         self.time = 0.0                  # animation clock (stops while paused)
@@ -97,8 +92,6 @@ class CoinPusherScene(BaseScene):
             return
         if event.type != pygame.KEYDOWN or getattr(event, "repeat", False):
             return
-        if self.player and not self.game.session.allows(self.player, event.key):
-            return                           # the other player's keys do nothing here (they only watch)
         if event.key in BACK_KEYS:
             self.game.scenes.pop()
             return
@@ -363,8 +356,7 @@ class CoinPusherScene(BaseScene):
             pygame.draw.rect(surf, scale_color(art.GLASS, 0.5), box, 1, border_radius=3)
         # tokens
         left = boxes[0]
-        who = f"{self.player.tag} " if self.player and self.player.label else ""
-        self.text(surf, f"{who}TOKENS", left.centerx, left.y + 5, Col.TEXT_MUTED, max_w=left.w - 6)
+        self.text(surf, "TOKENS", left.centerx, left.y + 5, Col.TEXT_MUTED, max_w=left.w - 6)
         timer, flash = self.token_flash
         color = flash if timer > 0 else Col.YELLOW
         rect = self.text(surf, f"{self.profile.tokens}", left.centerx + 5, left.y + 17, color, 2,

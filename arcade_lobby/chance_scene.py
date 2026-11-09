@@ -19,11 +19,9 @@ class ChanceGameScene(BaseScene):
 
     def __init__(self, game, game_cls, player=None):
         """player: the LocalPlayer who walked up to the machine. Their profile
-        pays and wins; the other player (if any) only watches."""
+        pays and wins."""
         super().__init__(game)
         self.player = player
-        if player is not None:
-            self.spectators = [p for p in game.session if p is not player]
         self.game_cls = game_cls
         self.music_id = getattr(game_cls, "id", "") if getattr(game_cls, "id", "") in MUSIC_FILES else self.music_id
         self.round = game_cls()
@@ -44,8 +42,6 @@ class ChanceGameScene(BaseScene):
     def handle_event(self, event):
         if event.type != pygame.KEYDOWN:
             return
-        if self.player and not self.game.session.allows(self.player, event.key):
-            return                      # the other player's keys do nothing here (they only watch)
         if event.key in BACK_KEYS:
             self.game.scenes.pop()
         elif event.key in CONFIRM_KEYS and self.round.phase == self.round.IDLE:
@@ -69,8 +65,7 @@ class ChanceGameScene(BaseScene):
 
     def _draw_balance(self, surf):
         font = get_font()
-        who = f"{self.player.tag}  " if self.player and self.player.label else ""
-        text = font.render_glow(f"{who}TOKENS {self.profile.tokens:02d}", Col.YELLOW,
+        text = font.render_glow(f"TOKENS {self.profile.tokens:02d}", Col.YELLOW,
                                 (90, 70, 20))
         rect = text.get_rect(topright=(VIEW_W - 8, 12))
         surf.blit(text, rect)
