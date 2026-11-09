@@ -27,6 +27,7 @@ from minimap import MiniMap
 from scenery import SCENERY_THEMES
 from scenery_select import SceneryGallery
 from progression import RacerProgression
+from reverse_road import ReverseTrigger, SecretRun
 from garage_art import GaragePreview  # noqa: F401  (re-exported: arcade_lobby reads game.GaragePreview)
 
 IDLE = {"accelerate": False, "brake": False, "steer": 0}
@@ -81,6 +82,11 @@ class Game:
         self.mode_index = 0
         self.track_index = 0
         self.progression = RacerProgression()
+        self.reverse_trigger = ReverseTrigger()      # the Reverse Road secret (reverse_road.py)
+        self.beep_clock = 0.0
+        self.gear_owned = False                      # has the Reverse Gear been found? (the arcade sets this from the story)
+        self.egg_found = False                       # has OUT OF TIME been discovered? (the arcade sets this from the story)
+        self.secret_events = []                      # ("secret_item_found", key, first_time) for the embedding program
         self.car_menu = CarSelectMenu(CAR_CATALOG)
         self.ai_level = DEFAULT_DIFFICULTY               # AI difficulty for competitive races; persists across restarts
         self.selected_car_spec = CAR_CATALOG.default     # confirmed choice; survives countdown, restarts, end screens
@@ -138,6 +144,9 @@ class Game:
         self.go_time = 0.0
         self.end_time = 0.0
         self.paused = False
+        self.secret = None              # a running SecretRun, or None
+        self.music_duck = 1.0           # the level the host's background music should sit at (the secret's cutscene lowers it)
+        self.reverse_trigger.reset()
 
     @staticmethod
     def _settle_memory():
@@ -197,7 +206,7 @@ class Game:
                 self._say("MAP ON" if self.minimap.visible else "MAP OFF")
             elif self.paused:
                 self._paused_key(e.key)
-            elif e.key == pygame.K_p and self.state in RACE_STATES:
+            elif e.key == pygame.K_p and (self.state in RACE_STATES or self.secret_pausable):
                 self.set_paused(True)
             elif e.key == pygame.K_ESCAPE:
                 self.escape()
@@ -221,6 +230,22 @@ class Game:
             elif e.key in (pygame.K_LEFTBRACKET, pygame.K_RIGHTBRACKET):
                 self.audio.change_volume(0.1 if e.key == pygame.K_RIGHTBRACKET else -0.1)
                 self._say(f"VOLUME {int(self.audio.volume * 100)}%")
+
+    # ---- the Reverse Road secret ----------------------------------------------
+    @property
+    def secret_pausable(self):
+        return self.state is State.SECRET and self.secret is not None and self.secret.pausable
+
+    def pop_secret_events(self):
+        """The secret's news for the host program (drained: each event is handed over once)."""
+        events, self.secret_events = self.secret_events, []
+        return events
+
+    def begin_reverse_road(self):
+        """The trigger fired: the cutscene starts, then the car backs out of this race onto the secret road."""
+        if self.secret is None:
+            self.secret = SecretRun(self)
+            self.state = State.SECRET
 
     # ---- pause --------------------------------------------------------------
     def set_paused(self, paused):
@@ -250,7 +275,10 @@ class Game:
 
     # ---- menu flow: TITLE -> MODE_SELECT -> TRACK_SELECT -> COUNTDOWN --------
     def press_enter(self):
-        if self.state is State.TITLE:
+        if self.state is State.SECRET:
+            if self.secret is not None:
+                self.secret.confirm()
+        elif self.state is State.TITLE:
             self.mode_index = [m for m, _, _ in MODE_MENU].index(self.mode)
             self.state = State.MODE_SELECT
             self.audio.play("select")
@@ -310,6 +338,11 @@ class Game:
         """ESC goes back inside the menus and quits everywhere else."""
         if self.state in MENU_STATES:
             self.back()
+        elif self.state is State.SECRET:
+            if self.secret_pausable:
+                self.set_paused(True)
+            elif self.secret is not None:
+                self.secret.confirm()          # (ESC also skips the cutscene / closes the reward)
         elif self.state in RACE_STATES:
             self.set_paused(True)               # ESC pauses a race instead of throwing it away
         else:
@@ -361,14 +394,35 @@ class Game:
             return
         self.last_dt = dt
         self.toast_time = max(0.0, self.toast_time - dt)
+        if self.secret is not None:             # the secret owns the frame: its cutscene, road and reward
+            self.secret.update(dt, controls)
+            self.flash_time = max(0.0, self.flash_time - dt)
+            return
         handler = self._update_attract if self.state in ATTRACT_STATES else {
             State.COUNTDOWN: self._update_countdown, State.PLAYING: self._update_playing,
             State.FINISHED: self._update_ended, State.GAME_OVER: self._update_ended}[self.state]
         playing = self.state is State.PLAYING
         handler(dt, controls)
+        if self.state is not State.PLAYING:
+            self.reverse_trigger.reset()        # menus, countdown and end screens never count towards the secret
+        self._reverse_beep(dt)
         self.drift.update(dt, self.player, self.road, controls, active=playing)
         self.flash_time = max(0.0, self.flash_time - dt)
         self._update_engine_sound()
+
+    def _reverse_beep(self, dt):
+        """A truck-style beep while the car backs up. Once the stillness has been served it quickens and climbs, rising with every
+        metre, so a player who is on to something can hear it.""" 
+        if self.state is State.PLAYING and self.reverse_trigger.take_cue():
+            self.audio.play("reverse_cue")                  # "you may reverse now"
+        if self.state is not State.PLAYING or not self.player.reversing:
+            self.beep_clock = 0.0
+            return
+        progress = self.reverse_trigger.progress
+        self.beep_clock -= dt
+        if self.beep_clock <= 0:
+            self.audio.play("backup_hi" if progress > 0 else "backup")
+            self.beep_clock = 0.55 - 0.38 * progress if progress > 0 else 0.6
 
     def _update_engine_sound(self):
         running = self.state in (State.COUNTDOWN, State.PLAYING)
@@ -425,6 +479,9 @@ class Game:
         if self.manager.next_checkpoint != checkpoints:
             self.flash_time = CHECKPOINT_FLASH
             self.audio.play("checkpoint")
+        if self.state is State.PLAYING and self.reverse_trigger.update(dt, self.player, True):
+            self.begin_reverse_road()
+            return
         if self.state is State.FINISHED:
             self.audio.play("finish")
         elif self.state is State.GAME_OVER:
@@ -441,6 +498,20 @@ class Game:
 
     def render(self):
         """Draw the current frame into self.screen (without flipping the display)."""
+        run = self.secret
+        if run is not None and not run.in_cutscene:
+            run.render(self.screen)             # the secret road, its HUD and its reward
+        else:
+            self._render_race()
+            if run is not None:
+                run.draw_cutscene(self.screen)
+        if self.paused:
+            self.hud.draw_pause(self.screen, self.time)
+        if self.toast_time > 0:
+            self.hud.draw_toast(self.screen, self.toast)
+        self.tuner.draw(self.screen, self.hud, self.last_dt)
+
+    def _render_race(self):
         scene = self.scene
         scene.fill(self.theme.ground[1])
         self.backdrop.draw(scene, self.bg_scroll)
@@ -460,12 +531,8 @@ class Game:
         if self.flash_time > 0:      # checkpoint flash
             self._flash(CHECKPOINT_FLASH_COLOR, int(150 * self.flash_time / CHECKPOINT_FLASH))
 
-        self._draw_screen()
-        if self.paused:
-            self.hud.draw_pause(self.screen, self.time)
-        if self.toast_time > 0:
-            self.hud.draw_toast(self.screen, self.toast)
-        self.tuner.draw(self.screen, self.hud, self.last_dt)
+        if self.secret is None:
+            self._draw_screen()
 
     def _draw_screen(self):
         hud, scr, state = self.hud, self.screen, self.state

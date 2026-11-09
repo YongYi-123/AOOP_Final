@@ -16,6 +16,7 @@ class State(Enum):
     PLAYING = "PLAYING"
     FINISHED = "FINISHED"
     GAME_OVER = "GAME_OVER"
+    SECRET = "SECRET"           # the Reverse Road secret (reverse_road.py) has taken over
 
 
 class RaceManager(BaseModeManager):
@@ -100,7 +101,7 @@ class RaceManager(BaseModeManager):
         self.result = {
             "score": int(player.score) + bonus,
             "time_bonus": bonus,
-            "distance_km": player.distance / S.SEGMENT_LENGTH / 100,
+            "distance_km": max(0.0, player.distance) / S.SEGMENT_LENGTH / 100,
             "collisions": player.collisions,
             "time_left": self.time_left,
             "elapsed": self.elapsed,
