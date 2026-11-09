@@ -58,7 +58,7 @@ class StaffBase(unittest.TestCase):
         self.addCleanup(shutil.rmtree, self.dir, True)
         self.profiles = [PlayerProfile(profile_id="sa", display_name="Ann", tokens=20, tickets=30),
                          PlayerProfile(profile_id="sb", display_name="Bo", tokens=20, tickets=30)][:self.players]
-        self.game = Game(session=LocalSession(self.profiles), audio_prefs=os.path.join(self.dir, "audio.json"))
+        self.game = Game(session=LocalSession(self.profiles[0]), audio_prefs=os.path.join(self.dir, "audio.json"))
         self.addCleanup(self.game.quit)
         self.room = goto_room(self.game, "arcade_floor")
 
@@ -88,10 +88,10 @@ class StaffBase(unittest.TestCase):
         return scene
 
     def unlock(self, who=0, submit=None):
-        """Open the screen and enter the password. `submit`: the key that submits (default: the owner's ENTER)."""
+        """Open the screen and enter the password. `submit`: the key that submits (default: ENTER)."""
         scene = self.open_scene(who)
         self.type_text(PASSWORD)
-        self.tap(submit or (K.K_TAB if self.players == 2 and who == 0 else K.K_RETURN))
+        self.tap(submit or K.K_RETURN)
         self.assertEqual(scene.phase, PANEL_PHASE)
         self.seconds(0.6)
         return scene
@@ -618,10 +618,11 @@ class SoloIsolationTests(StaffBase):
         self.assertEqual(self.profiles[0].tokens, 40)
 
 
-class TwoPlayerTests(StaffBase):
+class OtherSavedProfileTests(StaffBase):
+    """A second profile is saved but never played: the panel only ever touches the playing profile."""
     players = 2
 
-    def test_p1_opens_it_and_only_p1_is_paid(self):
+    def test_the_player_opens_it_and_only_the_player_is_paid(self):
         scene = self.unlock(0)
         self.assertIs(scene.owner, self.game.session.players[0])
         self.assertIs(scene.service.profile, self.profiles[0])
@@ -632,19 +633,10 @@ class TwoPlayerTests(StaffBase):
         self.assertFalse(self.profiles[1].cheats_used)
         self.assertTrue(self.profiles[0].cheats_used)
 
-    def test_p2_opens_it_and_only_p2_is_paid(self):
-        scene = self.unlock(1, submit=K.K_RETURN)
-        self.assertIs(scene.owner, self.game.session.players[1])
-        self.press_button(scene, 0, 1, key=K.K_RETURN)
-        self.press_button(scene, 1, 0, key=K.K_RCTRL)
-        self.assertEqual((self.profiles[1].tokens, self.profiles[1].tickets), (120, 40))
-        self.assertEqual((self.profiles[0].tokens, self.profiles[0].tickets), (20, 30))
-        self.assertFalse(self.profiles[0].cheats_used)
-
-    def test_the_other_players_keys_cannot_press_buttons_or_move_the_cursor(self):
+    def test_the_old_second_player_keys_cannot_press_buttons_or_move_the_cursor(self):
         scene = self.unlock(0)
         self.select(scene, 0, 0)
-        for k in (K.K_RETURN, K.K_RCTRL, K.K_KP_ENTER, K.K_UP, K.K_DOWN, K.K_LEFT, K.K_RIGHT, K.K_o, K.K_SLASH):
+        for k in (K.K_RCTRL, K.K_o, K.K_SLASH, K.K_KP0, K.K_RSHIFT):
             self.tap(k)
             self.seconds(ACTION_LOCK + 0.1)
         self.assertEqual(scene.sel, [0, 0])
@@ -652,48 +644,41 @@ class TwoPlayerTests(StaffBase):
         self.assertEqual((self.profiles[0].tickets, self.profiles[1].tickets), (30, 30))
         self.assertFalse(scene.closing)
 
-    def test_p2_cannot_submit_or_grant_into_p1s_screen_with_enter(self):
+    def test_enter_and_tab_both_submit_the_typed_password(self):
         scene = self.open_scene(0)
         self.type_text("PURR")
-        self.tap(K.K_RETURN)                                                  # P2's key: not P1's submit
-        self.assertEqual(scene.entry.text, "PURR")
-        self.assertEqual(scene.entry.attempts, 0)
-        self.tap(K.K_TAB)
+        self.tap(K.K_RETURN)
         self.assertEqual(scene.entry.attempts, 1)
+        self.type_text("PURR")
+        self.tap(K.K_TAB)
+        self.assertEqual(scene.entry.attempts, 2)
 
-    def test_p1_can_type_the_whole_password_and_game_keys_as_text(self):
+    def test_the_player_can_type_the_whole_password_and_game_keys_as_text(self):
         scene = self.open_scene(0)
         self.type_text(PASSWORD)
         self.assertEqual(scene.entry.text, PASSWORD)
 
-    def test_p1_wasd_does_not_walk_p2_or_p1_while_the_screen_is_up(self):
-        a, b = self.room.players
-        a.x, a.y, b.x, b.y = 100.0, 250.0, 140.0, 250.0
+    def test_wasd_does_not_walk_the_player_while_the_screen_is_up(self):
+        a, = self.room.players
+        a.x, a.y = 100.0, 250.0
         self.unlock(0)
         self.frames(1, [down(K.K_d), down(K.K_RIGHT)])
         self.seconds(1.0)
-        self.assertEqual(((a.x, a.y), (b.x, b.y)), ((100.0, 250.0), (140.0, 250.0)))
-
-    def test_both_players_can_use_it_one_after_the_other_each_for_themselves(self):
-        scene = self.unlock(0)
-        self.press_button(scene, 0, 0)
-        self.leave()
-        scene = self.unlock(1, submit=K.K_RETURN)
-        self.press_button(scene, 0, 0, key=K.K_RETURN)
-        self.assertEqual((self.profiles[0].tokens, self.profiles[1].tokens), (30, 30))
+        self.assertEqual((a.x, a.y), (100.0, 250.0))
 
     def test_a_second_screen_cannot_open_on_top_of_the_first(self):
         scene = self.open_scene(0)
-        self.room.acting_player = self.room.players[1]
+        self.room.acting_player = self.room.players[0]
         self.room.open_maintenance()
         self.seconds(1.2)
         self.assertIs(self.game.scenes.current, scene)
         self.assertEqual(self.game.scenes.stack.count(scene), 1)
 
-    def test_the_spectating_player_is_listed_and_the_owner_tag_shows(self):
-        scene = self.open_scene(1)
-        self.assertEqual([p.number for p in scene.spectators], [1])
-        self.assertEqual(scene.owner.tag, "P2 BO")
+    def test_the_owner_tag_shows_and_nobody_is_listed_as_spectating(self):
+        scene = self.open_scene(0)
+        self.assertFalse(hasattr(scene, "spectators"))
+        self.assertEqual(scene.owner.tag, "ANN")
+        scene.draw(pygame.Surface((400, 300)))
 
 
 # ================================================================================ ALL CATS DANCE

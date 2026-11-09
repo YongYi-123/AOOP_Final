@@ -36,7 +36,7 @@ class CouponLaunchTests(unittest.TestCase):
     def setUp(self):
         self.profiles = [PlayerProfile(profile_id="cp_a", display_name="Ann", tokens=5, tickets=100),
                          PlayerProfile(profile_id="cp_b", display_name="Bo", tokens=5, tickets=100)]
-        self.game = Game(session=LocalSession(self.profiles[:1]))
+        self.game = Game(session=LocalSession(self.profiles[0]))
         self.addCleanup(self.game.quit)
         self.room = goto_room(self.game, "arcade_floor")
         # any machine whose minigame is the placeholder screen: no real game needed
@@ -196,7 +196,7 @@ class CouponProfileIsolationTests(unittest.TestCase):
     def setUp(self):
         self.profiles = [PlayerProfile(profile_id="ci_a", display_name="Ann", tokens=5, tickets=100),
                          PlayerProfile(profile_id="ci_b", display_name="Bo", tokens=5, tickets=100)]
-        self.game = Game(session=LocalSession(self.profiles))
+        self.game = Game(session=LocalSession(self.profiles[0]))
         self.addCleanup(self.game.quit)
         self.room = goto_room(self.game, "arcade_floor")
         patcher = mock.patch("room_scene.create_minigame_scene", self.placeholder)
@@ -208,24 +208,22 @@ class CouponProfileIsolationTests(unittest.TestCase):
         scene.participants = [p.profile for p in game.session]
         return scene
 
-    def test_p2s_coupon_pays_for_p2s_launch_and_p1_keeps_theirs(self):
+    def test_the_players_coupon_pays_for_the_launch_and_another_profile_keeps_theirs(self):
         self.profiles[1].inventory.add_item(FREE_PLAY_COUPON, 2)
-        self.profiles[0].inventory.add_item(FREE_PLAY_COUPON, 1)
+        self.profiles[0].inventory.add_item(FREE_PLAY_COUPON, 2)
         machine = self.room.machines[0]
-        p2 = self.room.players[1]
-        self.room._start_game(machine, use_coupon=True, player=p2)
-        self.assertEqual(self.profiles[1].inventory.get_quantity(FREE_PLAY_COUPON), 1)
+        self.room._start_game(machine, use_coupon=True, player=self.room.players[0])
         self.assertEqual(self.profiles[0].inventory.get_quantity(FREE_PLAY_COUPON), 1)
+        self.assertEqual(self.profiles[1].inventory.get_quantity(FREE_PLAY_COUPON), 2)
         self.assertEqual((self.profiles[0].tokens, self.profiles[1].tokens), (5, 5))
 
-    def test_a_player_with_no_coupon_cannot_borrow_the_other_players(self):
-        self.profiles[0].inventory.add_item(FREE_PLAY_COUPON, 1)
+    def test_a_player_with_no_coupon_cannot_borrow_another_profiles(self):
+        self.profiles[1].inventory.add_item(FREE_PLAY_COUPON, 1)
         machine = self.room.machines[0]
-        p2 = self.room.players[1]
-        self.room._start_game(machine, use_coupon=True, player=p2)
+        self.room._start_game(machine, use_coupon=True, player=self.room.players[0])
         self.assertIsNone(self.room.active_play)
-        self.assertEqual(self.profiles[0].inventory.get_quantity(FREE_PLAY_COUPON), 1)
-        self.assertEqual(self.profiles[1].tokens, 5)
+        self.assertEqual(self.profiles[1].inventory.get_quantity(FREE_PLAY_COUPON), 1)
+        self.assertEqual(self.profiles[0].tokens, 5)
 
     def test_a_second_launch_while_one_is_running_takes_nothing(self):
         self.profiles[0].inventory.add_item(FREE_PLAY_COUPON, 3)

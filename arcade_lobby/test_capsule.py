@@ -1,5 +1,5 @@
 """Tests for the CAT CAPSULE / RETRO CAPSULE machines in Prize Plaza: pricing, the Ticket
-spend, the prize, duplicates, P1/P2 ownership and the machines in the room.
+spend, the prize, duplicates, ownership and the machines in the room.
 
 Run headless from this folder:   python -m unittest test_capsule -v
 """
@@ -217,7 +217,7 @@ class IsolationTests(unittest.TestCase):
 class RoomBase(unittest.TestCase):
     def setUp(self):
         self.profiles = [PlayerProfile(profile_id="cap_a", tickets=200), PlayerProfile(profile_id="cap_b", tickets=200)]
-        self.game = Game(session=LocalSession(self.profiles))
+        self.game = Game(session=LocalSession(self.profiles[0]))
         self.addCleanup(self.game.quit)
         self.room = goto_room(self.game, "prize_plaza")
         for cat in self.room.cats:
@@ -271,27 +271,13 @@ class RoomTests(RoomBase):
             self.assertIs(self.game.scenes.current, self.room)
         self.assertEqual([p.tickets for p in self.profiles], [200, 200])      # opening is free
 
-    def test_p2_opening_a_machine_pulls_with_p2_tickets_only(self):
-        self.stand_at(1, self.machine(CAT))
-        self.key(pygame.K_RETURN)
-        self.frames(40)
-        scene = self.game.scenes.current
-        self.assertIsInstance(scene, CapsuleScene)
-        self.assertIs(scene.owner, self.game.session.players[1])
-        self.assertIs(scene.profile, self.profiles[1])
-        self.finish_reveal(scene)
-        self.key(pygame.K_RETURN)
-        self.assertEqual((self.profiles[0].tickets, self.profiles[1].tickets), (200, 185))
-        self.assertEqual(self.profiles[0].inventory.to_dict(), {})
-        self.assertEqual(sum(self.profiles[1].inventory.to_dict().values()), 1)
-
-    def test_the_other_players_keys_cannot_pull(self):
+    def test_the_old_second_player_keys_cannot_pull(self):
         self.stand_at(0, self.machine(RETRO))
         self.key(pygame.K_e)
         self.frames(40)
         scene = self.game.scenes.current
         self.finish_reveal(scene)
-        for k in (pygame.K_RETURN, pygame.K_KP_ENTER):                         # P2's interact keys
+        for k in (pygame.K_RCTRL, pygame.K_o, pygame.K_RSHIFT):                # the old second-player keys
             self.key(k)
         self.assertEqual([p.tickets for p in self.profiles], [200, 200])
         self.assertEqual(scene.phase, "idle")

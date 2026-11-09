@@ -78,17 +78,19 @@ class PromptBubbleUnitTests(unittest.TestCase):
             b.update(DT, (200, 150), "PLAY NEON 21")
             self.assertEqual(b.place(sign), first)
 
-    def test_p1_and_p2_bubbles_look_different(self):
-        solo = PromptBubble(key="E")
-        p1 = PromptBubble(key="E", tag="P1", accent=(80, 240, 255))
-        p2 = PromptBubble(key="ENTER", tag="P2", accent=(255, 168, 70))
+    def test_the_bubble_names_only_its_key_and_has_no_player_chip(self):
+        short = PromptBubble(key="E")
+        longer = PromptBubble(key="ENTER")
         images = []
-        for b in (solo, p1, p2):
+        for b in (short, longer):
             b.update(1.0, (200, 100), "PLAY")
             images.append(pygame.image.tobytes(b.frames[0], "RGBA"))
-        self.assertEqual(len(set(images)), 3)
-        self.assertGreater(p1.frames[0].get_width(), solo.frames[0].get_width())     # carries its P1 chip
-        self.assertGreater(p2.frames[0].get_width(), p1.frames[0].get_width())       # and the longer ENTER key
+        self.assertEqual(len(set(images)), 2)
+        self.assertGreater(longer.frames[0].get_width(), short.frames[0].get_width())       # the longer ENTER key
+        for gone in ("tag", "accent"):
+            self.assertFalse(hasattr(short, gone), gone)
+        with self.assertRaises(TypeError):
+            PromptBubble(key="E", tag="P1")
 
     def test_selection_brackets_stay_outside_the_machine(self):
         surf = pygame.Surface((120, 120), pygame.SRCALPHA)
@@ -215,67 +217,52 @@ class SoloHubTests(HubBase):
         self.assertIn("CAT VOLLEYBALL", room.dialogue.title.upper())
 
 
-class TwoPlayerHubTests(HubBase):
+class SinglePlayerHubTests(HubBase):
     def setUp(self):
         self.dir = tempfile.mkdtemp()
         self.manager = ProfileManager(os.path.join(self.dir, "saves"), clock=GameClock(lambda: DAY1))
-        a, b = self.manager.create_profile("Alice"), self.manager.create_profile("Bob")
-        self.game = Game(session=LocalSession([a, b]))
-        self.p1, self.p2 = self.game.session.players
+        a = self.manager.create_profile("Alice")
+        self.game = Game(session=LocalSession(a))
+        self.p1 = self.game.session.primary
         for _ in range(3):
             self.frames(3, [key(pygame.K_ESCAPE)])
 
     def stand(self, player, target):
         player.avatar.x, player.avatar.y = float(target.zone.centerx), float(target.zone.bottom - 2)
 
-    def test_two_players_at_one_machine_get_separate_non_overlapping_prompts(self):
+    def test_the_players_prompt_keeps_clear_of_the_signs(self):
         room = self.room("prize_plaza")
         target = next(p for p in room.props if isinstance(p, Neon21Station))
         self.stand(self.p1, target)
-        self.stand(self.p2, target)
-        self.p2.avatar.x += 5
         self.frames(30)
         canvas = pygame.Surface((VIEW_W, VIEW_H))
         room.draw(canvas)
         avoid = room.prompt_avoid_rects()
-        rects = []
-        for p in (self.p1, self.p2):
-            used = p.avatar.prompt.draw(canvas, room.time, avoid + [target.rect] + rects, below_first=True)
-            self.assertIsNotNone(used)
-            rects.append(used)
-        self.assertEqual(overlap(rects[0], rects[1]), 0)
-        for r in rects:
-            for sign in avoid:
-                self.assertEqual(overlap(r, sign), 0)
-        self.assertEqual((self.p1.avatar.prompt.tag, self.p2.avatar.prompt.tag), ("P1", "P2"))
-        self.assertNotEqual(self.p1.avatar.prompt.accent, self.p2.avatar.prompt.accent)
+        used = self.p1.avatar.prompt.draw(canvas, room.time, avoid + [target.rect], below_first=True)
+        self.assertIsNotNone(used)
+        for sign in avoid:
+            self.assertEqual(overlap(used, sign), 0)
 
-    def test_p1_at_spin_and_p2_at_hilo_each_keep_clear_of_both_cabinets_signs(self):
+    def test_at_each_lucky_cabinet_the_prompt_keeps_clear_of_both_signs(self):
         room = self.room("prize_plaza")
         cabinets = sorted((p for p in room.props if hasattr(p, "kind")), key=lambda p: p.rect.x)
-        self.stand(self.p1, cabinets[0])
-        self.stand(self.p2, cabinets[1])
-        self.frames(30)
-        canvas = pygame.Surface((VIEW_W, VIEW_H))
-        room.draw(canvas)
-        self.assertIs(self.p1.avatar.nearby, cabinets[0])
-        self.assertIs(self.p2.avatar.nearby, cabinets[1])
-        avoid = room.prompt_avoid_rects()
-        used = []
-        for p, cab in ((self.p1, cabinets[0]), (self.p2, cabinets[1])):
-            r = p.avatar.prompt.draw(canvas, room.time, avoid + [cab.rect] + used, below_first=True)
-            used.append(r)
+        for cab in cabinets[:2]:
+            self.stand(self.p1, cab)
+            self.frames(30)
+            canvas = pygame.Surface((VIEW_W, VIEW_H))
+            room.draw(canvas)
+            self.assertIs(self.p1.avatar.nearby, cab)
+            avoid = room.prompt_avoid_rects()
+            used = self.p1.avatar.prompt.draw(canvas, room.time, avoid + [cab.rect], below_first=True)
             for sign in avoid:
-                self.assertEqual(overlap(r, sign), 0)
-        self.assertEqual(overlap(used[0], used[1]), 0)
+                self.assertEqual(overlap(used, sign), 0)
 
-    def test_each_player_still_launches_only_with_their_own_interact_key(self):
+    def test_only_the_players_interact_key_launches_a_machine(self):
         room = self.room("prize_plaza")
         target = next(p for p in room.props if isinstance(p, Neon21Station))
         self.stand(self.p1, target)
-        self.p2.avatar.x, self.p2.avatar.y = 60.0, 230.0
         self.frames(10)
-        self.frames(30, [key(pygame.K_RETURN)])             # P2's key while P1 stands at the machine
+        self.frames(30, [key(pygame.K_RCTRL), key(pygame.K_o)])      # the old second-player keys
         self.frames(30)
         self.assertIs(self.game.scenes.current, room)
         self.frames(30, [key(pygame.K_e)])

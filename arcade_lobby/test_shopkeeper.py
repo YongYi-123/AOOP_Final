@@ -216,7 +216,7 @@ class ShopReactionTests(unittest.TestCase):
     def setUp(self):
         self.profiles = [PlayerProfile(profile_id="sa", display_name="Ann", tickets=40),
                          PlayerProfile(profile_id="sb", display_name="Bo", tickets=500)]
-        self.game = Game(session=LocalSession(self.profiles))
+        self.game = Game(session=LocalSession(self.profiles[0]))
         self.addCleanup(self.game.quit)
         self.room = goto_room(self.game, "prize_plaza")
         for _ in range(60):
@@ -239,7 +239,6 @@ class ShopReactionTests(unittest.TestCase):
         counter = next(p for p in self.room.props if isinstance(p, PrizeCounter))
         avatar = self.room.players[index]
         avatar.x, avatar.y = counter.zone.centerx, counter.zone.bottom - 2
-        self.room.players[1 - index].x, self.room.players[1 - index].y = 340.0, 250.0
         self.frames(5)
         self.key(interact, 40)
         scene = self.game.scenes.current
@@ -316,22 +315,24 @@ class ShopReactionTests(unittest.TestCase):
         self.assertIsNone(self.keeper.customer)
         self.assertEqual(self.keeper.bubble.text, "COME BACK SOON!")
 
-    def test_player_two_is_the_customer_and_pays_with_their_own_tickets(self):
-        shop = self.open_shop(1, interact=pygame.K_RETURN)
-        self.assertIs(shop.owner, self.game.session.players[1])
-        self.assertIs(self.keeper.customer, self.room.players[1])
+    def test_the_player_is_the_customer_and_pays_with_their_own_tickets(self):
+        self.profiles[0].add_tickets(460)
+        shop = self.open_shop(0, interact=pygame.K_RETURN)
+        self.assertIs(shop.owner, self.game.session.players[0])
+        self.assertIs(self.keeper.customer, self.room.players[0])
         entry = entry_for("cat_tail")
         shop._answered(entry, "BUY")
-        self.assertTrue(self.profiles[1].inventory.has_item("cat_tail"))
-        self.assertFalse(self.profiles[0].inventory.has_item("cat_tail"))
-        self.assertEqual((self.profiles[0].tickets, self.profiles[1].tickets), (40, 500 - entry.cost))
-        self.assertIs(self.keeper.watching, self.room.players[1])
+        self.assertTrue(self.profiles[0].inventory.has_item("cat_tail"))
+        self.assertFalse(self.profiles[1].inventory.has_item("cat_tail"))
+        self.assertEqual((self.profiles[0].tickets, self.profiles[1].tickets), (500 - entry.cost, 500))
+        self.assertIs(self.keeper.watching, self.room.players[0])
 
-    def test_p1_keys_do_not_drive_p2s_shop_and_the_keeper_does_not_eat_keys(self):
-        shop = self.open_shop(1, interact=pygame.K_RETURN)
+    def test_the_old_second_player_keys_do_not_drive_the_shop_and_the_keeper_does_not_eat_keys(self):
+        shop = self.open_shop(0, interact=pygame.K_RETURN)
         shop.set_tab(shop_ui.TABS.index("HOME"))
         index = shop.index
-        self.key(pygame.K_s)                                # P1's DOWN: not P2's shop
+        self.key(pygame.K_o)                                # not a key of the game
+        self.key(pygame.K_RCTRL)
         self.assertEqual(shop.index, index)
         self.key(pygame.K_DOWN)
         self.assertEqual(shop.index, index + 1)
@@ -340,7 +341,7 @@ class ShopReactionTests(unittest.TestCase):
         shop = self.open_shop()
         shop.set_tab(shop_ui.TABS.index("HOME"))            # a tab with several rows
         self.assertTrue(self.keeper.bubble.visible)
-        for k, attr in ((pygame.K_s, "index"), (pygame.K_d, "tab")):       # P1's own keys
+        for k, attr in ((pygame.K_s, "index"), (pygame.K_d, "tab")):       # the player's own keys
             before = getattr(shop, attr)
             self.key(k)
             self.assertEqual(getattr(shop, attr), before + 1, k)

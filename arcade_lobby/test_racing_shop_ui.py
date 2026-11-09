@@ -14,7 +14,7 @@ from racing_progression.service import PrizeService
 class ShopSceneTests(unittest.TestCase):
     def setUp(self):
         self.profiles = [PlayerProfile(profile_id='shop_a',tickets=500),PlayerProfile(profile_id='shop_b',tickets=500)]
-        self.game = Game(session=LocalSession(self.profiles))
+        self.game = Game(session=LocalSession(self.profiles[0]))
         self.addCleanup(self.game.quit)
         self.room = goto_room(self.game,'prize_plaza')
 
@@ -25,20 +25,20 @@ class ShopSceneTests(unittest.TestCase):
         self.game.step([pygame.event.Event(pygame.KEYDOWN,key=key,mod=0)],1/60)
 
     def test_counter_owns_input_and_repeated_confirm_equips_without_charge(self):
-        self.room.acting_player = self.room.players[1]
+        self.room.acting_player = self.room.players[0]
         self.room.open_racing_counter()
         self.frames()
         scene = self.game.scenes.current
         self.assertIsInstance(scene,PrizeCounterScene)
         self.key(pygame.K_DOWN)
-        self.key(pygame.K_e)
-        self.assertEqual(self.profiles[1].tickets,500)
-        self.key(pygame.K_RETURN)
-        self.assertEqual(self.profiles[1].tickets,420)
-        self.key(pygame.K_RETURN)
-        self.assertEqual(self.profiles[1].tickets,420)
-        self.assertEqual(self.profiles[1].racing_selection['car'],'comet')
+        self.key(pygame.K_o)                                             # a key of the old second player: nothing
         self.assertEqual(self.profiles[0].tickets,500)
+        self.key(pygame.K_e)
+        self.assertEqual(self.profiles[0].tickets,420)
+        self.key(pygame.K_RETURN)
+        self.assertEqual(self.profiles[0].tickets,420)
+        self.assertEqual(self.profiles[0].racing_selection['car'],'comet')
+        self.assertEqual(self.profiles[1].tickets,500)                   # another saved profile: untouched
         self.key(pygame.K_ESCAPE)
         self.frames()
         self.assertIs(self.game.scenes.current,self.room)

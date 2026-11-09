@@ -323,20 +323,6 @@ class DecorationSceneTests(unittest.TestCase):
         feet = next(p for p in self.room.props if getattr(p, "slot_id", "") == "plant_front").footprint
         self.assertIn(feet, self.room.solids)
 
-    def test_a_guest_cannot_decorate_p1s_home(self):
-        a, b = PlayerProfile(profile_id="ga", display_name="Ann", tickets=50), PlayerProfile(
-            profile_id="gb", display_name="Bo", tickets=50)
-        game = Game(session=LocalSession([a, b]))
-        self.addCleanup(game.quit)
-        room = goto_room(game, "home")
-        station = next(p for p in room.props if isinstance(p, DecorStation))
-        room.acting_player = room.players[1]
-        station.interact(room)
-        room.acting_player = None
-        self.assertIsInstance(game.scenes.current, HomeRoomScene)
-        self.assertTrue(room.notice.visible)
-
-
 class PerProfileHomeTests(unittest.TestCase):
     """Home decoration separately for each profile (each as the home owner)."""
 

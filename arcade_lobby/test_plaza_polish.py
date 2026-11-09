@@ -87,7 +87,7 @@ class SoundTests(unittest.TestCase):
 class RoomBase(unittest.TestCase):
     def setUp(self):
         self.profiles = [PlayerProfile(profile_id="pol_a", tickets=500), PlayerProfile(profile_id="pol_b", tickets=500)]
-        self.game = Game(session=LocalSession(self.profiles))
+        self.game = Game(session=LocalSession(self.profiles[0]))
         self.addCleanup(self.game.quit)
         self.room = goto_room(self.game, "prize_plaza")
         for cat in self.room.cats:
@@ -303,8 +303,8 @@ class GarageDiscoverabilityTests(RoomBase):
                     return (x, y)
         self.fail("no screen position maps to the button")
 
-    def test_p2_reaches_their_own_garage(self):
-        self.room.acting_player = self.room.players[1]
+    def test_the_player_reaches_their_own_garage(self):
+        self.room.acting_player = self.room.players[0]
         self.room.open_prize_counter()
         self.frames()
         scene = self.game.scenes.current
@@ -313,7 +313,7 @@ class GarageDiscoverabilityTests(RoomBase):
         self.frames(40)
         garage = self.game.scenes.current
         self.assertIsInstance(garage, GarageScene)
-        self.assertIs(garage.profile if hasattr(garage, "profile") else garage.owner.profile, self.profiles[1])
+        self.assertIs(garage.profile if hasattr(garage, "profile") else garage.owner.profile, self.profiles[0])
 
     def test_the_racing_counter_hint_names_the_garage_and_the_players_own_key(self):
         self.room.open_racing_counter()

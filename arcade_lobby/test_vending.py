@@ -1,4 +1,4 @@
-"""Tests for the NEON VEND-O-MATIC: purchases, tickets, inventory, novelty items, P1/P2 ownership,
+"""Tests for the NEON VEND-O-MATIC: purchases, tickets, inventory, novelty items, ownership,
 saving, and the hidden input sequence (see secret_input.py; it is deliberately not in the UI).
 
 Run headless from this folder:   python -m unittest test_vending -v
@@ -14,7 +14,7 @@ os.environ.setdefault("SDL_AUDIODRIVER", "dummy")
 
 import pygame  # noqa: E402
 
-from controls import P1_CONTROLS, P2_CONTROLS, SOLO_CONTROLS  # noqa: E402
+from controls import SOLO_CONTROLS  # noqa: E402
 from game import Game  # noqa: E402
 from item_registry import CONSUMABLE, ITEM_REGISTRY, NOVELTY_STACK  # noqa: E402
 from local_session import LocalSession  # noqa: E402
@@ -238,16 +238,19 @@ class ListenerTests(unittest.TestCase):
         self.assertEqual(lis.progress, 0)
 
     def test_every_key_has_exactly_one_meaning(self):
-        for scheme in (SOLO_CONTROLS, P1_CONTROLS, P2_CONTROLS):
+        for scheme in (SOLO_CONTROLS,):
             lis = SecretSequenceListener(scheme)
             mapped = [lis.token_for(k) for k in (*lis.directions, lis.b_key, lis.a_key)]
             self.assertEqual(sorted(mapped), sorted(set(SEQUENCE)) + [])        # UP DOWN LEFT RIGHT B A, once each
             self.assertEqual(len(mapped), 6)
 
-    def test_p1_uses_wasd_with_z_and_x(self):
-        keys = [K.K_w, K.K_w, K.K_s, K.K_s, K.K_a, K.K_d, K.K_a, K.K_d, K.K_z, K.K_x]
-        self.assertTrue(press(SecretSequenceListener(P1_CONTROLS), keys))
-        self.assertFalse(press(SecretSequenceListener(P1_CONTROLS), keys[:8] + [K.K_b, K.K_a]))   # A is LEFT for P1
+    def test_the_old_p1_and_p2_secret_keys_mean_nothing(self):
+        lis = SecretSequenceListener(SOLO_CONTROLS)
+        for old in (K.K_z, K.K_x, K.K_COMMA, K.K_PERIOD):
+            self.assertIsNone(lis.token_for(old), old)
+        self.assertFalse(press(lis, CLASSIC[:8] + [K.K_COMMA, K.K_PERIOD]))
+        self.assertFalse(press(lis, CLASSIC[:8] + [K.K_z, K.K_x]))
+        self.assertTrue(press(lis, CLASSIC))                               # the real sequence still works
 
     def test_modifier_keys_do_not_break_a_run_but_other_keys_do(self):
         lis = SecretSequenceListener(SOLO_CONTROLS)
@@ -255,15 +258,6 @@ class ListenerTests(unittest.TestCase):
         self.assertEqual(lis.progress, 5)
         press(lis, [K.K_SPACE])
         self.assertEqual(lis.progress, 0)
-
-    def test_p2_uses_its_own_arrows_and_its_own_b_a(self):
-        keys = CLASSIC[:8] + [K.K_COMMA, K.K_PERIOD]
-        self.assertTrue(press(SecretSequenceListener(P2_CONTROLS), keys))
-        self.assertFalse(press(SecretSequenceListener(P2_CONTROLS), CLASSIC))        # B / A are not P2's keys
-
-    def test_p1_cannot_use_p2s_keys_and_vice_versa(self):
-        self.assertFalse(press(SecretSequenceListener(P1_CONTROLS), CLASSIC))
-        self.assertFalse(press(SecretSequenceListener(P2_CONTROLS), [K.K_w, K.K_w, K.K_s, K.K_s]))
 
     def test_wrong_input_resets_and_detection_keeps_working(self):
         lis = SecretSequenceListener(SOLO_CONTROLS)
@@ -323,7 +317,7 @@ class VendingBase(unittest.TestCase):
     def setUp(self):
         self.profiles = [PlayerProfile(profile_id="va", display_name="Ann", tickets=100),
                          PlayerProfile(profile_id="vb", display_name="Bo", tickets=100)][:self.players]
-        self.game = Game(session=LocalSession(self.profiles))
+        self.game = Game(session=LocalSession(self.profiles[0]))
         self.addCleanup(self.game.quit)
         self.room = goto_room(self.game, "arcade_floor")
         self.dt = DT
@@ -586,60 +580,53 @@ class SecretTests(VendingBase):
                 self.game.quit()
 
 
-class TwoPlayerTests(VendingBase):
+class OwnershipTests(VendingBase):
+    """Another profile is saved (profiles[1]) but only profiles[0] is ever played: it is never touched."""
     players = 2
 
-    def test_a_purchase_goes_to_the_player_who_opened_the_machine(self):
-        self.open_shop(who=1)
-        self.tap(K.K_RETURN)                                  # P2's use key
+    def test_a_purchase_goes_to_the_playing_profile(self):
+        self.open_shop()
+        self.tap(K.K_e)
         a, b = self.profiles
-        self.assertEqual((a.tickets, b.tickets), (100, 95))
-        self.assertEqual(a.inventory.to_dict(), {})
-        self.assertEqual(b.inventory.get_quantity("suspicious_soda"), 1)
+        self.assertEqual((a.tickets, b.tickets), (95, 100))
+        self.assertEqual(b.inventory.to_dict(), {})
+        self.assertEqual(a.inventory.get_quantity("suspicious_soda"), 1)
 
-    def test_the_other_players_keys_do_nothing_in_my_shop(self):
-        shop = self.open_shop(who=0)
-        self.tap(K.K_RETURN)                                  # P2's key in P1's shop
-        self.tap(K.K_DOWN)
+    def test_the_old_second_player_keys_do_nothing_in_the_shop(self):
+        shop = self.open_shop()
+        for old in (K.K_o, K.K_RCTRL, K.K_RSHIFT, K.K_KP0):
+            self.tap(old)
         self.assertEqual(shop.index, 0)
-        self.assertEqual(self.profiles[0].tickets, 100)
-        self.assertEqual(self.profiles[1].tickets, 100)
+        self.assertEqual((self.profiles[0].tickets, self.profiles[1].tickets), (100, 100))
 
-    def test_the_secret_is_saved_for_the_player_who_typed_it_only(self):
-        shop = self.open_shop(who=1)
-        for k in CLASSIC[:8] + [K.K_COMMA, K.K_PERIOD]:
+    def test_the_secret_is_saved_for_the_playing_profile_only(self):
+        shop = self.open_shop()
+        for k in CLASSIC:
             self.tap(k)
         self.assertIsNotNone(shop.secret)
         self.assertEqual(self.game.audio.duck, SECRET_DUCK)
         a, b = self.profiles
-        self.assertTrue(b.has_secret(SECRET_FLAG))
-        self.assertFalse(a.has_secret(SECRET_FLAG))
-        self.assertEqual(a.secrets, {})
+        self.assertTrue(a.has_secret(SECRET_FLAG))
+        self.assertFalse(b.has_secret(SECRET_FLAG))
+        self.assertEqual(b.secrets, {})
 
-    def test_p1_finds_it_with_wasd_z_x_and_p2_gets_nothing(self):
-        shop = self.open_shop(who=0)
-        for k in (K.K_w, K.K_w, K.K_s, K.K_s, K.K_a, K.K_d, K.K_a, K.K_d, K.K_z, K.K_x):
-            self.tap(k)
-        self.assertIsNotNone(shop.secret)
-        a, b = self.profiles
-        self.assertEqual((a.has_secret(SECRET_FLAG), b.has_secret(SECRET_FLAG)), (True, False))
-        self.assertEqual((a.tickets, b.tickets), (100, 100))
-
-    def test_p1_typing_the_other_players_keys_finds_nothing(self):
-        shop = self.open_shop(who=0)
-        for k in CLASSIC:
-            self.tap(k)
+    def test_wasd_z_x_and_the_old_second_player_keys_find_nothing(self):
+        shop = self.open_shop()
+        for keys in ((K.K_w, K.K_w, K.K_s, K.K_s, K.K_a, K.K_d, K.K_a, K.K_d, K.K_z, K.K_x),
+                     tuple(CLASSIC[:8]) + (K.K_COMMA, K.K_PERIOD)):
+            for k in keys:
+                self.tap(k)
         self.assertIsNone(shop.secret)
         self.assertFalse(any(p.secrets for p in self.profiles))
 
-    def test_each_player_uses_items_from_their_own_bag(self):
+    def test_items_come_from_the_players_own_bag(self):
         a, b = self.profiles
         a.inventory.add_item("rubber_duck")
         b.inventory.add_item("rubber_duck", 2)
-        self.room.use_novelty("rubber_duck", self.room.players[1])
-        self.assertEqual((a.inventory.get_quantity("rubber_duck"), b.inventory.get_quantity("rubber_duck")), (1, 1))
+        self.room.use_novelty("rubber_duck", self.room.players[0])
+        self.assertEqual((a.inventory.get_quantity("rubber_duck"), b.inventory.get_quantity("rubber_duck")), (0, 2))
         self.assertEqual(len(self.room.novelty_fx.shows), 1)
-        self.assertIs(self.room.novelty_fx.shows[0].player, self.room.players[1])
+        self.assertIs(self.room.novelty_fx.shows[0].player, self.room.players[0])
 
 
 class BagUseTests(VendingBase):

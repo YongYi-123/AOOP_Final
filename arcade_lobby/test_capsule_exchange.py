@@ -1,5 +1,5 @@
 """Tests for MOCHI'S CAPSULE EXCHANGE: recycling spare capsule collectibles into Capsule Stamps and
-redeeming Stamps for a chosen capsule prize - rules, economy, saves, P1/P2 and the screen.
+redeeming Stamps for a chosen capsule prize - rules, economy, saves and the screen.
 
 Run headless from this folder:   python -m unittest test_capsule_exchange -v
 """
@@ -472,7 +472,7 @@ class IsolationTests(unittest.TestCase):
 class RoomBase(unittest.TestCase):
     def setUp(self):
         self.profiles = [profile(pid="exa", tickets=50), profile(pid="exb", tickets=50)]
-        self.game = Game(session=LocalSession(self.profiles))
+        self.game = Game(session=LocalSession(self.profiles[0]))
         self.addCleanup(self.game.quit)
         self.room = goto_room(self.game, "prize_plaza")
         for cat in self.room.cats:
@@ -537,24 +537,24 @@ class TabAndScreenTests(RoomBase):
         self.assertIn("BUY", " ".join(shop.hints))
 
     def test_e_on_the_tab_opens_recycle_and_the_bag_key_opens_redeem_for_the_same_player(self):
-        shop = self.open_tab(1)
-        self.key(pygame.K_RETURN)                                  # P2's interact key
+        shop = self.open_tab()
+        self.key(pygame.K_e)
         self.frames(40)
         scene = self.game.scenes.current
         self.assertIsInstance(scene, ui.ExchangeScene)
-        self.assertIs(scene.profile, self.profiles[1])
+        self.assertIs(scene.profile, self.profiles[0])
         self.assertEqual(scene.view, ui.RECYCLE)
         self.key(pygame.K_ESCAPE)
         self.frames(40)
         self.assertIs(self.game.scenes.current, shop)
-        self.key(pygame.K_o)                                       # P2's bag key
+        self.key(pygame.K_i)                                       # the bag key
         self.frames(40)
         self.assertEqual(self.game.scenes.current.view, ui.REDEEM)
 
-    def test_the_other_players_keys_do_nothing_on_the_screen(self):
-        self.profiles[1].inventory.add_item("cat_bell_charm", 4)
-        scene = self.scene(1)
-        for k in (pygame.K_e, pygame.K_s, pygame.K_d, pygame.K_i):          # P1's keys
+    def test_the_old_second_player_keys_do_nothing_on_the_screen(self):
+        self.profiles[0].inventory.add_item("cat_bell_charm", 4)
+        scene = self.scene(0)
+        for k in (pygame.K_RCTRL, pygame.K_o, pygame.K_RSHIFT, pygame.K_KP0):       # not keys of the game
             self.key(k)
         self.assertIsNone(scene.modal)
         self.assertEqual(scene.view, ui.RECYCLE)

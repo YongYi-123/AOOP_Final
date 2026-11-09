@@ -19,7 +19,7 @@ from game import Game  # noqa: E402
 from home_stations import WardrobeStation  # noqa: E402
 from item_registry import ITEM_REGISTRY  # noqa: E402
 from local_session import LocalSession  # noqa: E402
-from player import (CAP, DEFAULT_LOOK, FACINGS, HubPlayer, P1_LOOK, P2_LOOK, PLAYER_SPEED,  # noqa: E402
+from player import (CAP, DEFAULT_LOOK, FACINGS, HubPlayer, CYAN_LOOK, ORANGE_LOOK, PLAYER_SPEED,  # noqa: E402
                     _draw_frame, outfit_of, player_sheet, styled_sheet)
 from player_profile import PlayerProfile, ProfileStore  # noqa: E402
 from preview_art import avatar_image  # noqa: E402
@@ -60,11 +60,11 @@ class CosmeticDataTests(unittest.TestCase):
         self.assertGreaterEqual(len(cosmetics_for(PALETTE)), 3)
 
     def test_palette_keeps_the_players_outline_and_ui_accent(self):
-        look = apply_palette(P2_LOOK, "palette_mint")
-        self.assertNotEqual(look.shirt, P2_LOOK.shirt)
-        self.assertEqual((look.outline, look.accent, look.name), (P2_LOOK.outline, P2_LOOK.accent, "p2"))
-        self.assertEqual(apply_palette(P2_LOOK, "neon_cap"), P2_LOOK)       # not a palette
-        self.assertEqual(apply_palette(P2_LOOK, None), P2_LOOK)
+        look = apply_palette(ORANGE_LOOK, "palette_mint")
+        self.assertNotEqual(look.shirt, ORANGE_LOOK.shirt)
+        self.assertEqual((look.outline, look.accent, look.name), (ORANGE_LOOK.outline, ORANGE_LOOK.accent, "orange"))
+        self.assertEqual(apply_palette(ORANGE_LOOK, "neon_cap"), ORANGE_LOOK)       # not a palette
+        self.assertEqual(apply_palette(ORANGE_LOOK, None), ORANGE_LOOK)
 
 
 class CosmeticServiceTests(unittest.TestCase):
@@ -135,69 +135,69 @@ class SpriteLayerTests(unittest.TestCase):
         pygame.init()
 
     def test_every_frame_keeps_the_same_size_with_any_outfit(self):
-        base = player_sheet(P1_LOOK)
-        outfit = player_sheet(P1_LOOK, ("neon_cap", "retro_sunglasses", "star_pin"))
+        base = player_sheet(CYAN_LOOK)
+        outfit = player_sheet(CYAN_LOOK, ("neon_cap", "retro_sunglasses", "star_pin"))
         for f in FACINGS:
             for anim in ("idle", "walk"):
                 self.assertEqual([fr.get_size() for fr in base[f][anim]],
                                  [fr.get_size() for fr in outfit[f][anim]])
 
     def test_a_cosmetic_changes_pixels_but_the_default_outfit_is_unchanged(self):
-        self.assertEqual(pixels(_draw_frame("down", look=P1_LOOK)), pixels(player_sheet(P1_LOOK)["down"]["idle"][0]))
+        self.assertEqual(pixels(_draw_frame("down", look=CYAN_LOOK)), pixels(player_sheet(CYAN_LOOK)["down"]["idle"][0]))
         for outfit in (("neon_cap", None, None), ("cat_ears", None, None), (None, "retro_sunglasses", None),
                        (None, None, "star_pin")):
             with self.subTest(outfit=outfit):
-                self.assertNotEqual(pixels(_draw_frame("down", look=P1_LOOK, outfit=outfit)),
-                                    pixels(_draw_frame("down", look=P1_LOOK)))
+                self.assertNotEqual(pixels(_draw_frame("down", look=CYAN_LOOK, outfit=outfit)),
+                                    pixels(_draw_frame("down", look=CYAN_LOOK)))
 
     def test_the_hat_replaces_the_beanie(self):
-        beanie = P1_LOOK.beanie
+        beanie = CYAN_LOOK.beanie
 
         def head(frame):                    # the rows above the shoulders (the shirt logo shares the colour)
             return frame.subsurface((0, 0, frame.get_width(), 8))
-        self.assertIsNotNone(top_row_with(head(_draw_frame("down", look=P1_LOOK)), beanie))
-        self.assertIsNone(top_row_with(head(_draw_frame("down", look=P1_LOOK, outfit=("cat_ears", None, None))),
+        self.assertIsNotNone(top_row_with(head(_draw_frame("down", look=CYAN_LOOK)), beanie))
+        self.assertIsNone(top_row_with(head(_draw_frame("down", look=CYAN_LOOK, outfit=("cat_ears", None, None))),
                                        beanie))
 
     def test_layers_follow_the_body_bob_in_every_direction(self):
         """The cap sits one pixel lower exactly when the body bobs one pixel lower."""
         for facing in FACINGS:
             with self.subTest(facing=facing):
-                level = _draw_frame(facing, bob=0, look=P1_LOOK, outfit=("neon_cap", None, None))
-                bobbed = _draw_frame(facing, bob=1, look=P1_LOOK, outfit=("neon_cap", None, None))
+                level = _draw_frame(facing, bob=0, look=CYAN_LOOK, outfit=("neon_cap", None, None))
+                bobbed = _draw_frame(facing, bob=1, look=CYAN_LOOK, outfit=("neon_cap", None, None))
                 self.assertEqual(top_row_with(bobbed, CAP), top_row_with(level, CAP) + 1)
 
     def test_glasses_and_pin_move_with_the_body_too(self):
         for facing, colour in (("down", (28, 22, 60)), ("left", (28, 22, 60))):
-            level = _draw_frame(facing, bob=0, look=P1_LOOK, outfit=(None, "retro_sunglasses", None))
-            bobbed = _draw_frame(facing, bob=1, look=P1_LOOK, outfit=(None, "retro_sunglasses", None))
+            level = _draw_frame(facing, bob=0, look=CYAN_LOOK, outfit=(None, "retro_sunglasses", None))
+            bobbed = _draw_frame(facing, bob=1, look=CYAN_LOOK, outfit=(None, "retro_sunglasses", None))
             self.assertEqual(top_row_with(bobbed, colour), top_row_with(level, colour) + 1, facing)
         gold = (255, 214, 90)
-        a = _draw_frame("down", bob=0, look=P1_LOOK, outfit=(None, None, "star_pin"))
-        b = _draw_frame("down", bob=1, look=P1_LOOK, outfit=(None, None, "star_pin"))
+        a = _draw_frame("down", bob=0, look=CYAN_LOOK, outfit=(None, None, "star_pin"))
+        b = _draw_frame("down", bob=1, look=CYAN_LOOK, outfit=(None, None, "star_pin"))
         self.assertEqual(top_row_with(b, gold), top_row_with(a, gold) + 1)
 
     def test_the_pin_is_hidden_from_behind_and_sunglasses_show_only_arms_there(self):
         gold = (255, 214, 90)
-        self.assertIsNone(top_row_with(_draw_frame("up", look=P1_LOOK, outfit=(None, None, "star_pin")), gold))
+        self.assertIsNone(top_row_with(_draw_frame("up", look=CYAN_LOOK, outfit=(None, None, "star_pin")), gold))
 
     def test_idle_and_walk_cycles_are_all_dressed(self):
         outfit = ("neon_cap", None, None)
-        sheet = player_sheet(P1_LOOK, outfit)
+        sheet = player_sheet(CYAN_LOOK, outfit)
         for f in FACINGS:
             for frame in sheet[f]["idle"] + sheet[f]["walk"]:
                 self.assertIsNotNone(top_row_with(frame, CAP), f)
 
     def test_palette_recolours_the_outfit(self):
-        plain = player_sheet(P1_LOOK)["down"]["idle"][0]
-        sunset = styled_sheet(P1_LOOK, {PALETTE: "palette_sunset"})["down"]["idle"][0]
+        plain = player_sheet(CYAN_LOOK)["down"]["idle"][0]
+        sunset = styled_sheet(CYAN_LOOK, {PALETTE: "palette_sunset"})["down"]["idle"][0]
         self.assertNotEqual(pixels(plain), pixels(sunset))
         self.assertIsNotNone(top_row_with(sunset, COSMETICS["palette_sunset"].colors[0]))
 
     def test_preview_image_matches_the_in_world_frame(self):
         appearance = {HAT: "cat_ears", FACE: "retro_sunglasses"}
-        self.assertEqual(pixels(avatar_image(P1_LOOK, appearance, "down", 0)),
-                         pixels(styled_sheet(P1_LOOK, appearance)["down"]["idle"][0]))
+        self.assertEqual(pixels(avatar_image(CYAN_LOOK, appearance, "down", 0)),
+                         pixels(styled_sheet(CYAN_LOOK, appearance)["down"]["idle"][0]))
 
     def test_outfit_of_reads_the_three_layer_slots(self):
         self.assertEqual(outfit_of({HAT: "a", FACE: "b", ACCESSORY: "c", PALETTE: "d"}), ("a", "b", "c", None, None, None))
@@ -207,11 +207,11 @@ class AvatarInTheHubTests(unittest.TestCase):
     def setUp(self):
         self.profiles = [PlayerProfile(profile_id="ca", display_name="Ann", tickets=50),
                          PlayerProfile(profile_id="cb", display_name="Bo", tickets=50)]
-        self.session = LocalSession(self.profiles)
+        self.session = LocalSession(self.profiles[0])
         self.game = Game(session=self.session)
         self.addCleanup(self.game.quit)
         self.room = goto_room(self.game, "home")
-        self.p1, self.p2 = self.room.players
+        self.p1, = self.room.players
 
     def dress(self, profile, **items):
         for item in items.values():
@@ -226,17 +226,10 @@ class AvatarInTheHubTests(unittest.TestCase):
         self.assertEqual(self.p1.appearance, {HAT: "neon_cap"})
         self.assertNotEqual(pixels(self.p1.image), before)
 
-    def test_p1_and_p2_can_look_different_at_the_same_time(self):
+    def test_the_wardrobe_dresses_the_playing_profile_only(self):
         self.dress(self.profiles[0], hat="neon_cap", face="retro_sunglasses")
-        self.dress(self.profiles[1], hat="cat_ears", palette="palette_mint")
         self.assertEqual(self.p1.appearance, {HAT: "neon_cap", FACE: "retro_sunglasses"})
-        self.assertEqual(self.p2.appearance, {HAT: "cat_ears", PALETTE: "palette_mint"})
-        self.assertNotEqual(pixels(self.p1.image), pixels(self.p2.image))
-
-    def test_one_players_wardrobe_does_not_dress_the_other(self):
-        self.dress(self.profiles[0], hat="neon_cap")
-        self.assertEqual(self.p2.appearance, {})
-        self.assertEqual(self.profiles[1].appearance, {})
+        self.assertEqual(self.profiles[1].appearance, {})             # another saved profile: untouched
 
     def test_removing_returns_to_the_default_frames(self):
         default = pixels(self.p1.image)
@@ -264,12 +257,12 @@ class AvatarInTheHubTests(unittest.TestCase):
         self.assertEqual(name, "walk_left")
 
     def test_collision_box_speed_and_movement_are_unchanged_by_cosmetics(self):
-        plain = HubPlayer((200, 200), profile=PlayerProfile(profile_id="x"), look=P1_LOOK)
+        plain = HubPlayer((200, 200), profile=PlayerProfile(profile_id="x"), look=CYAN_LOOK)
         dressed_profile = PlayerProfile(profile_id="y")
         for item in ("neon_cap", "retro_sunglasses", "star_pin"):
             dressed_profile.inventory.add_item(item)
         CosmeticService(dressed_profile).equip(HAT, "neon_cap")
-        dressed = HubPlayer((200, 200), profile=dressed_profile, look=P1_LOOK)
+        dressed = HubPlayer((200, 200), profile=dressed_profile, look=CYAN_LOOK)
         solids = [pygame.Rect(240, 150, 10, 100)]
         for _ in range(120):
             plain.update(DT, (1, 0), solids)
@@ -280,16 +273,17 @@ class AvatarInTheHubTests(unittest.TestCase):
         self.assertEqual(PLAYER_SPEED, 72)
 
     def test_look_identity_colours_stay_the_players_own(self):
-        self.dress(self.profiles[1], palette="palette_cherry")
-        self.assertEqual(self.p2.look, P2_LOOK)                  # base identity untouched
-        self.assertEqual(self.p2.look.accent, P2_LOOK.accent)
+        before = self.p1.look
+        self.dress(self.profiles[0], palette="palette_cherry")
+        self.assertEqual(self.p1.base_look, before)                  # base identity untouched
+        self.assertEqual(self.p1.look.accent, before.accent)
 
 
 class WardrobeSceneTests(unittest.TestCase):
     def setUp(self):
         self.profiles = [PlayerProfile(profile_id="wa", display_name="Ann", tickets=100),
                          PlayerProfile(profile_id="wb", display_name="Bo", tickets=100)]
-        self.game = Game(session=LocalSession(self.profiles))
+        self.game = Game(session=LocalSession(self.profiles[0]))
         self.addCleanup(self.game.quit)
         self.room = goto_room(self.game, "home")
         self.frames(60)
@@ -373,17 +367,6 @@ class WardrobeSceneTests(unittest.TestCase):
             for i in range(len(scene.rows)):
                 scene.select(i)
                 scene.draw(self.game.canvas)
-
-    def test_p2_dresses_p2_only_with_their_own_keys(self):
-        self.profiles[1].inventory.add_item("retro_sunglasses")
-        scene = self.open_wardrobe(1, interact=pygame.K_RETURN)
-        self.key(pygame.K_RIGHT)
-        self.key(pygame.K_RIGHT)                                # FACE tab
-        self.key(pygame.K_DOWN)
-        self.key(pygame.K_RETURN)
-        self.assertEqual(self.profiles[1].appearance, {FACE: "retro_sunglasses"})
-        self.assertEqual(self.profiles[0].appearance, {})
-        self.assertEqual(self.room.players[0].appearance, {})
 
     def test_the_wardrobe_does_not_move_the_player(self):
         self.profiles[0].inventory.add_item("neon_cap")

@@ -204,7 +204,7 @@ class ShopSceneTests(unittest.TestCase):
     def setUp(self):
         self.profiles = [PlayerProfile(profile_id="shop_a", display_name="Ann", tickets=200),
                          PlayerProfile(profile_id="shop_b", display_name="Bo", tickets=200)]
-        self.game = Game(session=LocalSession(self.profiles))
+        self.game = Game(session=LocalSession(self.profiles[0]))
         self.addCleanup(self.game.quit)
         self.room = goto_room(self.game, "prize_plaza")
 
@@ -246,12 +246,12 @@ class ShopSceneTests(unittest.TestCase):
         self.assertIsInstance(scene, ShopScene)
         self.assertIs(scene.owner, self.game.session.players[0])
 
-    def test_p2_pressing_enter_opens_the_shop_for_p2(self):
-        self.stand_at_counter(1)
+    def test_enter_also_opens_the_shop_for_the_player(self):
+        self.stand_at_counter(0)
         self.key(pygame.K_RETURN, 40)
         scene = self.game.scenes.current
         self.assertIsInstance(scene, ShopScene)
-        self.assertIs(scene.owner, self.game.session.players[1])
+        self.assertIs(scene.owner, self.game.session.players[0])
 
     def test_esc_leaves_safely_to_the_plaza(self):
         self.open_shop()
@@ -335,20 +335,20 @@ class ShopSceneTests(unittest.TestCase):
             self.assertEqual(self.profiles[0].inventory.get_quantity(FREE_PLAY_COUPON), n)
         self.assertEqual(self.profiles[0].tickets, 200 - 2 * COUPON_PRICE)
 
-    def test_p2_buys_from_p2s_wallet_only(self):
-        scene = self.open_shop(owner=1)
+    def test_a_purchase_comes_from_the_playing_profiles_wallet_only(self):
+        scene = self.open_shop(owner=0)
         self.go_to(scene, "COSMETICS", "neon_cap")
         self.key(pygame.K_RETURN, 20)
         self.key(pygame.K_RETURN, 30)
-        self.assertEqual(self.profiles[1].tickets, 200 - entry_for("neon_cap").cost)
-        self.assertTrue(self.profiles[1].inventory.has_item("neon_cap"))
-        self.assertEqual(self.profiles[0].tickets, 200)
-        self.assertFalse(self.profiles[0].inventory.has_item("neon_cap"))
+        self.assertEqual(self.profiles[0].tickets, 200 - entry_for("neon_cap").cost)
+        self.assertTrue(self.profiles[0].inventory.has_item("neon_cap"))
+        self.assertEqual(self.profiles[1].tickets, 200)              # another saved profile: untouched
+        self.assertFalse(self.profiles[1].inventory.has_item("neon_cap"))
 
-    def test_the_other_players_keys_do_not_drive_the_shop(self):
-        scene = self.open_shop(owner=0)                     # P1's shop; P2 mashes Enter and arrows
+    def test_the_old_second_player_keys_do_not_drive_the_shop(self):
+        scene = self.open_shop(owner=0)
         index = scene.index
-        for k in (pygame.K_RETURN, pygame.K_DOWN, pygame.K_RIGHT):
+        for k in (pygame.K_o, pygame.K_RCTRL, pygame.K_RSHIFT, pygame.K_KP0):
             self.key(k)
         self.assertEqual((scene.index, scene.tab), (index, 0))
         self.assertIsNone(scene.modal)

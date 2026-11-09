@@ -1,5 +1,5 @@
 """Tests for the avatar action animations and the interactions that trigger them:
-state transitions, no duplicated interactions, P1 / P2 independence, movement
+state transitions, no duplicated interactions, movement
 staying responsive and collision boxes staying untouched.
 
 Run headless from this folder:   python -m unittest test_animations -v
@@ -12,10 +12,10 @@ os.environ.setdefault("SDL_AUDIODRIVER", "dummy")
 
 import pygame  # noqa: E402
 
-from controls import P1_CONTROLS, P2_CONTROLS, SOLO_CONTROLS  # noqa: E402
+from controls import SOLO_CONTROLS  # noqa: E402
 from game import Game  # noqa: E402
 from local_session import LocalSession  # noqa: E402
-from player import ACTIONS, FACINGS, HubPlayer, P1_LOOK, POSES, styled_sheet  # noqa: E402
+from player import ACTIONS, FACINGS, HubPlayer, CYAN_LOOK, POSES, styled_sheet  # noqa: E402
 from player_profile import PlayerProfile  # noqa: E402
 from room_testing import goto_room  # noqa: E402
 from shop_ui import ShopScene  # noqa: E402
@@ -108,8 +108,8 @@ class ActionStateTests(unittest.TestCase):
 
     def test_every_pose_has_two_frames_for_every_facing_and_cosmetics_follow(self):
         outfit = {"hat": "pixel_crown", "tail": "cat_tail", "jacket": "rainbow_jacket"}
-        sheet = styled_sheet(P1_LOOK, outfit)
-        plain = styled_sheet(P1_LOOK, {})
+        sheet = styled_sheet(CYAN_LOOK, outfit)
+        plain = styled_sheet(CYAN_LOOK, {})
         for facing in FACINGS:
             for pose in POSES:
                 self.assertEqual(len(sheet[facing][pose]), 2)
@@ -138,25 +138,22 @@ class ActionStateTests(unittest.TestCase):
         run(self.p, 1.0)
         self.assertFalse(self.p.footstep)
 
-    def test_p1_and_p2_animate_independently(self):
-        a = HubPlayer((100, 100), P1_CONTROLS, label="P1", look=P1_LOOK)
-        b = HubPlayer((150, 100), P2_CONTROLS, label="P2")
+    def test_an_action_pose_runs_its_course_and_walking_ends_it(self):
+        a = HubPlayer((100, 100), SOLO_CONTROLS, look=CYAN_LOOK)
         a.play_action("pet", "right", emote="heart")
-        self.assertIsNone(b.action)
-        self.assertIsNone(b.emote)
-        run(b, 0.3, (-1, 0))
         self.assertEqual(a.action, "pet")
-        b.play_action("wave", "down")
         run(a, ACTIONS["pet"][1] + .1)
         self.assertIsNone(a.action)
-        self.assertEqual(b.action, "wave")
+        a.play_action("wave", "down")
+        run(a, 0.3, (-1, 0))                        # walking ends a pose at once
+        self.assertIsNone(a.action)
 
 
 class RoomInteractionTests(unittest.TestCase):
     def setUp(self):
         self.profiles = [PlayerProfile(profile_id="ra", display_name="Ann", tickets=300, tokens=20),
                          PlayerProfile(profile_id="rb", display_name="Bo", tickets=300, tokens=20)]
-        self.game = Game(session=LocalSession(self.profiles))
+        self.game = Game(session=LocalSession(self.profiles[0]))
         self.addCleanup(self.game.quit)
         self.room = goto_room(self.game, "arcade_floor")
         self.frames(80)
@@ -186,7 +183,6 @@ class RoomInteractionTests(unittest.TestCase):
         self.game.step([key_event(pygame.K_e)], DT)
         self.assertEqual(p.action, "press")
         self.assertIsNotNone(p.activating)
-        visits = self.profiles[0].daily_tasks
         self.game.step([key_event(pygame.K_e)], DT)         # mashing E during the flash: ignored
         self.game.step([key_event(pygame.K_e)], DT)
         self.frames(30)
@@ -231,30 +227,7 @@ class RoomInteractionTests(unittest.TestCase):
         self.assertFalse(p.sitting)
         self.assertTrue(p.moving)
 
-    def test_a_second_player_cannot_take_an_occupied_stool(self):
-        # two-player session
-        game = Game(session=LocalSession(self.profiles))
-        self.addCleanup(game.quit)
-        room = goto_room(game, "arcade_floor")
-        for _ in range(80):
-            game.step([], DT)
-        seat = [p for p in room.props if isinstance(p, Seat)][0]
-        a, b = room.players
-        for avatar in (a, b):
-            avatar.x, avatar.y = seat.zone.centerx, seat.zone.bottom - 3
-        for _ in range(4):
-            game.step([], DT)
-        game.step([key_event(pygame.K_e)], DT)               # P1 sits
-        for _ in range(30):
-            game.step([], DT)
-        self.assertTrue(a.sitting)
-        game.step([key_event(pygame.K_RETURN)], DT)          # P2 tries the same stool
-        for _ in range(30):
-            game.step([], DT)
-        self.assertFalse(b.sitting)
-        self.assertTrue(a.sitting)
-
-    def test_changing_room_stands_everyone_up(self):
+    def test_changing_room_stands_the_player_up(self):
         p = self.stand_at(self.seat())
         self.key(pygame.K_e, 30)
         self.assertTrue(p.sitting)
@@ -262,16 +235,15 @@ class RoomInteractionTests(unittest.TestCase):
         self.assertFalse(p.sitting)
 
     # ---------------------------------------------------------------- emotes
-    def test_t_waves_then_celebrates_and_p2_has_its_own_key(self):
-        a, b = self.room.players
+    def test_t_waves_then_celebrates_and_the_old_p2_emote_key_does_nothing(self):
+        a = self.room.players[0]
         self.key(pygame.K_t)
         self.assertEqual(a.action, "wave")
-        self.assertIsNone(b.action)
         self.key(pygame.K_t)
         self.assertEqual(a.action, "cheer")
+        a.stop_action()
         self.key(pygame.K_SLASH)
-        self.assertEqual(b.action, "wave")
-        self.assertEqual(a.action, "cheer")
+        self.assertIsNone(a.action)
 
     def test_emote_does_not_interrupt_walking_input(self):
         a = self.room.players[0]
@@ -286,7 +258,7 @@ class CatAndShopTests(unittest.TestCase):
     def setUp(self):
         self.profiles = [PlayerProfile(profile_id="ca", display_name="Ann", tickets=300),
                          PlayerProfile(profile_id="cb", display_name="Bo", tickets=300)]
-        self.game = Game(session=LocalSession(self.profiles))
+        self.game = Game(session=LocalSession(self.profiles[0]))
         self.addCleanup(self.game.quit)
         self.room = goto_room(self.game, "home")
         self.frames(60)
@@ -306,7 +278,6 @@ class CatAndShopTests(unittest.TestCase):
     def test_petting_a_cat_crouches_once_with_a_heart_and_counts_once(self):
         cat = self.room.cats.cats[0]
         p = self.room.players[0]
-        self.room.players[1].x, self.room.players[1].y = 20, 20
         p.x, p.y = cat.x - 12, cat.y
         self.frames(6)
         self.assertIs(p.nearby_cat, cat)
@@ -315,7 +286,6 @@ class CatAndShopTests(unittest.TestCase):
         self.assertEqual(p.action, "pet")
         self.assertEqual(p.emote[0], "heart")
         self.assertEqual(self.profiles[0].cats_petted, before + 1)
-        self.assertIsNone(self.room.players[1].action)                           # P2 untouched
 
     def test_buying_at_the_prize_counter_celebrates_without_double_charging(self):
         owner = self.game.session.players[0]
@@ -329,7 +299,6 @@ class CatAndShopTests(unittest.TestCase):
         tickets = self.profiles[0].tickets
         shop._answered(entry, "BUY")                       # a second answer: already owned, nothing charged
         self.assertEqual(self.profiles[0].tickets, tickets)
-        self.assertIsNone(self.room.players[1].action)
 
     def test_equipping_in_the_wardrobe_plays_the_outfit_change(self):
         self.profiles[0].inventory.add_item("neon_cap")

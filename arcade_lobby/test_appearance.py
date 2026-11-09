@@ -21,7 +21,7 @@ from game import Game  # noqa: E402
 from item_registry import ITEM_REGISTRY  # noqa: E402
 from item_icons import item_icon  # noqa: E402
 from local_session import LocalSession  # noqa: E402
-from player import DEFAULT_LOOK, FACINGS, P1_LOOK, P2_LOOK, POSES, styled_sheet  # noqa: E402
+from player import DEFAULT_LOOK, FACINGS, CYAN_LOOK, ORANGE_LOOK, POSES, styled_sheet  # noqa: E402
 from player_profile import PlayerProfile, ProfileStore  # noqa: E402
 from prize_shop import SHOP_ENTRIES, ShopService, entry_for  # noqa: E402
 from profile_manager import ProfileManager  # noqa: E402
@@ -57,24 +57,24 @@ class BasicAppearanceTests(unittest.TestCase):
         self.assertFalse({"skin", "eyes", "hair"} & set(SLOTS))
 
     def test_default_appearance_is_the_original_character(self):
-        for look in (DEFAULT_LOOK, P1_LOOK, P2_LOOK):
+        for look in (DEFAULT_LOOK, CYAN_LOOK, ORANGE_LOOK):
             plain = styled_sheet(look, {})
             basic = styled_sheet(look, {}, A.DEFAULT_BASIC) if look is DEFAULT_LOOK else None
             if basic:
                 self.assertEqual(pixels(plain["down"]["idle"][0]), pixels(basic["down"]["idle"][0]))
 
     def test_each_skin_and_eye_style_changes_the_sprite(self):
-        base = pixels(styled_sheet(P1_LOOK, {}, A.DEFAULT_BASIC)["down"]["idle"][0])
+        base = pixels(styled_sheet(CYAN_LOOK, {}, A.DEFAULT_BASIC)["down"]["idle"][0])
         for o in A.SKIN_TONES[1:]:
-            self.assertNotEqual(pixels(styled_sheet(P1_LOOK, {}, A.BasicAppearance(skin=o.id))["down"]["idle"][0]), base)
+            self.assertNotEqual(pixels(styled_sheet(CYAN_LOOK, {}, A.BasicAppearance(skin=o.id))["down"]["idle"][0]), base)
         for o in A.EYE_STYLES[1:]:
-            self.assertNotEqual(pixels(styled_sheet(P1_LOOK, {}, A.BasicAppearance(eyes=o.id))["down"]["idle"][0]), base)
+            self.assertNotEqual(pixels(styled_sheet(CYAN_LOOK, {}, A.BasicAppearance(eyes=o.id))["down"]["idle"][0]), base)
 
     def test_outfit_colour_keeps_the_players_outline_and_accent(self):
-        look = A.apply_basic(P2_LOOK, A.BasicAppearance(outfit="rose"))
-        self.assertEqual((look.outline, look.accent), (P2_LOOK.outline, P2_LOOK.accent))
-        self.assertNotEqual(look.shirt, P2_LOOK.shirt)
-        self.assertEqual(A.apply_basic(P2_LOOK, A.DEFAULT_BASIC).shirt, P2_LOOK.shirt)    # teal = own colours
+        look = A.apply_basic(ORANGE_LOOK, A.BasicAppearance(outfit="rose"))
+        self.assertEqual((look.outline, look.accent), (ORANGE_LOOK.outline, ORANGE_LOOK.accent))
+        self.assertNotEqual(look.shirt, ORANGE_LOOK.shirt)
+        self.assertEqual(A.apply_basic(ORANGE_LOOK, A.DEFAULT_BASIC).shirt, ORANGE_LOOK.shirt)    # teal = own colours
 
     def test_unknown_choices_are_ignored(self):
         b = A.DEFAULT_BASIC.with_choice("skin", "nope").with_choice("hat", "x")
@@ -83,7 +83,7 @@ class BasicAppearanceTests(unittest.TestCase):
         self.assertEqual(A.BasicAppearance.from_dict("junk"), A.DEFAULT_BASIC)
 
     def test_dark_skin_keeps_readable_eyes(self):
-        look = A.apply_basic(P1_LOOK, A.BasicAppearance(skin="deep"))
+        look = A.apply_basic(CYAN_LOOK, A.BasicAppearance(skin="deep"))
         self.assertNotEqual(look.eye, look.skin)
         self.assertGreater(sum(look.eye), sum(look.skin))
 
@@ -163,7 +163,7 @@ class CreatorFlowTests(unittest.TestCase):
             self.game.step([], DT)
 
     def creator(self, name="KIT", slot=0):
-        scene = CharacterCreatorScene(self.game, self.game.startup, name, P1_LOOK,
+        scene = CharacterCreatorScene(self.game, self.game.startup, name, CYAN_LOOK,
                                       self.results.append, lambda: self.results.append("back"))
         self.game.scenes.stack.append(scene)
         return scene
@@ -215,8 +215,7 @@ class CreatorFlowTests(unittest.TestCase):
 
     def test_new_profile_is_created_only_after_confirm_with_the_chosen_look(self):
         flow = self.game.startup
-        flow.count = 1
-        flow.show_creator(0, "Mira")
+        flow.show_creator("Mira")
         for _ in range(60):
             self.game.step([], DT)
         scene = self.game.scenes.current
@@ -233,8 +232,7 @@ class CreatorFlowTests(unittest.TestCase):
 
     def test_back_creates_nothing(self):
         flow = self.game.startup
-        flow.count = 1
-        flow.show_creator(0, "Mira")
+        flow.show_creator("Mira")
         for _ in range(60):
             self.game.step([], DT)
         self.game.scenes.current.back()
@@ -245,7 +243,7 @@ class HomeWardrobeTests(unittest.TestCase):
     def setUp(self):
         self.profiles = [PlayerProfile(profile_id="wa", display_name="Ann", tickets=500),
                          PlayerProfile(profile_id="wb", display_name="Bo", tickets=500)]
-        self.game = Game(session=LocalSession(self.profiles))
+        self.game = Game(session=LocalSession(self.profiles[0]))
         self.addCleanup(self.game.quit)
         self.room = goto_room(self.game, "home")
         self.frames(60)
@@ -302,14 +300,14 @@ class HomeWardrobeTests(unittest.TestCase):
         self.assertFalse(self.profiles[0].inventory.has_item("rainbow_jacket"))
         self.assertEqual(self.profiles[0].appearance, {})
 
-    def test_p1_and_p2_edit_only_their_own_look(self):
-        scene = self.open_wardrobe(1, interact=pygame.K_RETURN)
+    def test_the_wardrobe_edits_only_the_playing_profiles_look(self):
+        scene = self.open_wardrobe()
         self.go_to_look_tab(scene, "hair_color")
         scene.select(4)
         scene.activate()
-        self.assertEqual(self.profiles[0].basic_appearance, A.DEFAULT_BASIC)
-        self.assertEqual(self.profiles[1].basic_appearance.hair_color, A.HAIR_COLORS[4].id)
-        self.assertNotEqual(self.room.players[0].look.hair, self.room.players[1].look.hair)
+        self.assertEqual(self.profiles[0].basic_appearance.hair_color, A.HAIR_COLORS[4].id)
+        self.assertEqual(self.profiles[1].basic_appearance, A.DEFAULT_BASIC)         # another saved profile: untouched
+        self.assertNotEqual(self.room.players[0].look.hair, self.room.players[0].base_look.hair)
 
     def test_the_look_is_the_same_in_every_room(self):
         self.profiles[0].set_basic_appearance(A.BasicAppearance(skin="tan"))
@@ -358,8 +356,8 @@ class NewCosmeticTests(unittest.TestCase):
             for facing in FACINGS:
                 if (item_id in ("champion_badge",) and facing == "up"):
                     continue                                              # worn on the chest
-                plain = styled_sheet(P1_LOOK, {})[facing]
-                worn = styled_sheet(P1_LOOK, {slot: item_id})[facing]
+                plain = styled_sheet(CYAN_LOOK, {})[facing]
+                worn = styled_sheet(CYAN_LOOK, {slot: item_id})[facing]
                 for kind in ("idle", "walk") + POSES:
                     frames = range(len(worn[kind]))
                     self.assertTrue(any(pixels(worn[kind][i]) != pixels(plain[kind][i]) for i in frames),
@@ -368,7 +366,7 @@ class NewCosmeticTests(unittest.TestCase):
     def test_layers_stay_inside_the_sprite_and_keep_the_same_size_per_pose(self):
         full = {"hat": "pixel_crown", "face": "glowing_visor", "accessory": "champion_badge",
                 "clip": "star_hair_clip", "tail": "cat_tail", "jacket": "rainbow_jacket"}
-        plain, dressed = styled_sheet(P1_LOOK, {}), styled_sheet(P1_LOOK, full)
+        plain, dressed = styled_sheet(CYAN_LOOK, {}), styled_sheet(CYAN_LOOK, full)
         for facing in FACINGS:
             for kind in ("idle", "walk") + POSES:
                 for a, b in zip(plain[facing][kind], dressed[facing][kind]):

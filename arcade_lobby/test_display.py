@@ -496,7 +496,7 @@ class GameCase(unittest.TestCase):
         self.addCleanup(shutil.rmtree, self.dir, True)
         self.display_path = os.path.join(self.dir, "display.json")
         profiles = [PlayerProfile(profile_id=f"p{i}", tickets=300, tokens=50) for i in range(self.players)]
-        self.game = Game(session=LocalSession(profiles), display_prefs=self.display_path,
+        self.game = Game(session=LocalSession(profiles[0]), display_prefs=self.display_path,
                          audio_prefs=os.path.join(self.dir, "audio.json"))
         self.addCleanup(self.game.quit)
         self.display = self.game.display
@@ -657,24 +657,23 @@ class SceneMouseTests(GameCase):
                 self.assertLessEqual(abs(got[1] - canvas[1]), 2, (size, canvas))
 
 
-class TwoPlayerTests(GameCase):
-    players = 2
+class SinglePlayerMenuTests(GameCase):
+    players = 1
 
-    def test_both_players_can_use_menus_after_resizing(self):
+    def test_the_player_can_use_menus_after_resizing(self):
         from wardrobe_ui import WardrobeScene
         self.resize((1366, 768))
-        for owner in self.game.session.players:
-            scene = WardrobeScene(self.game, owner)
-            self.game.scenes.push(scene, fade=False)
-            self.frames(2)
-            key = next(iter(owner.controls.keys & {pygame.K_d, pygame.K_RIGHT}), None)
-            self.assertIsNotNone(key)
-            before = (getattr(scene, "tab", 0), getattr(scene, "index", 0))
-            self.frames(2, key)
-            self.assertIs(self.game.scenes.current, scene)
-            self.game.scenes.pop(fade=False)
-            self.frames(2)
-        self.assertEqual(len(self.game.session.players), 2)
+        owner = self.game.session.primary
+        scene = WardrobeScene(self.game, owner)
+        self.game.scenes.push(scene, fade=False)
+        self.frames(2)
+        key = next(iter(owner.controls.keys & {pygame.K_d, pygame.K_RIGHT}), None)
+        self.assertIsNotNone(key)
+        self.frames(2, key)
+        self.assertIs(self.game.scenes.current, scene)
+        self.game.scenes.pop(fade=False)
+        self.frames(2)
+        self.assertEqual(len(self.game.session.players), 1)
 
 
 class GameLevelTests(GameCase):

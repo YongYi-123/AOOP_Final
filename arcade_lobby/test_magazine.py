@@ -1,5 +1,5 @@
 """Tests for RETRO GAMING - ISSUE 1986, the magazine rack beside HOME's couch: where it stands, that it never blocks
-anybody, the page-turning reader (solo and two players), that every page fits and is readable, that reading is free and
+anybody, the page-turning reader, that every page fits and is readable, that reading is free and
 repeatable and changes nothing (no notification, no quest progress), that the words KONAMI CODE appear exactly once, as
 plain body text and never with a key sequence, and that Miao Meow no longer points at it.
 
@@ -41,7 +41,7 @@ class HomeTest(unittest.TestCase):
 
     def setUp(self):
         self.profiles = self.profiles or [fresh()]
-        self.game = Game(session=LocalSession(self.profiles))
+        self.game = Game(session=LocalSession(self.profiles[0]))
         self.addCleanup(self.game.quit)
         self.room = goto_room(self.game, "home")
         for local in self.room.session:                      # no daily-bonus / opening popups in the way
@@ -459,11 +459,11 @@ class MiaoHintTests(unittest.TestCase):
         self.assertEqual(len(self.quest().hints), 3)
 
 
-# ------------------------------------------------------------------ two players
-class TwoPlayerTests(unittest.TestCase):
+# ------------------------------------------------------------------ reading
+class ReadingTests(unittest.TestCase):
     def setUp(self):
-        self.a, self.b = fresh("a", "Ann"), fresh("b", "Bo")
-        self.game = Game(session=LocalSession([self.a, self.b]))
+        self.a, self.b = fresh("a", "Ann"), fresh("b", "Bo")          # (Bo is only a saved profile)
+        self.game = Game(session=LocalSession(self.a))
         self.addCleanup(self.game.quit)
         self.room = goto_room(self.game, "home")
         for p in (self.a, self.b):
@@ -472,7 +472,7 @@ class TwoPlayerTests(unittest.TestCase):
         self.game.hub.story.manager.finish_opening()
         self.frames(30)
         self.mag = next(p for p in self.room.props if isinstance(p, MagazineStation))
-        self.p1, self.p2 = self.game.session.players
+        self.p1 = self.game.session.primary
 
     def frames(self, n=1, events=()):
         self.game.step(list(events), DT)
@@ -484,20 +484,19 @@ class TwoPlayerTests(unittest.TestCase):
         local.avatar.y = float(self.mag.footprint.bottom + 10)
         local.avatar.stop()
 
-    def test_p2_reads_it_with_their_own_keys_and_p1_only_watches(self):
-        self.stand(self.p1, -70)
-        self.stand(self.p2)
+    def test_the_player_reads_it_with_their_own_keys(self):
+        self.stand(self.p1)
         self.frames(5)
-        self.assertIs(self.p2.avatar.nearby, self.mag)
-        self.frames(1, [key(self.p2.controls.interact[0])])
+        self.assertIs(self.p1.avatar.nearby, self.mag)
+        self.frames(1, [key(self.p1.controls.interact[0])])
         self.frames(90)
         scene = self.game.scenes.current
         self.assertIsInstance(scene, MagazineScene)
-        self.assertIs(scene.owner, self.p2)
-        self.assertEqual(scene.spectators, [self.p1])
-        self.frames(1, [key(K.K_d)])                                 # P1's key: ignored
+        self.assertIs(scene.owner, self.p1)
+        self.assertFalse(hasattr(scene, "spectators"))
+        self.frames(1, [key(K.K_o)])                                 # a key of the old second player: ignored
         self.assertEqual(scene.page, 0)
-        self.frames(1, [key(K.K_RIGHT)])                             # P2's arrow: turns the page
+        self.frames(1, [key(K.K_RIGHT)])                             # the arrow turns the page
         self.assertEqual(scene.page, 1)
         self.frames(30)
         scene.draw(pygame.Surface((VIEW_W, VIEW_H)))
@@ -505,9 +504,8 @@ class TwoPlayerTests(unittest.TestCase):
         self.frames(60)
         self.assertIs(self.game.scenes.current, self.room)
 
-    def test_p1_reads_it_while_p2_stands_elsewhere_and_nobody_pays(self):
+    def test_reading_is_free_for_everybody(self):
         self.stand(self.p1)
-        self.stand(self.p2, 150)
         self.frames(5)
         tokens = (self.a.tokens, self.b.tokens)
         tickets = (self.a.tickets, self.b.tickets)
@@ -521,27 +519,21 @@ class TwoPlayerTests(unittest.TestCase):
         self.assertEqual((self.a.tokens, self.b.tokens), tokens)
         self.assertEqual((self.a.tickets, self.b.tickets), tickets)
 
-    def test_the_reader_names_who_is_reading_and_hud_text_stays_inside_the_frame(self):
-        self.stand(self.p2)
+    def test_the_reader_names_the_player_and_hud_text_stays_inside_the_frame(self):
+        self.stand(self.p1)
         self.frames(5)
-        self.frames(1, [key(self.p2.controls.interact[0])])
+        self.frames(1, [key(self.p1.controls.interact[0])])
         self.frames(90)
         scene = self.game.scenes.current
         surf = pygame.Surface((VIEW_W, VIEW_H))
         scene.draw(surf)
-        scene.draw_overlay(surf)
-        self.assertEqual(scene.owner.tag, self.p2.tag)
+        self.assertEqual(scene.owner.tag, self.p1.tag)
 
 
 # ------------------------------------------------------------------ the secret works without the magazine
 class VendingStillWorksTests(test_vending.VendingBase):
     """Nobody has to read the magazine: the machine's own sequence listener is untouched and still completes the quest."""
-    SOLO_KEYS = test_vending.CLASSIC
-    P1_KEYS = [K.K_w, K.K_w, K.K_s, K.K_s, K.K_a, K.K_d, K.K_a, K.K_d, K.K_z, K.K_x]      # P1's own keys in two-player
-
-    @property
-    def CLASSIC(self):
-        return self.P1_KEYS if self.players == 2 else self.SOLO_KEYS
+    CLASSIC = test_vending.CLASSIC
 
     def test_the_secret_opens_without_the_magazine_ever_being_read_and_completes_the_quest(self):
         manager = self.game.hub.story.manager
@@ -560,10 +552,6 @@ class VendingStillWorksTests(test_vending.VendingBase):
             self.tap(k)
         self.assertIsNone(shop.secret)
         self.assertFalse(self.profiles[0].has_secret(VENDING_SECRET_FLAG))
-
-
-class VendingStillWorksForTwoTests(VendingStillWorksTests):
-    players = 2
 
 
 if __name__ == "__main__":

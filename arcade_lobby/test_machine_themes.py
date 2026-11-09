@@ -178,10 +178,11 @@ class HubIntegrationTests(unittest.TestCase):
             self.assertIs(player.nearby, machine)
 
 
-class SpectatorTagTests(unittest.TestCase):
-    def test_the_tag_moves_off_the_help_text_for_both_games(self):
+class NoSpectatorTagTests(unittest.TestCase):
+    def test_no_game_scene_has_a_spectator_tag(self):
         for cls in (CatTerritoryScene, PixelVolleyballScene):
-            self.assertEqual(cls.spectator_corner, "topleft")
+            self.assertFalse(hasattr(cls, "spectator_corner"))
+            self.assertFalse(hasattr(cls, "draw_overlay"))
 
 
 if __name__ == "__main__":

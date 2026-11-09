@@ -173,7 +173,7 @@ class SaveTests(unittest.TestCase):
 class RoomBase(unittest.TestCase):
     def setUp(self):
         self.profiles = [PlayerProfile(profile_id="sc_a", tickets=500), PlayerProfile(profile_id="sc_b", tickets=500)]
-        self.game = Game(session=LocalSession(self.profiles))
+        self.game = Game(session=LocalSession(self.profiles[0]))
         self.addCleanup(self.game.quit)
         self.room = goto_room(self.game, "prize_plaza")
         for cat in self.room.cats:
@@ -245,13 +245,12 @@ class SceneTests(RoomBase):
         self.key(pygame.K_e)
         self.assertEqual(p.showcase, {})
 
-    def test_p2_edits_only_p2s_showcase_and_p1_keys_do_nothing_in_it(self):
-        self.profiles[1].inventory.add_item("arcade_trophy")
-        scene = self.open_for(1, pygame.K_RETURN)
-        self.assertIs(scene.profile, self.profiles[1])
-        self.key(pygame.K_a)                                     # P1's keys: ignored by P2's screen
-        self.key(pygame.K_d)
-        self.key(pygame.K_e)
+    def test_the_player_edits_only_their_own_showcase_and_the_old_p2_keys_do_nothing_in_it(self):
+        self.profiles[0].inventory.add_item("arcade_trophy")
+        scene = self.open_for(0, pygame.K_RETURN)
+        self.assertIs(scene.profile, self.profiles[0])
+        self.key(pygame.K_o)                                     # the old second player's keys: ignored
+        self.key(pygame.K_RCTRL)
         self.assertEqual(scene.slot, CAR)
         self.assertEqual(self.profiles[0].showcase, {})
         self.key(pygame.K_RIGHT)
@@ -259,8 +258,8 @@ class SceneTests(RoomBase):
         self.assertEqual(scene.slot, TROPHY)
         self.key(pygame.K_DOWN)
         self.key(pygame.K_RETURN)
-        self.assertEqual(self.profiles[1].showcase, {"trophy": "arcade_trophy"})
-        self.assertEqual(self.profiles[0].showcase, {})
+        self.assertEqual(self.profiles[0].showcase, {"trophy": "arcade_trophy"})
+        self.assertEqual(self.profiles[1].showcase, {})          # another saved profile: untouched
         self.assertEqual([p.tickets for p in self.profiles], [500, 500])
 
     def test_empty_bays_explain_where_to_get_items(self):
@@ -335,7 +334,7 @@ class RoomLayoutTests(RoomBase):
             self.frames(6)
             self.assertIs(avatar.nearby, target, target.prompt_label)
 
-    def test_the_room_draws_one_and_two_players_with_and_without_a_display(self):
+    def test_the_room_draws_with_and_without_a_display(self):
         surf = pygame.Surface((VIEW_W, VIEW_H))
         self.room.draw(surf)
         p0, p1 = self.profiles
@@ -344,14 +343,13 @@ class RoomLayoutTests(RoomBase):
         PrizeService(p1).buy("car", "comet")
         for slot, value in ((CAR, "falcon"), (TROPHY, "arcade_trophy"), (COLLECTIBLE_SLOT, "cat_paw_sticker")):
             ShowcaseService(p0).choose(slot, value)
-        ShowcaseService(p1).choose(CAR, "comet")
+        ShowcaseService(p1).choose(CAR, "comet")                 # another saved profile's pick: never shown
         self.stand.refresh()
         before = pygame.image.tobytes(surf, "RGB")
         self.room.draw(surf)
         self.assertNotEqual(before, pygame.image.tobytes(surf, "RGB"))
-        self.assertEqual(len(self.stand._shown), 2)
-        self.assertEqual(self.stand._shown[0][0], "P1")
-        self.assertEqual(self.stand._shown[1][1][CAR].value, "comet")
+        self.assertEqual(len(self.stand._shown), 1)
+        self.assertEqual(self.stand._shown[0][1][CAR].value, "falcon")
         self.frames(30)
 
     def test_the_stand_follows_the_saved_picks_without_reopening_the_room(self):
@@ -363,8 +361,8 @@ class RoomLayoutTests(RoomBase):
         self.frames(30)
         self.assertIsNone(self.stand._shown[0][1][CAR])
 
-    def test_single_player_session_shows_a_single_row(self):
-        game = Game(session=LocalSession([PlayerProfile(profile_id="solo")]))
+    def test_the_stand_shows_a_single_row(self):
+        game = Game(session=LocalSession(PlayerProfile(profile_id="solo")))
         self.addCleanup(game.quit)
         room = goto_room(game, "prize_plaza")
         stand = next(p for p in room.props if isinstance(p, ShowcaseStation))

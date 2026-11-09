@@ -38,11 +38,11 @@ def key_event(k):
 
 class Base(unittest.TestCase):
     ROOM = "arcade_floor"
-    PLAYERS = 2
+    PLAYERS = 1
 
     def setUp(self):
         profiles = [PlayerProfile(profile_id=f"wp{i}", display_name=f"P{i}") for i in range(self.PLAYERS)]
-        self.game = Game(session=LocalSession(profiles))
+        self.game = Game(session=LocalSession(profiles[0]))
         self.addCleanup(self.game.quit)
         self.room = goto_room(self.game, self.ROOM)
         self.frames(80)
@@ -80,13 +80,12 @@ class SeatDepthTests(Base):
         self.assertGreaterEqual(len(self.seats()), 3)
 
     def test_walkers_sort_behind_and_in_front_of_every_stool_by_their_feet(self):
-        a, b = self.room.players
+        a = self.room.players[0]
         for seat in self.seats():
             a.x, a.y = seat.footprint.centerx, seat.footprint.top - 8       # feet behind the stool
-            b.x, b.y = seat.footprint.centerx, seat.footprint.bottom + 8    # feet in front of it
-            order = self.order()
-            self.assertLess(order.index(a), order.index(seat))
-            self.assertGreater(order.index(b), order.index(seat))
+            self.assertLess(self.order().index(a), self.order().index(seat))
+            a.x, a.y = seat.footprint.centerx, seat.footprint.bottom + 8    # feet in front of it
+            self.assertGreater(self.order().index(a), self.order().index(seat))
 
     def test_a_seated_player_is_painted_over_the_stool_from_any_approach(self):
         a = self.room.players[0]
@@ -115,34 +114,16 @@ class SeatDepthTests(Base):
         names = [(k, t) for k, t in calls if t is seat or t is a]
         self.assertEqual([k for k, _ in names], ["seat", "player"])
 
-    def test_one_player_sits_while_the_other_walks_behind_and_in_front(self):
-        a, b = self.room.players
-        seat = self.seats()[0]
-        self.sit(a, seat, pygame.K_e)
-        seated_y = a.sort_y
-        b.x, b.y = seat.footprint.centerx, seat.footprint.top - 10          # P2 walks behind
-        order = self.order()
-        self.assertLess(order.index(b), order.index(seat))
-        self.assertLess(order.index(b), order.index(a))
-        b.y = seat.footprint.bottom + 10                                    # P2 walks in front
-        order = self.order()
-        self.assertGreater(order.index(b), order.index(a))
-        self.assertGreater(order.index(b), order.index(seat))
-        self.assertEqual(a.sort_y, seated_y)                                # P1's depth never changed
-        self.assertFalse(b.sitting)
-        self.assertIsNone(b.seat_depth)
-
-    def test_both_players_sit_on_different_stools_independently(self):
-        a, b = self.room.players
+    def test_the_player_can_sit_on_one_stool_stand_and_sit_on_another(self):
+        a = self.room.players[0]
         s0, s1 = self.seats()[:2]
         self.sit(a, s0, pygame.K_e)
-        self.sit(b, s1, pygame.K_RETURN)
-        self.assertEqual((a.seat, b.seat), (s0.seat_pos, s1.seat_pos))
-        self.assertEqual((a.seat_depth, b.seat_depth), (s0.sort_y + 0.5, s1.sort_y + 0.5))
-        self.press(pygame.K_e, after=3)                                     # P1 stands; P2 stays seated
+        self.assertEqual((a.seat, a.seat_depth), (s0.seat_pos, s0.sort_y + 0.5))
+        self.press(pygame.K_e, after=3)                                     # stands
         self.assertFalse(a.sitting)
-        self.assertTrue(b.sitting)
-        self.assertEqual(b.seat_depth, s1.sort_y + 0.5)
+        self.assertIsNone(a.seat_depth)
+        self.sit(a, s1, pygame.K_e)
+        self.assertEqual((a.seat, a.seat_depth), (s1.seat_pos, s1.sort_y + 0.5))
 
     def test_footprints_zones_and_seat_positions_are_unchanged(self):
         for x, seat in zip((123, 207, 291), self.seats()):
@@ -175,8 +156,7 @@ class PetFixture(Base):
             if c is not self.cat:
                 c.set_state(CatState.SLEEP, 999)
                 c.chat_timer = 999
-        self.a, self.b = self.room.players
-        self.b.x, self.b.y = 20.0, 20.0
+        self.a, = self.room.players
         self.place(self.a)
         self.played = []
         self.game.audio.play = lambda name: self.played.append(name)       # what the voice routes through
@@ -231,20 +211,6 @@ class PettingTests(PetFixture):
             self.cat.pet(self.room.cats)
             names.add(self.played[-1])
         self.assertGreaterEqual(len(names & PET_SOUNDS), 2)
-
-    def test_p2_pets_independently_and_p1_is_untouched(self):
-        self.place(self.b)
-        self.a.x, self.a.y = 20.0, 20.0
-        self.frames(4)
-        self.press(pygame.K_RETURN)
-        self.assertEqual(self.b.action, "pet")
-        self.assertIsNone(self.a.action)
-        self.assertEqual(len(self.pet_sounds()), 1)
-
-    def test_both_pressing_at_once_counts_once(self):
-        self.place(self.b, dx=14)
-        self.press(pygame.K_e, pygame.K_RETURN)
-        self.assertEqual(len(self.pet_sounds()), 1)
 
     def test_every_cat_sound_kind_has_valid_effect_files(self):
         self.assertEqual(set(PET_SFX), set(cat_voice.KINDS))
@@ -346,22 +312,6 @@ class PurrTests(PetFixture):
             self.press(pygame.K_e)
         self.assertEqual(self.played.count("purr"), 1)
         self.assertEqual(len(self.pet_sounds()), 2)
-
-    def test_p1_and_p2_pressing_together_make_one_meow_and_one_purr(self):
-        self.place(self.b, dx=14)
-        self.press(pygame.K_e, pygame.K_RETURN)
-        self.frames(int(CatNPC.PURR_DELAY / DT) + 4)
-        self.assertEqual(len(self.pet_sounds()), 2)
-        self.assertEqual(self.played.count("purr"), 1)
-
-    def test_p2_alone_gets_the_purr_and_p1_is_untouched(self):
-        self.place(self.b)
-        self.a.x, self.a.y = 20.0, 20.0
-        self.frames(4)
-        self.press(pygame.K_RETURN)
-        self.frames(int(CatNPC.PURR_DELAY / DT) + 4)
-        self.assertEqual(self.played.count("purr"), 1)
-        self.assertIsNone(self.a.action)
 
     def test_leaving_the_room_drops_a_purr_that_has_not_started(self):
         self.press(pygame.K_e)
