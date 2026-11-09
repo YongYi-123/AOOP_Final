@@ -42,6 +42,7 @@ EVENT_HANDLERS = {
     # story events: nothing happens to the profile itself; the quest system hears them through add_listener()
     "vending_secret": lambda profile, e: None,
     "secret_item_found": lambda profile, e: None,
+    "easter_egg_found": lambda profile, e: None,            # (OUT OF TIME: only the story keeps a note of it)
     "secret_trial_done": lambda profile, e: None,
 }
 
