@@ -2,10 +2,9 @@
 once per PlayerLook into a small sprite sheet (idle + walk for 4 directions)
 and played through an AnimationController.
 
-One class serves every local player: what differs between P1 and P2 is data -
-a PlayerLook (clothes / outline colours), a ControlScheme (keys) and the
-profile reference - never a subclass. A HubPlayer is the in-world body; the
-saved progress it plays for lives in its PlayerProfile.
+A HubPlayer is the in-world body of the one player: a PlayerLook (clothes /
+outline colours), a ControlScheme (keys) and the profile reference. The saved
+progress it plays for lives in its PlayerProfile.
 """
 import math
 from dataclasses import dataclass
@@ -18,9 +17,8 @@ from controls import SOLO_CONTROLS
 from cosmetics import (ACCESSORY, CLIP, FACE, HAT, JACKET, PALETTE, TAIL, apply_palette,
                        resolve_appearance)
 from cat_sprites import heart_sprite
-from font import get_font
 from gfx import outlined, soft_shadow
-from settings import PLAYER_SPEED, VIEW_W, Col
+from settings import PLAYER_SPEED, Col
 from ui import PromptBubble
 
 SKIN = (250, 214, 180)
@@ -39,7 +37,7 @@ SHOES = (250, 244, 255)
 
 @dataclass(frozen=True)
 class PlayerLook:
-    """The colours that tell the local players apart."""
+    """The colours of the character (the profile's free choices are applied on top)."""
     name: str
     shirt: tuple = SHIRT
     shirt_dark: tuple = SHIRT_DARK
@@ -57,12 +55,12 @@ class PlayerLook:
     eyes: str = "dot"
 
 
-DEFAULT_LOOK = PlayerLook("default")    # the one-player look: exactly the original character
-P1_LOOK = PlayerLook("p1", outline=(24, 120, 150), accent=Col.CYAN)
-P2_LOOK = PlayerLook("p2", shirt=(255, 168, 70), shirt_dark=(214, 118, 50), beanie=(110, 230, 120),
+DEFAULT_LOOK = PlayerLook("default")    # the one look every player starts from: exactly the original character
+# Two alternative base looks: not used by the game itself; the appearance / cosmetics tests need looks that differ.
+CYAN_LOOK = PlayerLook("cyan", outline=(24, 120, 150), accent=Col.CYAN)
+ORANGE_LOOK = PlayerLook("orange", shirt=(255, 168, 70), shirt_dark=(214, 118, 50), beanie=(110, 230, 120),
                      beanie_dark=(60, 170, 90), pom=(255, 244, 150), outline=(150, 70, 20),
                      accent=(255, 168, 70))
-LOOKS = {1: (DEFAULT_LOOK,), 2: (P1_LOOK, P2_LOOK)}
 
 FACINGS = ("down", "up", "left", "right")
 IDLE_DURATION = 0.4
@@ -448,9 +446,8 @@ def sparkle_sprite():
 
 class HubPlayer(AnimatedSprite):
     FEET_W, FEET_H = 10, 5
-    TAG_TIME = 3.0          # seconds the P1 / P2 marker shows after arriving
 
-    def __init__(self, pos, controls=SOLO_CONTROLS, profile=None, look=DEFAULT_LOOK, label=""):
+    def __init__(self, pos, controls=SOLO_CONTROLS, profile=None, look=DEFAULT_LOOK):
         super().__init__(self._animations(player_sheet(look)), "idle_up")
         self.x, self.y = float(pos[0]), float(pos[1])  # centre-bottom of feet
         self.facing = "up"
@@ -458,7 +455,7 @@ class HubPlayer(AnimatedSprite):
         self.shadow = soft_shadow(12, 5)
         self.controls = controls        # which keys drive this body
         self.profile = profile          # whose progress it plays for (HubPlayer does not own it)
-        self.base_look = look           # the P1 / P2 identity colours ...
+        self.base_look = look           # the base colours ...
         self.look = look                # ... plus the profile's free choices (skin, eyes, hair, shirt)
         self.appearance = {}            # cosmetics worn right now ({slot: item id})
         self.action = None              # a short pose (ACTIONS) or "sit"; None = walking / idle
@@ -468,16 +465,12 @@ class HubPlayer(AnimatedSprite):
         self.footstep = False           # set when a foot comes down: the room plays the step sound
         self._step_frame = -1
         self.emote = None               # (kind, seconds left): a heart / sparkle beside the head
-        self.label = label              # "P1" / "P2"; empty in a one-player session
-        self.tag_left = 0.0
-        self.tag_note = ""              # e.g. "GUEST" while visiting P1's home
         # per-player interaction state, used by the room the player stands in
         self.held = []                  # movement keys currently held, in press order
         self.nearby = None              # machine / station in reach
         self.nearby_cat = None
         self.activating = None          # (target, time left) while the E-flash plays
-        self.prompt = PromptBubble(key=controls.interact_hint or "E", tag=label,
-                                   accent=look.accent if label else None)   # P1 / P2 look different
+        self.prompt = PromptBubble(key=controls.interact_hint or "E")
         if profile is not None:         # cosmetics follow the profile: owned + worn items
             self.refresh_appearance()
             profile.subscribe(self._on_profile_change)
@@ -565,16 +558,8 @@ class HubPlayer(AnimatedSprite):
         return EQUIP_SPIN[int(self.action_time / step) % 4]
 
     @property
-    def number(self):
-        """1 for P1 (and for a lone player), 2 for P2."""
-        return int(self.label[1:]) if self.label else 1
-
-    @property
     def direction(self):
         return self.controls.direction(self.held)
-
-    def show_tag(self, seconds=TAG_TIME):
-        self.tag_left = seconds if self.label else 0.0
 
     @property
     def feet(self):
@@ -618,7 +603,6 @@ class HubPlayer(AnimatedSprite):
             if frame != self._step_frame and frame in (0, 2):
                 self.footstep = True            # the walk cycle's two foot-down frames
             self._step_frame = frame
-        self.tag_left = max(0.0, self.tag_left - dt)
         if self.emote is not None:
             kind, left = self.emote
             self.emote = (kind, left - dt) if left - dt > 0 else None
@@ -675,23 +659,6 @@ class HubPlayer(AnimatedSprite):
         rise = int((1 - left / EMOTE_TIME) * 7)
         sprite = heart_sprite() if kind == "heart" else sparkle_sprite()
         surf.blit(sprite, (int(x) + 6, int(y) - self.image.get_height() + 2 - rise))
-
-    def draw_tag(self, surf):
-        """The brief P1 / P2 marker above the head."""
-        if self.tag_left <= 0 or not self.label:
-            return
-        font = get_font()
-        text = font.render_glow(f"{self.label} {self.tag_note}".strip(), Col.TEXT, self.look.accent)
-        k = min(1.0, self.tag_left / 0.5)
-        text.set_alpha(int(255 * k))
-        top = int(self.y) - self.image.get_height() - 3
-        rect = text.get_rect(midbottom=(int(self.x), top))
-        rect.clamp_ip(pygame.Rect(2, 2, VIEW_W - 4, 400))
-        surf.blit(text, rect)
-        arrow = pygame.Surface((5, 3), pygame.SRCALPHA)
-        for i in range(3):
-            arrow.fill((*self.look.accent, int(255 * k)), (i, i, 5 - 2 * i, 1))
-        surf.blit(arrow, arrow.get_rect(midtop=(int(self.x), rect.bottom)))
 
 
 Player = HubPlayer      # the original name

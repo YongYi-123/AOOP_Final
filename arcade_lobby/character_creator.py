@@ -38,7 +38,7 @@ class CharacterCreatorScene(MenuScene):
     def __init__(self, game, flow, name, look, on_confirm, on_back, basic=None):
         super().__init__(game, flow)
         self.name = name
-        self.look = look                        # P1_LOOK / P2_LOOK / DEFAULT_LOOK: its outline stays
+        self.look = look                        # a PlayerLook (DEFAULT_LOOK): its outline stays
         self.basic = basic or BasicAppearance()
         self.on_confirm_cb, self.on_back_cb = on_confirm, on_back
         self.row = 0                            # 0..4 the fields, 5 BACK, 6 CONFIRM

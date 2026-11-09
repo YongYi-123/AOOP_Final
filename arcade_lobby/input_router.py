@@ -4,9 +4,8 @@ Nothing downstream reads the keyboard directly. A ControlScheme says which
 keys are one player's; PlayerInput is that player's whole view of the
 keyboard (only their keys, as logical actions, with held-state tracked from
 events); InputRouter hands each event to the player it belongs to. A minigame
-is given the PlayerInput of the people actually playing, so another player's
-keys cannot reach it - and a controller later only needs another source of the
-same actions.
+is given the PlayerInput of the player, so only the player's keys reach it - and a controller
+later only needs another source of the same actions.
 """
 import pygame
 
@@ -28,7 +27,7 @@ class PlayerInput:
 
     def action(self, event):
         """The action a KEYDOWN event means for this player, else None (it is
-        another player's key, or means nothing)."""
+        a key that means nothing)."""
         if event.type != pygame.KEYDOWN:
             return None
         if self.scheme.owns(event.key):

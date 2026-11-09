@@ -2,9 +2,8 @@
 uses; nothing else in the game names a movement / interact / bag key, so a
 binding is changed here (or by building a scheme from a settings file later).
 
-SOLO is the one-player scheme and keeps the original bindings (WASD *and* the
-arrow keys, E, I). In a two-player session each player gets a scheme whose keys
-do not overlap, so both can use the one keyboard.
+The game is single-player: SOLO is the one scheme (WASD *and* the arrow keys,
+E/ENTER, I).
 """
 from dataclasses import dataclass, field
 
@@ -44,8 +43,7 @@ class ControlScheme:
                            | frozenset(self.confirm) | frozenset(self.emote))
 
     def label(self, *actions, limit=2):
-        """Short readable names of this player's keys for `actions` ('W/UP'),
-        for on-screen hints, so a screen can tell each player their own keys."""
+        """Short readable names of the keys for `actions` ('W/UP'), for on-screen hints."""
         names = []
         for key in (*self.move, *self.interact, *self.inventory, *self.item, *self.pause, *self.confirm):
             if self.action_for(key) in actions:
@@ -97,18 +95,3 @@ SOLO_CONTROLS = ControlScheme("SOLO", {**WASD, **ARROWS},
                               item=(pygame.K_SPACE, pygame.K_LSHIFT, pygame.K_z, pygame.K_x),
                               pause=(pygame.K_p,), confirm=(pygame.K_RETURN, pygame.K_KP_ENTER),
                               emote=(pygame.K_t,))
-P1_CONTROLS = ControlScheme("P1", dict(WASD), (pygame.K_e,), (pygame.K_i,), "WASD", "E", "I",
-                            item=(pygame.K_SPACE, pygame.K_LSHIFT), emote=(pygame.K_t,))
-P2_CONTROLS = ControlScheme("P2", dict(ARROWS), (pygame.K_RETURN, pygame.K_RCTRL, pygame.K_KP_ENTER),
-                            (pygame.K_o,), "ARROWS", "ENTER", "O",
-                            item=(pygame.K_RSHIFT, pygame.K_KP0), emote=(pygame.K_SLASH,))
-
-# how many local players -> one scheme per player
-SCHEMES = {1: (SOLO_CONTROLS,), 2: (P1_CONTROLS, P2_CONTROLS)}
-
-
-def schemes_for(player_count):
-    try:
-        return SCHEMES[player_count]
-    except KeyError:
-        raise ValueError(f"no control schemes for {player_count} players") from None

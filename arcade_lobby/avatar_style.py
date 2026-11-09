@@ -57,7 +57,7 @@ HAIR_COLORS = (
 )
 # value: shirt, shirt shade, beanie, beanie shade, pom-pom
 OUTFIT_COLORS = (
-    Option("teal", "TEAL", None),               # keeps the player's own colours (P1 / P2 stay distinct)
+    Option("teal", "TEAL", None),               # keeps the player's own colours
     Option("rose", "ROSE", ((255, 122, 172), (214, 82, 132), (80, 220, 235), (50, 160, 190), (255, 244, 170))),
     Option("lemon", "LEMON", ((255, 218, 80), (214, 168, 40), (120, 110, 240), (84, 74, 190), (255, 250, 200))),
     Option("lime", "LIME", ((130, 230, 90), (84, 176, 60), (255, 120, 170), (210, 80, 130), (255, 250, 200))),
@@ -110,7 +110,7 @@ DEFAULT_BASIC = BasicAppearance()
 
 def apply_basic(look, basic):
     """`look` (a player.PlayerLook) with the free choices applied. Its outline and
-    UI accent stay, so P1 and P2 can still be told apart."""
+    UI accent stay."""
     skin, blush, eye = option(SKIN, basic.skin).value
     changes = {"skin": skin, "blush": blush, "eye": eye, "eyes": basic.eyes, "hair_style": basic.hair,
                "hair": option(HAIR_COLOR, basic.hair_color).value}

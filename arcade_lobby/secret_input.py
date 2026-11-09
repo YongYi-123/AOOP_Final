@@ -4,20 +4,13 @@ For testers (this is deliberately not mentioned in any player-facing text):
 
     UP UP DOWN DOWN LEFT RIGHT LEFT RIGHT B A
 
-Every key means exactly one thing, so the reading is predictable:
+Every key means exactly one thing, so the reading is predictable: the directions are the arrow keys, and B and A
+are the B and A keys.
 
-    scheme   directions            B        A
-    SOLO     the arrow keys        B        A
-    P2       the arrow keys        COMMA    PERIOD
-    P1       W A S D (arrows are   Z        X
-             P2's on the shared
-             keyboard)
-
-* SOLO ignores W A S D for the code: the A key is only ever the A button, never LEFT, so there is no
+* W A S D are ignored for the code: the A key is only ever the A button, never LEFT, so there is no
   double meaning. (A WASD key pressed mid-code is simply a wrong key and restarts the sequence.)
-* P1 cannot use the real B / A keys without clashing with its own A = LEFT, so it uses Z and X.
 * The listener is built by the vending screen and fed that screen's raw key events, so it cannot fire anywhere
-  else. Another player's keys are never read.
+  else.
 * Only fresh presses count: key repeats and keys still held are ignored; a key must be released (KEYUP)
   before it can count again. It is event-driven, so frame rate does not matter.
 * A wrong key restarts the sequence, but a key that begins the sequence still counts as its first step, so a
@@ -27,11 +20,8 @@ import pygame
 
 SEQUENCE = ("UP", "UP", "DOWN", "DOWN", "LEFT", "RIGHT", "LEFT", "RIGHT", "B", "A")
 _ARROWS = {pygame.K_UP: "UP", pygame.K_DOWN: "DOWN", pygame.K_LEFT: "LEFT", pygame.K_RIGHT: "RIGHT"}
-_WASD = {pygame.K_w: "UP", pygame.K_s: "DOWN", pygame.K_a: "LEFT", pygame.K_d: "RIGHT"}
-# scheme name -> (direction keys, B key, A key)
-_MAPS = {"SOLO": (_ARROWS, pygame.K_b, pygame.K_a),
-         "P2": (_ARROWS, pygame.K_COMMA, pygame.K_PERIOD),
-         "P1": (_WASD, pygame.K_z, pygame.K_x)}
+# (direction keys, B key, A key)
+_MAP = (_ARROWS, pygame.K_b, pygame.K_a)
 _NEUTRAL = frozenset((pygame.K_LSHIFT, pygame.K_RSHIFT, pygame.K_LCTRL, pygame.K_RCTRL, pygame.K_LALT,
                       pygame.K_RALT, pygame.K_CAPSLOCK, pygame.K_NUMLOCK))
 
@@ -40,7 +30,7 @@ class SecretSequenceListener:
     def __init__(self, scheme, sequence=SEQUENCE):
         self.scheme = scheme
         self.sequence = tuple(sequence)
-        self.directions, self.b_key, self.a_key = _MAPS.get(scheme.name, _MAPS["SOLO"])
+        self.directions, self.b_key, self.a_key = _MAP
         self.reset()
 
     # ------------------------------------------------------------ state

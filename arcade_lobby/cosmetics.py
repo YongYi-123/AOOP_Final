@@ -59,8 +59,7 @@ def cosmetics_for(slot):
 
 
 def apply_palette(look, palette_id):
-    """`look` recoloured by a palette (its outline and UI accent stay, so P1 and
-    P2 can still be told apart). An unknown id gives the look unchanged."""
+    """`look` recoloured by a palette (its outline and UI accent stay). An unknown id gives the look unchanged."""
     c = COSMETICS.get(palette_id)
     if c is None or c.slot != PALETTE:
         return look
