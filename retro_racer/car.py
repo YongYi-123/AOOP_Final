@@ -233,6 +233,9 @@ class PlayerCar(DrivenCar):
     def __init__(self, spec=None):
         super().__init__(spec)
         self.score = 0.0
+        self.reverse_speed = 0.0     # how fast the car is backing up (>= 0, world units / s)
+        self.reverse_hold = 0.0      # seconds the brake has been held at a standstill
+        self.step_dz = 0.0           # signed distance the car really moved along the track last frame
 
     @property
     def livery(self):
@@ -247,10 +250,58 @@ class PlayerCar(DrivenCar):
         """Track position of the car itself; self.z is the camera behind it."""
         return self.z + S.CAMERA_HEIGHT * S.CAMERA_DEPTH
 
+    @property
+    def velocity(self):
+        """Signed speed along the track: positive forwards, negative while reversing."""
+        return self.speed - self.reverse_speed
+
+    @property
+    def reversing(self):
+        return self.reverse_speed > 0.0
+
     def update(self, dt, road, accelerate, brake, steer):
         before = self.distance
+        if self._reverse_step(dt, road, accelerate, brake, steer):
+            self.step_dz = self.distance - before
+            return
         super().update(dt, road, accelerate, brake, steer)
-        self.score += (self.distance - before) * (1.0 + self.speed_ratio) * 0.01
+        self.step_dz = self.distance - before
+        self.score += self.step_dz * (1.0 + self.speed_ratio) * 0.01
+
+    def _reverse_step(self, dt, road, accelerate, brake, steer):
+        """A car that has come to a stop and keeps the brake held backs up slowly (a crawl, never fast). Braking
+        while still rolling, and every other input, is the ordinary driving model: this returns False and does
+        nothing then. Returns True on the frames the car is reversing (it has moved the car itself)."""
+        wants = brake and not accelerate
+        if self.reverse_speed <= 0.0:
+            if self.speed <= S.STILL_SPEED and wants:
+                self.reverse_hold += dt
+            else:
+                self.reverse_hold = 0.0
+            if self.reverse_hold < S.REVERSE_HOLD:
+                return False
+            self.speed = 0.0
+        self._tick_effects(dt)
+        if wants:
+            self.reverse_speed = min(S.REVERSE_MAX, self.reverse_speed + S.REVERSE_ACCEL * dt)
+        elif accelerate:
+            self.reverse_speed = max(0.0, self.reverse_speed - S.BRAKING * dt)     # throttle: stop backing up first
+        else:
+            self.reverse_speed = max(0.0, self.reverse_speed - S.DECEL * dt)
+        if self.off_road:
+            self.reverse_speed = min(self.reverse_speed, S.OFFROAD_LIMIT)
+        if self.reverse_speed <= 0.0:
+            self.reverse_hold = 0.0
+        self.x += steer * S.STEER_RATE * self.spec.steering * self.mod("steering") * dt * (self.reverse_speed / S.MAX_SPEED)
+        self.x += self.push * dt
+        self.push *= max(0.0, 1.0 - 6.0 * dt)
+        self.x = max(-2.5, min(2.5, self.x))
+        self.steer_visual += (steer - self.steer_visual) * min(1.0, dt * 10)
+        self.hit_cooldown = max(0.0, self.hit_cooldown - dt)
+        step = self.reverse_speed * dt
+        self.z = (self.z - step) % road.length
+        self.distance -= step
+        return True
 
     def draw(self, surf, visual_offset=0.0, visual_yaw=0.0):
         bob = 2 if (pygame.time.get_ticks() // 60) % 2 and self.speed > 0 else 0

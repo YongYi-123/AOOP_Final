@@ -99,3 +99,9 @@ GRID_ROW_GAP = 800           # world units between grid rows
 ITEM_ROWS_PER_LAP = 6        # rows of pickup boxes around the lap (3 boxes per row)
 ITEM_RESPAWN = 8.0           # seconds before a collected box comes back
 ITEM_RUBBER_BAND = 0.6       # 0 = pure random item choice, 1 = strong catch-up bias
+
+# Reversing (a car that has stopped and keeps the brake held backs up slowly; braking while moving is unchanged)
+REVERSE_HOLD = 0.35          # seconds the brake is held at a standstill before the car starts to reverse
+REVERSE_MAX = MAX_SPEED * 0.16    # top reversing speed (world units / s): a crawl, ~48 km/h on the dial
+REVERSE_ACCEL = MAX_SPEED / 6
+STILL_SPEED = 2.0            # world units / s: slower than this (either way) counts as standing still
