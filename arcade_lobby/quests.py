@@ -304,7 +304,8 @@ class QuestManager:
 
     def trial_done(self, trial_id):
         """Has this Secret Trial been completed (by anyone in the session: the story is shared)?"""
-        return trial_id in self.state.get("stats", {}).get("secret_trials", ())
+        found = self.state.get("stats", {}).get("secret_trials")
+        return isinstance(found, (list, tuple)) and trial_id in found      # (a damaged save with a bare string must not count by accident)
 
     @property
     def secret_interface_unlocked(self):
@@ -326,7 +327,8 @@ class QuestManager:
         return bool(self.state.get("flags", {}).get(MEMORY_FRAGMENTS.get(trial_id, "")))
 
     def has_secret_item(self, key):
-        return key in self.state.get("stats", {}).get("secret_items", ())
+        found = self.state.get("stats", {}).get("secret_items")
+        return isinstance(found, (list, tuple)) and key in found
 
     @property
     def mochi_story_stage(self):
