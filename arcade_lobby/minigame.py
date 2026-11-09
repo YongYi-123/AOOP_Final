@@ -1,31 +1,17 @@
-"""Base class for every scene launched from an arcade machine, plus the
-description of how many players a minigame supports and what it reports."""
+"""Base class for every scene launched from an arcade machine, plus what a
+minigame reports."""
 from dataclasses import dataclass, field
 
 from rewards import RewardBundle, RewardResult
 from scene_base import BaseScene
-from settings import MAX_LOCAL_PLAYERS, PLACEHOLDER_REWARD_TICKETS
+from settings import PLACEHOLDER_REWARD_TICKETS
 
 
 @dataclass(frozen=True)
 class MiniGameDefinition:
-    """How many local players a minigame can run with. A machine whose game
-    supports 2 offers a PLAYERS choice when two people are playing; a
-    1-player game is played by whoever started it while the other watches."""
+    """What the hub knows about a minigame. Every minigame is single-player:
+    one player against the game (or against a CPU opponent)."""
     game_id: str
-    min_players: int = 1
-    max_players: int = 1
-
-    def __post_init__(self):
-        if not 1 <= self.min_players <= self.max_players <= MAX_LOCAL_PLAYERS:
-            raise ValueError(f"bad player range {self.min_players}-{self.max_players} for {self.game_id!r}")
-
-    def supports(self, players):
-        return self.min_players <= players <= self.max_players
-
-    @property
-    def multiplayer(self):
-        return self.max_players > 1
 
 
 @dataclass(frozen=True)
@@ -51,22 +37,21 @@ class MinigameScene(BaseScene):
 
     A one-player game only overrides get_reward(), turning its own score into
     tickets, e.g.  return RewardResult(self.machine.id, score // 100, score).
-    A game that supports two players overrides get_result() and returns one
-    PlayerResult per participant (`self.participants`: their profiles).
+    A game that wants more than a ticket count overrides get_result() and
+    returns a PlayerResult for the player (`self.participants[0]`: the profile).
     """
     own_audio = True        # it plays its own click / confirm sounds: the hub adds none on top
 
     def __init__(self, game, machine):
         super().__init__(game)
         self.machine = machine
-        self.participants = []      # the PlayerProfiles playing; set by the room before it starts
-        self.players = []           # the LocalPlayers playing (the rest are spectators)
+        self.participants = []      # the one PlayerProfile playing (a list so results stay uniform); set by the room
+        self.players = []           # the one LocalPlayer playing
         self._inputs = {}
 
-    def attach_players(self, players, spectators=()):
-        """Say who plays and who only watches. Only the players' keys reach the game."""
+    def attach_players(self, players):
+        """Say who plays (the session's one player)."""
         self.players = list(players)
-        self.spectators = list(spectators)
         self.participants = [p.profile for p in self.players]
         self._inputs = {p: self.game.session.input.input_for(p) for p in self.players}
 

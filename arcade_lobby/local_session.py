@@ -1,25 +1,25 @@
-"""The local play session: who is playing right now (1 or 2 people).
+"""The play session: the one player in the arcade right now.
 
     LocalSession
-    +-- LocalPlayer (P1) -- PlayerProfile   saved progress, owned by the ProfileManager
-    |                    +- HubPlayer       the in-world body
-    |                    +- ControlScheme   its keys
-    +-- LocalPlayer (P2) ...
+    +-- LocalPlayer -- PlayerProfile   saved progress, owned by the ProfileManager
+                    +- HubPlayer       the in-world body
+                    +- ControlScheme   its keys
 
-PlayerProfile (persistent data) and HubPlayer (the character walking around)
-are separate objects that a LocalPlayer ties together. A session is at most
-MAX_LOCAL_PLAYERS players; how many profiles are SAVED is the ProfileManager's
-business and unlimited.
+The game is single-player. Any number of profiles can be SAVED (the
+ProfileManager's business), but a session always holds exactly one of them;
+switching profile means going back to the profile screen. `players`,
+`primary`, `profiles` and `avatars` stay as list-shaped accessors of that one
+player so the rooms, the story and the minigames keep their one call path.
 
-GameEvent / LocalSession.dispatch give every personal event an owner, so
-"P2 petted a cat" can only ever advance P2's daily tasks.
+GameEvent / LocalSession.dispatch give every personal event an owner (the
+profile that did it), and the story / quest system listens to them.
 """
 from dataclasses import dataclass
 
-from controls import schemes_for
+from controls import SOLO_CONTROLS
 from input_router import InputRouter
-from player import LOOKS, HubPlayer
-from settings import MAX_LOCAL_PLAYERS, PLAYER_START
+from player import DEFAULT_LOOK, HubPlayer
+from settings import PLAYER_START
 
 
 @dataclass(frozen=True)
@@ -48,58 +48,40 @@ EVENT_HANDLERS = {
 
 
 class LocalPlayer:
-    """One person at the keyboard: a profile, its body and its keys."""
+    """The person at the keyboard: a profile, its body and its keys."""
 
-    def __init__(self, player_index, profile, controls, look, label=""):
-        self.player_index = player_index        # 0-based; the order in the session
+    def __init__(self, profile, controls=SOLO_CONTROLS, look=DEFAULT_LOOK):
         self.profile = profile
         self.controls = controls
-        self.label = label                      # "P1" / "P2"; "" in a one-player session
-        self.avatar = HubPlayer(PLAYER_START, controls, profile, look, label)
-
-    @property
-    def number(self):
-        return self.player_index + 1
+        self.avatar = HubPlayer(PLAYER_START, controls, profile, look)
 
     @property
     def player_id(self):
-        """Who owns events: the profile id (a bare, unmanaged profile falls back to its slot)."""
-        return self.profile.profile_id or f"player{self.number}"
+        """Who owns events: the profile id (a bare, unmanaged profile falls back to a fixed name)."""
+        return self.profile.profile_id or "player1"
 
     @property
     def name(self):
-        return (self.profile.display_name or f"PLAYER {self.number}").upper()
+        return (self.profile.display_name or "PLAYER").upper()
 
-    @property
-    def tag(self):
-        """'P2 ALICE' - or just the name when playing alone."""
-        return f"{self.label} {self.name}" if self.label else self.name
+    tag = name                  # the heading of this player's panels
 
 
 class LocalSession:
-    MAX_PLAYERS = MAX_LOCAL_PLAYERS
+    """A session for exactly one profile. `LocalSession(profile)`; a
+    one-item list is accepted too (older callers), any other count is refused."""
 
-    def __init__(self, profiles):
-        profiles = list(profiles)
-        if not 1 <= len(profiles) <= self.MAX_PLAYERS:
-            raise ValueError(f"a session has 1 to {self.MAX_PLAYERS} players, got {len(profiles)}")
-        ids = {id(p) if p.profile_id is None else p.profile_id for p in profiles}
-        if len(ids) != len(profiles):
-            raise ValueError("the same profile cannot be two players")
-        count = len(profiles)
-        schemes, looks = schemes_for(count), LOOKS[count]
-        self.players = [LocalPlayer(i, p, schemes[i], looks[i], f"P{i + 1}" if count > 1 else "")
-                        for i, p in enumerate(profiles)]
+    def __init__(self, profile):
+        if isinstance(profile, (list, tuple)):
+            if len(profile) != 1:
+                raise ValueError(f"a session has exactly one player, got {len(profile)}")
+            profile = profile[0]
+        self.players = [LocalPlayer(profile)]
         self.input = InputRouter(self)
         self._listeners = []
 
     @property
-    def player_count(self):
-        return len(self.players)
-
-    @property
     def primary(self):
-        """P1: owns HOME, and is the player a one-player session is about."""
         return self.players[0]
 
     @property
@@ -126,13 +108,6 @@ class LocalSession:
 
     def player_for_profile_id(self, player_id):
         return next((p for p in self.players if p.player_id == player_id), None)
-
-    def allows(self, player, key):
-        """May `player` use `key` in a menu? Keys that only another player's
-        scheme uses are theirs; shared keys (ESC, TAB, SPACE ...) are anyone's."""
-        if player.controls.owns(key):
-            return True
-        return not any(o is not player and o.controls.owns(key) for o in self.players)
 
     # ------------------------------------------------------------ events
     def dispatch(self, event):

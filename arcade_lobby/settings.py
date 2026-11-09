@@ -61,7 +61,6 @@ DEBUG_COUPON_KEY = pygame.K_F9       # add a FREE PLAY COUPON
 # play machines and chance games; TICKETS are a separate reward currency.
 SAVE_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "save_data.json")   # the old single-profile save
 SAVES_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "saves")   # profiles.json + profiles/<id>.json
-MAX_LOCAL_PLAYERS = 2           # a running session; the number of SAVED profiles is unlimited
 PROFILE_NAME_MAX = 12           # characters in a display name (the pixel font is wide)
 RECENT_PROFILES = 8             # how many recently used profiles are remembered
 STARTING_TOKENS = 10

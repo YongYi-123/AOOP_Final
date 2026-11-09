@@ -125,16 +125,14 @@ MINIGAME_SCENES = {"retro_racer": RetroRacerScene,
                    "puzzle_drop": CatMazeScene}          # retain the old cabinet id for saves
 
 
-# How many local players each minigame supports (anything not listed: 1). The
-# Retro Racer scene embeds a single-player game, so it declares 1 until it
-# really has a two-player mode; the placeholder screens only stand in. (NEON CAT MAZE keeps the id "puzzle_drop" of the machine it replaced.)
+# The real minigames (anything not listed is a placeholder screen). NEON CAT MAZE keeps the id "puzzle_drop" of the machine it replaced.
 MINIGAME_DEFINITIONS = {d.game_id: d for d in (
-    MiniGameDefinition("retro_racer", 1, 1),
-    MiniGameDefinition("puzzle_drop", 1, 1),      # NEON CAT MAZE
-    MiniGameDefinition("pixel_volleyball", 1, 2),
-    MiniGameDefinition("cat_minesweeper", 1, 1),
-    MiniGameDefinition("galaxy_defender", 1, 1),
-    MiniGameDefinition("puzzle_maze", 1, 1),
+    MiniGameDefinition("retro_racer"),
+    MiniGameDefinition("puzzle_drop"),      # NEON CAT MAZE
+    MiniGameDefinition("pixel_volleyball"),
+    MiniGameDefinition("cat_minesweeper"),
+    MiniGameDefinition("galaxy_defender"),
+    MiniGameDefinition("puzzle_maze"),
 )}
 
 
