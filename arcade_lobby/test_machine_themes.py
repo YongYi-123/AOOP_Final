@@ -77,6 +77,28 @@ class CabinetArtTests(unittest.TestCase):
             self.assertGreater(len(screens), 8, machine_id)         # attract-mode screen moves
             self.assertGreater(len(marquees), 2, machine_id)        # marquee / lights move
 
+    def test_puzzle_maze_has_its_own_dungeon_cabinet(self):
+        data = machine_data("puzzle_maze")
+        self.assertEqual((data["screen"], data["marquee"], data["slot"]), ("dungeon", "PUZZLE MAZE", "island_1"))
+        self.assertNotEqual(data["screen"], machine_data("puzzle_drop")["screen"])      # not the Cat Maze cabinet any more
+        m = self.machine("puzzle_maze")
+        standard = self.machine("retro_racer")
+        self.assertEqual((m.rect.size, m.footprint.size, m.zone.size), (standard.rect.size, standard.footprint.size, standard.zone.size))
+        self.assertGreater(m.art["pad"], 0)                                              # battlements stand above the marquee
+        self.assertEqual(m.art["cabinet"][0].get_height(), H + m.art["pad"] + 2)
+        self.assertEqual(m.play_cost, 0)                                                 # free playtest unchanged
+
+    def test_dungeon_screen_animates_and_wakes_near_a_player(self):
+        m = self.machine("puzzle_maze")
+        self.assertGreater(len({pygame.image.tobytes(f, "RGB") for f in m.art["screen"]}), 30)
+        surf = pygame.Surface((200, 150))
+        def glow(near):
+            m.highlight = near
+            surf.fill((0, 0, 0))
+            m.draw_glow(surf)
+            return surf.get_at((m.screen_center[0], m.screen_center[1]))[:3]
+        self.assertGreater(sum(glow(True)), sum(glow(False)))
+
     def test_the_ticker_marquees_scroll_the_whole_name_and_loop_seamlessly(self):
         for style, label, painter in (("volley", "CAT VOLLEYBALL", themes.marquee_volley),
                                       ("racer", "RETRO RACER", themes.marquee_racer)):
