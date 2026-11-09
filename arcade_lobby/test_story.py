@@ -1811,15 +1811,18 @@ class TrialRuleTests(unittest.TestCase):
         self.assertEqual([t.title for t in TRIALS], ["THE GOLDEN AGE", "THE UNBEATEN RECORD", "THE FINAL LOCK"])
         self.assertEqual([t.number for t in TRIALS], [1, 2, 3])
 
-    def test_trials_one_and_two_are_open_from_the_start_and_need_no_items_or_money(self):
+    def test_trial_two_is_open_from_the_start_and_trial_one_needs_only_the_reverse_gear(self):
         self.assertEqual(self.m.secret_items, 0)
-        for n in (1, 2):
-            s = self.st(n)
-            self.assertEqual(s.code, "available", n)
-            self.assertFalse(s.needs_currency)
-            self.assertEqual(s.reasons, ())
+        s = self.st(2)
+        self.assertEqual((s.code, s.reasons, s.needs_currency), ("available", (), False))
+        s = self.st(1)                                                               # (no money, but the Reverse Gear is the key)
+        self.assertEqual((s.code, s.reasons, s.needs_currency), ("locked", ("NEED THE REVERSE GEAR (SECRET ITEM 01)",), False))
+        self.m.handle("secret_item_found", Q.SECRET_ITEM_RETRO_RACER)
+        s = self.st(1)
+        self.assertEqual((s.code, s.reasons, s.needs_currency), ("available", (), False))
 
     def test_one_and_two_can_be_done_in_either_order(self):
+        self.m.handle("secret_item_found", Q.SECRET_ITEM_RETRO_RACER)
         self.m.handle("secret_trial_done", "trial_02")
         self.assertEqual((self.st(1).code, self.st(2).code), ("available", "done"))
         self.m.handle("secret_trial_done", "trial_01")
@@ -1914,11 +1917,12 @@ class TrialRuleTests(unittest.TestCase):
         m.finish_opening()
         m.handle("secret_trial_done", "trial_02")
         m.handle("secret_item_found", "gem_a")
+        m.handle("secret_item_found", Q.SECRET_ITEM_RETRO_RACER)
         loaded = ProfileStore(path).load()
         m2 = QuestManager(session_of(loaded))
         self.assertTrue(m2.trial_done("trial_02"))
         self.assertFalse(m2.trial_done("trial_01"))
-        self.assertEqual(m2.secret_items, 1)
+        self.assertEqual(m2.secret_items, 2)
         self.assertEqual(trial_status(m2, loaded, TRIALS[0]).code, "available")
         self.assertEqual(trial_status(m2, loaded, TRIALS[1]).code, "done")
         self.assertEqual(trial_status(m2, loaded, TRIALS[2]).code, "locked")
@@ -2188,6 +2192,7 @@ class LegacyTerminalTests(LegacyBase):
         patcher = patch.dict(LT.TRIAL_SCENES, {"trial_01": Fake})          # (the real room is put back afterwards)
         patcher.start()
         self.addCleanup(patcher.stop)
+        self.story.manager.handle("secret_item_found", Q.SECRET_ITEM_RETRO_RACER)
         shop, term = self.open_terminal()
         self.frames(60)
         self.tap(K.K_e)
