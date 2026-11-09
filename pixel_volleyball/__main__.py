@@ -1,19 +1,15 @@
-"""Run from the repository root: python -m pixel_volleyball [--two-player]."""
-import argparse
+"""Run from the repository root: python -m pixel_volleyball."""
 import pygame
 from .game import VolleyGame
 from .keyboard import VolleyKeyboard
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Original Cat Volleyball")
-    parser.add_argument("--two-player", action="store_true")
-    args = parser.parse_args()
     pygame.init()
     screen = pygame.display.set_mode((800, 600))
     pygame.display.set_caption("Neon Corner - Cat Volleyball")
     canvas = pygame.Surface((400, 300))
-    game = VolleyGame(2 if args.two_player else 1)
+    game = VolleyGame()
     clock = pygame.time.Clock()
     running = True
     keyboard = VolleyKeyboard()
@@ -36,7 +32,7 @@ def main():
                         game.match.toggle_pause()
                     elif event.key in (pygame.K_r, pygame.K_BACKSPACE):
                         game.restart()
-            game.update(dt, keyboard.controls(game.local_players))
+            game.update(dt, keyboard.controls())
             game.draw(canvas)
             pygame.transform.scale(canvas, screen.get_size(), screen)
             pygame.display.flip()

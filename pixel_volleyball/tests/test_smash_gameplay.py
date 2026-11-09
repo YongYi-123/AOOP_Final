@@ -22,9 +22,9 @@ def key(type_, code):
     return pygame.event.Event(type_, key=code)
 
 
-def airborne_match(side=0, x=None, ball_dy=-17, y=165, swing_age=.08, players=2, solo=False):
+def airborne_match(side=0, x=None, ball_dy=-17, y=165, swing_age=.08, solo=False):
     """A match with the player in the air, mid-swing, and the yarn on top of the paw."""
-    match = VolleyMatch(1 if solo else players)
+    match = VolleyMatch(cpu=solo)
     match.start()
     match.serve_delay = 0
     player = match.players[side]
@@ -70,34 +70,29 @@ def strike(side, smash, x=100, y_contact=None):
 
 
 class SmashInputTests(unittest.TestCase):
-    def test_standalone_keys_map_to_the_right_player_only(self):
-        for local, key_a, key_b in ((1, pygame.K_SPACE, pygame.K_LSHIFT), (2, pygame.K_SPACE, pygame.K_LSHIFT)):
+    def test_standalone_smash_keys_and_no_second_player_keys(self):
+        for key_a, key_b in ((pygame.K_SPACE, pygame.K_LSHIFT),):
             keyboard = VolleyKeyboard()
             keyboard.feed(key(pygame.KEYDOWN, key_a))
-            self.assertTrue(keyboard.controls(local)[0].spike)
+            self.assertTrue(keyboard.controls()[0].spike)
             keyboard.feed(key(pygame.KEYUP, key_a))
-            keyboard.controls(local)
+            keyboard.controls()
             keyboard.feed(key(pygame.KEYDOWN, key_b))
-            self.assertTrue(keyboard.controls(local)[0].spike)
-        two = VolleyKeyboard()
-        two.feed(key(pygame.KEYDOWN, pygame.K_SPACE))
-        p1, p2 = two.controls(2)
-        self.assertEqual((p1.spike, p2.spike), (True, False))
-        for code in (pygame.K_RSHIFT, pygame.K_KP0):
-            two = VolleyKeyboard()
-            two.feed(key(pygame.KEYDOWN, code))
-            p1, p2 = two.controls(2)
-            self.assertEqual((p1.spike, p2.spike), (False, True))
+            self.assertTrue(keyboard.controls()[0].spike)
+        for code in (pygame.K_RSHIFT, pygame.K_KP0):       # the old second-player smash keys do nothing now
+            keyboard = VolleyKeyboard()
+            keyboard.feed(key(pygame.KEYDOWN, code))
+            self.assertFalse(keyboard.controls()[0].spike)
 
     def test_a_tap_released_within_one_frame_is_not_lost(self):
         keyboard = VolleyKeyboard()
-        keyboard.feed(key(pygame.KEYDOWN, pygame.K_RSHIFT))
-        keyboard.feed(key(pygame.KEYUP, pygame.K_RSHIFT))
-        self.assertTrue(keyboard.controls(2)[1].spike)
-        self.assertFalse(keyboard.controls(2)[1].spike)      # consumed exactly once
+        keyboard.feed(key(pygame.KEYDOWN, pygame.K_SPACE))
+        keyboard.feed(key(pygame.KEYUP, pygame.K_SPACE))
+        self.assertTrue(keyboard.controls()[0].spike)
+        self.assertFalse(keyboard.controls()[0].spike)      # consumed exactly once
 
     def test_smash_only_arms_in_the_air_and_never_changes_movement_or_jump(self):
-        match = VolleyMatch(2)
+        match = VolleyMatch(cpu=False)
         match.start()
         match.serve_delay = 0
         match.update(1 / 60, [VolleyInput(spike=True), IDLE])
@@ -192,7 +187,7 @@ class SmashBufferTests(unittest.TestCase):
         self.assertTrue(attack.animating)
 
     def test_holding_through_a_landing_does_not_swing_on_the_next_jump(self):
-        match = VolleyMatch(2)
+        match = VolleyMatch(cpu=False)
         match.start()
         match.serve_delay = 0
         match.ball = VolleyBall(300, 100, 0, 0)
@@ -354,7 +349,7 @@ def _mirror(ball):
 class SmashAiTests(unittest.TestCase):
     def solo_rally(self, seconds=30):
         """P1 lobs the ball over like a beginner; Sandra plays on."""
-        match = VolleyMatch(1, target=99)
+        match = VolleyMatch(target=99)
         match.start()
         match.serve_delay = 0
         spikes = []
@@ -382,7 +377,7 @@ class SmashAiTests(unittest.TestCase):
         self.assertLess(match.points[1], len(spikes))       # not every smash is a point
 
     def test_ai_smash_uses_the_same_swing_rules_as_a_human(self):
-        match = VolleyMatch(1)
+        match = VolleyMatch()
         match.start()
         match.serve_delay = 0
         sandra = match.players[1]
@@ -399,7 +394,7 @@ class SmashAiTests(unittest.TestCase):
 
     def test_most_of_sandras_smashes_land_near_the_human_where_they_can_be_returned(self):
         for p1_x in (60, 100, 150):
-            match = VolleyMatch(1)
+            match = VolleyMatch()
             match.start()
             match.serve_delay = 0
             match.players[0].x, match.players[0].y = p1_x, -500
@@ -414,7 +409,7 @@ class SmashAiTests(unittest.TestCase):
 
     def test_ai_aims_away_from_the_player_without_leaving_the_court(self):
         for p1_x in (40, 100, 180):
-            match = VolleyMatch(1)
+            match = VolleyMatch()
             match.start()
             match.serve_delay = 0
             match.players[0].x = p1_x
@@ -434,7 +429,7 @@ class SmashAiTests(unittest.TestCase):
     def test_intercept_prediction_matches_real_flight(self):
         ball = VolleyBall(90, 185, 170, -290)
         x, seconds = VolleyAI.intercept(ball)
-        match = VolleyMatch(1)
+        match = VolleyMatch()
         match.start()
         match.serve_delay = 0
         match.ball = VolleyBall(90, 185, 170, -290)
@@ -449,7 +444,7 @@ class SmashAiTests(unittest.TestCase):
 
 class SmashFeedbackTests(unittest.TestCase):
     def test_game_flow_creates_flash_popup_trail_and_shake_then_cleans_up(self):
-        game = VolleyGame(2)
+        game = VolleyGame(cpu=False)
         self.addCleanup(game.audio.stop)
         game.confirm()
         match, player = airborne_match()
@@ -494,7 +489,7 @@ class SmashFeedbackTests(unittest.TestCase):
         self.assertGreater(painted('spike'), painted('hit') * 3)
 
     def test_screen_shake_is_bounded_and_drawing_is_pure(self):
-        game = VolleyGame(2)
+        game = VolleyGame(cpu=False)
         self.addCleanup(game.audio.stop)
         game.confirm()
         game.effects.update(.01, game.match.ball, [(100, 100, 'spike', 0)])
@@ -507,7 +502,7 @@ class SmashFeedbackTests(unittest.TestCase):
         self.assertLessEqual(max(abs(dx), abs(dy)), SmashTrail.SHAKE_PIXELS)
 
     def test_swing_pose_is_drawn_while_the_paw_is_live(self):
-        game = VolleyGame(2)
+        game = VolleyGame(cpu=False)
         self.addCleanup(game.audio.stop)
         game.confirm()
         player = game.match.players[0]
@@ -524,24 +519,20 @@ class SmashFeedbackTests(unittest.TestCase):
 
 class SmashInstructionTests(unittest.TestCase):
     def test_hint_text_names_the_real_standalone_keys(self):
-        self.assertIn('SPACE SMASH', default_hints(1)[0])
-        two = default_hints(2)
-        self.assertIn('SPACE SMASH', two[0])
-        self.assertTrue(two[0].startswith('P1') and two[1].startswith('P2'))
-        self.assertIn('R-SHIFT SMASH', two[1])
-        self.assertEqual(len(hint_lines([('', 'A', 'D', 'W', 'Z')])), 1)
+        self.assertIn('SPACE SMASH', default_hints()[0])
+        self.assertEqual(len(default_hints()), 1)               # one player: one line, no P1 / P2 rows
+        self.assertEqual(len(hint_lines('A', 'D', 'W', 'Z')), 1)
 
     def test_hints_are_drawn_on_the_court_screen(self):
-        for local in (1, 2):
-            game = VolleyGame(local)
-            self.addCleanup(game.audio.stop)
-            plain = pygame.Surface((400, 300))
-            game.hints = ('',) * len(game.hints)
-            game.draw(plain)
-            labelled = pygame.Surface((400, 300))
-            game.hints = default_hints(local)
-            game.draw(labelled)
-            self.assertNotEqual(pygame.image.tobytes(plain, 'RGB'), pygame.image.tobytes(labelled, 'RGB'))
+        game = VolleyGame()
+        self.addCleanup(game.audio.stop)
+        plain = pygame.Surface((400, 300))
+        game.hints = ('',) * len(game.hints)
+        game.draw(plain)
+        labelled = pygame.Surface((400, 300))
+        game.hints = default_hints()
+        game.draw(labelled)
+        self.assertNotEqual(pygame.image.tobytes(plain, 'RGB'), pygame.image.tobytes(labelled, 'RGB'))
 
 
 if __name__ == '__main__':

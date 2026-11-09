@@ -13,7 +13,7 @@ class VolleyLifecycleTests(unittest.TestCase):
         pygame.init()
 
     def test_completed_results_are_independent_and_replays_do_not_sum_rewards(self):
-        game = VolleyGame(2)
+        game = VolleyGame(cpu=False)
         self.addCleanup(game.audio.stop)
         game.confirm()
         game.match.award_point(1)

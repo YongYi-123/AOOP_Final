@@ -60,10 +60,13 @@ class MatchOutcome:
 
 
 class VolleyMatch:
-    def __init__(self, local_players=1, target=5):
-        if local_players not in (1, 2) or target < 1:
-            raise ValueError("volleyball needs 1-2 players and a positive target")
-        self.local_players, self.target = local_players, target
+    def __init__(self, *, cpu=True, target=5):
+        """One human (left cat) against SANDRA, the CPU (right cat). `cpu=False` leaves
+        the right cat to the caller's inputs: only simulations and tests use it - no screen,
+        key binding or menu of the game offers it."""
+        if target < 1:
+            raise ValueError("volleyball needs a positive target")
+        self.cpu, self.target = cpu, target
         self.players = [VolleyPlayer(0, 90), VolleyPlayer(1, 310)]
         self.points = [0, 0]
         self.state = MatchState.TITLE
@@ -103,9 +106,10 @@ class VolleyMatch:
             # unusually fast shots; both net and player tests see contact.
             speed = math.hypot(self.ball.vx, self.ball.vy) + 500
             step = min(remaining, 1 / 120, self.ball.radius * .5 / speed)
-            inputs = list(controls[:self.local_players])
-            inputs.extend([VolleyInput()] * (self.local_players - len(inputs)))
-            if self.local_players == 1:
+            humans = 1 if self.cpu else 2
+            inputs = list(controls[:humans])
+            inputs.extend([VolleyInput()] * (humans - len(inputs)))
+            if self.cpu:
                 inputs.append(self.ai.controls(self.players[1], self.ball, step))
             self._step(step, inputs)
             remaining -= step
@@ -193,7 +197,7 @@ class VolleyMatch:
         ball.vx, ball.vy = lob_velocity(player, ball)
         if spike:
             aim = None
-            if player.side == 1 and self.local_players == 1:
+            if player.side == 1 and self.cpu:
                 aim = self.ai.smash_aim(self.players[0].x)
             ball.vx, ball.vy = player.attack.velocity(player, ball, aim)
             player.attack.connected = True

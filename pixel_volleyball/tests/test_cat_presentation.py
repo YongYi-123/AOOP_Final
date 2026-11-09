@@ -10,7 +10,7 @@ from pixel_volleyball.game import VolleyGame
 
 class CatPresentationTests(unittest.TestCase):
     def test_animation_states_follow_actual_player_state(self):
-        match = VolleyMatch(2)
+        match = VolleyMatch(cpu=False)
         player = match.players[0]
         renderer = CatAthleteRenderer()
         self.assertIs(renderer.state(player, match), CatAnimation.IDLE)
@@ -26,7 +26,7 @@ class CatPresentationTests(unittest.TestCase):
         self.assertIs(renderer.state(player, match), CatAnimation.VICTORY)
 
     def test_cats_have_different_fur_and_yarn_rotates_without_physics_mutation(self):
-        match = VolleyMatch(2)
+        match = VolleyMatch(cpu=False)
         renderer = CatAthleteRenderer()
         images = []
         for player in match.players:

@@ -40,7 +40,7 @@ class AITests(unittest.TestCase):
         match.ball = VolleyBall(230, 180, 0, 50)
         match.update(.1)
         self.assertLessEqual(abs(match.players[1].x-before), 155*.1+.001)
-        match = VolleyMatch(2)
+        match = VolleyMatch(cpu=False)
         match.start()
         before = match.players[1].x
         match.update(.1, [VolleyInput(), VolleyInput()])

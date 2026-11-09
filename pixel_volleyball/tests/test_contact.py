@@ -5,7 +5,7 @@ from pixel_volleyball.model import VolleyMatch, VolleyBall, VolleyInput, NET_X
 
 class ContactTests(unittest.TestCase):
     def match(self):
-        match = VolleyMatch(2)
+        match = VolleyMatch(cpu=False)
         match.start()
         match.serve_delay = 0
         return match

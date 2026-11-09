@@ -7,45 +7,34 @@ from pixel_volleyball.keyboard import VolleyKeyboard
 
 
 class VolleyKeyboardTests(unittest.TestCase):
-    def test_solo_accepts_original_wasd_and_arrow_bindings(self):
+    def test_wasd_and_arrow_bindings_both_drive_the_one_player(self):
         keyboard = VolleyKeyboard()
         for key in (pygame.K_d, pygame.K_UP, pygame.K_LSHIFT):
             keyboard.feed(pygame.event.Event(pygame.KEYDOWN, key=key))
-        control = keyboard.controls(1)[0]
+        control = keyboard.controls()[0]
         self.assertEqual((control.move, control.jump, control.spike), (1, True, True))
-
-    def test_simultaneous_p1_and_p2_input_never_crosses_over(self):
-        keyboard = VolleyKeyboard()
-        down = (pygame.K_d, pygame.K_w, pygame.K_LEFT, pygame.K_RSHIFT)
-        for key in down:
-            keyboard.feed(pygame.event.Event(pygame.KEYDOWN, key=key))
-        p1, p2 = keyboard.controls(2)
-        self.assertEqual((p1.move, p1.jump, p1.spike), (1, True, False))
-        self.assertEqual((p2.move, p2.jump, p2.spike), (-1, False, True))
-
-    def test_each_smash_key_belongs_to_one_player(self):
-        for key, expected in ((pygame.K_SPACE, (True, False)), (pygame.K_LSHIFT, (True, False)),
-                              (pygame.K_RSHIFT, (False, True)), (pygame.K_KP0, (False, True)),
-                              (pygame.K_RCTRL, (False, False)), (pygame.K_LCTRL, (False, False))):
+        for key, expected in ((pygame.K_RIGHT, (1, False)), (pygame.K_w, (0, True))):
             keyboard = VolleyKeyboard()
             keyboard.feed(pygame.event.Event(pygame.KEYDOWN, key=key))
-            p1, p2 = keyboard.controls(2)
-            self.assertEqual((p1.spike, p2.spike), expected, pygame.key.name(key))
+            control = keyboard.controls()[0]
+            self.assertEqual((control.move, control.jump), expected, pygame.key.name(key))
 
-    def test_arrows_and_up_do_not_drive_p1_in_two_player_mode(self):
+    def test_there_is_only_one_player_input(self):
         keyboard = VolleyKeyboard()
-        for key in (pygame.K_RIGHT, pygame.K_UP):
-            keyboard.feed(pygame.event.Event(pygame.KEYDOWN, key=key))
-        p1, p2 = keyboard.controls(2)
-        self.assertEqual((p1.move, p1.jump), (0, False))
-        self.assertEqual((p2.move, p2.jump), (1, True))
+        self.assertEqual(len(keyboard.controls()), 1)
 
-    def test_local_controls_are_independent_and_focus_loss_clears_them(self):
-        keyboard = VolleyKeyboard()
-        for key in (pygame.K_a, pygame.K_RIGHT, pygame.K_RSHIFT):
+    def test_second_player_smash_keys_do_nothing(self):
+        for key in (pygame.K_RSHIFT, pygame.K_KP0, pygame.K_RCTRL, pygame.K_LCTRL):
+            keyboard = VolleyKeyboard()
             keyboard.feed(pygame.event.Event(pygame.KEYDOWN, key=key))
-        p1, p2 = keyboard.controls(2)
-        self.assertEqual((p1.move, p1.spike), (-1, False))
-        self.assertEqual((p2.move, p2.spike), (1, True))
+            self.assertFalse(keyboard.controls()[0].spike, pygame.key.name(key))
+
+    def test_focus_loss_clears_the_held_keys(self):
+        keyboard = VolleyKeyboard()
+        for key in (pygame.K_a, pygame.K_SPACE):
+            keyboard.feed(pygame.event.Event(pygame.KEYDOWN, key=key))
+        control = keyboard.controls()[0]
+        self.assertEqual((control.move, control.spike), (-1, True))
         keyboard.feed(pygame.event.Event(pygame.WINDOWFOCUSLOST))
         self.assertFalse(keyboard.held)
+        self.assertEqual(keyboard.controls()[0].move, 0)

@@ -40,20 +40,20 @@ class VolleyRenderer:
                 self.text(surface, "SMASH!", (round(x), round(y - 20 - age * 30)),
                           YELLOW if age < .3 else PINK)
         self.text(surface, "CAT VOLLEYBALL", (200, 16), PINK, 2)
-        self.text(surface, f"P1  {match.points[0]} : {match.points[1]}  {'SANDRA' if match.local_players == 1 else 'P2'}",
+        self.text(surface, f"YOU  {match.points[0]} : {match.points[1]}  SANDRA",
                   (200, 39), YELLOW, 2)
         lines = hints or ("MOVE  JUMP  SMASH (IN AIR)",)
         for i, line in enumerate(lines):
             self.text(surface, line, (200, 293 - 10 * (len(lines) - i)))
         self.text(surface, "MENU PAUSE  BACKSPACE RESTART  ESC LOBBY", (200, 293))
         if match.state is MatchState.TITLE:
-            self.panel(surface, ("FIRST TO FIVE", "CHALLENGE SANDRA" if match.local_players == 1 else "LOCAL TWO PLAYER", "E / ENTER TO START"))
+            self.panel(surface, ("FIRST TO FIVE", "CHALLENGE SANDRA", "E / ENTER TO START"))
         elif match.state is MatchState.PAUSED:
             self.panel(surface, ("PAUSED", "E / ENTER TO RESUME"))
         elif match.state is MatchState.FINISHED:
-            winner = "P1" if match.outcome.winner == 0 else ("SANDRA" if match.local_players == 1 else "P2")
-            self.panel(surface, ("SANDRA TAKES THE CROWN!" if winner == "SANDRA" else f"{winner} WINS!",
-                                 "PURRFECT SPIKES, SANDRA!" if winner == "SANDRA" else "PURRFECT VICTORY!",
+            won = match.outcome.winner == 0
+            self.panel(surface, ("YOU WIN!" if won else "SANDRA TAKES THE CROWN!",
+                                 "PURRFECT VICTORY!" if won else "PURRFECT SPIKES, SANDRA!",
                                  "E / ENTER REMATCH  ESC RETURN"))
         elif match.serve_delay > 0:
             self.text(surface, "READY!", (200, 100), YELLOW, 2)

@@ -26,7 +26,7 @@ class SmashPresentationTests(unittest.TestCase):
         self.assertFalse(trail.points)
 
     def test_pause_and_draw_do_not_advance_effects_or_physics(self):
-        game = VolleyGame(2)
+        game = VolleyGame(cpu=False)
         self.addCleanup(game.audio.stop)
         game.confirm()
         game.match.serve_delay = 0
@@ -43,7 +43,7 @@ class SmashPresentationTests(unittest.TestCase):
         self.assertFalse(game.effects.points)
 
     def test_swing_animation_follows_attack_and_expires(self):
-        game = VolleyGame(2)
+        game = VolleyGame(cpu=False)
         self.addCleanup(game.audio.stop)
         player = game.match.players[0]
         player.y = 170

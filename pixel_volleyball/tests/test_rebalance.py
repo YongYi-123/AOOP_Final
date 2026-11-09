@@ -28,8 +28,8 @@ IDLE = VolleyInput()
 DT = 1 / 120
 
 
-def new_match(players=2):
-    match = VolleyMatch(players)
+def new_match():
+    match = VolleyMatch(cpu=False)     # both cats scripted: a physics harness
     match.start()
     match.serve_delay = 0
     match.players[1].y = match.players[0].y = -500      # nobody else touches the ball
@@ -128,7 +128,7 @@ class PhysicsConstantTests(unittest.TestCase):
 
     def test_no_shot_in_a_long_random_match_gets_out_of_control(self):
         rng = random.Random(4)
-        match = VolleyMatch(2, target=999)
+        match = VolleyMatch(cpu=False, target=999)
         match.start()
         fastest = 0.0
         held = [IDLE, IDLE]
@@ -236,7 +236,7 @@ class NormalReturnTests(unittest.TestCase):
 class ServeTests(unittest.TestCase):
     def test_serve_is_slower_longer_and_always_crosses_the_net(self):
         for side in (0, 1):
-            match = VolleyMatch(2)
+            match = VolleyMatch(cpu=False)
             match.start()
             match.serve_delay = 0
             match._serve(side)
@@ -252,7 +252,7 @@ class ServeTests(unittest.TestCase):
             self.assertLess(flight["vmax"], 400)                                      # was 439
 
     def test_the_receiver_gets_a_visible_pause_before_the_serve(self):
-        match = VolleyMatch(2)
+        match = VolleyMatch(cpu=False)
         match.start()
         self.assertEqual(match.serve_delay, SERVE_DELAY)
         self.assertGreaterEqual(SERVE_DELAY, 1.0)
@@ -288,9 +288,9 @@ class NetAndScoringTests(unittest.TestCase):
             self.assertGreater(match.serve_delay, 0)
             self.assertEqual(match.ball.vx > 0, scorer == 0)                         # the scorer serves toward the other side
 
-    def test_a_match_ends_at_the_target_in_both_modes(self):
-        for players in (1, 2):
-            match = VolleyMatch(players, target=2)
+    def test_a_match_ends_at_the_target_against_the_cpu_and_in_the_harness(self):
+        for cpu in (True, False):
+            match = VolleyMatch(cpu=cpu, target=2)
             match.start()
             match.award_point(0)
             match.award_point(0)
@@ -370,9 +370,9 @@ class SmashTests(unittest.TestCase):
         attack.update(.016, False, True)
         self.assertTrue(attack.animating)                                            # still counts
 
-    def test_a_smash_needs_a_jump_but_works_in_solo_and_two_player(self):
+    def test_a_smash_needs_a_jump_but_works_against_the_cpu_and_in_the_harness(self):
         for players in (1, 2):
-            match = VolleyMatch(players)
+            match = VolleyMatch(cpu=players == 1)
             match.start()
             match.serve_delay = 0
             match.update(DT, [VolleyInput(spike=True)] * players)
@@ -425,7 +425,7 @@ class SandraTests(unittest.TestCase):
         for napping in (False, True):
             for start in (240, 300, 360):
                 for x in (40, 100, 160):
-                    match = VolleyMatch(1)
+                    match = VolleyMatch()
                     match.start()
                     match.serve_delay = 0
                     match.players[1].x = start
@@ -450,7 +450,7 @@ class SandraTests(unittest.TestCase):
     def beginner_bot(self, seed, points=24):
         """A forgiving test player: slow to react, sloppy, never jumps, never smashes."""
         rng = random.Random(seed)
-        match = VolleyMatch(1, target=10 ** 6)
+        match = VolleyMatch(target=10 ** 6)
         match.start()
         target, wait, hits, rally, rallies = 90, 0.0, 0, 0, []
         won = lost = steps = 0

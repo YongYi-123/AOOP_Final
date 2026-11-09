@@ -17,4 +17,4 @@ class SingleOpponentTests(unittest.TestCase):
         reaction = game.match.ai.REACTION
         game.restart()
         self.assertEqual(game.match.ai.REACTION,reaction)
-        self.assertFalse(hasattr(VolleyGame(2), 'select_difficulty'))
+        self.assertFalse(hasattr(VolleyGame(cpu=False), 'select_difficulty'))

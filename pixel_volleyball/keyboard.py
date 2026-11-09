@@ -18,19 +18,11 @@ class VolleyKeyboard:
         elif event.type == pygame.KEYUP:
             self.held.discard(event.key)
 
-    def controls(self, local_players):
-        bindings = [((pygame.K_a,), (pygame.K_d,), (pygame.K_w,),
-                     (pygame.K_SPACE, pygame.K_LSHIFT))]
-        if local_players == 1:
-            bindings = [((pygame.K_a, pygame.K_LEFT), (pygame.K_d, pygame.K_RIGHT),
-                         (pygame.K_w, pygame.K_UP), (pygame.K_SPACE, pygame.K_LSHIFT))]
-        else:
-            bindings.append(((pygame.K_LEFT,), (pygame.K_RIGHT,), (pygame.K_UP,),
-                             (pygame.K_RSHIFT, pygame.K_KP0)))
-        result = []
-        for left, right, jump, spike in bindings:
-            down = lambda keys: any(key in self.held for key in keys)
-            tap = any(key in self.tapped for key in spike)
-            result.append(VolleyInput(int(down(right)) - int(down(left)), down(jump), down(spike) or tap))
+    def controls(self):
+        """The one player's input, as a one-item list (what VolleyMatch.update takes)."""
+        left, right = (pygame.K_a, pygame.K_LEFT), (pygame.K_d, pygame.K_RIGHT)
+        jump, spike = (pygame.K_w, pygame.K_UP), (pygame.K_SPACE, pygame.K_LSHIFT)
+        down = lambda keys: any(key in self.held for key in keys)
+        tap = any(key in self.tapped for key in spike)
         self.tapped.clear()
-        return result
+        return [VolleyInput(int(down(right)) - int(down(left)), down(jump), down(spike) or tap)]

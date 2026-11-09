@@ -9,14 +9,14 @@ from .keyboard_hints import default_hints
 
 
 class VolleyGame:
-    def __init__(self, local_players=1):
-        self.local_players = local_players
-        self.match = VolleyMatch(local_players)
+    def __init__(self, *, cpu=True):
+        self.cpu = cpu
+        self.match = VolleyMatch(cpu=cpu)
         self.renderer = VolleyRenderer()
         self.effects = SmashTrail()
-        self.hints = default_hints(local_players)
+        self.hints = default_hints()
         self.audio = VolleySounds()
-        self.best = [VolleyReward() for _ in range(local_players)]
+        self.best = [VolleyReward() for _ in range(1 if cpu else 2)]   # (the CPU side earns nothing)
         self._observed = None
 
     @property
@@ -25,7 +25,7 @@ class VolleyGame:
 
     def restart(self):
         self.observe_result()
-        self.match = VolleyMatch(self.local_players)
+        self.match = VolleyMatch(cpu=self.cpu)
         self.match.start()
         self.effects = SmashTrail()
 
@@ -42,7 +42,7 @@ class VolleyGame:
         if outcome is None or outcome is self._observed:
             return
         self._observed = outcome
-        for side in range(self.local_players):
+        for side in range(len(self.best)):
             result = VolleyReward.from_outcome(outcome, side)
             if result.score > self.best[side].score:
                 self.best[side] = result

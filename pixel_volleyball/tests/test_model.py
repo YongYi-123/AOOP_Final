@@ -7,7 +7,7 @@ from pixel_volleyball.model import *
 
 class VolleyPhysicsTests(unittest.TestCase):
     def setUp(self):
-        self.match = VolleyMatch(2)
+        self.match = VolleyMatch(cpu=False)
         self.match.start()
         self.match.serve_delay = 0
 
@@ -69,7 +69,7 @@ class VolleyPhysicsTests(unittest.TestCase):
         self.assertEqual(m.outcome.points, (5, 0))
 
     def test_solo_ai_moves_and_plays_rallies(self):
-        m = VolleyMatch(1)
+        m = VolleyMatch()
         m.start()
         before = m.players[1].x
         m.ball = VolleyBall(250, 140, 0, 0)

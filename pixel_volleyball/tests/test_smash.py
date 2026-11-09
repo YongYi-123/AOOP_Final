@@ -30,7 +30,7 @@ class SmashTests(unittest.TestCase):
         self.assertFalse(attack.animating)
 
     def match(self, side=0):
-        match = VolleyMatch(2)
+        match = VolleyMatch(cpu=False)
         match.start()
         match.serve_delay = 0
         player = match.players[side]
@@ -95,7 +95,7 @@ class SmashTests(unittest.TestCase):
     def test_human_timed_smash_survives_different_frame_rates(self):
         for fps in (30, 60, 144):
             for side in (0, 1):
-                match = VolleyMatch(2)
+                match = VolleyMatch(cpu=False)
                 match.start()
                 match.serve_delay = 0
                 player = match.players[side]
