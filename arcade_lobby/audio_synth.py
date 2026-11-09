@@ -1216,6 +1216,42 @@ def golden_age():
     return m.finish(lowpass=0.3, rms=-15, peak=0.7)
 
 
+# ---- HAPPY BREAKOUT.EXE (the little game on the old computer): chirpy, short, a bit like a 1980s home computer
+def sfx_breakout_paddle():
+    m = _sfx(0.1)
+    m.note(0, 0.06, 330, "sq", 0.35, release=0.03, slide=-300)
+    return m.finish(peak=0.45, fade=0.01)
+
+
+def sfx_breakout_brick():
+    m = _sfx(0.14)
+    m.note(0, 0.05, hz(midi("E6")), "p25", 0.35, release=0.03)
+    m.note(0.05, 0.07, hz(midi("A6")), "p25", 0.3, release=0.05)
+    m.noise(0, 0.02, 0.25, decay=100, bright=0.8, seed=171)
+    return m.finish(peak=0.45, fade=0.01)
+
+
+def sfx_breakout_wall():
+    m = _sfx(0.08)
+    m.note(0, 0.04, 200, "tri", 0.4, release=0.03)
+    return m.finish(peak=0.4, fade=0.01)
+
+
+def sfx_breakout_lose():
+    m = _sfx(0.6)
+    for k, name in enumerate(("E5", "C5", "A4", "E4")):
+        m.note(k * 0.12, 0.11, hz(midi(name)), "sq", 0.25, release=0.05)
+    return m.finish(peak=0.45, fade=0.02)
+
+
+def sfx_breakout_clear():
+    m = _sfx(0.75)
+    for k, name in enumerate(("C5", "E5", "G5", "C6", "E6", "G6")):
+        m.note(k * 0.09, 0.1, hz(midi(name)), "p25", 0.26, release=0.06)
+    m.note(0.56, 0.1, hz(midi("C7")), "bell", 0.2, release=0.06)
+    return m.finish(peak=0.5, fade=0.02)
+
+
 ROOM_MUSIC["golden_age"] = MUSIC["golden_age"] = golden_age
 
 
@@ -1236,7 +1272,9 @@ SFX = {"footstep": sfx_footstep, "confirm": sfx_confirm, "cancel": sfx_cancel, "
        "circuit_click": sfx_circuit_click, "circuit_connect": sfx_circuit_connect, "power_on": sfx_power_on,
        "phone_blip": sfx_phone_blip, "morse_dot": sfx_morse_dot, "morse_dash": sfx_morse_dash,
        "drawer_open": sfx_drawer_open, "page_turn": sfx_page_turn, "disk_insert": sfx_disk_insert,
-       "crt_boot": sfx_crt_boot, "trial_complete": sfx_trial_complete}
+       "crt_boot": sfx_crt_boot, "trial_complete": sfx_trial_complete,
+       "breakout_paddle": sfx_breakout_paddle, "breakout_brick": sfx_breakout_brick, "breakout_wall": sfx_breakout_wall,
+       "breakout_lose": sfx_breakout_lose, "breakout_clear": sfx_breakout_clear}
 
 
 def generate(only=None):

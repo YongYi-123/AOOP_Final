@@ -45,7 +45,8 @@ PRIORITY = {"footstep": 0, "meow": 1, "card": 1, "sit": 1, "pet": 1, "pet_b": 1,
             "capsule_turn": 1, "capsule_drop": 3, "capsule_pop_cat": 3, "capsule_pop_retro": 3,
             # TRIAL 01: a Morse tone is never cut off by a menu click; the power surge and the finale outrank everything
             "circuit_click": 1, "circuit_connect": 3, "power_on": 4, "phone_blip": 2, "morse_dot": 3, "morse_dash": 3,
-            "drawer_open": 2, "page_turn": 1, "disk_insert": 3, "crt_boot": 3, "trial_complete": 4}
+            "drawer_open": 2, "page_turn": 1, "disk_insert": 3, "crt_boot": 3, "trial_complete": 4,
+            "breakout_wall": 0, "breakout_paddle": 1, "breakout_brick": 2, "breakout_lose": 3, "breakout_clear": 4}
 SFX_FILES = ("footstep", "confirm", "cancel", "machine", "token", "ticket", "purchase", "card", "equip",
              "pet", "pet_b", "pet_c", "purr", "emote", "sit", "meow", "vend_hum", "vend_select", "vend_drop", "burp", "munch", "rainbow",
              "squeak", "zap", "mystery", "glitch",
@@ -55,7 +56,8 @@ SFX_FILES = ("footstep", "confirm", "cancel", "machine", "token", "ticket", "pur
              "pin_launch", "pin_flipper", "pin_bumper", "pin_rail", "pin_target", "pin_scoop", "pin_bonus", "pin_drain",
              "capsule_turn", "capsule_drop", "capsule_pop_cat", "capsule_pop_retro",
              "circuit_click", "circuit_connect", "power_on", "phone_blip", "morse_dot", "morse_dash", "drawer_open",
-             "page_turn", "disk_insert", "crt_boot", "trial_complete")
+             "page_turn", "disk_insert", "crt_boot", "trial_complete",
+             "breakout_paddle", "breakout_brick", "breakout_wall", "breakout_lose", "breakout_clear")
 # some effects are meant to be barely there
 SFX_GAIN = {"footstep": 0.3, "card": 0.7, "confirm": 0.8, "cancel": 0.8, "sit": 0.7, "emote": 0.8, "meow": 0.6, "purr": 1.0, "vend_hum": 0.6, "vend_select": 0.7, "vend_drop": 0.8, "burp": 0.7,
             # the shooter fires dozens of these a second of play: keep them a soft texture, not a buzz
