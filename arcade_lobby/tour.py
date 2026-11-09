@@ -7,8 +7,8 @@
 Nothing here forces anybody to follow anyone: a conversation starts when the players have walked into the room, stood
 a moment and nothing else is on screen (a popup, a window, the quest banner, a transition), and it is a plain dialogue
 box that ends after a handful of lines. Each one plays ONCE: its flag is saved in the shared story the moment it ends
-(quests.TOUR_EVENTS), in every profile of the session, so loading a save, re-entering a room or a second player joining
-never replays it. A room the players reach early is toured early: the quests that wait on the flags complete the moment
+(quests.TOUR_EVENTS), in the playing profile, so loading a save or re-entering a room
+never replays it. A room the player reaches early is toured early: the quests that wait on the flags complete the moment
 they become active, so nothing is done twice.
 
 Miao Meow LEADS the way in the Arcade Floor and the Prize Plaza: she runs in through the door the players came

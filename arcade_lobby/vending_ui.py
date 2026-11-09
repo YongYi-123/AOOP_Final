@@ -215,7 +215,6 @@ class VendingScene(MenuScene):
         self._draw_machine(surf)
         self._draw_details(surf)
         self.draw_footer(surf)
-        self.draw_overlay(surf)
 
     def idle_message(self):
         return "PICK A SNACK"
