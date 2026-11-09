@@ -1,8 +1,8 @@
-"""The startup flow: TITLE -> PLAYER COUNT -> PROFILE SELECT (-> P2 PROFILE
-SELECT) -> ARCADE HUB.
+"""The startup flow: TITLE -> PROFILE SELECT -> ARCADE HUB.
 
-StartupFlow remembers the choices and swaps the screens; each screen is a
-BaseScene that only reports what was picked. The profile list has no limit,
+The game is single-player: you pick ONE profile (saved profiles are separate
+saves; only one is ever played at a time). StartupFlow swaps the screens; each
+screen is a BaseScene that only reports what was picked. The profile list has no limit,
 so it scrolls; a profile is created from the list ("+ NEW PROFILE" -> ENTER
 NAME -> CREATE) and deleted only behind a NO-by-default confirmation.
 """
@@ -82,7 +82,7 @@ class MenuScene(BaseScene):
 class TitleScene(MenuScene):
     def handle_event(self, event):
         if event.type == pygame.KEYDOWN and event.key in CONFIRM_KEYS:
-            self.flow.show_player_count()
+            self.flow.show_profile_select()
 
     def draw(self, surf):
         super().draw(surf)
@@ -93,46 +93,7 @@ class TitleScene(MenuScene):
                       scale_color(Col.MAGENTA, 0.7))
         if int(self.time * 2.5) % 2 == 0:
             draw_centered(surf, "PRESS E OR ENTER", 196, Col.YELLOW, 1, scale_color(Col.YELLOW, 0.35))
-        draw_centered(surf, "1-2 PLAYERS  LOCAL", VIEW_H - 20, scale_color(Col.TEXT_MUTED, 0.8))
-
-
-# ------------------------------------------------------------------ player count
-class PlayerCountScene(MenuScene):
-    OPTIONS = (("1 PLAYER", 1), ("2 PLAYERS", 2))
-
-    def __init__(self, game, flow, selected=1):
-        super().__init__(game, flow)
-        self.selected = 0 if selected == 1 else 1
-
-    @property
-    def count(self):
-        return self.OPTIONS[self.selected][1]
-
-    def handle_event(self, event):
-        if event.type != pygame.KEYDOWN:
-            return
-        step = self.move_of(event.key)
-        if step:
-            self.selected = (self.selected + step) % len(self.OPTIONS)
-        elif event.key in CONFIRM_KEYS:
-            self.flow.choose_count(self.count)
-        elif event.key in BACK_KEYS:
-            self.flow.show_title()
-
-    def draw(self, surf):
-        super().draw(surf)
-        panel = neon_panel(150, 82, Col.CYAN, Col.MAGENTA, 246)
-        rect = panel.get_rect(center=(VIEW_W // 2, 128))
-        surf.blit(panel, rect)
-        draw_centered(surf, "PLAYERS", rect.y + 8, shade(Col.CYAN, 0.5), 2, scale_color(Col.MAGENTA, 0.8))
-        for i, (label, _) in enumerate(self.OPTIONS):
-            y = rect.y + 34 + i * 17
-            chosen = i == self.selected
-            if chosen:
-                surf.fill((*scale_color(Col.CYAN, 0.25),), (rect.x + 14, y - 3, rect.w - 28, 13))
-                draw_text(surf, ">", (rect.x + 20, y), Col.YELLOW)
-            draw_text(surf, label, (rect.x + 34, y), Col.TEXT if chosen else Col.TEXT_MUTED)
-        draw_centered(surf, "UP/DOWN SELECT  E OK  ESC BACK", VIEW_H - 20, scale_color(Col.TEXT_MUTED, 0.8))
+        draw_centered(surf, "SINGLE PLAYER", VIEW_H - 20, scale_color(Col.TEXT_MUTED, 0.8))
 
 
 # ------------------------------------------------------------------ profile select
@@ -168,14 +129,11 @@ class NameEntry:
 
 
 class ProfileSelectScene(MenuScene):
-    """Pick the profile for player `slot` (0 = P1). Profiles in `taken` (ids
-    already chosen) cannot be chosen again."""
+    """Pick the profile to play."""
 
-    def __init__(self, game, flow, slot=0, taken=(), highlight=None, notice=""):
+    def __init__(self, game, flow, highlight=None, notice=""):
         super().__init__(game, flow)
         self.manager = flow.manager
-        self.slot = slot
-        self.taken = set(taken)
         self.top = 0
         self.entry = None           # NameEntry while a name is being typed
         self.dialog = None          # the delete confirmation
@@ -188,7 +146,7 @@ class ProfileSelectScene(MenuScene):
     # ------------------------------------------------------------ list
     @property
     def title(self):
-        return f"P{self.slot + 1} SELECT PROFILE" if self.flow.count > 1 else "SELECT PROFILE"
+        return "SELECT PROFILE"
 
     @property
     def infos(self):
@@ -212,13 +170,10 @@ class ProfileSelectScene(MenuScene):
 
     def refresh(self, highlight=None):
         """Rebuild the selection after the list changed. Starts on `highlight`
-        (a profile id), else the most recently used free profile."""
+        (a profile id), else the most recently used profile."""
         infos = self.infos
-        want = highlight or self.manager.most_recent(exclude=self.taken)
+        want = highlight or self.manager.most_recent()
         self.selected = next((i for i, info in enumerate(infos) if info.profile_id == want), 0)
-        if want is None and infos:
-            self.selected = next((i for i, info in enumerate(infos)
-                                  if info.profile_id not in self.taken), 0)
         self.selected = min(self.selected, self.total - 1)
         self.top = scroll_window(self.selected, 0, self.total, VISIBLE_ROWS)
 
@@ -258,17 +213,13 @@ class ProfileSelectScene(MenuScene):
         elif key in DELETE_KEYS:
             self._ask_delete()
         elif key in BACK_KEYS:
-            self.flow.back_from_profile_select(self.slot)
+            self.flow.show_title()
 
     def _confirm(self):
         if self.on_new_profile:
             self.entry = NameEntry()
             return
-        info = self.selected_info
-        if info.profile_id in self.taken:
-            self.say("ALREADY PLAYING AS P1")
-            return
-        self.flow.choose_profile(self.slot, info.profile_id)
+        self.flow.choose_profile(self.selected_info.profile_id)
 
     def _entry_key(self, event):
         entry, key = self.entry, event.key
@@ -291,14 +242,11 @@ class ProfileSelectScene(MenuScene):
                            "NAME ALREADY USED" if "already exists" in str(e) else "PICK ANOTHER NAME")
             return
         self.entry = None
-        self.flow.show_creator(self.slot, name, self.taken)     # the profile is made when the look is confirmed
+        self.flow.show_creator(name)     # the profile is made when the look is confirmed
 
     def _ask_delete(self):
         info = self.selected_info
         if info is None:
-            return
-        if info.profile_id in self.taken:
-            self.say("P1 IS PLAYING AS THIS PROFILE")
             return
         self.dialog = DialogueBox(
             "DELETE PROFILE?", "THIS CANNOT BE UNDONE.", ["NO, KEEP IT", "YES, DELETE IT"],
@@ -343,12 +291,8 @@ class ProfileSelectScene(MenuScene):
                 draw_text(surf, ">", (rect.x + 16, y + 1), Col.YELLOW)
             if index < len(infos):
                 info = infos[index]
-                used = info.profile_id in self.taken
-                color = scale_color(Col.TEXT_MUTED, 0.7) if used else (Col.TEXT if chosen else Col.TEXT_MUTED)
-                draw_text(surf, info.display_name, (rect.x + 28, y + 1), color)
-                if used:
-                    draw_text(surf, "IN USE", (rect.right - 14, y + 1), Col.MAGENTA, anchor="topright")
-                elif info.profile_id == recent:
+                draw_text(surf, info.display_name, (rect.x + 28, y + 1), Col.TEXT if chosen else Col.TEXT_MUTED)
+                if info.profile_id == recent:
                     draw_text(surf, "LAST", (rect.right - 14, y + 1), shade(Col.YELLOW, -0.2), anchor="topright")
             else:
                 draw_text(surf, NEW_PROFILE, (rect.x + 28, y + 1), Col.GREEN if chosen else
@@ -389,14 +333,12 @@ class ProfileSelectScene(MenuScene):
 
 # ------------------------------------------------------------------ the flow
 class StartupFlow:
-    """TITLE -> PLAYER COUNT -> PROFILE SELECT (x1 or x2) -> hub.
+    """TITLE -> PROFILE SELECT -> hub.
     A new profile passes through the CHARACTER CREATOR first."""
 
     def __init__(self, game, manager):
         self.game = game
         self.manager = manager
-        self.count = manager.last_player_count
-        self.chosen = []                    # profile ids picked so far, P1 first
 
     def _show(self, scene, fade=True):
         scenes = self.game.scenes
@@ -411,50 +353,29 @@ class StartupFlow:
     def show_title(self):
         self._show(TitleScene(self.game, self))
 
-    def show_player_count(self):
-        self._show(PlayerCountScene(self.game, self, self.count))
+    def show_profile_select(self):
+        self._show(ProfileSelectScene(self.game, self))
 
-    def choose_count(self, count):
-        self.count = count
-        self.chosen = []
-        self._show(ProfileSelectScene(self.game, self, 0))
+    def choose_profile(self, profile_id):
+        self.finish(profile_id)
 
-    def choose_profile(self, slot, profile_id):
-        if profile_id in self.chosen[:slot]:        # one profile cannot be two players
-            return
-        self.chosen = self.chosen[:slot] + [profile_id]
-        if len(self.chosen) < self.count:
-            self._show(ProfileSelectScene(self.game, self, 1, taken=self.chosen))
-        else:
-            self.finish()
-
-    def show_creator(self, slot, name, taken=()):
+    def show_creator(self, name):
         """CHARACTER CREATOR for a new profile called `name`; nothing is saved until CONFIRM."""
         from character_creator import CharacterCreatorScene
-        from player import LOOKS
-        look = LOOKS[self.count][min(slot, self.count - 1)]
+        from player import DEFAULT_LOOK
 
         def confirm(basic):
             profile = self.manager.create_profile(name)
             profile.set_basic_appearance(basic)
-            self._show(ProfileSelectScene(self.game, self, slot, taken, highlight=profile.profile_id,
+            self._show(ProfileSelectScene(self.game, self, highlight=profile.profile_id,
                                           notice=f"CREATED {name.upper()}"))
 
         def back():
-            self._show(ProfileSelectScene(self.game, self, slot, taken))
+            self._show(ProfileSelectScene(self.game, self))
 
-        self._show(CharacterCreatorScene(self.game, self, name, look, confirm, back))
+        self._show(CharacterCreatorScene(self.game, self, name, DEFAULT_LOOK, confirm, back))
 
-    def back_from_profile_select(self, slot):
-        if slot == 0:
-            self.chosen = []
-            self.show_player_count()
-        else:
-            first = self.chosen[0] if self.chosen else None
-            self.chosen = []
-            self._show(ProfileSelectScene(self.game, self, 0, highlight=first))
-
-    def finish(self):
-        profiles = [self.manager.load_profile(pid) for pid in self.chosen]
-        self.manager.record_session(profiles, self.count)
-        self.game.start_session(LocalSession(profiles), from_menu=True)
+    def finish(self, profile_id):
+        profile = self.manager.load_profile(profile_id)
+        self.manager.record_session(profile)
+        self.game.start_session(LocalSession(profile), from_menu=True)

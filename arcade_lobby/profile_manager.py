@@ -3,7 +3,7 @@
 Layout (under the saves directory):
 
     profiles.json              index: profile_id, display_name, created_at,
-                               last_played, plus last player count / recents
+                               last_played, plus recents
     profiles/<profile-id>.json one file of gameplay progress per profile
 
 A profile is known by its generated, stable ID; the display name is only a
@@ -20,6 +20,7 @@ the old file is kept next to it as `save_data.json.migrated`.
 import json
 import os
 import re
+import shutil
 import uuid
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -27,7 +28,8 @@ from datetime import datetime, timezone
 from player_profile import PlayerProfile, ProfileStore
 from settings import PROFILE_NAME_MAX, RECENT_PROFILES
 
-INDEX_VERSION = 1
+INDEX_VERSION = 2               # 2: single-player (1 had a "last_player_count" for the old 1-2 player menu)
+SINGLE_PLAYER_BACKUP = ".pre-single-player"     # the version-1 index is copied to profiles.json + this, once
 MIGRATED_NAME = "PLAYER"        # what the old single save is called after migration
 _ID_RE = re.compile(r"^[A-Za-z0-9_-]{1,64}$")
 _NAME_CHARS = re.compile(r"[^A-Za-z0-9 .'!?-]")     # what the pixel font can draw
@@ -101,12 +103,14 @@ class ProfileManager:
         self.profiles_dir = os.path.join(root, "profiles")
         self._infos = {}            # profile_id -> ProfileInfo, in creation order
         self._loaded = {}           # profile_id -> the one live PlayerProfile
-        self.last_player_count = 1
         self.recent_ids = []        # most recently used first
         self.migrated_from = None
+        self._needs_single_player_upgrade = False
         os.makedirs(self.profiles_dir, exist_ok=True)
         if os.path.exists(self.index_path):
             self._read_index()
+            if self._needs_single_player_upgrade:
+                self._upgrade_index()
         else:
             self._first_run(legacy_path)
 
@@ -199,18 +203,15 @@ class ProfileManager:
         return ProfileStore(self.profile_path(profile.profile_id), self.clock).save(profile)
 
     # ------------------------------------------------------------ recents
-    def record_session(self, profiles, player_count):
-        """Remember who just started playing and in how many players."""
-        self.last_player_count = player_count
-        now = self._now()
-        for profile in reversed(list(profiles)):
-            info = self._infos.get(profile.profile_id)
-            if info is None:
-                continue
-            info.last_played = now
-            if info.profile_id in self.recent_ids:
-                self.recent_ids.remove(info.profile_id)
-            self.recent_ids.insert(0, info.profile_id)
+    def record_session(self, profile):
+        """Remember who just started playing."""
+        info = self._infos.get(profile.profile_id)
+        if info is None:
+            return
+        info.last_played = self._now()
+        if info.profile_id in self.recent_ids:
+            self.recent_ids.remove(info.profile_id)
+        self.recent_ids.insert(0, info.profile_id)
         del self.recent_ids[RECENT_PROFILES:]
         self._write_index()
 
@@ -225,7 +226,6 @@ class ProfileManager:
     def _write_index(self):
         return _write_json(self.index_path, {
             "version": INDEX_VERSION,
-            "last_player_count": self.last_player_count,
             "recent": list(self.recent_ids),
             "migrated_from": self.migrated_from,
             "profiles": [i.to_dict() for i in self._infos.values()],
@@ -254,13 +254,27 @@ class ProfileManager:
                 created, played = entry.get("created_at"), entry.get("last_played")
                 self._infos[pid] = ProfileInfo(pid, name, created if isinstance(created, str) else "",
                                                played if isinstance(played, str) else None)
-        count = data.get("last_player_count")
-        self.last_player_count = count if count in (1, 2) else 1
+        # a version-1 index (the 1-2 player game) is upgraded once: see _upgrade_index
+        self._needs_single_player_upgrade = data.get("version") != INDEX_VERSION
         recent = data.get("recent")
         self.recent_ids = [p for p in recent if p in self._infos][:RECENT_PROFILES] \
             if isinstance(recent, list) else []
         mig = data.get("migrated_from")
         self.migrated_from = mig if isinstance(mig, str) else None
+
+    def _upgrade_index(self):
+        """Index written by the two-player game: keep a copy of it next to the new one (never overwriting
+        an earlier copy), then write it again without the player-count setting. Profiles and their files are
+        not touched, so nobody loses a token, a ticket or any story progress. Runs once: the new index is
+        version 2, and everything the old one said (profiles, names, recents) is already loaded."""
+        backup = self.index_path + SINGLE_PLAYER_BACKUP
+        try:
+            if not os.path.exists(backup):
+                shutil.copy2(self.index_path, backup)
+        except OSError as e:
+            print(f"[save] could not back up {self.index_path} ({e}); upgrading it anyway")
+        self._needs_single_player_upgrade = False
+        self._write_index()
 
     def _rebuild_index(self):
         """The index is lost: recover every profile that still has a file."""
