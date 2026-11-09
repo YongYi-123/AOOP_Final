@@ -50,6 +50,8 @@ class QuestDef:
     intro: str = ""             # the line shown under the NEW MAIN QUEST banner
 
 
+MEMORY_FRAGMENTS = {"trial_01": "memory_fragment_01"}      # a trial's first completion unseals its Memory Fragment (a story flag, kept once)
+TRIAL_NOTES = ("trial01_intro", "trial01_breakout")                           # quiet flags a trial scene keeps for itself (its opening has played)
 TOUR_EVENTS = ("tour_home", "tour_arcade", "met_mochi")     # the tour conversations that have played (flags in the story)
 LEGACY_QUESTS = {"get_your_bearings"}                        # a quest the tour replaced: reading it in a save means 'tour done'
 
@@ -314,6 +316,15 @@ class QuestManager:
         """Has this pure-fun easter egg (e.g. "out_of_time") been discovered by anyone in the session?"""
         return bool(self.state.get("flags", {}).get(f"egg_{key}"))
 
+    @property
+    def memory_fragments(self):
+        """How many Memory Fragments have been unsealed (one per Secret Trial that was completed)."""
+        flags = self.state.get("flags", {})
+        return sum(1 for flag in MEMORY_FRAGMENTS.values() if flags.get(flag))
+
+    def has_memory_fragment(self, trial_id):
+        return bool(self.state.get("flags", {}).get(MEMORY_FRAGMENTS.get(trial_id, "")))
+
     def has_secret_item(self, key):
         return key in self.state.get("stats", {}).get("secret_items", ())
 
@@ -414,6 +425,14 @@ class QuestManager:
             if ident not in found:
                 found.append(ident)
                 changed = True
+                fragment = MEMORY_FRAGMENTS.get(ident) if name == "secret_trial_done" else None
+                if fragment:                                  # kept with the first completion, never handed out twice
+                    state.setdefault("flags", {})[fragment] = True
+        elif name in TRIAL_NOTES:                             # quiet: no pop-up, no counter, no reward
+            if not state.setdefault("flags", {}).get(name):
+                state["flags"][name] = True
+                self.save()
+            return
         elif name == "easter_egg_found":                      # a pure-fun discovery: a note in the story, never a counter or a reward
             flag = f"egg_{key}" if isinstance(key, str) and key else None
             if flag and not state.setdefault("flags", {}).get(flag):
