@@ -343,7 +343,7 @@ Tutorial and nearby prompts use participant-specific sword/interact/dash keys.
 Menu title/footer show the active campaign version. No host module or economy
 was modified. The private result still has no player payouts.
 
-Bridge regressions include a real two-player lobby session launched by P2,
+Bridge regressions include a real lobby session (the arcade is single-player now),
 onboarding, powder input and safe return with identical token/ticket balances.
 
 Cabinet follow-up validation: all 137 Puzzle Maze tests passed in 18.186 seconds;
@@ -591,7 +591,7 @@ Verified commits before the final documentation record:
 - 006ae60 — legacy key/completion/gate-save regression tests.
 - b76e9b0 — distinct host key cue and archived HUD spacing.
 
-Manual checks remaining: keyboard feel in standalone and P1/P2 Lobby play,
+Manual checks remaining: keyboard feel in standalone and Lobby play,
 continuous Golem/Warden difficulty, Orb socket clarity and recall, perceived
 acquisition/gate timing, sound balance, treasure readability, native window
 scaling and FPS on the target machine. No manual real-time play was performed.

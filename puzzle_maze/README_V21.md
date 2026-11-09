@@ -140,9 +140,8 @@ The original version-one `save.json` remains untouched.
 
 The existing optional `lobby_scene.py` remains inside this package. It now routes
 combat / tools and renders text at the host's full output resolution. No host
-module was edited. Solo controls match the table; in a two-player session the
-starter controls the game: P1 uses WASD, J, E, Space and LShift; P2 uses arrows,
-K, Enter, KP0 and RShift. The tutorial and HUD show that participant's controls.
+module was edited. The arcade is single-player: the player uses WASD or the
+arrows, J, E / Enter, Space and LShift (the table above). The tutorial and HUD show those controls.
 Q / F / H / Tab / R remain shared utility keys. The optional cabinet remains a
 free trial without score or ticket payouts.
 
