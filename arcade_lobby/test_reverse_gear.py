@@ -46,20 +46,20 @@ class RacerHubBase(unittest.TestCase):
         self.start()
 
     def start(self):
-        self.game = Game(session=LocalSession(self.profiles))
+        self.game = Game(session=LocalSession(self.profiles[0]))
         self.addCleanup(self.game.quit)
         self.story = self.game.hub.story
         self.m = self.story.manager
         self.m.finish_opening()
 
     # ------------------------------------------------------------ driving the real scene
-    def launch(self, who=0):
+    def launch(self):
         room = goto_room(self.game, "arcade_floor")
         machine = next(m for m in room.machines if m.id == "retro_racer")
         session = self.game.session
-        player = session.players[who]
+        player = session.primary
         scene = RetroRacerScene(self.game, machine)
-        scene.attach_players([player], [p for p in session.players if p is not player])
+        scene.attach_players([player])
         self.game.scenes.push(scene)
         for _ in range(1200):                               # wipe, loading card, first-time build, title screen
             self.game.step([], DT)
@@ -87,8 +87,8 @@ class RacerHubBase(unittest.TestCase):
                 self.scene.handle_event(e)
             self.scene.update(DT)
 
-    def move_key(self, direction, who=None):
-        scheme = self.scene.input.scheme if who is None else self.game.session.players[who].controls
+    def move_key(self, direction):
+        scheme = self.scene.input.scheme
         want = {"up": (0, -1), "down": (0, 1)}[direction]
         return next(k for k, d in scheme.move.items() if d == want)
 
@@ -219,7 +219,7 @@ class SaveAndSessionTests(RacerHubBase):
         path = os.path.join(tempfile.mkdtemp(), "p.json")
         self.addCleanup(shutil.rmtree, os.path.dirname(path), True)
         ProfileStore(path).save(self.profiles[0])
-        again = QuestManager(LocalSession([ProfileStore(path).load()]))
+        again = QuestManager(LocalSession(ProfileStore(path).load()))
         self.assertTrue(again.has_secret_item(SECRET_ITEM_RETRO_RACER))
         self.assertEqual(again.secret_items, 1)
 
@@ -238,7 +238,7 @@ class SaveAndSessionTests(RacerHubBase):
 
     def test_an_old_save_without_any_story_loads_and_has_no_item(self):
         old = PlayerProfile(profile_id="old", display_name="Old", tokens=3, tickets=9)
-        m = QuestManager(LocalSession([old]))
+        m = QuestManager(LocalSession(old))
         self.assertEqual(m.secret_items, 0)
         self.assertFalse(m.has_secret_item(SECRET_ITEM_RETRO_RACER))
         self.assertIsNone(m.mochi_story_stage)
@@ -251,36 +251,24 @@ class SaveAndSessionTests(RacerHubBase):
         self.assertEqual(self.m.secret_items, 2)
 
 
-class TwoPlayerTests(RacerHubBase):
+class OtherSavedProfileTests(RacerHubBase):
+    """A second profile is saved but never played: the secret belongs to the playing profile alone."""
     players = 2
 
-    def test_either_player_finding_it_updates_the_one_shared_story_in_both_saves(self):
-        self.launch(who=1)                                      # player two drives
+    def test_finding_it_updates_the_playing_profiles_story_only(self):
+        self.launch()
         self.to_secret()
         self.finish_run()
         self.assertEqual(self.m.secret_items, 1)
-        for profile in self.profiles:
-            self.assertEqual(profile.story["stats"]["secret_items"], [SECRET_ITEM_RETRO_RACER])
+        self.assertEqual(self.profiles[0].story["stats"]["secret_items"], [SECRET_ITEM_RETRO_RACER])
+        self.assertEqual(self.profiles[1].story, {})
 
-    def test_the_other_player_then_sees_it_as_already_found(self):
-        self.launch(who=1)
+    def test_the_old_second_player_keys_cannot_steer_the_secret(self):
+        self.launch()
         self.to_secret()
-        self.finish_run()
-        self.scene._leave()
-        self.frames(90)
-        self.launch(who=0)
-        self.assertTrue(self.racer.gear_owned)
-        self.to_secret()
-        run = self.finish_run()
-        self.assertFalse(run.first_time)
-        self.assertEqual(self.m.secret_items, 1)
-
-    def test_the_spectator_cannot_steer_the_secret(self):
-        self.launch(who=0)
-        self.to_secret()
-        other_up = self.move_key("up", who=1)
         before = self.racer.secret.t
-        self.scene.handle_event(key(other_up))
+        for k in (pygame.K_o, pygame.K_RCTRL, pygame.K_RSHIFT):
+            self.scene.handle_event(key(k))
         self.assertEqual(self.racer.secret.t, before)
 
 
@@ -415,10 +403,10 @@ class RealKeyFlowTest(RacerHubBase):
 class OutOfTimeHubTests(RacerHubBase):
     players = 2
 
-    def egg(self, who=0):
+    def egg(self):
         """With the Reverse Gear already found, take the secret road and cross the hidden plate at speed."""
         self.m.handle("secret_item_found", SECRET_ITEM_RETRO_RACER)
-        self.launch(who)
+        self.launch()
         run = self.to_secret()
         run.skip()
         self.scene_frames(3.0)
@@ -466,17 +454,17 @@ class OutOfTimeHubTests(RacerHubBase):
         path = os.path.join(tempfile.mkdtemp(), "p.json")
         self.addCleanup(shutil.rmtree, os.path.dirname(path), True)
         ProfileStore(path).save(self.profiles[0])
-        self.assertTrue(QuestManager(LocalSession([ProfileStore(path).load()])).egg_found("out_of_time"))
+        self.assertTrue(QuestManager(LocalSession(ProfileStore(path).load())).egg_found("out_of_time"))
         self.scene._leave()
         self.frames(90)
-        self.launch(0)
+        self.launch()
         self.assertTrue(self.racer.egg_found)
 
-    def test_either_player_finding_it_updates_the_shared_story_in_both_saves(self):
-        self.egg(who=1)
+    def test_finding_it_is_noted_in_the_playing_profiles_story_only(self):
+        self.egg()
         self.scene_frames(7.0)
-        for profile in self.profiles:
-            self.assertTrue(profile.story["flags"]["egg_out_of_time"])
+        self.assertTrue(self.profiles[0].story["flags"]["egg_out_of_time"])
+        self.assertEqual(self.profiles[1].story, {})
 
     def test_the_exit_of_the_restored_road_returns_to_the_arcade_with_the_music_restored(self):
         run = self.egg()
@@ -499,7 +487,7 @@ class OutOfTimeHubTests(RacerHubBase):
         self.assertEqual(self.m.secret_items, 1)
 
     def test_on_a_first_visit_the_round_trip_through_time_earns_the_reverse_gear(self):
-        self.launch(0)
+        self.launch()
         run = self.to_secret()
         run.skip()
         self.scene_frames(3.0)

@@ -1,5 +1,5 @@
 """NEON 21 inside the Arcade Hub: the Lucky Corner layout, launching from the
-cabinet, the scene's controls, P1/P2 isolation, leaving mid-hand and layout of
+cabinet, the scene's controls, profile ownership, leaving mid-hand and layout of
 every screen. Run headless from this folder:   python -m unittest test_neon21_integration
 """
 import json
@@ -314,7 +314,9 @@ class LaunchTests(HubBase):
                                            pos=(rect.centerx * 2, rect.centery * 2))])
 
 
-class TwoPlayerTests(unittest.TestCase):
+class ProfileOwnershipTests(unittest.TestCase):
+    """Alice plays; Bob is only a saved profile."""
+
     def setUp(self):
         self.dir = tempfile.mkdtemp()
         self.manager = ProfileManager(os.path.join(self.dir, "saves"), clock=GameClock(lambda: DAY1))
@@ -322,9 +324,9 @@ class TwoPlayerTests(unittest.TestCase):
         self.b = self.manager.create_profile("Bob")
         self.a.add_tokens(10, "SETUP")
         self.b.add_tokens(10, "SETUP")
-        self.session = LocalSession([self.a, self.b])
+        self.session = LocalSession(self.a)
         self.game = Game(session=self.session)
-        self.p1, self.p2 = self.session.players
+        self.p1 = self.session.primary
 
     def tearDown(self):
         shutil.rmtree(self.dir, ignore_errors=True)
@@ -340,32 +342,31 @@ class TwoPlayerTests(unittest.TestCase):
         scene.table.deck_source = lambda: stack(*WIN)
         return scene
 
-    def test_the_other_player_only_spectates(self):
-        scene = self.scene_for(self.p2)
-        self.assertEqual(scene.spectators, [self.p1])
-        self.frames(1, [key(pygame.K_e), key(pygame.K_w), key(pygame.K_a), key(pygame.K_d)])   # P1's keys
-        self.assertEqual((scene.table.phase, self.b.tokens, self.a.tokens), (scene.table.IDLE, 20, 20))
-        self.frames(1, [key(pygame.K_RETURN)])                                                 # P2's confirm
-        self.assertEqual((self.b.tokens, self.a.tokens), (18, 20))
+    def test_there_are_no_spectators_and_the_old_second_player_keys_do_nothing(self):
+        scene = self.scene_for(self.p1)
+        self.assertFalse(hasattr(scene, "spectators"))
+        self.frames(1, [key(pygame.K_RCTRL), key(pygame.K_o), key(pygame.K_KP0)])             # old second-player keys
+        self.assertEqual((scene.table.phase, self.a.tokens, self.b.tokens), (scene.table.IDLE, 20, 20))
+        self.frames(1, [key(pygame.K_RETURN)])                                                 # the confirm key
+        self.assertEqual((self.a.tokens, self.b.tokens), (18, 20))
         self.frames(90)
-        self.frames(1, [key(pygame.K_d)])                                                      # P1's stand: ignored
         self.assertEqual(scene.table.phase, scene.table.PLAYING)
-        self.frames(1, [key(pygame.K_RIGHT)])                                                  # P2's stand
+        self.frames(1, [key(pygame.K_RIGHT)])                                                  # stand
         self.frames(200)
-        self.assertEqual((self.b.tokens, self.a.tokens), (22, 20))
+        self.assertEqual((self.a.tokens, self.b.tokens), (22, 20))
 
     def test_winnings_and_cap_stay_on_the_playing_profile(self):
         scene = self.scene_for(self.p1)
         scene.table.set_currency(TICKETS)
         self.frames(1, [key(pygame.K_e)])
         self.frames(90)
-        self.frames(1, [key(pygame.K_RIGHT)])                                                  # P2 key: ignored
+        self.frames(1, [key(pygame.K_o)])                                                      # not a key of the game
         self.frames(1, [key(pygame.K_d)])
         self.frames(200)
         self.assertEqual((self.a.tickets, self.a.neon21_tickets_today()), (2, 2))
         self.assertEqual((self.b.tickets, self.b.neon21_tickets_today(), self.b.tokens), (0, 0, 20))
 
-    def test_two_players_can_take_turns_and_keep_separate_pending_rounds(self):
+    def test_each_profile_keeps_its_own_pending_round(self):
         ta, tb = Neon21Table(self.a), Neon21Table(self.b)
         ta.deck_source = lambda: stack(*WIN)
         tb.deck_source = lambda: stack(*LOSE)
@@ -456,29 +457,6 @@ class ScreenLayoutTests(HubBase):
         canvas = pygame.Surface((VIEW_W, VIEW_H))
         scene.draw(canvas)
         return canvas
-
-    def test_the_spectating_tag_never_covers_the_controls(self):
-        """Two players: the other player's SPECTATING tag sits bottom-right."""
-        from font import get_font
-        room, scene = self.open_table()
-        scene.spectators = [type("P", (), {"tag": "P1 ALICE"})()]
-        tag = get_font().render_glow("P1 ALICE - SPECTATING", (0, 0, 0), (0, 0, 0)).get_rect()
-        tag.bottomright = (VIEW_W - 4, VIEW_H - 3)
-        states = []
-        for name in ("betting", "playing", "result"):
-            if name == "playing":
-                self.rig(scene, WIN)
-                self.frames(1, [key(pygame.K_e)])
-                self.frames(90)
-            if name == "result":
-                self.frames(1, [key(pygame.K_d)])
-                self.frames(250)
-            canvas = pygame.Surface((VIEW_W, VIEW_H))
-            scene.draw(canvas)
-            for r in scene.text_rects:
-                self.assertFalse(r.colliderect(tag), f"{name}: {r} under the spectating tag {tag}")
-            for _name, (rect, _l, _e) in scene.buttons.items():
-                self.assertFalse(rect.colliderect(tag), name)
 
     def test_two_to_eleven_cards_fit_for_both_hands(self):
         from neon21_scene import CARD_W, DEALER_BOUNDS, MIN_SPACING, PLAYER_BOUNDS, SHOE

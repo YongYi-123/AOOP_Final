@@ -19,15 +19,16 @@ from settings import MACHINES
 
 
 class GalaxyLobbyTests(unittest.TestCase):
-    def make_game(self, two=False, starter=0, **profile_kwargs):
+    def make_game(self, other_saved=False, **profile_kwargs):
+        """The player is profiles[0]; with `other_saved` a second profile exists (saved, never played)."""
         profiles = [PlayerProfile(profile_id="gal_a", **profile_kwargs)]
-        if two:
+        if other_saved:
             profiles.append(PlayerProfile(profile_id="gal_b", **profile_kwargs))
-        self.game = Game(session=LocalSession(profiles))
+        self.game = Game(session=LocalSession(profiles[0]))
         self.addCleanup(self.game.quit)
         self.room = goto_room(self.game, "arcade_floor")
         self.machine = next(m for m in self.room.machines if m.id == "galaxy_defender")
-        self.room._start_game(self.machine, player=self.room.players[starter])
+        self.room._start_game(self.machine, player=self.room.players[0])
         self.frames(30)
         self.scene = self.game.scenes.current
         self.assertIsInstance(self.scene, GalaxyDefenderScene)
@@ -66,7 +67,7 @@ class GalaxyLobbyTests(unittest.TestCase):
                          ("Starfall Assault", "STARFALL ASSAULT", "galaxy"))
         positions = [m["slot"] if "slot" in m else (m["x"], m.get("y")) for m in MACHINES]
         self.assertEqual(len(set(positions)), len(positions))
-        self.assertEqual(minigame_definition("galaxy_defender").max_players, 1)
+        self.assertEqual(minigame_definition("galaxy_defender").game_id, "galaxy_defender")
 
     def test_every_machine_still_exists_in_the_arcade(self):
         self.make_game()
@@ -202,11 +203,11 @@ class GalaxyLobbyTests(unittest.TestCase):
         self.frames(60)
         self.assertEqual(profiles[0].tickets, PlayerProfile().tickets + expected)
 
-    def test_second_player_starting_is_the_one_scored_and_paid(self):
-        profiles = self.make_game(two=True, starter=1)
-        self.assertEqual(self.scene.participants, [profiles[1]])
+    def test_the_player_is_the_one_scored_and_paid_and_another_saved_profile_is_untouched(self):
+        profiles = self.make_game(other_saved=True)
+        self.assertEqual(self.scene.participants, [profiles[0]])
         self.assertEqual(self.scene.galaxy.saved_score, 0)
-        profiles[1].record_score(SCORE_KEY, 777)
+        profiles[0].record_score(SCORE_KEY, 777)
         self.scene.attach_players(self.scene.players)
         self.assertEqual(self.scene.galaxy.saved_score, 777)
         self.start_run()
@@ -214,23 +215,25 @@ class GalaxyLobbyTests(unittest.TestCase):
         paid = self.scene.galaxy.best.tickets
         self.leave()
         self.frames(30)
-        self.assertEqual(profiles[0].tickets, PlayerProfile().tickets)
-        self.assertEqual(profiles[1].tickets, PlayerProfile().tickets + paid)
-        self.assertNotIn(SCORE_KEY, profiles[0].high_scores)
-        self.assertEqual(profiles[1].high_score(SCORE_KEY), 2000)
+        self.assertEqual(profiles[1].tickets, PlayerProfile().tickets)
+        self.assertEqual(profiles[0].tickets, PlayerProfile().tickets + paid)
+        self.assertNotIn(SCORE_KEY, profiles[1].high_scores)
+        self.assertEqual(profiles[0].high_score(SCORE_KEY), 2000)
 
-    def test_second_players_keys_drive_the_ship_when_they_start_it(self):
-        self.make_game(two=True, starter=1)
+    def test_both_the_wasd_and_the_arrow_keys_drive_the_ship(self):
+        self.make_game()
         self.start_run()
         run = self.scene.galaxy.run
+        for key in (pygame.K_a, pygame.K_LEFT):
+            before = run.x
+            self.frames(1, key)
+            self.frames(10)
+            self.assertLess(run.x, before)
+            self.frames(1, key, down=False)
         before = run.x
-        self.frames(1, pygame.K_a)                       # player 1's key: ignored
+        self.frames(1, pygame.K_o)                       # a key of the old second player: ignored
         self.frames(10)
         self.assertEqual(run.x, before)
-        self.frames(1, pygame.K_a, down=False)
-        self.frames(1, pygame.K_LEFT)                    # player 2's key
-        self.frames(10)
-        self.assertLess(run.x, before)
 
     def test_old_saves_without_galaxy_records_still_load(self):
         profile = PlayerProfile.from_dict({"high_scores": {"pixel_volleyball": 300}, "tokens": 5})

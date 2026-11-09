@@ -14,15 +14,13 @@ from cat_territory.model import BoardState
 
 
 class CatTerritoryLobbyTests(unittest.TestCase):
-    def start(self, two=False, starter=0):
-        self.profiles = [PlayerProfile(profile_id="mine_a")]
-        if two:
-            self.profiles.append(PlayerProfile(profile_id="mine_b"))
-        self.game = Game(session=LocalSession(self.profiles))
+    def start(self):
+        self.profiles = [PlayerProfile(profile_id="mine_a"), PlayerProfile(profile_id="mine_b")]    # (b is only saved, not played)
+        self.game = Game(session=LocalSession(self.profiles[0]))
         self.addCleanup(self.game.quit)
         self.room = goto_room(self.game, "arcade_floor")
         machine = next(m for m in self.room.machines if m.id == "cat_minesweeper")
-        self.room._start_game(machine, player=self.room.players[starter])
+        self.room._start_game(machine, player=self.room.players[0])
         self.frames(30)
         self.scene = self.game.scenes.current
         self.assertIsInstance(self.scene, CatTerritoryScene)
@@ -52,7 +50,7 @@ class CatTerritoryLobbyTests(unittest.TestCase):
 
     def test_scaled_mouse_single_and_double_click(self):
         self.start()
-        self.assertFalse(minigame_definition("cat_minesweeper").supports(2))
+        self.assertFalse(hasattr(minigame_definition("cat_minesweeper"), "max_players"))
         self.key(pygame.K_RETURN)
         self.click(0,0)
         self.frames(20)
@@ -79,18 +77,6 @@ class CatTerritoryLobbyTests(unittest.TestCase):
         self.assertEqual(self.profiles[0].high_score("cat_minesweeper"), result.score)
         self.frames(10)
         self.assertEqual(self.profiles[0].tickets, 20)
-
-    def test_second_player_can_play_and_spectator_is_not_rewarded(self):
-        self.start(True, starter=1)
-        self.key(pygame.K_e)
-        self.assertTrue(self.scene.territory.selecting)
-        self.key(pygame.K_RETURN)
-        self.win()
-        result = self.scene.get_result()
-        self.assertIsNone(result.for_profile(self.profiles[0].profile_id))
-        self.leave()
-        self.assertEqual(self.profiles[0].tickets, 0)
-        self.assertEqual(self.profiles[1].tickets, 20)
 
     def test_abandonment_and_loss_return_without_tickets(self):
         self.start()

@@ -1,5 +1,5 @@
 """NEON COIN PUSHER inside the Arcade Hub: the Lucky Corner cabinet, launching, the scene's
-controls (solo, P1, P2), pause / exit, saving and crash recovery, audio and rendering.
+controls, pause / exit, saving and crash recovery, audio and rendering.
 Run headless from this folder:   python -m unittest test_coin_pusher_integration
 """
 import json
@@ -17,7 +17,7 @@ import pygame  # noqa: E402
 
 import coin_pusher as cp  # noqa: E402
 from coin_pusher_scene import CoinPusherScene  # noqa: E402
-from controls import P1_CONTROLS, P2_CONTROLS, SOLO_CONTROLS  # noqa: E402
+from controls import SOLO_CONTROLS  # noqa: E402
 from display import compute_layout  # noqa: E402
 from game import Game  # noqa: E402
 from game_clock import GameClock  # noqa: E402
@@ -316,7 +316,9 @@ class RewardTests(HubBase):
         self.assertEqual(self.game.profile.tokens, self.start_tokens + 1)
 
 
-class TwoPlayerTests(unittest.TestCase):
+class ProfileOwnershipTests(unittest.TestCase):
+    """Alice plays; Bob is only a saved profile (his tokens and board must never be touched)."""
+
     def setUp(self):
         self.dir = tempfile.mkdtemp()
         self.manager = ProfileManager(os.path.join(self.dir, "saves"), clock=GameClock(lambda: DAY1))
@@ -324,9 +326,9 @@ class TwoPlayerTests(unittest.TestCase):
         self.b = self.manager.create_profile("Bob")
         self.a.add_tokens(10, "SETUP")
         self.b.add_tokens(10, "SETUP")
-        self.session = LocalSession([self.a, self.b])
+        self.session = LocalSession(self.a)
         self.game = Game(session=self.session)
-        self.p1, self.p2 = self.session.players
+        self.p1 = self.session.primary
         self.ta, self.tb = self.a.tokens, self.b.tokens
 
     def tearDown(self):
@@ -342,42 +344,29 @@ class TwoPlayerTests(unittest.TestCase):
         self.game.scenes.push(scene, fade=False)
         return scene
 
-    def test_p1_plays_with_wasd_and_space_p2_only_watches(self):
+    def test_the_player_plays_with_the_arrows_or_wasd_and_space_and_the_old_p2_keys_do_nothing(self):
         scene = self.scene_for(self.p1)
-        self.assertEqual(scene.spectators, [self.p2])
-        self.frames(1, [key(pygame.K_RETURN), key(pygame.K_RSHIFT), key(pygame.K_KP0), key(pygame.K_RCTRL)])   # P2's keys
+        self.assertFalse(hasattr(scene, "spectators"))
+        self.frames(1, [key(pygame.K_RSHIFT), key(pygame.K_KP0), key(pygame.K_RCTRL), key(pygame.K_o)])   # old P2 keys
         self.assertEqual((self.a.tokens, self.b.tokens), (self.ta, self.tb))
         x = scene.table.chute_x
         self.frames(1, [key(pygame.K_LEFT)])
         self.frames(20)
-        self.assertEqual(scene.table.chute_x, x)                                    # P2's arrows do not steer P1's chute
+        self.frames(1, [release(pygame.K_LEFT)])
+        self.assertLess(scene.table.chute_x, x)                                     # the arrows steer the chute
         self.frames(1, [key(pygame.K_SPACE)])
         self.assertEqual((self.a.tokens, self.b.tokens), (self.ta - 1, self.tb))
-
-    def test_p2_plays_with_arrows_and_enter_and_p1_only_watches(self):
-        scene = self.scene_for(self.p2)
-        self.assertEqual(scene.spectators, [self.p1])
-        self.frames(1, [key(pygame.K_e), key(pygame.K_SPACE), key(pygame.K_LSHIFT), key(pygame.K_a), key(pygame.K_d)])
-        self.assertEqual((self.a.tokens, self.b.tokens), (self.ta, self.tb))
-        x = scene.table.chute_x
-        self.frames(1, [key(pygame.K_RIGHT)])
-        self.frames(20)
-        self.frames(1, [release(pygame.K_RIGHT)])
-        self.assertGreater(scene.table.chute_x, x)
-        self.frames(1, [key(pygame.K_RETURN)])
-        self.assertEqual((self.a.tokens, self.b.tokens), (self.ta, self.tb - 1))
         self.frames(30)
-        self.frames(1, [key(pygame.K_RSHIFT)])
-        self.assertEqual(self.b.tokens, self.tb - 2)
-        self.assertEqual(self.a.tokens, self.ta)
+        self.frames(1, [key(pygame.K_RETURN)])                                       # ENTER drops too
+        self.assertEqual((self.a.tokens, self.b.tokens), (self.ta - 2, self.tb))
 
-    def test_the_spectator_cannot_pause_or_spend_the_active_players_tokens(self):
-        scene = self.scene_for(self.p2)
-        self.frames(1, [key(pygame.K_i)])                      # P1's bag / pause key
+    def test_only_the_players_pause_key_pauses(self):
+        scene = self.scene_for(self.p1)
+        self.frames(1, [key(pygame.K_o)])                      # the old second player's pause key
         self.assertFalse(scene.paused)
-        self.frames(1, [key(pygame.K_o)])                      # P2's own
+        self.frames(1, [key(pygame.K_i)])
         self.assertTrue(scene.paused)
-        self.frames(1, [key(pygame.K_o)])
+        self.frames(1, [key(pygame.K_i)])
         self.assertFalse(scene.paused)
 
     def test_rewards_and_boards_stay_with_their_own_profile(self):
@@ -389,18 +378,12 @@ class TwoPlayerTests(unittest.TestCase):
         self.frames(15)
         self.assertEqual((self.a.tickets, self.b.tickets), (5, 0))
         self.assertEqual(self.b.pusher_ticket_room(), 30)
-        self.game.scenes.pop(fade=False)
-        scene_b = self.scene_for(self.p2)
-        self.assertNotEqual(scene_b.table.seed, scene.table.seed)
-        self.assertGreater(len(scene_b.table.world.coins), 30)                      # Bob got his own full board
+        self.assertIsNone(self.b.pusher_state)
 
-    def test_each_player_sees_their_own_keys(self):
+    def test_the_player_sees_their_own_keys(self):
         self.assertEqual(CoinPusherScene(self.game, self.p1).controls_lines(),
-                         [("A/D", "MOVE CHUTE"), ("SPACE/E", "DROP COIN"), ("I", "PAUSE"), ("ESC", "LEAVE")])
-        self.assertEqual(CoinPusherScene(self.game, self.p2).controls_lines(),
-                         [("LEFT/RIGHT", "MOVE CHUTE"), ("R-SHIFT/ENTER", "DROP COIN"), ("O", "PAUSE"), ("ESC", "LEAVE")])
-        self.assertIs(CoinPusherScene(self.game, self.p1).controls, P1_CONTROLS)
-        self.assertIs(CoinPusherScene(self.game, self.p2).controls, P2_CONTROLS)
+                         [("A/D", "MOVE CHUTE"), ("SPACE/E", "DROP COIN"), ("P", "PAUSE"), ("ESC", "LEAVE")])
+        self.assertIs(CoinPusherScene(self.game, self.p1).controls, SOLO_CONTROLS)
         self.assertIs(CoinPusherScene(Game(save_path=os.path.join(self.dir, "solo.json")), None).controls, SOLO_CONTROLS)
 
 

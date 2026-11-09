@@ -1,4 +1,5 @@
-"""Actual lobby play sessions, participant input ownership and one-time payouts."""
+"""Actual lobby play sessions of Pixel Volleyball (the player against Sandra, the CPU cat), input ownership and
+one-time payouts."""
 import os
 import unittest
 os.environ.setdefault("SDL_VIDEODRIVER", "dummy")
@@ -16,16 +17,16 @@ from pixel_volleyball.rally import LOB_VX_MAX
 
 
 class VolleyballLobbyTests(unittest.TestCase):
-    def make_game(self, two=False):
+    def make_game(self, other_saved=False):
+        """The player is profiles[0]; with `other_saved` a second profile exists (saved, never played)."""
         profiles = [PlayerProfile(profile_id="volley_a")]
-        if two:
+        if other_saved:
             profiles.append(PlayerProfile(profile_id="volley_b"))
-        self.game = Game(session=LocalSession(profiles))
+        self.game = Game(session=LocalSession(profiles[0]))
         self.addCleanup(self.game.quit)
         self.room = goto_room(self.game, "arcade_floor")
         self.machine = next(m for m in self.room.machines if m.id == "pixel_volleyball")
-        self.room._start_game(self.machine, player=self.room.players[0],
-                              participants=self.room.players if two else None)
+        self.room._start_game(self.machine, player=self.room.players[0])
         self.frames(30)
         self.scene = self.game.scenes.current
         self.assertIsInstance(self.scene, PixelVolleyballScene)
@@ -39,7 +40,8 @@ class VolleyballLobbyTests(unittest.TestCase):
 
     def test_solo_starts_with_enter_and_returns_without_unearned_tickets(self):
         profiles = self.make_game()
-        self.assertTrue(minigame_definition("pixel_volleyball").supports(2))
+        self.assertFalse(hasattr(minigame_definition("pixel_volleyball"), "max_players"))
+        self.assertTrue(self.scene.volley.match.cpu)                  # the opponent is always Sandra
         self.frames(1, pygame.K_RETURN)
         self.assertEqual(self.scene.volley.match.state, MatchState.PLAYING)
         self.frames(30, pygame.K_ESCAPE)
@@ -48,49 +50,67 @@ class VolleyballLobbyTests(unittest.TestCase):
         self.assertNotIn("pixel_volleyball", profiles[0].high_scores)
         self.assertIsNone(self.room.active_play)
 
-    def test_two_players_move_independently_and_pause(self):
-        self.make_game(True)
+    def test_the_player_moves_sandra_plays_by_herself_and_pause_freezes_both(self):
+        self.make_game()
         self.frames(1, pygame.K_e)
-        self.frames(1, pygame.K_d)
-        self.frames(10, pygame.K_LEFT)
         match = self.scene.volley.match
+        match.serve_delay = 0
+        self.frames(1, pygame.K_d)
+        self.frames(20)
         self.assertGreater(match.players[0].x, 90)
-        self.assertLess(match.players[1].x, 310)
+        self.assertNotEqual(match.players[1].x, 310)                   # Sandra moved on her own (the AI)
         self.frames(1, pygame.K_i)
         before = (match.elapsed, match.players[0].x, match.players[1].x)
         self.frames(10)
         self.assertEqual((match.elapsed, match.players[0].x, match.players[1].x), before)
 
-    def test_rewards_and_high_scores_are_separate_and_paid_once(self):
-        profiles = self.make_game(True)
+    def test_the_reward_is_the_players_only_and_paid_once(self):
+        profiles = self.make_game(other_saved=True)
         self.frames(1, pygame.K_e)
         self.scene.volley.match.award_point(1)
         for _ in range(5):
             self.scene.volley.match.award_point(0)
         self.frames()
         result = self.scene.get_result()
-        self.assertEqual([r.reward.tickets for r in result.player_results], [20, 2])
+        self.assertEqual([r.reward.tickets for r in result.player_results], [20])
         self.assertEqual(self.scene.get_result(), result)
         self.frames(30, pygame.K_ESCAPE)
-        self.assertEqual([p.tickets for p in profiles], [20, 2])
-        self.assertEqual([p.high_score("pixel_volleyball") for p in profiles], [1000, 100])
+        self.assertEqual([p.tickets for p in profiles], [20, 0])
+        self.assertEqual([p.high_score("pixel_volleyball") for p in profiles], [1000, 0])
         self.frames(10)
-        self.assertEqual([p.tickets for p in profiles], [20, 2])
+        self.assertEqual([p.tickets for p in profiles], [20, 0])
 
-    def test_spectator_controls_do_not_reach_solo_match(self):
+    def test_losing_to_sandra_pays_little_and_is_recorded(self):
+        profiles = self.make_game()
+        self.frames(1, pygame.K_e)
+        self.scene.volley.match.award_point(0)
+        for _ in range(5):
+            self.scene.volley.match.award_point(1)
+        self.frames()
+        self.assertEqual(self.scene.volley.match.state, MatchState.FINISHED)
+        self.assertEqual(self.scene.volley.match.outcome.winner, 1)
+        self.frames(30, pygame.K_ESCAPE)
+        self.assertEqual(profiles[0].tickets, 2)
+        self.assertEqual(profiles[0].high_score("pixel_volleyball"), 100)
+
+    def test_the_old_second_player_keys_do_not_reach_the_match(self):
         profiles = [PlayerProfile(profile_id="watch_a"), PlayerProfile(profile_id="watch_b")]
-        self.game = Game(session=LocalSession(profiles))
+        self.game = Game(session=LocalSession(profiles[0]))
         self.addCleanup(self.game.quit)
         self.room = goto_room(self.game, "arcade_floor")
         self.machine = next(m for m in self.room.machines if m.id == "pixel_volleyball")
         self.room._start_game(self.machine, player=self.room.players[0])
         self.frames(30)
         self.scene = self.game.scenes.current
+        self.assertFalse(hasattr(self.scene, "spectators"))
         self.frames(1, pygame.K_RETURN)
-        self.assertEqual(self.scene.volley.match.state, MatchState.TITLE)
-        self.frames(1, pygame.K_e)
-        self.frames(10, pygame.K_RIGHT)
-        self.assertEqual(self.scene.volley.match.players[0].x, 90)
+        self.assertEqual(self.scene.volley.match.state, MatchState.PLAYING)       # ENTER is the player's confirm
+        match = self.scene.volley.match
+        match.serve_delay = 99                                                     # nobody moves yet
+        for old in (pygame.K_RCTRL, pygame.K_o, pygame.K_KP0, pygame.K_RSHIFT):
+            self.frames(10, old)
+        self.assertEqual(match.players[0].x, 90)
+        self.assertFalse(any(p.attack.animating for p in match.players))
 
     def test_completed_reward_survives_restart_without_accumulation(self):
         self.make_game()
@@ -128,41 +148,13 @@ class VolleyballLobbyTests(unittest.TestCase):
         self.frames(1, pygame.K_SPACE)
         self.assertTrue(player.attack.animating)
 
-    def test_simultaneous_p1_p2_keys_stay_on_their_own_side(self):
-        self.make_game(True)
-        self.frames(1, pygame.K_e)
-        match = self.scene.volley.match
-        for player in match.players:
-            player.y, player.vy = 174, -40
-        x0 = [p.x for p in match.players]
-        for key in (pygame.K_d, pygame.K_LEFT, pygame.K_LSHIFT, pygame.K_KP0):
-            self.frames(1, key)
-        self.frames(5)
-        self.assertGreater(match.players[0].x, x0[0])      # P1 moved right on D
-        self.assertLess(match.players[1].x, x0[1])         # P2 moved left on LEFT
-        self.assertTrue(match.players[0].attack.animating)  # LEFT SHIFT is P1's
-        self.assertTrue(match.players[1].attack.animating)  # KP0 is P2's
-
-    def test_two_players_can_swing_independently(self):
-        self.make_game(True)
-        self.frames(1, pygame.K_e)
-        match = self.scene.volley.match
-        for player in match.players:
-            player.y, player.vy = 174, -40
-        self.frames(1, pygame.K_SPACE)
-        self.assertTrue(match.players[0].attack.animating)
-        self.assertFalse(match.players[1].attack.animating)
-        self.frames(1, pygame.K_RSHIFT)
-        self.assertTrue(match.players[1].attack.animating)
-
-
 class VolleyballSmashHubTests(unittest.TestCase):
     """Smash played through the real Arcade Hub: key routing, scene, physics and scoring."""
     make_game = VolleyballLobbyTests.make_game
     frames = VolleyballLobbyTests.frames
 
-    def start(self, two=False):
-        self.make_game(two)
+    def start(self):
+        self.make_game()
         self.frames(1, pygame.K_e)
         match = self.scene.volley.match
         match.serve_delay = 0
@@ -204,45 +196,27 @@ class VolleyballSmashHubTests(unittest.TestCase):
             self.assertEqual(match.points, [1, 0], key)
             match.serve_delay = 0
 
-    def test_two_player_smash_keys_are_independent_and_aim_at_the_other_court(self):
-        match = self.start(True)
-        player = self.smash(match, 0, pygame.K_SPACE)
-        self.assertTrue(player.attack.connected)
-        self.assertGreater(match.ball.vx, 1.5 * LOB_VX_MAX)      # Smash: far faster than a return
-        self.assertFalse(match.players[1].attack.animating)
-        match.points[:] = [0, 0]
-        match._serve(0)
-        match.serve_delay = 0
-        player = self.smash(match, 1, pygame.K_RSHIFT)
-        self.assertTrue(player.attack.connected)
-        self.assertLess(match.ball.vx, -1.5 * LOB_VX_MAX)
-        self.assertFalse(match.players[0].attack.animating)
-        for _ in range(120):
-            self.frames(1)
-            if match.points != [0, 0]:
-                break
-        self.assertEqual(match.points, [0, 1])
-
-    def test_each_players_other_smash_key_and_the_wrong_keys_do_nothing_wrong(self):
-        match = self.start(True)
-        for p in match.players:
-            p.y, p.vy = 168, 0
-        self.frames(1, pygame.K_LSHIFT)
-        self.assertTrue(match.players[0].attack.animating)
-        self.assertFalse(match.players[1].attack.animating)
-        self.frames(1, pygame.K_LSHIFT, down=False)
-        self.frames(1, pygame.K_KP0)
-        self.assertTrue(match.players[1].attack.animating)
-        self.assertFalse(match.players[0].attack.animating and match.players[0].attack.age < .001)
-        self.frames(1, pygame.K_KP0, down=False)
-        match._serve(0)
-        match.serve_delay = 0
-        for p in match.players:
-            p.y, p.vy = 168, 0
-        for wrong in (pygame.K_RETURN, pygame.K_e, pygame.K_w, pygame.K_UP):
+    def test_the_wrong_keys_and_the_old_second_player_keys_never_swing(self):
+        match = self.start()
+        match.players[0].y, match.players[0].vy = 168, 0
+        match.serve_delay = 99
+        for wrong in (pygame.K_RETURN, pygame.K_e, pygame.K_w, pygame.K_UP, pygame.K_RSHIFT, pygame.K_KP0):
             self.frames(1, wrong)
             self.frames(1, wrong, down=False)
-        self.assertFalse(any(p.attack.animating for p in match.players))
+        self.assertFalse(match.players[0].attack.animating)
+        self.frames(1, pygame.K_LSHIFT)                              # a real smash key does
+        self.assertTrue(match.players[0].attack.animating)
+
+    def test_sandra_smashes_back_toward_the_players_court_through_the_hub(self):
+        from pixel_volleyball.model import VolleyBall
+        match = self.start()
+        sandra = match.players[1]
+        sandra.y, sandra.vy = 168, 0
+        match.players[0].y = -500
+        sandra.attack.age = .08
+        match.ball = VolleyBall(sandra.x - 6, sandra.y - 17, 0, 0)
+        match._player_collision(sandra)
+        self.assertLess(match.ball.vx, 0)                            # the ball leaves toward the player's side
 
     def test_smash_tap_released_inside_one_frame_still_swings(self):
         match = self.start()
@@ -283,14 +257,10 @@ class VolleyballSmashHubTests(unittest.TestCase):
         self.assertIn("SMASH", solo)
         for key in self.scene.players[0].controls.item[:2]:
             self.assertIn(key_label(key), solo)
-        self.make_game(True)
         lines = self.scene.volley.hints
-        self.assertEqual(len(lines), 2)
-        for line, player, name in zip(lines, self.scene.players, ("P1", "P2")):
-            self.assertTrue(line.startswith(name), line)
-            for key in player.controls.item[:2]:
-                self.assertIn(key_label(key), line)
-        self.assertIn("R-SHIFT", lines[1])
+        self.assertEqual(len(lines), 1)                         # one player: one control line
+        self.assertNotIn("P1", lines[0])
+        self.assertNotIn("P2", lines[0])
         surface = pygame.Surface((400, 300))
         self.scene.draw(surface)
 

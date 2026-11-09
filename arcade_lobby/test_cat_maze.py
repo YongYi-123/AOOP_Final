@@ -36,17 +36,18 @@ def machine_data(machine_id):
 
 
 class LobbyCase(unittest.TestCase):
-    def make_game(self, two=False, starter=0, **profile_kwargs):
+    def make_game(self, other_saved=False, **profile_kwargs):
+        """The player is profiles[0]; with `other_saved` a second profile exists (saved, never played)."""
         profiles = [PlayerProfile(profile_id="maze_a", **profile_kwargs)]
-        if two:
+        if other_saved:
             profiles.append(PlayerProfile(profile_id="maze_b", **profile_kwargs))
         self.dir = tempfile.mkdtemp()
         self.addCleanup(shutil.rmtree, self.dir, True)
-        self.game = Game(session=LocalSession(profiles), audio_prefs=os.path.join(self.dir, "audio.json"))
+        self.game = Game(session=LocalSession(profiles[0]), audio_prefs=os.path.join(self.dir, "audio.json"))
         self.addCleanup(self.game.quit)
         self.room = goto_room(self.game, "arcade_floor")
         self.machine = next(m for m in self.room.machines if m.id == "puzzle_drop")
-        self.room._start_game(self.machine, player=self.room.players[starter])
+        self.room._start_game(self.machine, player=self.room.players[0])
         self.frames(30)
         self.scene = self.game.scenes.current
         self.assertIsInstance(self.scene, CatMazeScene)
@@ -59,7 +60,7 @@ class LobbyCase(unittest.TestCase):
             self.game.step(events if i == 0 else [], DT)
 
     def confirm_key(self):
-        """The active player's own confirm key (ENTER solo or for P2, E for P1)."""
+        """The player's confirm key (E)."""
         return self.scene.input.scheme.interact[0]
 
     def start_run(self):
@@ -92,7 +93,7 @@ class CabinetAndRegistrationTests(LobbyCase):
         self.assertEqual(data["play_cost"], 1)                                 # the entry cost is untouched
         self.assertNotIn("Puzzle", data["name"] + data["description"])
         self.assertIs(MINIGAME_SCENES["puzzle_drop"], CatMazeScene)
-        self.assertEqual(minigame_definition("puzzle_drop").max_players, 1)
+        self.assertFalse(hasattr(minigame_definition("puzzle_drop"), "max_players"))
         positions = [m["slot"] if "slot" in m else (m["x"], m.get("y")) for m in MACHINES]
         self.assertEqual(len(set(positions)), len(positions))
 
@@ -177,43 +178,22 @@ class LaunchAndControlTests(LobbyCase):
         self.frames(30)                                                       # D is still held: back to going right
         self.assertEqual(run.cat.facing, (1, 0))
 
-    def test_p2_arrow_keys_drive_the_cat_when_p2_starts_and_p1_keys_do_nothing(self):
-        profiles = self.make_game(two=True, starter=1)
-        self.assertEqual(self.scene.participants, [profiles[1]])
-        self.frames(1, self.confirm_key())                                    # P2's confirm (ENTER) starts the run
-        self.assertEqual(self.scene.cat_maze.screen, Screen.PLAYING)
-        self.frames(int((cfg.READY_SECONDS + 0.2) / DT))
-        run = self.scene.cat_maze.run
-        start = run.cat.pos
-        self.frames(1, pygame.K_d)                                            # P1's key: ignored
-        self.frames(15)
-        self.assertEqual(run.cat.pos, start)
-        self.frames(1, pygame.K_d, down=False)
-        self.frames(1, pygame.K_RIGHT)                                        # P2's key
-        self.frames(15)
-        self.assertGreater(run.cat.pos[0], start[0])
+    def test_the_hint_line_names_the_players_own_keys(self):
+        self.make_game()
+        self.assertIn("WASD/ARROWS", self.scene.cat_maze.hint_line())
+        self.assertNotIn("P2", self.scene.cat_maze.hint_line())
 
-    def test_the_hint_line_names_the_active_players_own_keys(self):
-        self.make_game(two=True, starter=1)
-        self.assertIn("ARROWS", self.scene.cat_maze.hint_line())
-        self.assertNotIn("WASD", self.scene.cat_maze.hint_line())
-        self.frames(1, pygame.K_ESCAPE)
-        self.frames(40)
-        self.room._start_game(self.machine, player=self.room.players[0])
-        self.frames(30)
-        self.assertIn("WASD", self.game.scenes.current.cat_maze.hint_line())
-
-    def test_the_spectator_can_watch_but_cannot_steer_pause_or_start(self):
-        self.make_game(two=True, starter=0)
+    def test_the_old_second_player_keys_do_nothing_in_the_maze(self):
+        self.make_game()
         self.start_run()
         run = self.scene.cat_maze.run
         before = run.cat.pos
-        for key in (pygame.K_LEFT, pygame.K_UP, pygame.K_o, pygame.K_RETURN):    # all P2's keys
+        for key in (pygame.K_o, pygame.K_RCTRL, pygame.K_RSHIFT, pygame.K_KP0):
             self.frames(1, key)
         self.frames(20)
         self.assertEqual(self.scene.cat_maze.screen, Screen.PLAYING)
         self.assertEqual(run.cat.pos, before)
-        self.assertEqual([p.profile.profile_id for p in self.scene.spectators], ["maze_b"])
+        self.assertFalse(hasattr(self.scene, "spectators"))
 
     def test_pause_resume_and_the_pause_key_per_player(self):
         self.make_game()
@@ -374,10 +354,10 @@ class RewardAndSaveTests(LobbyCase):
         self.finish_with_score(10 ** 9, level=99, cleared=98)
         self.assertEqual(self.scene.cat_maze.best.tickets, cfg.TICKETS["cap"])
 
-    def test_the_second_player_who_starts_it_is_scored_and_paid_the_first_is_untouched(self):
-        profiles = self.make_game(two=True, starter=1)
+    def test_the_player_is_scored_and_paid_and_another_saved_profile_is_untouched(self):
+        profiles = self.make_game(other_saved=True)
         self.assertEqual(self.scene.cat_maze.saved_score, 0)
-        profiles[1].record_score(SCORE_KEY, 777)
+        profiles[0].record_score(SCORE_KEY, 777)
         self.scene.attach_players(self.scene.players)
         self.assertEqual(self.scene.cat_maze.saved_score, 777)
         self.frames(1, pygame.K_RETURN)
@@ -386,12 +366,12 @@ class RewardAndSaveTests(LobbyCase):
         paid = self.scene.cat_maze.best.tickets
         self.leave()
         self.frames(30)
-        self.assertEqual(profiles[0].tickets, PlayerProfile().tickets)
-        self.assertEqual(profiles[1].tickets, PlayerProfile().tickets + paid)
-        self.assertNotIn(SCORE_KEY, profiles[0].high_scores)
-        self.assertNotIn(LEVEL_KEY, profiles[0].high_scores)
-        self.assertEqual(profiles[1].high_score(SCORE_KEY), 2000)
-        self.assertEqual(profiles[0].total_games_played, 0)
+        self.assertEqual(profiles[1].tickets, PlayerProfile().tickets)
+        self.assertEqual(profiles[0].tickets, PlayerProfile().tickets + paid)
+        self.assertNotIn(SCORE_KEY, profiles[1].high_scores)
+        self.assertNotIn(LEVEL_KEY, profiles[1].high_scores)
+        self.assertEqual(profiles[0].high_score(SCORE_KEY), 2000)
+        self.assertEqual(profiles[1].total_games_played, 0)
 
     def test_old_saves_keep_working_and_gain_no_unexpected_fields(self):
         profile = PlayerProfile.from_dict({"high_scores": {"pixel_volleyball": 300, "puzzle_drop": 50}, "tokens": 5})
@@ -420,8 +400,8 @@ class PlayAgainAndSettlementTests(LobbyCase):
 
     START_TOKENS = PlayerProfile().tokens
 
-    def relaunch(self, starter=0):
-        self.room._start_game(self.machine, player=self.room.players[starter])
+    def relaunch(self):
+        self.room._start_game(self.machine, player=self.room.players[0])
         self.frames(30)
         self.scene = self.game.scenes.current
         self.assertIsInstance(self.scene, CatMazeScene)
@@ -571,20 +551,20 @@ class PlayAgainAndSettlementTests(LobbyCase):
         self.assertEqual(profiles[0].tickets, PlayerProfile().tickets + tickets_for(1500, 2))
         self.assertEqual(profiles[0].high_score(SCORE_KEY), 1500)
 
-    def test_play_again_and_relaunch_stay_with_the_player_who_started_it(self):
-        profiles = self.make_game(two=True, starter=1)
+    def test_play_again_and_relaunch_stay_with_the_playing_profile(self):
+        profiles = self.make_game(other_saved=True)
         self.frames(1, self.confirm_key())
         self.frames(int((cfg.READY_SECONDS + 0.2) / DT))
         self.finish_with_score(1200, 2, 1)
         self.again(2200, 3, 2)
         self.leave()
         self.frames(60)
-        self.assertEqual((profiles[0].tokens, profiles[0].tickets), (self.START_TOKENS, PlayerProfile().tickets))
-        self.assertEqual(profiles[1].tokens, self.START_TOKENS - 1)
-        self.assertEqual(profiles[1].tickets, PlayerProfile().tickets + tickets_for(2200, 2))
-        self.relaunch(starter=0)                                              # now P1 starts it: P1 pays, P1 is paid
-        self.assertEqual((profiles[0].tokens, profiles[1].tokens), (self.START_TOKENS - 1, self.START_TOKENS - 1))
-        self.assertEqual(self.scene.cat_maze.saved_score, 0)                  # P2's record is not P1's
+        self.assertEqual((profiles[1].tokens, profiles[1].tickets), (self.START_TOKENS, PlayerProfile().tickets))
+        self.assertEqual(profiles[0].tokens, self.START_TOKENS - 1)
+        self.assertEqual(profiles[0].tickets, PlayerProfile().tickets + tickets_for(2200, 2))
+        self.relaunch()                                                       # starting again: the same profile pays
+        self.assertEqual((profiles[0].tokens, profiles[1].tokens), (self.START_TOKENS - 2, self.START_TOKENS))
+        self.assertEqual(self.scene.cat_maze.saved_score, 2200)               # (its own record, not the other's)
         self.assertEqual(self.scene.participants, [profiles[0]])
 
     def test_a_coupon_entry_also_pays_once_across_play_agains(self):

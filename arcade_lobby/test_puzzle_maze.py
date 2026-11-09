@@ -15,16 +15,16 @@ from puzzle_maze.game import GameScene
 from puzzle_maze.advanced_dungeon import AdvancedDungeonSession
 
 class PuzzleMazeLobbyTests(unittest.TestCase):
-    def start(self,two=False,starter=0):
+    def start(self,other_saved=False):
         saves=patch('puzzle_maze.game.Game.save');saves.start();self.addCleanup(saves.stop)
         self.profiles=[PlayerProfile(profile_id='maze_a',tokens=0)]
-        if two:self.profiles.append(PlayerProfile(profile_id='maze_b',tokens=0))
-        self.game=Game(session=LocalSession(self.profiles));self.addCleanup(self.game.quit)
+        if other_saved:self.profiles.append(PlayerProfile(profile_id='maze_b',tokens=0))     # (saved, never played)
+        self.game=Game(session=LocalSession(self.profiles[0]));self.addCleanup(self.game.quit)
         self.room=goto_room(self.game,'arcade_floor')
         self.machine=next(m for m in self.room.machines if m.id=='puzzle_maze')
         window=pygame.display.get_surface()
         with patch('pygame.display.set_mode',wraps=pygame.display.set_mode) as display, patch('pygame.mixer.init',wraps=pygame.mixer.init) as mixer:
-            self.room._start_game(self.machine,player=self.room.players[starter])
+            self.room._start_game(self.machine,player=self.room.players[0])
             self.frames(30)
             display.assert_not_called();mixer.assert_not_called()
         self.scene=self.game.scenes.current
@@ -34,7 +34,7 @@ class PuzzleMazeLobbyTests(unittest.TestCase):
 
     def begin(self):
         # Keep the normal onboarding path distinct from Quick start.
-        key=pygame.K_e if self.scene.input.scheme.name=='P1' else pygame.K_RETURN
+        key=pygame.K_RETURN
         for expected in (GameScene.INTRO,GameScene.TUTORIAL,GameScene.PLAY):
             self.frames(1,key)
             self.assertEqual(self.scene.maze.scene,expected)
@@ -45,7 +45,7 @@ class PuzzleMazeLobbyTests(unittest.TestCase):
 
     def quick_start(self):
         self.scene.maze.selection=1
-        self.frames(1,pygame.K_e if self.scene.input.scheme.name=='P1' else pygame.K_RETURN)
+        self.frames(1,pygame.K_RETURN)
         self.assertEqual(self.scene.maze.scene,GameScene.PLAY)
 
     def test_free_launch_controls_and_return(self):
@@ -53,7 +53,7 @@ class PuzzleMazeLobbyTests(unittest.TestCase):
             with self.subTest(entry=entry):
                 self.start()
                 self.assertEqual(self.machine.play_cost,0)
-                self.assertFalse(minigame_definition('puzzle_maze').supports(2))
+                self.assertFalse(hasattr(minigame_definition('puzzle_maze'),'max_players'))
                 getattr(self,entry)()
                 self.frames(25,pygame.K_d);self.frames(1,pygame.K_d,True)
                 self.assertGreater(self.scene.maze.session.player.x,2)
@@ -74,24 +74,25 @@ class PuzzleMazeLobbyTests(unittest.TestCase):
         self.start();self.frames(1,pygame.K_ESCAPE);self.frames(40)
         self.assertIs(self.game.scenes.current,self.room)
 
-    def test_second_player_owns_controls(self):
+    def test_the_player_owns_the_controls_and_the_old_second_player_keys_do_nothing(self):
         for entry in ('begin','quick_start'):
             with self.subTest(entry=entry):
-                self.start(two=True,starter=1);getattr(self,entry)()
-                self.frames(30,pygame.K_d);self.frames(1,pygame.K_d,True)
+                self.start(other_saved=True);getattr(self,entry)()
+                self.frames(30,pygame.K_o);self.frames(1,pygame.K_o,True)             # not a key of the game
+                self.frames(30,pygame.K_RCTRL);self.frames(1,pygame.K_RCTRL,True)
                 self.assertEqual(self.scene.maze.session.player.x,2)
                 self.frames(25,pygame.K_RIGHT);self.frames(1,pygame.K_RIGHT,True)
                 self.assertGreater(self.scene.maze.session.player.x,2)
-                self.assertEqual(self.scene.participants,[self.profiles[1]])
+                self.assertEqual(self.scene.participants,[self.profiles[0]])
 
     def test_new_expedition_onboarding(self):
         self.start()
         self.begin()
 
     def test_orb_recall_and_dash_controls(self):
-        for two,starter,shift in ((False,0,pygame.K_LSHIFT),(True,0,pygame.K_LSHIFT),(True,1,pygame.K_RSHIFT)):
-            with self.subTest(two=two,starter=starter):
-                self.start(two=two,starter=starter)
+        for other_saved,shift in ((False,pygame.K_LSHIFT),(True,pygame.K_LSHIFT)):
+            with self.subTest(other_saved=other_saved):
+                self.start(other_saved=other_saved)
                 self.quick_start()
                 with patch.object(self.scene.maze.session,'recall_orb') as recall:
                     self.frames(1,pygame.K_t)

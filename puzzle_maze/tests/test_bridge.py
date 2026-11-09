@@ -45,22 +45,22 @@ class BridgeTests(unittest.TestCase):
         scene.handle_event(pygame.event.Event(pygame.KEYDOWN,key=pygame.K_LSHIFT))
         self.assertEqual(scene.maze.session.player.x,5)
 
-    def test_second_player_bindings_match_tutorial_and_attack(self):
-        from controls import P2_CONTROLS
+    def test_only_the_single_player_bindings_exist_and_J_attacks(self):
+        from controls import SOLO_CONTROLS
         from input_router import PlayerInput
         class Participant:
-            profile=SimpleNamespace(profile_id='test_p2')
+            profile=SimpleNamespace(profile_id='test_solo')
         scene=self.scene()
-        scene.game.session=SimpleNamespace(input=SimpleNamespace(input_for=lambda p:PlayerInput(P2_CONTROLS)))
+        scene.game.session=SimpleNamespace(input=SimpleNamespace(input_for=lambda p:PlayerInput(SOLO_CONTROLS)))
         scene.attach_players([Participant()])
-        c=scene.maze.tutorial.controls
-        self.assertEqual((c['attack'],c['ability'],c['dash']),('K','KP0','RSHIFT'))
+        self.assertEqual(scene.input.scheme.name,'SOLO')
         scene.maze.scene=GameScene.PLAY;e=scene.maze.session.combat.enemies[0];p=scene.maze.session.player
         p.x,p.y=e.x-1,e.y;p.facing=(1,0)
+        hp=e.hp
+        scene.handle_event(pygame.event.Event(pygame.KEYDOWN,key=pygame.K_k))     # the old second-player attack key
+        self.assertEqual(e.hp,hp)
         scene.handle_event(pygame.event.Event(pygame.KEYDOWN,key=pygame.K_j))
-        self.assertEqual(e.hp,2)
-        scene.handle_event(pygame.event.Event(pygame.KEYDOWN,key=pygame.K_k))
-        self.assertEqual(e.hp,1)
+        self.assertEqual(e.hp,hp-1)
 
     def test_original_cabinet_loads_v4_and_routes_powder_pots_and_bombs(self):
         from puzzle_maze.advanced_dungeon import AdvancedDungeonSession
@@ -78,7 +78,7 @@ class BridgeTests(unittest.TestCase):
         self.assertTrue(any('4.4' in command[0] for command in scene.maze.renderer.ui.commands))
         self.assertEqual(scene.get_result().player_results,())
 
-    def test_real_original_cabinet_v4_onboarding_p2_and_safe_return(self):
+    def test_real_original_cabinet_v4_onboarding_and_safe_return(self):
         from game import Game as HostGame
         from local_session import LocalSession
         from player_profile import PlayerProfile
@@ -87,10 +87,10 @@ class BridgeTests(unittest.TestCase):
         profiles=[PlayerProfile(profile_id='maze_bridge_a',tokens=0),PlayerProfile(profile_id='maze_bridge_b',tokens=0)]
         balances=[(p.tokens,p.tickets) for p in profiles]
         with patch('puzzle_maze.game.Game.save'):
-            host=HostGame(session=LocalSession(profiles))
+            host=HostGame(session=LocalSession(profiles[0]))
             try:
                 room=goto_room(host,'arcade_floor');machine=next(m for m in room.machines if m.id=='puzzle_maze')
-                room._start_game(machine,player=room.players[1])
+                room._start_game(machine,player=room.players[0])
                 for _ in range(35):host.step([],1/60)
                 scene=host.scenes.current;self.assertIsInstance(scene,PuzzleMazeScene)
                 self.assertIsInstance(scene.maze.session,AdvancedDungeonSession)
@@ -101,7 +101,7 @@ class BridgeTests(unittest.TestCase):
                 s.player.x,s.player.y=7,6;s.player.facing=(0,-1)
                 host.step([pygame.event.Event(pygame.KEYDOWN,key=pygame.K_p,mod=0)],1/60)
                 self.assertEqual(s.inventory.powder,4)
-                self.assertTrue(any('K Crystal' in line for line in scene.maze.tutorial.lines()))
+                self.assertTrue(any('J Crystal' in line for line in scene.maze.tutorial.lines()))
                 scene.maze.choose('Return to arcade');scene.leave()
                 for _ in range(35):host.step([],1/60)
                 self.assertIs(host.scenes.current,room)

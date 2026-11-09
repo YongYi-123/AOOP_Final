@@ -16,7 +16,7 @@ os.environ.setdefault("SDL_AUDIODRIVER", "dummy")
 import pygame  # noqa: E402
 
 import pinball as pb  # noqa: E402
-from controls import P1_CONTROLS, P2_CONTROLS, SOLO_CONTROLS  # noqa: E402
+from controls import SOLO_CONTROLS  # noqa: E402
 from display import compute_layout  # noqa: E402
 from game import Game  # noqa: E402
 from game_clock import GameClock  # noqa: E402
@@ -400,7 +400,9 @@ class SavingTests(HubBase):
         scene.draw(canvas)
 
 
-class TwoPlayerTests(unittest.TestCase):
+class ProfileOwnershipTests(unittest.TestCase):
+    """Alice plays; Bob is only a saved profile (his tokens and run must never be touched)."""
+
     def setUp(self):
         self.dir = tempfile.mkdtemp()
         self.manager = ProfileManager(os.path.join(self.dir, "saves"), clock=GameClock(lambda: DAY1))
@@ -408,9 +410,9 @@ class TwoPlayerTests(unittest.TestCase):
         self.b = self.manager.create_profile("Bob")
         self.a.add_tokens(10, "SETUP")
         self.b.add_tokens(10, "SETUP")
-        self.session = LocalSession([self.a, self.b])
+        self.session = LocalSession(self.a)
         self.game = Game(session=self.session)
-        self.p1, self.p2 = self.session.players
+        self.p1 = self.session.primary
         self.ta, self.tb = self.a.tokens, self.b.tokens
 
     def tearDown(self):
@@ -426,62 +428,34 @@ class TwoPlayerTests(unittest.TestCase):
         self.game.scenes.push(scene, fade=False)
         return scene
 
-    def test_p1_plays_with_a_d_and_space_p2_only_watches(self):
+    def test_the_player_plays_with_a_d_or_the_arrows_and_space_and_the_old_p2_keys_do_nothing(self):
         scene = self.scene_for(self.p1)
-        self.assertEqual(scene.spectators, [self.p2])
-        self.frames(1, [key(pygame.K_RETURN), key(pygame.K_RSHIFT), key(pygame.K_KP0), key(pygame.K_RCTRL)])   # P2's keys
+        self.assertFalse(hasattr(scene, "spectators"))
+        self.frames(1, [key(pygame.K_RCTRL), key(pygame.K_KP0), key(pygame.K_o)])    # the old second-player keys
         self.assertEqual((self.a.tokens, self.b.tokens), (self.ta, self.tb))
         self.assertEqual(scene.table.state, "idle")
         self.frames(1, [key(pygame.K_SPACE)])
         self.assertEqual((self.a.tokens, self.b.tokens), (self.ta - 1, self.tb))
         self.frames(1, [release(pygame.K_SPACE)])
         flippers = scene.table.world.flippers
-        self.frames(1, [key(pygame.K_LEFT), key(pygame.K_RIGHT)])
-        self.frames(15)
-        self.assertEqual((flippers[-1].raised, flippers[1].raised), (0, 0))         # P2's arrows do not flip P1's flippers
         self.frames(1, [key(pygame.K_a)])
         self.frames(10)
         self.assertGreater(flippers[-1].raised, 0.9)
         self.assertEqual(flippers[1].raised, 0)
-        self.frames(1, [key(pygame.K_RETURN)])                                      # P2's launch key while P1 plays
-        self.frames(1, [release(pygame.K_RETURN)])
-        self.assertEqual(scene.table.world.phase, "ready")
-
-    def test_p2_plays_with_arrows_and_enter_or_rshift_and_p1_only_watches(self):
-        scene = self.scene_for(self.p2)
-        self.assertEqual(scene.spectators, [self.p1])
-        self.frames(1, [key(pygame.K_e), key(pygame.K_SPACE), key(pygame.K_LSHIFT), key(pygame.K_a), key(pygame.K_d)])
-        self.assertEqual((self.a.tokens, self.b.tokens), (self.ta, self.tb))
-        self.assertEqual(scene.table.state, "idle")
-        self.frames(1, [key(pygame.K_RETURN)])
-        self.assertEqual((self.a.tokens, self.b.tokens), (self.ta, self.tb - 1))
-        self.frames(1, [release(pygame.K_RETURN)])
-        flippers = scene.table.world.flippers
-        self.frames(1, [key(pygame.K_a), key(pygame.K_d)])                          # P1's flipper keys do nothing
-        self.frames(15)
-        self.assertEqual((flippers[-1].raised, flippers[1].raised), (0, 0))
-        self.frames(1, [key(pygame.K_LEFT)])
-        self.frames(10)
-        self.assertGreater(flippers[-1].raised, 0.9)
-        self.frames(1, [release(pygame.K_LEFT), key(pygame.K_RIGHT)])
+        self.frames(1, [release(pygame.K_a), key(pygame.K_RIGHT)])                  # the arrows flip too
         self.frames(10)
         self.assertGreater(flippers[1].raised, 0.9)
-        self.frames(1, [release(pygame.K_RIGHT), key(pygame.K_RSHIFT)])             # RSHIFT pulls the plunger
-        self.frames(20)
-        self.assertGreater(scene.table.world.pull, 0.1)
-        self.frames(1, [release(pygame.K_RSHIFT)])
-        self.assertEqual(scene.table.world.phase, "play")
-        self.assertEqual((self.a.tokens, self.b.tokens), (self.ta, self.tb - 1))
+        self.assertEqual((self.a.tokens, self.b.tokens), (self.ta - 1, self.tb))
 
-    def test_the_spectator_cannot_pause_leave_or_spend_the_active_players_tokens(self):
-        scene = self.scene_for(self.p2)
-        self.frames(1, [key(pygame.K_i)])                      # P1's bag / pause key
+    def test_only_the_players_pause_key_pauses(self):
+        scene = self.scene_for(self.p1)
+        self.frames(1, [key(pygame.K_o)])                      # the old second player's pause key
         self.assertFalse(scene.paused)
-        self.frames(1, [key(pygame.K_o)])                      # P2's own
+        self.frames(1, [key(pygame.K_i)])
         self.assertTrue(scene.paused)
-        self.frames(1, [key(pygame.K_o)])
+        self.frames(1, [key(pygame.K_i)])
         self.assertFalse(scene.paused)
-        self.assertEqual(self.a.tokens, self.ta)
+        self.assertEqual(self.b.tokens, self.tb)
 
     def test_rewards_and_runs_stay_with_their_own_profile(self):
         scene = self.scene_for(self.p1)
@@ -489,20 +463,16 @@ class TwoPlayerTests(unittest.TestCase):
         self.frames(1, [release(pygame.K_SPACE)])
         scene.table.world.score = 25000
         self.assertEqual(self.b.pinball_run, None)
-        self.game.scenes.pop(fade=False)                       # P1 leaves: the score so far pays Alice
+        self.game.scenes.pop(fade=False)                       # the player leaves: the score so far pays Alice
         self.assertEqual((self.a.tickets, self.b.tickets), (5, 0))
         self.assertEqual(self.b.pinball_ticket_room(), PINBALL_DAILY_TICKET_CAP)
-        scene_b = self.scene_for(self.p2)
-        self.assertEqual(scene_b.table.state, "idle")
-        self.assertEqual(scene_b.profile, self.b)
+        self.assertIsNone(self.b.pinball_run)
 
-    def test_each_player_sees_their_own_keys(self):
-        self.assertEqual(PinballScene(self.game, self.p1).controls_lines(),
-                         [("A", "L FLIPPER"), ("D", "R FLIPPER"), ("SPACE/E", "PLUNGER"), ("I", "PAUSE"), ("ESC", "LEAVE")])
-        self.assertEqual(PinballScene(self.game, self.p2).controls_lines(),
-                         [("LEFT", "L FLIPPER"), ("RIGHT", "R FLIPPER"), ("R-SHIFT/ENTER", "PLUNGER"), ("O", "PAUSE"), ("ESC", "LEAVE")])
-        self.assertIs(PinballScene(self.game, self.p1).controls, P1_CONTROLS)
-        self.assertIs(PinballScene(self.game, self.p2).controls, P2_CONTROLS)
+    def test_the_player_sees_their_own_keys(self):
+        lines = PinballScene(self.game, self.p1).controls_lines()
+        self.assertEqual([action for _, action in lines], ["L FLIPPER", "R FLIPPER", "PLUNGER", "PAUSE", "LEAVE"])
+        self.assertFalse(any("P2" in keys or "R-SHIFT" in keys for keys, _ in lines))
+        self.assertIs(PinballScene(self.game, self.p1).controls, SOLO_CONTROLS)
         self.assertIs(PinballScene(Game(save_path=os.path.join(self.dir, "solo.json")), None).controls, SOLO_CONTROLS)
 
 
