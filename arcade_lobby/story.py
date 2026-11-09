@@ -37,7 +37,7 @@ import pygame
 
 from miao_meow import ARCADE, HOME, SPOTS, THRESHOLD, MiaoBrain
 from quest_ui import ObjectiveTracker, QuestBanner, QuestLogUI
-from quests import QuestManager
+from quests import MIAO_REVERSE_ROAD, SECRET_ITEM_RETRO_RACER, QuestManager
 from settings import VIEW_H, VIEW_W
 from story_dialogue import LOW_ON_SCREEN as D_LOW, Line, StoryDialogue
 from tour import TourGuide
@@ -84,6 +84,14 @@ BEATS = {
     ("meet", 8): [("hop", "miao"), ("jingle", 0.4)],
     ("meet", 12): [("hop", "miao"), ("jingle", 0.5)],
 }
+
+REVERSE_ROAD_CHAT = (            # told once, the next time she is spoken to after the Reverse Gear was found
+    Line(MIAO, "YOU FOUND A SECRET ROAD?!", "surprised"),
+    Line(YOU, "Yeah... apparently driving backwards was the answer."),
+    Line(MIAO, "BACKWARDS?!", "surprised"),
+    Line(MIAO, "Hahaha! Humans are so weird!", "happy"),
+    Line(MIAO, "Can we try it together next time?", "happy"),
+)
 
 GREETINGS = (
     ("Oh! Hi hi! You came to see me!", "happy"),
@@ -516,6 +524,12 @@ class StoryDirector:
             return
         player = player or room.player
         m = self.manager
+        if (m.opening_done and m.has_secret_item(SECRET_ITEM_RETRO_RACER)
+                and not m.state.get("flags", {}).get(MIAO_REVERSE_ROAD)):
+            self.brain.notify("talk", player)
+            self.open_dialogue(room, player, REVERSE_ROAD_CHAT,
+                               on_done=lambda: (m.handle(MIAO_REVERSE_ROAD), self.brain.end_talk()))
+            return
         n = self._chats
         self._chats += 1
         text, mood = GREETINGS[n % len(GREETINGS)]
