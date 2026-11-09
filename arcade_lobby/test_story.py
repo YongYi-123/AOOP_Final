@@ -2077,9 +2077,11 @@ class LegacyTerminalTests(LegacyBase):
         surf = pygame.Surface((400, 300))
         term.draw(surf)
 
-    def test_selecting_an_open_trial_shows_the_placeholder_and_changes_nothing(self):
+    def test_selecting_an_open_trial_that_is_not_built_shows_the_placeholder_and_changes_nothing(self):
         shop, term = self.open_terminal()
         self.frames(60)
+        self.tap(K.K_DOWN)                                                            # trial 02 (trial 01 is built now)
+        self.assertEqual(term.trial.number, 2)
         before = (self.profiles[0].to_dict(), json.dumps(self.story.manager.state, sort_keys=True), term.index)
         self.tap(K.K_e)
         self.frames(5)
@@ -2089,7 +2091,7 @@ class LegacyTerminalTests(LegacyBase):
         after = (self.profiles[0].to_dict(), json.dumps(self.story.manager.state, sort_keys=True), term.index)
         self.assertEqual(before, after)
         self.assertEqual(self.story.manager.secret_trials, 0)                          # not falsely marked complete
-        self.assertFalse(self.story.manager.trial_done("trial_01"))
+        self.assertFalse(self.story.manager.trial_done("trial_02"))
         self.tap(K.K_e)                                                               # OK closes the card
         self.assertIsNone(term.notice)
 
@@ -2124,12 +2126,13 @@ class LegacyTerminalTests(LegacyBase):
         self.assertEqual((self.profiles[0].tickets, self.profiles[0].tokens), wallet)
         self.assertFalse(m.trial_done("trial_03"))
 
-    def test_a_finished_trial_says_so(self):
-        self.story.manager.handle("secret_trial_done", "trial_01")
+    def test_a_finished_trial_that_has_no_room_says_so(self):
+        self.story.manager.handle("secret_trial_done", "trial_02")
         shop, term = self.open_terminal()
         self.frames(60)
+        self.tap(K.K_DOWN)
         self.tap(K.K_e)
-        self.assertEqual(term.notice["title"], "TRIAL 01 COMPLETE")
+        self.assertEqual(term.notice["title"], "TRIAL 02 COMPLETE")
 
     def test_selection_wraps_and_only_the_owners_keys_work(self):
         shop, term = self.open_terminal()
@@ -2181,8 +2184,10 @@ class LegacyTerminalTests(LegacyBase):
 
             def draw(self, surf):
                 surf.fill((1, 2, 3))
-        LT.TRIAL_SCENES["trial_01"] = Fake
-        self.addCleanup(LT.TRIAL_SCENES.pop, "trial_01", None)
+        from unittest.mock import patch
+        patcher = patch.dict(LT.TRIAL_SCENES, {"trial_01": Fake})          # (the real room is put back afterwards)
+        patcher.start()
+        self.addCleanup(patcher.stop)
         shop, term = self.open_terminal()
         self.frames(60)
         self.tap(K.K_e)

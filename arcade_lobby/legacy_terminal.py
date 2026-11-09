@@ -23,6 +23,7 @@ import random
 import pygame
 
 from font import get_font
+from golden_age_scene import GoldenAgeScene
 from gfx import scale_color
 from menu_kit import MenuScene
 from quest_ui import _door_icon, _gem_icon
@@ -42,8 +43,8 @@ BOOT_LINES = (("SYSTEM OVERRIDE", 2), ("", 1), ("USER: UNKNOWN", 1), ("ACCESS LE
 BOOT_RATE = 34                      # characters per second (the same typing speed the old page had)
 BOOT_HOLD = 0.7                     # a beat after the last line before the system comes up
 
-# trial id -> factory(game, owner) returning the escape-room scene. Empty until the escape rooms exist.
-TRIAL_SCENES = {}
+# trial id -> factory(game, owner) returning the escape-room scene. Trial 01 (THE GOLDEN AGE) is built; 02 and 03 are not yet.
+TRIAL_SCENES = {"trial_01": GoldenAgeScene}
 
 _static = {}
 
@@ -138,7 +139,9 @@ class LegacyTerminalScene(MenuScene):
         """Choose the highlighted trial. Never charges, never records progress."""
         trial, status = self.trial, self.status()
         n = f"{trial.number:02d}"
-        if status.code == "done":
+        if status.code == "done" and trial.id in TRIAL_SCENES:
+            self.game.scenes.push(TRIAL_SCENES[trial.id](self.game, self.owner))                  # a finished room can be played again
+        elif status.code == "done":
             self.notice = {"title": f"TRIAL {n} COMPLETE", "lines": ["YOU HAVE ALREADY BEATEN THIS ONE."], "color": GREEN}
         elif status.code == "locked":
             self.play("cancel")
@@ -238,11 +241,20 @@ class LegacyTerminalScene(MenuScene):
         x, y = DETAIL.x + 8, DETAIL.y + 7
         draw_text(surf, f"TRIAL {trial.number:02d}  {trial.title}", (x, y), Col.YELLOW)
         y += 13
+        built = trial.id in TRIAL_SCENES
         if st.code == "done":
-            draw_text(surf, "COMPLETE. NOTHING MORE TO DO HERE.", (x, y), GREEN)
+            rows = ["COMPLETE. NOTHING MORE TO DO HERE."]
+            if built:
+                rows = ["COMPLETE.", "[" + self.confirm_label + "] VISIT THE ROOM AGAIN. NOTHING MORE CAN BE EARNED."]
+            if self.manager.has_memory_fragment(trial.id):
+                rows.append(f"MEMORY FRAGMENT {trial.number:02d} KEPT.")
+            for row in rows:
+                draw_text(surf, row, (x, y), GREEN)
+                y += 10
             return
         if not trial.requires and not st.needs_currency:
-            for row in ("NO REQUIREMENTS. TRIALS 01 AND 02 CAN BE DONE IN ANY ORDER.", "THE ESCAPE ROOM ITSELF IS NOT BUILT YET."):
+            for row in ("NO REQUIREMENTS. TRIALS 01 AND 02 CAN BE DONE IN ANY ORDER.",
+                        f"[{self.confirm_label}] ENTER THE ROOM." if built else "THE ESCAPE ROOM ITSELF IS NOT BUILT YET."):
                 draw_text(surf, row, (x, y), Col.TEXT_MUTED)
                 y += 10
             return
