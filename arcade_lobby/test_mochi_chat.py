@@ -28,7 +28,6 @@ from vending_ui import VendingScene  # noqa: E402
 DT = 1 / 60
 K = pygame
 KONAMI = [K.K_UP, K.K_UP, K.K_DOWN, K.K_DOWN, K.K_LEFT, K.K_RIGHT, K.K_LEFT, K.K_RIGHT, K.K_b, K.K_a]
-P1_KONAMI = [K.K_w, K.K_w, K.K_s, K.K_s, K.K_a, K.K_d, K.K_a, K.K_d, K.K_z, K.K_x]       # P1's keys when two play
 
 
 def down(k):
@@ -48,7 +47,7 @@ class Base(unittest.TestCase):
         self.start()
 
     def start(self):
-        self.game = Game(session=LocalSession(self.profiles))
+        self.game = Game(session=LocalSession(self.profiles[0]))
         self.addCleanup(self.game.quit)
         self.story = self.game.hub.story
         self.m = self.story.manager
@@ -72,7 +71,7 @@ class Base(unittest.TestCase):
         self.frames(90)
         scene = self.game.scenes.current
         self.assertIsInstance(scene, VendingScene)
-        for k in (P1_KONAMI if self.players == 2 else KONAMI):
+        for k in KONAMI:
             self.tap(k)
         self.assertIsNotNone(scene.secret)
         while self.game.scenes.current is not room:                 # leave the hidden screens
@@ -304,20 +303,21 @@ class SaveTests(Base):
         self.assertIsNone(QuestManager(LocalSession([ProfileStore(path).load()])).mochi_story_stage)
 
 
-class TwoPlayerTests(Base):
+class OtherSavedProfileTests(Base):
+    """A second profile exists on disk; only the playing one has a story, and the other keeps its own."""
     players = 2
 
-    def test_the_progress_is_shared_and_saved_in_both_profiles(self):
-        self.unlock_for_real()                                  # player one opens the secret ...
-        chat = self.open_chat(who=1)                            # ... player two can chat about it
+    def test_the_progress_is_the_playing_profiles_alone(self):
+        self.unlock_for_real()                                  # the player opens the secret ...
+        chat = self.open_chat(who=0)                            # ... and chats about it
         self.assertEqual(self.labels(chat), [C.STORIES])
         self.read(chat)
-        for profile in self.profiles:
-            self.assertTrue(profile.story["flags"][MOCHI_ARCADE_STORY])
+        self.assertTrue(self.profiles[0].story["flags"][MOCHI_ARCADE_STORY])
+        self.assertEqual(self.profiles[1].story, {})            # the other save is untouched
         self.assertEqual(self.labels(self.open_chat(who=0)), [C.STORIES, C.HINT])
 
-    def test_a_second_player_cannot_get_the_option_early(self):
-        shop = self.open_shop(who=1)
+    def test_the_option_is_not_there_before_the_secret(self):
+        shop = self.open_shop(who=0)
         self.tap(self.bag(shop))
         self.assertIs(self.game.scenes.current, shop)
 

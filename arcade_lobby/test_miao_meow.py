@@ -855,10 +855,10 @@ class RoomTests(unittest.TestCase):
         prize.draw(pygame.Surface((400, 300)))
 
 
-class TwoPlayerTests(unittest.TestCase):
-    def test_either_player_lights_the_coin_and_can_chat(self):
-        a, b = PlayerProfile(profile_id="pa", display_name="A"), PlayerProfile(profile_id="pb", display_name="B")
-        game = Game(session=LocalSession([a, b]))
+class OnePlayerProximityTests(unittest.TestCase):
+    def test_the_player_lights_the_coin_and_can_chat_and_leaving_dims_it(self):
+        a = PlayerProfile(profile_id="pa", display_name="A")
+        game = Game(session=LocalSession(a))
         self.addCleanup(game.quit)
         room = goto_room(game, HOME)
         for pl in room.players:
@@ -869,18 +869,18 @@ class TwoPlayerTests(unittest.TestCase):
         brain.idle_left = 999
         for _ in range(30):
             game.step([], DT)
-        p1, p2 = room.players
-        p1.x, p1.y = 60, 120
-        p2.x, p2.y = brain.x + 14, brain.y + 6
+        self.assertEqual(len(room.players), 1)
+        p1, = room.players
+        p1.x, p1.y = brain.x + 14, brain.y + 6
         for _ in range(60):
             game.step([], DT)
         self.assertEqual(brain.level, mm.LEVELS)
-        self.assertIs(p2.nearby, room.miao)
-        self.assertIsNone(p1.nearby)
-        p2.x, p2.y = 60, 135
+        self.assertIs(p1.nearby, room.miao)
+        p1.x, p1.y = 60, 135
         for _ in range(90):
             game.step([], DT)
         self.assertEqual(brain.level, 0)
+        self.assertIsNone(p1.nearby)
         room.draw(pygame.Surface((400, 300)))
 
 

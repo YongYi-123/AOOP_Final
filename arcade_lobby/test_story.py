@@ -21,7 +21,7 @@ import story as S  # noqa: E402
 import legacy_terminal as LT  # noqa: E402
 import settings  # noqa: E402
 import story_dialogue as D  # noqa: E402
-from controls import P1_CONTROLS, P2_CONTROLS, SOLO_CONTROLS  # noqa: E402
+from controls import SOLO_CONTROLS  # noqa: E402
 from game import Game  # noqa: E402
 from local_session import GameEvent, LocalSession  # noqa: E402
 from player_profile import PlayerProfile, ProfileStore, clean_story  # noqa: E402
@@ -44,8 +44,8 @@ def up(k):
     return pygame.event.Event(pygame.KEYUP, key=k, mod=0)
 
 
-def session_of(*profiles):
-    return LocalSession(list(profiles))
+def session_of(profile):
+    return LocalSession(profile)
 
 
 def fresh(pid="a", **kw):
@@ -485,59 +485,75 @@ class VeteranSaveTests(unittest.TestCase):
         self.assertFalse(m.opening_done)
 
 
-class TwoPlayerStoryTests(unittest.TestCase):
-    def test_both_profiles_share_one_story_and_both_saves_get_it(self):
+class ProfileOwnedStoryTests(unittest.TestCase):
+    """The main quest belongs to the profile being played; other saved profiles are never read or written."""
+
+    def test_the_story_is_saved_in_the_playing_profile_only(self):
         a, b = fresh("a"), fresh("b")
-        m = QuestManager(session_of(a, b))
+        m = QuestManager(session_of(a))
         m.finish_opening()
         m.handle("tour_arcade")
         play(m, "x")
-        self.assertEqual(a.story, b.story)
         self.assertEqual(a.story["completed"], ["grand_tour"])
+        self.assertEqual(b.story, {})
 
-    def test_either_players_actions_move_the_one_quest(self):
+    def test_the_players_own_actions_move_the_quest(self):
         a, b = fresh("a"), fresh("b")
-        m = QuestManager(session_of(a, b))
+        m = QuestManager(session_of(a))
         m.finish_opening()
         m.handle("tour_arcade")
         m.handle("met_mochi")
         a.record_game_played("one")
-        b.record_game_played("two")
+        b.record_game_played("two")                       # another saved profile's play means nothing here
+        self.assertEqual(m.progress(), (1, 3))
+        a.record_game_played("two")
         self.assertEqual(m.progress(), (2, 3))
-        b.add_tickets(5)
+        a.add_tickets(5)
         a.record_game_played("three")
-        b.add_tickets(5)
+        a.add_tickets(5)
         self.assertEqual(m.active.id, "check_the_vending_machine")
-        self.assertEqual(a.story, b.story)
+        self.assertEqual(b.story, {})
 
-    def test_an_advanced_profile_and_a_new_one_play_together_without_the_opening(self):
+    def test_an_advanced_profile_skips_the_opening_and_a_new_one_still_gets_it(self):
         a = fresh("a", total_games_played=6, lifetime_tickets_earned=30)
         b = fresh("b")
-        m = QuestManager(session_of(a, b))
+        m = QuestManager(session_of(a))
         self.assertTrue(m.opening_done)
         self.assertEqual(m.active.id, "check_the_vending_machine")
-        self.assertEqual(b.story, a.story)
+        self.assertFalse(QuestManager(session_of(b)).opening_done)
+        self.assertEqual(b.story.get("opening_done", False), False)
 
-    def test_two_saves_that_drifted_apart_merge_to_the_most_advanced(self):
+    def test_two_saves_that_drifted_apart_are_each_kept_exactly_as_they_are(self):
+        """The old two-player game wrote one shared story into both saves; a profile now keeps its own copy."""
         a, b = fresh("a"), fresh("b")
-        a.set_story({"opening_done": True, "completed": ["get_your_bearings"], "stats": {"played": ["x"]}})
-        b.set_story({"opening_done": True, "completed": ["get_your_bearings", "arcade_explorer"],
+        a.set_story({"opening_done": True, "completed": ["grand_tour"], "stats": {"played": ["x"]}})
+        b.set_story({"opening_done": True, "completed": ["grand_tour", "meet_the_locals", "arcade_explorer"],
                      "stats": {"played": ["y", "z"]}, "flags": {"vending_secret": True}})
-        m = QuestManager(session_of(a, b))
-        self.assertEqual(m.completed_ids[:3], ["grand_tour", "meet_the_locals", "arcade_explorer"])
-        self.assertTrue(m.state["flags"]["vending_secret"])
-        self.assertEqual(sorted(m.state["stats"]["played"]), ["x", "y", "z"])
-        self.assertEqual(a.story, b.story)
+        before_a, before_b = a.story, b.story
+        ma = QuestManager(session_of(a))
+        self.assertEqual(ma.completed_ids, ["grand_tour"])
+        self.assertNotIn("vending_secret", ma.state.get("flags", {}))
+        self.assertEqual(ma.state["stats"]["played"], ["x"])
+        self.assertEqual(b.story, before_b)               # never touched while A is played
+        mb = QuestManager(session_of(b))
+        self.assertEqual(mb.completed_ids[:3], ["grand_tour", "meet_the_locals", "arcade_explorer"])
+        self.assertTrue(mb.state["flags"]["vending_secret"])
+        self.assertEqual(sorted(mb.state["stats"]["played"]), ["y", "z"])
+        self.assertEqual(a.story, before_a)
 
-    def test_ticket_gains_count_from_either_player_only_once(self):
-        a, b = fresh("a"), fresh("b")
-        m = QuestManager(session_of(a, b))
+    def test_ticket_gains_count_once(self):
+        a = fresh("a")
+        m = QuestManager(session_of(a))
         m.finish_opening()
         m.handle("tour_arcade")
         m.handle("met_mochi")
         play(m, "x", "y", "z")
         a.add_tickets(3)
         self.assertEqual(m.active.id, "check_the_vending_machine")
+
+    def test_merge_stories_no_longer_exists(self):
+        import quests
+        self.assertFalse(hasattr(quests, "merge_stories"))
 
 
 # ------------------------------------------------------------------ the dialogue box
@@ -667,9 +683,10 @@ class DialogueTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             D.StoryDialogue([])
 
-    def test_extra_players_attribute_is_there_for_the_rooms_modal_flow(self):
-        d = self.make(extra_players=["p2"])
-        self.assertEqual(d.extra_players, ["p2"])
+    def test_a_dialogue_takes_no_extra_players(self):
+        self.assertFalse(hasattr(self.make(), "extra_players"))
+        with self.assertRaises(TypeError):
+            self.make(extra_players=["p2"])
 
 
 # ------------------------------------------------------------------ the quest screens
@@ -721,7 +738,7 @@ class QuestUITests(unittest.TestCase):
         self.assertFalse(self.story.hides_hud)
 
     def test_q_is_nobodys_game_key(self):
-        for scheme in (SOLO_CONTROLS, P1_CONTROLS, P2_CONTROLS):
+        for scheme in (SOLO_CONTROLS,):
             self.assertFalse(scheme.owns(K.K_q), scheme.name)
         self.assertTrue(self.room.session.input.route(down(K.K_q)) == (None, None))
 
@@ -842,9 +859,9 @@ class QuestUITests(unittest.TestCase):
         img = b._make(Notification("quest", QUESTS[0]))
         self.assertGreater(img.get_width(), 200)
 
-    def test_everything_draws_with_the_log_the_banner_and_the_tracker_in_a_two_player_room(self):
-        a, b = fresh("a"), fresh("b")
-        game = Game(session=session_of(a, b))
+    def test_everything_draws_with_the_log_the_banner_and_the_tracker_in_the_room(self):
+        a = fresh("a")
+        game = Game(session=session_of(a))
         self.addCleanup(game.quit)
         room = goto_room(game, "home")
         for pl in room.players:
@@ -1056,28 +1073,29 @@ class VendingStoryTests(unittest.TestCase):
             src = f.read()
         self.assertNotIn("K_UP", src)                                   # the quest system never reads keys itself
 
-    def test_a_two_player_secret_counts_for_the_shared_story(self):
+    def test_the_secret_counts_for_the_playing_profiles_story_only(self):
         a, b = fresh("a", tickets=100), fresh("b", tickets=100)
         story = {"opening_done": True, "completed": ["get_your_bearings", "arcade_explorer", "earn_some_rewards"]}
         a.set_story(story)
         b.set_story(story)
-        game = Game(session=session_of(a, b))
+        game = Game(session=session_of(a))
         self.addCleanup(game.quit)
         room = goto_room(game, "arcade_floor")
         for _ in range(10):
             game.step([], DT)
-        game.hub.story.manager.session.dispatch(GameEvent("vending_secret", "b"))
+        game.hub.story.manager.session.dispatch(GameEvent("vending_secret", "a"))
         self.assertEqual(game.hub.story.manager.active.id, "the_way_out")
-        self.assertEqual(a.story, b.story)
+        self.assertTrue(a.story["flags"]["vending_secret"])
+        self.assertNotIn("vending_secret", b.story.get("flags", {}))           # b keeps the story it had
         self.assertIsNotNone(room)
 
 
 # ------------------------------------------------------------------ the opening
 class OpeningTests(unittest.TestCase):
-    def start(self, *profiles, opening=True):
-        profiles = profiles or (fresh("new"),)
-        self.profiles = profiles
-        self.game = Game(session=session_of(*profiles), opening=opening)
+    def start(self, profile=None, opening=True):
+        profile = profile or fresh("new")
+        self.profiles = (profile,)
+        self.game = Game(session=session_of(profile), opening=opening)
         self.addCleanup(self.game.quit)
         self.story = self.game.hub.story
         self.room = self.game.scenes.current
@@ -1280,28 +1298,30 @@ class OpeningTests(unittest.TestCase):
         self.assertTrue(self.until(lambda: self.story.dialogue is not None))
         self.assertIsNone(self.room.popup)
 
-    def test_two_players_both_stand_still_and_either_can_advance_the_dialogue(self):
-        self.start(fresh("a"), fresh("b"))
+    def test_the_one_player_stands_still_and_either_confirm_key_advances_the_dialogue(self):
+        self.start(fresh("a"))
         self.assertTrue(self.until(lambda: self.story.dialogue is not None))
-        p1, p2 = self.room.players
-        self.assertLess(abs(p1.x - p2.x), 25)
+        self.assertEqual(len(self.room.players), 1)
         pos = [(p.x, p.y) for p in self.room.players]
         self.frames(1, [down(K.K_d), down(K.K_RIGHT)])
         self.frames(30)
         self.assertEqual(pos, [(p.x, p.y) for p in self.room.players])
         self.frames(100)
-        self.frames(1, [down(K.K_RETURN)])                              # player two's confirm key
+        self.frames(1, [down(K.K_RETURN)])                              # ENTER confirms ...
         self.frames(1, [down(K.K_RETURN)])
         self.assertEqual(self.story.dialogue.index, 1)
         self.frames(100)
-        self.frames(1, [down(K.K_e)])                                   # player one's
+        self.frames(1, [down(K.K_e)])                                   # ... and so does E
         self.frames(1, [down(K.K_e)])
+        self.assertEqual(self.story.dialogue.index, 2)
+        self.frames(100)
+        self.frames(1, [down(K.K_o)])                                   # the old second player's key does not
+        self.frames(1, [down(K.K_o)])
         self.assertEqual(self.story.dialogue.index, 2)
         self.confirm_through(K.K_RETURN)
         self.frames(10)
         self.assertFalse(self.story.locked)
-        self.assertEqual(self.profiles[0].story, self.profiles[1].story)
-        self.assertTrue(self.profiles[1].story["opening_done"])
+        self.assertTrue(self.profiles[0].story["opening_done"])
 
     def test_every_frame_of_the_opening_draws(self):
         self.start()
@@ -1729,12 +1749,12 @@ class TrackerLayoutTests(unittest.TestCase):
         t = ObjectiveTracker(m)
         self.assertEqual(t._image().get_size(), t.layout()["size"])
 
-    def test_one_and_two_player_sessions_place_it_clear_of_the_wallet_and_controls(self):
-        for names in (["a"], ["a", "b"]):
+    def test_the_tracker_is_placed_clear_of_the_wallet_and_controls_in_every_room(self):
+        for names in (["a"],):
             profiles = [fresh(n) for n in names]
             for pr in profiles:
                 pr.set_story({"opening_done": True, "completed": [q.id for q in QUESTS[:3]]})
-            game = Game(session=session_of(*profiles))
+            game = Game(session=session_of(profiles[0]))
             self.addCleanup(game.quit)
             for rid in ("home", "arcade_floor", "prize_plaza"):
                 room = goto_room(game, rid)
@@ -1754,12 +1774,11 @@ class TrackerLayoutTests(unittest.TestCase):
                 self.assertFalse(rect.colliderect(box), (names, rid, "controls"))
                 self.assertGreaterEqual(rect.left, box.right + 4)                          # never reaches back over the controls box
 
-    def test_the_tracker_works_with_a_wrapped_title_in_a_two_player_room(self):
+    def test_the_tracker_works_with_a_wrapped_title(self):
         quests = (QuestDef("long", "A Quest With A Really Rather Long Title Indeed Yes", "Do it all.", "DO IT ALL", ("played", 99), ("h",)),)
-        a, b = fresh("a"), fresh("b")
-        for pr in (a, b):
-            pr.set_story({"opening_done": True})
-        game = Game(session=session_of(a, b))
+        a = fresh("a")
+        a.set_story({"opening_done": True})
+        game = Game(session=session_of(a))
         self.addCleanup(game.quit)
         story = game.hub.story
         story.manager.quests = quests
@@ -1905,15 +1924,15 @@ class TrialRuleTests(unittest.TestCase):
         self.assertEqual(trial_status(m2, loaded, TRIALS[2]).code, "locked")
         self.assertEqual(loaded.tickets, 50)
 
-    def test_two_players_share_the_trial_progress_and_each_is_judged_by_their_own_wallet(self):
+    def test_each_profile_is_judged_by_its_own_wallet_and_its_own_trial_progress(self):
         a, b = fresh("a", tickets=400, tokens=40), fresh("b", tickets=5, tokens=0)
-        m = QuestManager(session_of(a, b))
+        m = QuestManager(session_of(a))
         m.finish_opening()
         m.handle("secret_trial_done", "trial_01")
         m.handle("secret_trial_done", "trial_02")
         self.assertEqual(trial_status(m, a, TRIALS[2]).code, "available")
-        self.assertEqual(trial_status(m, b, TRIALS[2]).code, "locked")
-        self.assertEqual(a.story, b.story)
+        self.assertEqual(trial_status(m, b, TRIALS[2]).code, "locked")      # (b's wallet is judged by b's own money)
+        self.assertEqual(b.story, {})                                         # and b never received a's progress
 
     def test_progress_is_never_marked_by_looking_or_choosing(self):
         self.assertEqual(self.m.secret_trials, 0)
@@ -1930,7 +1949,7 @@ class LegacyBase(unittest.TestCase):
         self.profiles = [fresh(n, tickets=120, tokens=12) for n in names]
         for pr in self.profiles:
             pr.set_story({"opening_done": True, "completed": ["get_your_bearings", "arcade_explorer", "earn_some_rewards"]})
-        self.game = Game(session=session_of(*self.profiles))
+        self.game = Game(session=session_of(self.profiles[0]))
         self.addCleanup(self.game.quit)
         self.story = self.game.hub.story
         self.room = goto_room(self.game, "arcade_floor")
@@ -2186,40 +2205,29 @@ class LegacyTerminalTests(LegacyBase):
         self.assertEqual(self.story.manager.secret_trials, 0)                          # and it has nothing to do with the trials
 
 
-class LegacyTerminalTwoPlayerTests(LegacyBase):
+class LegacyTerminalOtherSavedProfileTests(LegacyBase):
+    """Another profile is saved (never played): the terminal belongs to the playing profile alone."""
     PLAYERS = 2
 
-    P2_CODE = (K.K_UP, K.K_UP, K.K_DOWN, K.K_DOWN, K.K_LEFT, K.K_RIGHT, K.K_LEFT, K.K_RIGHT, K.K_COMMA, K.K_PERIOD)
-
-    def open_as_p2(self):
-        self.open_shop(who=1)
-        for k in self.P2_CODE:
-            self.tap(k)
-        self.frames(int((GLITCH_TIME + 0.8) / DT))
-        term = self.game.scenes.current
-        self.assertIsInstance(term, LT.LegacyTerminalScene)
-        self.tap(K.K_RETURN)                                                          # P2's use key skips the boot typing
-        self.frames(30)
-        return term
-
-    def test_the_other_player_cannot_drive_the_terminal(self):
-        term = self.open_as_p2()
+    def test_the_old_second_player_keys_cannot_drive_the_terminal(self):
+        _shop, term = self.open_terminal()
         self.assertEqual(term.index, 0)
-        self.tap(K.K_s)                                                               # P1's keys: not the owner's
-        self.tap(K.K_e)
+        for k in (K.K_o, K.K_RCTRL, K.K_SLASH, K.K_RSHIFT):                          # not keys of the game
+            self.tap(k)
         self.assertEqual(term.index, 0)
         self.assertIsNone(term.notice)
-        self.tap(K.K_DOWN)                                                            # P2's own key
+        self.tap(K.K_DOWN)                                                            # the player's own key
         self.assertEqual(term.index, 1)
 
-    def test_it_shows_the_wallet_of_the_player_who_opened_it(self):
-        self.profiles[1].add_tickets(500)
-        self.profiles[1].add_tokens(50, "T")
+    def test_it_shows_the_wallet_of_the_playing_profile_only(self):
+        self.profiles[0].add_tickets(500)
+        self.profiles[0].add_tokens(50, "T")
         self.story.manager.handle("secret_trial_done", "trial_01")
         self.story.manager.handle("secret_trial_done", "trial_02")
-        term = self.open_as_p2()
-        self.assertEqual(term.status(TRIALS[2]).code, "available")                    # P2's 500 / 50 qualify
+        _shop, term = self.open_terminal()
+        self.assertEqual(term.status(TRIALS[2]).code, "available")                    # the player's 500 / 50 qualify
         self.assertEqual(term.status(TRIALS[2]).tickets_have, 620)
+        self.assertEqual(self.profiles[1].tickets, 120)                               # the other wallet: as it was
 
 
 # ------------------------------------------------------------------ the collapsible quest drawer
@@ -2231,7 +2239,7 @@ class DrawerBase(unittest.TestCase):
         self.profiles = [fresh(n) for n in names]
         for pr in self.profiles:
             pr.set_story({"opening_done": True, "completed": [q.id for q in QUESTS[:3]]})
-        self.game = Game(session=session_of(*self.profiles))
+        self.game = Game(session=session_of(self.profiles[0]))
         self.addCleanup(self.game.quit)
         self.story = self.game.hub.story
         self.tracker = self.story.tracker
@@ -2340,7 +2348,7 @@ class DrawerTests(DrawerBase):
         self.assertEqual(t.slide, 1.0)                                          # and it is back, open as it was
 
     def test_tab_is_nobodys_game_key_and_needs_no_new_control(self):
-        for scheme in (SOLO_CONTROLS, P1_CONTROLS, P2_CONTROLS):
+        for scheme in (SOLO_CONTROLS,):
             self.assertFalse(scheme.owns(K.K_TAB), scheme.name)
         self.assertEqual(self.room.session.input.route(down(K.K_TAB)), (None, None))
 
@@ -2477,10 +2485,11 @@ class DrawerTests(DrawerBase):
             self.assertFalse(rect.colliderect(hud.rect))
 
 
-class DrawerTwoPlayerTests(DrawerBase):
+class DrawerOtherSavedProfileTests(DrawerBase):
+    """Another profile is saved (never played): the drawer is the playing profile's alone."""
     PLAYERS = 2
 
-    def test_it_works_the_same_in_two_player_sessions_with_either_players_tab_key(self):
+    def test_it_opens_and_pins_with_the_shared_tab_key(self):
         t = self.tracker
         self.assertEqual((t.slide, t.pinned), (0.0, False))
         self.progress()
@@ -2488,26 +2497,27 @@ class DrawerTwoPlayerTests(DrawerBase):
         self.assertEqual(t.slide, 1.0)
         self.seconds(3.5)
         self.assertEqual(t.slide, 0.0)
-        self.frames(1, [down(K.K_TAB)])                                         # TAB is shared: it belongs to neither player
+        self.frames(1, [down(K.K_TAB)])                                         # TAB belongs to no scheme
         self.seconds(0.5)
         self.assertTrue(t.pinned)
         self.frames(1, [down(K.K_TAB)])
         self.seconds(0.5)
         self.assertFalse(t.pinned)
+        self.assertEqual(self.profiles[1].story["completed"], [q.id for q in QUESTS[:3]])    # the other save: as it was
 
-    def test_the_open_drawer_clears_both_wallet_boxes_and_the_controls(self):
+    def test_the_open_drawer_clears_the_wallet_box_and_the_controls(self):
         t = self.tracker
         t.pinned, t.slide = True, 1.0
         self.room.draw(pygame.Surface((400, 300)))
         rect = t.rect(self.room, animated=False)
-        self.assertEqual(len(self.room.huds), 2)
+        self.assertEqual(len(self.room.huds), 1)
         for hud in self.room.huds:
             self.assertFalse(rect.colliderect(hud.rect))
         box = self.room.instructions.image.get_rect(bottomleft=(4, 296))
         self.assertFalse(rect.colliderect(box))
         self.assertTrue(pygame.Rect(0, 0, 400, 300).contains(rect))
 
-    def test_every_room_draws_the_drawer_in_both_states_with_two_players(self):
+    def test_every_room_draws_the_drawer_in_both_states(self):
         surf = pygame.Surface((400, 300))
         for rid in ("home", "arcade_floor", "prize_plaza"):
             room = goto_room(self.game, rid)

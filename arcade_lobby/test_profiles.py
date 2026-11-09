@@ -18,8 +18,8 @@ import pygame  # noqa: E402
 
 from game import Game  # noqa: E402
 from game_clock import GameClock  # noqa: E402
-from menus import (NEW_PROFILE, VISIBLE_ROWS, PlayerCountScene, ProfileSelectScene,  # noqa: E402
-                   TitleScene, scroll_window)
+import menus  # noqa: E402
+from menus import NEW_PROFILE, VISIBLE_ROWS, ProfileSelectScene, TitleScene, scroll_window  # noqa: E402
 from player_profile import PlayerProfile  # noqa: E402
 from profile_manager import (DuplicateNameError, InvalidNameError, ProfileManager,  # noqa: E402
                              normalize_name)
@@ -246,18 +246,19 @@ class ManagerTests(TempTest):
         self.assertEqual([i.display_name for i in self.manager().list_profiles()], ["Bob"])
         self.assertTrue(m.name_available("Alice"))              # the name is free again
 
-    def test_recent_profiles_and_player_count_are_remembered(self):
+    def test_recent_profiles_are_remembered(self):
         m = self.manager()
         a, b, c = (m.create_profile(n) for n in "ABC")
-        self.assertEqual(m.last_player_count, 1)
-        m.record_session([a], 1)
-        m.record_session([b, c], 2)
+        m.record_session(a)
+        m.record_session(b)
+        m.record_session(c)
         again = self.manager()
-        self.assertEqual(again.last_player_count, 2)
-        self.assertEqual(again.recent_ids[:3], [b.profile_id, c.profile_id, a.profile_id])
-        self.assertEqual(again.most_recent(), b.profile_id)
-        self.assertEqual(again.most_recent(exclude=[b.profile_id]), c.profile_id)
+        self.assertEqual(again.recent_ids[:3], [c.profile_id, b.profile_id, a.profile_id])
+        self.assertEqual(again.most_recent(), c.profile_id)
+        self.assertEqual(again.most_recent(exclude=[c.profile_id]), b.profile_id)
         self.assertTrue(again.info(a.profile_id).last_played)
+        self.assertFalse(hasattr(again, "last_player_count"))
+        self.assertNotIn("last_player_count", self.read(again.index_path))
 
     def test_a_lost_index_is_rebuilt_from_the_profile_files(self):
         m = self.manager()
@@ -424,7 +425,7 @@ class FlowTest(TempTest):
 class ListScrollTests(FlowTest):
     def test_the_profile_list_scrolls_with_many_profiles(self):
         self.start([f"N{i:02d}" for i in range(30)])
-        self.go(pygame.K_RETURN, pygame.K_RETURN)               # title, 1 player
+        self.go(pygame.K_RETURN)                                # the title, then the profiles
         sel = self.scene
         self.assertIsInstance(sel, ProfileSelectScene)
         self.assertEqual(sel.total, 31)
@@ -442,7 +443,7 @@ class ListScrollTests(FlowTest):
 
     def test_the_last_row_is_new_profile(self):
         self.start(["A", "B"])
-        self.go(pygame.K_RETURN, pygame.K_RETURN)
+        self.go(pygame.K_RETURN)
         sel = self.scene
         self.press(pygame.K_UP)                                  # (starts on a profile; up wraps)
         for _ in range(3):
@@ -460,52 +461,43 @@ class StartupFlowTests(FlowTest):
         self.assertIsNone(self.game.hub)
         self.assertIsNone(self.game.profile)
 
-    def test_one_player_flow_ends_in_the_hub_with_the_chosen_profile(self):
+    def test_there_is_no_player_count_screen_any_more(self):
+        self.assertFalse(hasattr(menus, "PlayerCountScene"))
+        self.start(["A"])
+        self.assertFalse(hasattr(self.game.startup, "choose_count"))
+        self.assertFalse(hasattr(self.game.startup, "show_player_count"))
+        self.go(pygame.K_RETURN)                                 # the title goes straight to the profiles
+        self.assertIsInstance(self.scene, ProfileSelectScene)
+
+    def test_the_flow_ends_in_the_hub_with_exactly_the_chosen_profile(self):
         self.start(["Alice", "Bob"])
         self.go(pygame.K_RETURN)
-        self.assertIsInstance(self.scene, PlayerCountScene)
-        self.go(pygame.K_RETURN)                                 # 1 PLAYER
         self.assertIsInstance(self.scene, ProfileSelectScene)
         self.assertEqual(self.scene.title, "SELECT PROFILE")
         self.go(pygame.K_DOWN)
+        chosen = self.scene.selected_info
         self.go(pygame.K_RETURN)
         self.assertIsInstance(self.scene, BaseRoomScene)
         self.assertEqual(self.scene.room_id, "home")
-        self.assertEqual(self.game.session.player_count, 1)
-        self.assertEqual(self.game.profile.profile_id, self.ids["Bob"] if self.scene.profile.display_name == "Bob"
-                         else self.ids["Alice"])
+        self.assertEqual(len(self.game.session), 1)
+        self.assertEqual(len(self.scene.players), 1)
+        self.assertEqual(self.game.profile.profile_id, chosen.profile_id)
 
-    def test_two_player_flow_needs_two_different_profiles(self):
+    def test_every_profile_can_be_chosen_in_turn_and_only_one_is_ever_played(self):
         self.start(["Alice", "Bob"])
-        self.go(pygame.K_RETURN, pygame.K_DOWN)                  # title, then pick 2 PLAYERS
-        self.go(pygame.K_RETURN)
-        p1 = self.scene
-        self.assertEqual(p1.title, "P1 SELECT PROFILE")
-        p1.selected = 0
-        self.go(pygame.K_RETURN)                                 # P1 = Alice
-        p2 = self.scene
-        self.assertIsInstance(p2, ProfileSelectScene)
-        self.assertEqual(p2.title, "P2 SELECT PROFILE")
-        self.assertEqual(p2.taken, {self.ids["Alice"]})
-        p2.selected = 0                                          # Alice again: refused
-        self.go(pygame.K_RETURN)
-        self.assertIs(self.scene, p2)
-        self.assertIn("ALREADY", p2.message)
-        p2.selected = 1                                          # Bob
-        self.go(pygame.K_RETURN)
-        self.assertIsInstance(self.scene, BaseRoomScene)
-        s = self.game.session
-        self.assertEqual(s.player_count, 2)
-        self.assertEqual([p.profile.display_name for p in s], ["Alice", "Bob"])
-        self.assertNotEqual(s.players[0].profile.profile_id, s.players[1].profile.profile_id)
+        for name in ("Alice", "Bob"):
+            self.game = Game(profiles=self.manager(), clock=CLOCK())
+            self.go(pygame.K_RETURN)
+            sel = self.scene
+            sel.selected = next(i for i, info in enumerate(sel.infos) if info.display_name == name)
+            self.go(pygame.K_RETURN)
+            self.assertIsInstance(self.scene, BaseRoomScene)
+            self.assertEqual([p.profile.display_name for p in self.game.session], [name])
 
     def test_the_most_recent_profile_is_highlighted_but_never_auto_entered(self):
         self.start(["Alice", "Bob", "Cy"])
-        self.m.record_session([self.m.load_profile(self.ids["Cy"])], 2)
+        self.m.record_session(self.m.load_profile(self.ids["Cy"]))
         self.game = Game(profiles=self.manager(), clock=CLOCK())
-        self.go(pygame.K_RETURN)
-        self.assertIsInstance(self.scene, PlayerCountScene)
-        self.assertEqual(self.scene.count, 2)                    # the last player count is preselected
         self.go(pygame.K_RETURN)
         self.assertIsInstance(self.scene, ProfileSelectScene)    # still waiting for confirmation
         self.assertEqual(self.scene.selected_info.profile_id, self.ids["Cy"])
@@ -513,27 +505,21 @@ class StartupFlowTests(FlowTest):
 
     def test_starting_a_session_records_the_recents(self):
         self.start(["Alice", "Bob"])
-        self.go(pygame.K_RETURN, pygame.K_RETURN, pygame.K_RETURN)
+        self.go(pygame.K_RETURN, pygame.K_RETURN)
         again = self.manager()
-        self.assertEqual(again.last_player_count, 1)
         self.assertEqual(len(again.recent_ids), 1)
+        self.assertTrue(again.info(again.recent_ids[0]).last_played)
 
-    def test_escape_walks_back_through_the_screens(self):
+    def test_escape_walks_back_to_the_title(self):
         self.start(["Alice", "Bob"])
-        self.go(pygame.K_RETURN, pygame.K_DOWN, pygame.K_RETURN)
-        self.assertEqual(self.scene.title, "P1 SELECT PROFILE")
         self.go(pygame.K_RETURN)
-        self.assertEqual(self.scene.title, "P2 SELECT PROFILE")
-        self.go(pygame.K_ESCAPE)
-        self.assertEqual(self.scene.title, "P1 SELECT PROFILE")
-        self.go(pygame.K_ESCAPE)
-        self.assertIsInstance(self.scene, PlayerCountScene)
+        self.assertIsInstance(self.scene, ProfileSelectScene)
         self.go(pygame.K_ESCAPE)
         self.assertIsInstance(self.scene, TitleScene)
 
     def test_a_profile_can_be_created_from_the_select_screen(self):
         self.start([])
-        self.go(pygame.K_RETURN, pygame.K_RETURN)
+        self.go(pygame.K_RETURN)
         sel = self.scene
         self.assertTrue(sel.on_new_profile)
         self.go(pygame.K_RETURN)                                 # + NEW PROFILE
@@ -550,10 +536,26 @@ class StartupFlowTests(FlowTest):
                 pygame.K_DOWN, pygame.K_RETURN)                  # ... then CONFIRM makes the profile
         self.assertEqual([i.display_name for i in self.m.list_profiles()], ["KEVI"])
         self.assertEqual(self.scene.selected_info.display_name, "KEVI")
+        self.go(pygame.K_RETURN)                                 # and it can be played right away
+        self.assertEqual([p.profile.display_name for p in self.game.session], ["KEVI"])
+
+    def test_a_new_profile_starts_a_fresh_game_in_the_hub(self):
+        self.start([])
+        self.go(pygame.K_RETURN, pygame.K_RETURN)
+        self.frames(1, typed("zed"))
+        self.frames(1, [key(pygame.K_RETURN)])
+        self.settle()
+        self.go(pygame.K_RETURN, pygame.K_RETURN, pygame.K_RETURN, pygame.K_RETURN, pygame.K_RETURN,
+                pygame.K_DOWN, pygame.K_RETURN)
+        self.go(pygame.K_RETURN)
+        profile = self.game.profile
+        self.assertEqual((profile.display_name, profile.tokens, profile.tickets), ("ZED", 10, 0))
+        self.assertEqual(profile.story.get("opening_done", False), False)      # the opening is still to come
+        self.assertEqual(len(self.game.hub.avatars), 1)
 
     def test_blank_and_duplicate_names_are_rejected_in_the_entry_box(self):
         self.start(["Alice"])
-        self.go(pygame.K_RETURN, pygame.K_RETURN)
+        self.go(pygame.K_RETURN)
         sel = self.scene
         sel.selected = sel.total - 1
         self.go(pygame.K_RETURN)
@@ -570,31 +572,14 @@ class StartupFlowTests(FlowTest):
 
     def test_the_name_box_stops_at_the_length_limit(self):
         self.start([])
-        self.go(pygame.K_RETURN, pygame.K_RETURN, pygame.K_RETURN)
+        self.go(pygame.K_RETURN, pygame.K_RETURN)
         sel = self.scene
         self.frames(1, typed("a" * 30))
         self.assertEqual(len(sel.entry.text), PROFILE_NAME_MAX)
 
-    def test_new_profile_is_offered_to_player_two_as_well(self):
-        self.start(["Alice"])
-        self.go(pygame.K_RETURN, pygame.K_DOWN, pygame.K_RETURN, pygame.K_RETURN)   # P1 = Alice
-        p2 = self.scene
-        self.assertEqual(p2.title, "P2 SELECT PROFILE")
-        p2.selected = p2.total - 1
-        self.go(pygame.K_RETURN)
-        self.frames(1, typed("zed"))
-        self.frames(1, [key(pygame.K_RETURN)])
-        self.settle()
-        self.go(pygame.K_DOWN, pygame.K_DOWN, pygame.K_DOWN, pygame.K_DOWN, pygame.K_DOWN, pygame.K_DOWN,
-                pygame.K_RETURN)                                 # creator: down to CONFIRM
-        p2 = self.scene
-        self.assertEqual(p2.selected_info.display_name, "ZED")
-        self.go(pygame.K_RETURN)
-        self.assertEqual([p.profile.display_name for p in self.game.session], ["Alice", "ZED"])
-
     def test_delete_asks_first_and_defaults_to_no(self):
         self.start(["Alice", "Bob"])
-        self.go(pygame.K_RETURN, pygame.K_RETURN)
+        self.go(pygame.K_RETURN)
         sel = self.scene
         sel.selected = 0
         self.frames(1, [key(pygame.K_DELETE)])
@@ -613,7 +598,7 @@ class StartupFlowTests(FlowTest):
 
     def test_delete_only_happens_on_an_explicit_yes(self):
         self.start(["Alice", "Bob"])
-        self.go(pygame.K_RETURN, pygame.K_RETURN)
+        self.go(pygame.K_RETURN)
         sel = self.scene
         sel.selected = 0
         self.frames(1, [key(pygame.K_DELETE)])
@@ -623,22 +608,109 @@ class StartupFlowTests(FlowTest):
         self.assertEqual([i.display_name for i in self.m.list_profiles()], ["Bob"])
         self.assertFalse(os.path.exists(self.m.profile_path(self.ids["Alice"])))
 
-    def test_a_profile_in_use_by_p1_cannot_be_deleted_from_the_p2_screen(self):
-        self.start(["Alice", "Bob"])
-        self.go(pygame.K_RETURN, pygame.K_DOWN, pygame.K_RETURN)
-        self.scene.selected = 0
-        self.go(pygame.K_RETURN)
-        p2 = self.scene
-        p2.selected = 0
-        self.frames(1, [key(pygame.K_DELETE)])
-        self.assertIsNone(p2.dialog)
-        self.assertEqual(len(self.m), 2)
-
     def test_the_old_single_player_entry_points_still_work(self):
         g = Game(save_path=os.path.join(self.dir, "single.json"), clock=CLOCK())
         self.assertIsInstance(g.scenes.current, BaseRoomScene)
-        self.assertEqual(g.session.player_count, 1)
+        self.assertEqual(len(g.session), 1)
         self.assertTrue(os.path.exists(os.path.join(self.dir, "single.json")))
+
+
+class SinglePlayerMigrationTests(TempTest):
+    """Saves written by the two-player game: nothing is lost, merged or rewritten, and the upgrade runs once."""
+
+    def two_player_saves(self):
+        """Build what the old game left behind: an index that remembers '2 players' and two profiles that were
+        playing together (each with the shared story and its own wallet)."""
+        m = self.manager()
+        a, b = m.create_profile("Alice"), m.create_profile("Bob")
+        a.add_tokens(7, "T")
+        b.add_tickets(33)
+        b.add_tokens(2, "T")
+        story_a = {"opening_done": True, "completed": ["grand_tour"], "flags": {"tour_arcade": True}}
+        story_b = {"opening_done": True, "completed": ["grand_tour", "meet_the_locals"],
+                   "flags": {"tour_arcade": True, "met_mochi": True}, "stats": {"secret_items": ["retro_racer"]}}
+        a.set_story(story_a)
+        b.set_story(story_b)
+        with open(m.index_path, encoding="utf-8") as f:
+            index = json.load(f)
+        index["version"] = 1
+        index["last_player_count"] = 2
+        with open(m.index_path, "w", encoding="utf-8") as f:
+            json.dump(index, f)
+        return m, a, b
+
+    def test_a_version_1_index_is_upgraded_and_backed_up_once(self):
+        m, a, b = self.two_player_saves()
+        before = self.read(m.index_path)
+        again = self.manager()
+        backup = again.index_path + ".pre-single-player"
+        self.assertEqual(self.read(backup), before)                       # the old index is kept exactly
+        new = self.read(again.index_path)
+        self.assertEqual(new["version"], 2)
+        self.assertNotIn("last_player_count", new)
+        self.assertEqual([p["display_name"] for p in new["profiles"]], ["Alice", "Bob"])
+        self.assertEqual(new["recent"], before["recent"])
+
+    def test_the_upgrade_is_idempotent_and_never_overwrites_the_backup(self):
+        m, a, b = self.two_player_saves()
+        old = self.read(m.index_path)
+        self.manager()
+        again = self.manager()
+        again.record_session(again.load_profile(a.profile_id))
+        third = self.manager()
+        self.assertEqual(self.read(third.index_path + ".pre-single-player"), old)
+        self.assertEqual(self.read(third.index_path)["version"], 2)
+        self.assertEqual(len(third.list_profiles()), 2)
+
+    def test_no_profile_wallet_story_or_file_changes(self):
+        m, a, b = self.two_player_saves()
+        files = {pid: self.read(m.profile_path(pid)) for pid in (a.profile_id, b.profile_id)}
+        again = self.manager()
+        for pid, saved in files.items():
+            self.assertEqual(self.read(again.profile_path(pid)), saved, pid)
+        ra, rb = again.load_profile(a.profile_id), again.load_profile(b.profile_id)
+        self.assertEqual((ra.tokens, ra.tickets), (17, 0))
+        self.assertEqual((rb.tokens, rb.tickets), (12, 33))
+
+    def test_two_different_stories_are_kept_apart_not_merged(self):
+        m, a, b = self.two_player_saves()
+        before_a, before_b = a.story, b.story
+        self.assertNotEqual(before_a, before_b)
+        game = Game(session=__import__("local_session").LocalSession(self.manager().load_profile(b.profile_id)))
+        self.addCleanup(game.quit)
+        again = self.manager()
+        self.assertEqual(again.load_profile(a.profile_id).story, before_a)          # Alice's copy: exactly as it was
+        story_b = again.load_profile(b.profile_id).story
+        self.assertEqual(story_b["completed"][:2], ["grand_tour", "meet_the_locals"])
+        self.assertTrue(story_b["flags"]["met_mochi"])
+        self.assertNotIn("met_mochi", again.load_profile(a.profile_id).story["flags"])
+
+    def test_the_old_index_of_a_deleted_profile_is_not_resurrected(self):
+        m, a, b = self.two_player_saves()
+        m.delete_profile(a.profile_id)
+        again = self.manager()
+        self.assertEqual([i.display_name for i in again.list_profiles()], ["Bob"])
+
+    def test_a_corrupt_version_1_index_is_still_rebuilt(self):
+        m, a, b = self.two_player_saves()
+        with open(m.index_path, "w") as f:
+            f.write("{ not json")
+        again = self.manager()
+        self.assertEqual(sorted(i.display_name for i in again.list_profiles()), ["Alice", "Bob"])
+        self.assertEqual(again.load_profile(b.profile_id).tickets, 33)
+
+    def test_a_fresh_install_writes_a_version_2_index_and_no_backup(self):
+        m = self.manager()
+        m.create_profile("Solo")
+        self.assertEqual(self.read(m.index_path)["version"], 2)
+        self.assertFalse(os.path.exists(m.index_path + ".pre-single-player"))
+
+    def test_the_legacy_single_save_migration_still_lands_in_a_version_2_index(self):
+        with open(self.legacy, "w") as f:
+            json.dump({"tokens": 23, "tickets": 140}, f)
+        m = self.manager(legacy_path=self.legacy)
+        self.assertEqual(self.read(m.index_path)["version"], 2)
+        self.assertFalse(os.path.exists(m.index_path + ".pre-single-player"))
 
 
 if __name__ == "__main__":

@@ -47,7 +47,7 @@ class TourBase(unittest.TestCase):
         self.start()
 
     def start(self, profiles=None):
-        self.game = Game(session=LocalSession(profiles or self.profiles))
+        self.game = Game(session=LocalSession((profiles or self.profiles)[0]))
         self.addCleanup(self.game.quit)
         self.story = self.game.hub.story
         self.story.opening_enabled = True
@@ -521,32 +521,30 @@ class OldSaveTests(unittest.TestCase):
             self.assertIsNone(game.hub.story.dialogue, room_id)
 
 
-# ------------------------------------------------------------------ two players
-class TwoPlayerTourTests(TourBase):
+# ------------------------------------------------------------------ another saved profile
+class OtherSavedProfileTourTests(TourBase):
     players = 2
 
-    def test_both_players_share_the_tour_and_either_can_advance_it(self):
-        p1, p2 = self.game.session.players
+    def test_the_tour_belongs_to_the_playing_profile_and_the_other_save_is_untouched(self):
         self.go(ARCADE)
         self.assertIsNotNone(self.story.dialogue)
-        self.assertIs(self.room.modal_owner, p1.avatar)
-        before = self.story.dialogue.index
-        self.frames(80)
-        self.frames(1, [key(p2.controls.interact[0])])                # P2's key finishes the typing...
-        self.frames(1, [key(p2.controls.interact[0])])                # ... and moves on
-        self.assertEqual(self.story.dialogue.index, before + 1)
-        self.confirm_through()
-        self.assertTrue(self.m.state["flags"]["tour_arcade"])
-
-    def test_both_saves_get_the_same_story_and_flags(self):
-        self.go(ARCADE)
+        self.assertIs(self.room.modal_owner, self.game.session.primary.avatar)
         self.confirm_through()
         a, b = self.profiles
-        self.assertEqual(a.story, b.story)
-        self.assertTrue(b.story["flags"]["tour_arcade"])
-        self.assertEqual(b.story["completed"], ["grand_tour"])
+        self.assertTrue(a.story["flags"]["tour_arcade"])
+        self.assertEqual(a.story["completed"], ["grand_tour"])
+        self.assertEqual(b.story, {})
 
-    def test_the_plaza_scene_plays_once_for_two_players_and_both_are_spectators_not_extra_tours(self):
+    def test_the_old_second_player_keys_do_not_advance_the_talk(self):
+        self.go(ARCADE)
+        before = self.story.dialogue.index
+        self.frames(80)
+        for k in (pygame.K_RCTRL, pygame.K_o, pygame.K_KP0):
+            self.frames(1, [key(k)])
+        self.assertEqual(self.story.dialogue.index, before)
+        self.confirm_through()
+
+    def test_the_plaza_scene_plays_once(self):
         self.go(PLAZA)
         self.confirm_through()
         self.assertEqual(self.story.guide.played, ["met_mochi"])
@@ -554,19 +552,19 @@ class TwoPlayerTourTests(TourBase):
         self.go(PLAZA, 200)
         self.assertIsNone(self.story.dialogue)
 
-    def test_a_second_player_alone_with_an_advanced_partner_skips_what_the_story_already_saw(self):
+    def test_an_advanced_profile_skips_what_its_story_already_saw_and_the_other_keeps_its_own(self):
         a = fresh("c")
         a.set_story({"opening_done": True, "completed": ["grand_tour", "meet_the_locals"],
                      "flags": {"tour_home": True, "tour_arcade": True, "met_mochi": True}})
         b = fresh("d")
-        game = Game(session=LocalSession([a, b]))
+        game = Game(session=LocalSession(a))
         self.addCleanup(game.quit)
         game.hub.story.opening_enabled = True
         goto_room(game, PLAZA)
         for _ in range(240):
             game.step([], DT)
         self.assertIsNone(game.hub.story.dialogue)
-        self.assertEqual(b.story["completed"], ["grand_tour", "meet_the_locals"])
+        self.assertEqual(b.story, {})                                 # never merged into another profile
 
 
 # ------------------------------------------------------------------ Miao Meow never gets stuck
