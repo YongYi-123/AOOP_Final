@@ -98,10 +98,11 @@ class TrialDef:
     title: str
     requires: tuple = ()
     cost_names: tuple = None            # ("SETTING_FOR_TICKETS", "SETTING_FOR_TOKENS")
+    needs_items: tuple = ()             # ((secret item key, short name), ...) the player must already own to be let in
 
 
 TRIALS = (
-    TrialDef("trial_01", 1, "THE GOLDEN AGE"),
+    TrialDef("trial_01", 1, "THE GOLDEN AGE", needs_items=((SECRET_ITEM_RETRO_RACER, "REVERSE GEAR (SECRET ITEM 01)"),)),
     TrialDef("trial_02", 2, "THE UNBEATEN RECORD"),
     TrialDef("trial_03", 3, "THE FINAL LOCK", requires=("trial_01", "trial_02"),
              cost_names=("TRIAL_FINAL_TICKETS", "TRIAL_FINAL_TOKENS")),
@@ -144,6 +145,9 @@ def trial_status(manager, profile, trial):
     if manager.trial_done(trial.id):
         return TrialStatus("done", **base)
     reasons = []
+    for key, name in trial.needs_items:
+        if not manager.has_secret_item(key):
+            reasons.append(f"NEED THE {name}")
     missing = [TRIALS_BY_ID[r] for r in trial.requires if not manager.trial_done(r)]
     if missing:
         nums = " AND ".join(f"{t.number:02d}" for t in missing)
