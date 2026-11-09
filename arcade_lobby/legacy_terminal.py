@@ -252,12 +252,15 @@ class LegacyTerminalScene(MenuScene):
                 draw_text(surf, row, (x, y), GREEN)
                 y += 10
             return
-        if not trial.requires and not st.needs_currency:
+        if not trial.requires and not st.needs_currency and not trial.needs_items:
             for row in ("NO REQUIREMENTS. TRIALS 01 AND 02 CAN BE DONE IN ANY ORDER.",
                         f"[{self.confirm_label}] ENTER THE ROOM." if built else "THE ESCAPE ROOM ITSELF IS NOT BUILT YET."):
                 draw_text(surf, row, (x, y), Col.TEXT_MUTED)
                 y += 10
             return
+        for key, name in trial.needs_items:
+            self._requirement(surf, x, y, name, self.manager.has_secret_item(key))
+            y += 11
         for req in trial.requires:
             done = self.manager.trial_done(req)
             self._requirement(surf, x, y, f"TRIAL {req[-2:]} COMPLETE", done)
@@ -269,7 +272,10 @@ class LegacyTerminalScene(MenuScene):
             self._requirement(surf, x, y, f"{st.tokens_needed} TOKENS", st.tokens_have >= st.tokens_needed,
                               f"YOU HAVE {st.tokens_have}")
             y += 11
-        draw_text(surf, "HELD, NOT SPENT. VIEWING COSTS NOTHING.", (x, DETAIL.bottom - 12), scale_color(Col.TEXT_MUTED, 0.8))
+        if built and st.code == "available":
+            draw_text(surf, f"[{self.confirm_label}] ENTER THE ROOM.", (x, y + 2), GREEN)
+        if st.needs_currency:
+            draw_text(surf, "HELD, NOT SPENT. VIEWING COSTS NOTHING.", (x, DETAIL.bottom - 12), scale_color(Col.TEXT_MUTED, 0.8))
 
     @staticmethod
     def _requirement(surf, x, y, text, ok, extra=""):
