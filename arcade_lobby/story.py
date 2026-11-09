@@ -186,9 +186,8 @@ class OpeningCutscene:
         brain = director.brain
         brain.place(ARCADE, SPOTS[ARCADE]["centre"], "right")          # Miao Meow is not in this room yet
         brain.scripted = True
-        spread = (0,) if len(room.players) == 1 else (-10, 10)
-        for p, dx in zip(room.players, spread):
-            p.x, p.y = float(self.PLAYER_AT[0] + dx), float(self.PLAYER_AT[1])
+        for p in room.players:
+            p.x, p.y = float(self.PLAYER_AT[0]), float(self.PLAYER_AT[1])
             p.facing = "up"
             p.stop()
             p.held.clear()
@@ -499,16 +498,13 @@ class StoryDirector:
 
     # ------------------------------------------------------------ conversations
     def open_dialogue(self, room, owner, lines, on_done=None, on_line=None):
-        """Open the dialogue box for `owner` (an avatar); every local player's confirm key can advance it."""
-        owner_local = self.session.player_for_avatar(owner)
-        others = [p for p in self.session if p is not owner_local]
+        """Open the dialogue box for `owner` (the player's avatar)."""
         context = {"players": list(self.hub.avatars)}
         low = [p.y for p in self.hub.avatars]
         if self.brain.is_in(room.room_id):
             low.append(self.brain.y)
         top = max(low) > D_LOW                                             # the speakers stand where a bottom box would hide them
-        self.dialogue = StoryDialogue(lines, context, on_done=on_done, play_sound=self.play, extra_players=others, top=top,
-                                      on_line=on_line)
+        self.dialogue = StoryDialogue(lines, context, on_done=on_done, play_sound=self.play, top=top, on_line=on_line)
         room._own_modal(owner)
         room.notice.clear()
         for p in room.players:

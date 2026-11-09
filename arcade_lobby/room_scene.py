@@ -10,22 +10,20 @@ the active room is updated and drawn: the SceneManager keeps just that room on
 the stack, and the others sit frozen in the hub with their cats, machine
 animations and decorations exactly as they were left.
 
-Two local players share the one screen and the one active room. Each player has
-their own HubPlayer (body, held keys, nearby thing, prompt), profile, HUD and
-bag; the room holds a single modal (dialogue / panel / bag / popup) at a time,
-owned by the player who opened it, and only that player's keys drive it. A room
-change needs everybody at the same exit.
+The game is single-player: one HubPlayer (body, held keys, nearby thing,
+prompt) plays for the one profile of the session. The room holds a single modal
+(dialogue / panel / bag / popup) at a time and only the player's keys drive it.
+`self.players` is the session's list of that one body (kept list-shaped so the
+rooms, the story and the cats share one call path).
 
 World state vs player-specific state (what a room may show):
 
-  GLOBAL WORLD STATE - neutral, never one profile's data
-    daily board sprite (generic terminal), machine score plates (best of the
-    players present, with the owner's name), HOME's decorations (P1 owns HOME,
-    P2 is the guest - intentional), cats, props.
-  PLAYER-SPECIFIC INTERACTION STATE - always the profile of whoever acted
-    wallet HUDs, bags, daily panel, machine dialogue / coupon / join prompts,
+  GLOBAL WORLD STATE - neutral
+    daily board sprite (generic terminal), machine score plates, HOME's
+    decorations, cats, props.
+  PLAYER-SPECIFIC INTERACTION STATE - always the profile that is playing
+    wallet HUD, bag, daily panel, machine dialogue / coupon prompts,
     prize counter text, Lucky Corner rounds, daily bonus popups, rewards.
-    These take the acting HubPlayer (`_actor`), never `players[0]`.
 
 Paying for a game: choosing PLAY charges the machine's play_cost through
 machine.start_play(), which returns a PlaySession. When the minigame is popped
@@ -53,20 +51,17 @@ from machine import ArcadeMachine
 from rewards import RewardService
 from miao_meow import MiaoMeow
 from room import room_walls
-from font import get_font
 from scene_base import BaseScene
-from scenes import create_minigame_scene, minigame_definition
+from scenes import create_minigame_scene
 from settings import (ARRIVAL_GRACE, CATS, Col, DEBUG_COUPON_KEY, DEBUG_NEXT_DAY_KEY,
                       DEBUG_RESET_TASKS_KEY, DEBUG_STICKER_KEY, DEBUG_TOKEN_KEY,
                       DEBUG_TOKENS, ENTRY_INSET, EXIT_DEPTH, INTERACT_FLASH,
                       PLAYER_START, ROOM_IDS, SIDE_DOOR_H, SIDE_DOOR_Y, START_ROOM,
                       TRANSITION_TIME, VIEW_W)
 from stations import Station
-from ui import (DialogueBox, InstructionBox, JoinPrompt, Notice, RoomTitle, draw_text, selection_brackets,
-                neon_panel)
+from ui import DialogueBox, InstructionBox, Notice, RoomTitle, selection_brackets
 
 PLAY, PLAY_LOCKED, CANCEL = "PLAY", "PLAY  [LOCKED]", "CANCEL"
-ONE_PLAYER, TWO_PLAYERS, TWO_PLAYERS_LOCKED = "1 PLAYER", "2 PLAYERS", "2 PLAYERS  [P2 NEEDS TOKENS]"
 COUPON_INPUT_DELAY = 0.3     # seconds the coupon question ignores keys
 
 DOOR_Y_MID = SIDE_DOOR_Y + SIDE_DOOR_H // 2 + 2
@@ -99,12 +94,6 @@ ENTRIES = {
     "right": ((VIEW_W - ENTRY_INSET, DOOR_Y_MID), "left"),
     "spawn": (PLAYER_START, "up"),
 }
-# With two players they arrive side by side, not on the same pixel (one player: no offset).
-ARRIVAL_SPREAD = {
-    "left": ((0, -9), (0, 9)),
-    "right": ((0, -9), (0, 9)),
-    "spawn": ((-10, 0), (10, 0)),
-}
 
 
 def facing_toward(player, rect):
@@ -129,10 +118,10 @@ class BaseRoomScene(BaseScene):
         self.hub = hub
         self.style = hub.style              # one shared ArcadeStyle ...
         self.theme = self.style.theme_for(self.room_id)     # ... with this room's own accents
-        self.session = hub.session          # who is playing (1 or 2 local players)
-        self.players = hub.avatars          # their bodies: shared by the whole hub
+        self.session = hub.session          # who is playing (the one player)
+        self.players = hub.avatars          # their body (a list of one): shared by the whole hub
         self.huds = hub.huds
-        self.hud = hub.hud                  # P1's wallet readout
+        self.hud = hub.hud                  # the wallet readout
         self.machines = self.build_machines()
         for m in self.machines:
             m.soft_glow = self.style.soft_machines
@@ -157,14 +146,11 @@ class BaseRoomScene(BaseScene):
         self.acting_player = None   # the HubPlayer whose press is being carried out (for stations)
         self._day_timer = 0.0
         self._ready = {id(p): len(p.profile.claimable_tasks) for p in self.players}
-        self.waiting = None     # (waiting players, missing players) at an exit
-        self._labels = {}
         self.instructions = InstructionBox(self.build_hint_rows())
         self.notice = Notice()
         self.title = RoomTitle(self.theme.name, self.theme.title, self.theme.title_glow,
                                subtitle=self.title_subtitle())
         self.active_play = None  # (PlaySession, minigame scene) while a paid game runs
-        self.active_plays = []   # [(HubPlayer, PlaySession)]: one per participant of that game
         self.interaction = None  # the MachineInteraction last started (who initiated it)
         self.leaving = False     # a doorway was entered: no more input until the swap
         self.arrival_grace = 0.0
@@ -173,7 +159,7 @@ class BaseRoomScene(BaseScene):
     # ------------------------------------------------------------ players
     @property
     def player(self):
-        """The primary (P1) body - the only one in a one-player session."""
+        """The player's body."""
         return self.players[0]
 
     @property
@@ -181,11 +167,7 @@ class BaseRoomScene(BaseScene):
         """The primary player's profile (HOME's owner)."""
         return self.game.profile
 
-    @property
-    def two_player(self):
-        return len(self.players) > 1
-
-    # P1's interaction state, under the names a one-player room always had.
+    # The player's interaction state, under short names.
     held = property(lambda self: self.player.held,
                     lambda self, v: setattr(self.player, "held", v))
     nearby = property(lambda self: self.player.nearby,
@@ -202,31 +184,17 @@ class BaseRoomScene(BaseScene):
         """Hook: a quiet line under the room name (HOME names its owner)."""
         return None
 
-    def guest_note(self, player):
-        """Hook: a word shown after a player's P1 / P2 tag in this room."""
-        return ""
-
     def build_hint_rows(self):
-        """The controls box: the room's own rows for one player, a compact
-        P1 / P2 key list for two."""
-        if not self.two_player:
-            return self.hint_rows
-        rows = []
-        for p in self.session:
-            c = p.controls
-            rows.append([(p.label, p.avatar.look.accent),
-                         (f"{c.move_hint} / {c.interact_hint} / {c.inventory_hint}", Col.TEXT)])
-        rows.append([("USE KEY:", Col.TEXT), (self.action_hint, Col.YELLOW)])
-        return rows
+        """The controls box: the room's own rows."""
+        return self.hint_rows
 
     def _owner_tag(self, player):
-        """'P2 ALICE' for the header of that player's panels; None when playing alone."""
-        local = self.session.player_for_avatar(player)
-        return local.tag if local and self.two_player else None
+        """A header for the player's panels: None (the panels then show no owner line)."""
+        return None
 
     def _actor(self, player=None):
         """The player an action belongs to: the one named, else the one whose
-        press is being carried out, else P1."""
+        press is being carried out, else the player."""
         return player or self.acting_player or self.player
 
     @property
@@ -243,7 +211,7 @@ class BaseRoomScene(BaseScene):
         """Who the open modal belongs to (None if nothing is open)."""
         if self.modal is None:
             return None
-        return self._modal_owner if self._modal_owner in self.players else self.player
+        return self.player
 
     def _own_modal(self, player):
         self._modal_owner = player
@@ -290,14 +258,10 @@ class BaseRoomScene(BaseScene):
         entry = self.hub.take_arrival() or "spawn"
         pos, facing = ENTRIES[entry]
         self._close_transients()
-        spread = ARRIVAL_SPREAD[entry] if self.two_player else None
-        for i, p in enumerate(self.players):
-            dx, dy = spread[i] if spread else (0, 0)
-            p.x, p.y = float(pos[0] + dx), float(pos[1] + dy)
+        for p in self.players:
+            p.x, p.y = float(pos[0]), float(pos[1])
             p.facing = facing
             p.stop()
-            p.tag_note = self.guest_note(p)
-            p.show_tag()
         self.leaving = False
         self.arrival_grace = ARRIVAL_GRACE
         for hud in self.huds:
@@ -346,7 +310,6 @@ class BaseRoomScene(BaseScene):
         self.panel = None
         self.popup = None
         self.inventory_ui = None
-        self.waiting = None
         self.novelty_fx.clear()
         self.notice.clear()
         for p in self.players:
@@ -362,40 +325,26 @@ class BaseRoomScene(BaseScene):
     def _end_play(self, ran):
         """Settle (or refund) the paid minigame that just closed. active_play
         is cleared first and a PlaySession ends only once, so this can never
-        pay or refund twice for one token. Every participant is settled
-        against their own session and their own result."""
+        pay or refund twice for one token."""
         if self.active_play is None:
             return
         session, scene = self.active_play
-        plays = self.active_plays or [(self.player, session)]
-        self.active_play, self.active_plays = None, []
+        self.active_play = None
         if not ran or scene.failed:
-            refunded = [(p, s) for p, s in plays if s.refund()]
-            if refunded:
-                _, first = refunded[0]
-                unit = "TOKEN" if first.cost == 1 else "TOKENS"
-                back = "COUPON RETURNED" if first.coupon else f"+{first.cost} {unit} REFUNDED"
+            if session.refund():
+                unit = "TOKEN" if session.cost == 1 else "TOKENS"
+                back = "COUPON RETURNED" if session.coupon else f"+{session.cost} {unit} REFUNDED"
                 self.notice.show("GAME UNAVAILABLE", [(back, Col.YELLOW)], Col.MAGENTA)
             return
         results = scene.get_result()
-        lines = []
-        for index, (player, sess) in enumerate(plays):
-            profile = player.profile
-            pr = (results.for_profile(profile.profile_id) if profile.profile_id is not None
-                  else next(iter(results.player_results[index:index + 1]), None))
-            paid = sess.settle_result(pr) if pr is not None else sess.settle(None)
-            if paid is None:
-                continue
-            tickets = paid.reward.tickets
-            if not player.label:                    # one-player session: as it always was
-                lines.append((f"+{tickets} TICKETS", Col.YELLOW))
-                continue
-            score = f"SCORE {paid.score}  " if paid.score is not None else ""
-            lines.append((self.session.player_for_avatar(player).tag, player.look.accent))
-            lines.append((f"{score}+{tickets} TICKETS", Col.YELLOW))
-        if lines:
-            self.play_sound("ticket")
-            self.notice.show("GAME COMPLETE", lines, Col.GREEN, duration=3.6 if len(lines) > 1 else None)
+        profile = self.player.profile
+        pr = (results.for_profile(profile.profile_id) if profile.profile_id is not None
+              else next(iter(results.player_results[:1]), None))
+        paid = session.settle_result(pr) if pr is not None else session.settle(None)
+        if paid is None:
+            return
+        self.play_sound("ticket")
+        self.notice.show("GAME COMPLETE", [(f"+{paid.reward.tickets} TICKETS", Col.YELLOW)], Col.GREEN)
 
     # ------------------------------------------------------------ daily clock
     def _check_new_day(self):
@@ -412,8 +361,6 @@ class BaseRoomScene(BaseScene):
             if ready > self._ready.get(id(p), 0) and not self.notice.visible:
                 where = "AT THE DAILY BOARD" if self.room_id == "home" else "AT THE BOARD IN HOME"
                 lines = [(f"CLAIM IT {where}", Col.YELLOW)]
-                if self.two_player:
-                    lines.insert(0, (self._owner_tag(p), p.look.accent))
                 self.notice.show("CHALLENGE COMPLETE", lines, Col.CYAN)
             self._ready[id(p)] = ready
 
@@ -430,13 +377,7 @@ class BaseRoomScene(BaseScene):
         modal = self.modal
         if modal:
             if event.type == pygame.KEYDOWN:
-                owner = self.session.player_for_avatar(self.modal_owner)
-                joiners = getattr(modal, "extra_players", ())     # e.g. P2 on the join prompt
-                if (self.session.allows(owner, event.key)
-                        or any(p.controls.owns(event.key) for p in joiners)):
-                    modal.handle_event(event)
-                else:
-                    self._key_during_modal(event.key)
+                modal.handle_event(event)
             else:
                 modal.handle_event(event)
             return
@@ -505,21 +446,6 @@ class BaseRoomScene(BaseScene):
         if audio is not None:
             audio.play(name)
 
-    def _key_during_modal(self, key):
-        """A key of the player who does NOT own the open modal: they can keep
-        walking, but cannot open anything else until it closes."""
-        local = self.session.player_for_key(key)
-        if local is None or self.leaving:
-            return
-        player = local.avatar
-        if key in local.controls.move:
-            if key not in player.held:
-                player.held.append(key)
-        elif not self.notice.visible:
-            owner = self.session.player_for_avatar(self.modal_owner)
-            self.notice.show(f"{local.label} WAIT", [(f"{owner.label} IS BUSY", Col.TEXT_MUTED)],
-                             Col.MAGENTA)
-
     def _debug_key(self, key):
         """Debug-build helpers. Returns True if `key` was one of them."""
         if key == DEBUG_TOKEN_KEY:
@@ -552,13 +478,6 @@ class BaseRoomScene(BaseScene):
                    (f"TOKENS: {profile.tokens}", Col.TEXT_MUTED if affordable else Col.MAGENTA)]
         if coupons:
             details.append((f"FREE PLAY COUPONS: {coupons}", Col.GREEN))
-        if self.two_player:
-            details.insert(0, (local.tag, player.look.accent))
-            if minigame_definition(machine.game_id).multiplayer:
-                details.insert(1, ("1-2 PLAYERS", Col.TEXT_MUTED))
-            else:
-                other = self._other_players(player)[0]
-                details.insert(1, (f"1 PLAYER ONLY - {other.label} SPECTATES", Col.TEXT_MUTED))
         self.dialogue = DialogueBox(
             machine.name, machine.description, [PLAY if affordable else PLAY_LOCKED, CANCEL],
             on_choice=lambda choice: self._on_choice(machine, choice, player),
@@ -599,57 +518,8 @@ class BaseRoomScene(BaseScene):
         elif choice == "NO":
             self._after_payment_choice(machine, player)
 
-    def _other_players(self, player):
-        return [p for p in self.players if p is not player]
-
     def _after_payment_choice(self, machine, player, use_coupon=False):
-        """How the starter pays is settled. With two people here and a game
-        that takes two, ask how many play; otherwise the starter plays."""
-        if self.two_player and minigame_definition(machine.game_id).supports(2):
-            self._ask_players(machine, player, use_coupon)
-        else:
-            self._start_game(machine, use_coupon, player)
-
-    def _ask_players(self, machine, player, use_coupon):
-        """PLAYERS: 1 PLAYER / 2 PLAYERS. The second player pays their own
-        tokens, so that option is locked while they cannot."""
-        other = self._other_players(player)[0]
-        can_join = machine.can_afford(other.profile)
-        self.dialogue = DialogueBox(
-            "PLAYERS", "HOW MANY ARE PLAYING?",
-            [ONE_PLAYER, TWO_PLAYERS if can_join else TWO_PLAYERS_LOCKED],
-            on_choice=lambda choice: self._on_players_choice(machine, choice, player, use_coupon),
-            accent=machine.accent, glow=machine.neon,
-            details=[(f"{other.label} PAYS {machine.cost_label}", Col.TEXT_MUTED)],
-            locked=() if can_join else (1,))
-        self._own_modal(player)
-
-    def _on_players_choice(self, machine, choice, player, use_coupon):
-        self.dialogue = None
-        if choice == ONE_PLAYER:
-            self._start_game(machine, use_coupon, player)
-        elif choice == TWO_PLAYERS:
-            self._ask_join(machine, player, use_coupon)
-        elif choice == TWO_PLAYERS_LOCKED:
-            other = self._other_players(player)[0]
-            self.notice.show("NOT ENOUGH TOKENS", [(f"{other.label} NEEDS {machine.play_cost}", Col.YELLOW),
-                                                   ("NOTHING WAS CHARGED", Col.TEXT_MUTED)], Col.MAGENTA)
-
-    def _ask_join(self, machine, player, use_coupon):
-        """P1 READY / P2 PRESS [KEY] TO JOIN. Nobody is charged until the
-        second player has joined."""
-        starter = self.session.player_for_avatar(player)
-        other = self.session.player_for_avatar(self._other_players(player)[0])
-        self.dialogue = JoinPrompt(
-            machine.name.upper(), starter, other,
-            on_result=lambda joined: self._on_join(machine, player, use_coupon, joined),
-            accent=machine.accent, glow=machine.neon)
-        self._own_modal(player)
-
-    def _on_join(self, machine, player, use_coupon, joined):
-        self.dialogue = None
-        if joined:
-            self._start_game(machine, use_coupon, player, participants=self.players)
+        self._start_game(machine, use_coupon, player)
 
     def _open_target(self, target, player=None):
         """The E-flash finished: open whatever `player` used. If somebody
@@ -710,14 +580,13 @@ class BaseRoomScene(BaseScene):
         self._pause_for_minigame()
         self.game.scenes.push(PinballScene(self.game, self.session.player_for_avatar(player)))
 
-    def _start_game(self, machine, use_coupon=False, player=None, participants=None):
+    def _start_game(self, machine, use_coupon=False, player=None):
         # A paid game is already starting/running, or a wipe is in progress
         # (SceneManager would drop the push): never charge in those states.
         if self.active_play is not None or self.game.scenes.transitioning:
             return
         player = self._actor(player)
         profile = player.profile
-        group = [player] + [p for p in (participants or ()) if p is not player]
         if use_coupon and not machine.can_use_coupon(profile):
             self.notice.show("NO COUPON LEFT", [("NOTHING WAS CHARGED", Col.TEXT_MUTED)], Col.MAGENTA)
             return
@@ -726,28 +595,18 @@ class BaseRoomScene(BaseScene):
                 (f"NEED: {machine.play_cost}", Col.YELLOW),
                 (f"YOU HAVE: {profile.tokens}", Col.TEXT_MUTED)], Col.MAGENTA)
             return
-        for other in group[1:]:                 # everybody must be able to pay before anybody does
-            if not machine.can_afford(other.profile):
-                self.notice.show("NOT ENOUGH TOKENS", [
-                    (f"{other.label} NEEDS {machine.play_cost}", Col.YELLOW),
-                    ("NOTHING WAS CHARGED", Col.TEXT_MUTED)], Col.MAGENTA)
-                return
         scene = create_minigame_scene(self.game, machine)   # built before charging
-        locals_ = [self.session.player_for_avatar(p) for p in group]
+        local = self.session.player_for_avatar(player)
         if hasattr(scene, "attach_players"):
-            scene.attach_players(locals_, [lp for lp in self.session if lp not in locals_])
+            scene.attach_players([local])
         else:
-            scene.participants = [p.profile for p in group]
+            scene.participants = [profile]
         session = machine.start_play(profile, use_coupon)
         if session is None:
             return
-        plays = [(player, session)]
-        for other in group[1:]:
-            plays.append((other, machine.start_play(other.profile)))
         self.play_sound("token")                # the token drops in
-        self.interaction = MachineInteraction(machine, self.session.player_for_avatar(player))
+        self.interaction = MachineInteraction(machine, local)
         self.active_play = (session, scene)
-        self.active_plays = plays
         self._pause_for_minigame()
         self.game.scenes.push(scene)
 
@@ -783,31 +642,16 @@ class BaseRoomScene(BaseScene):
 
     # ------------------------------------------------------------ doorways
     def _check_exits(self):
-        """A door fires when somebody stands in it and everybody is at it; with
-        two players the first one waits ('WAITING FOR PLAYER 2')."""
-        self.waiting = None
+        """A door fires when the player stands in it."""
         if self.arrival_grace > 0 or self.leaving or self.active_play is not None:
             return
         for door in self.exits:
-            at_door = [p for p in self.players if p.feet.colliderect(door.trigger)]
-            if not at_door:
-                continue
-            near = [p for p in self.players if p.feet.colliderect(door.zone)]
-            if len(near) == len(self.players):
+            if any(p.feet.colliderect(door.trigger) for p in self.players):
                 self.leaving = self.hub.travel(self, door)
                 if self.leaving:
                     for p in self.players:
                         p.held.clear()
                 return
-            self.waiting = (at_door, [p for p in self.players if p not in near])
-            return
-
-    @property
-    def waiting_text(self):
-        """'WAITING FOR PLAYER 2' while somebody stands in a doorway alone."""
-        if not self.waiting:
-            return None
-        return "WAITING FOR " + " AND ".join(f"PLAYER {p.number}" for p in self.waiting[1])
 
     # ------------------------------------------------------------ update
     def _is_busy(self, player):
@@ -944,13 +788,11 @@ class BaseRoomScene(BaseScene):
             avoid = self.prompt_avoid_rects()
             for p in self.players:
                 if p.nearby is not None and p.prompt.alpha > 0:        # which machine is selected
-                    selection_brackets(surf, p.nearby.rect, p.look.accent if p.label else Col.YELLOW, self.time)
+                    selection_brackets(surf, p.nearby.rect, Col.YELLOW, self.time)
                 mine = [p.nearby.rect] if p.nearby is not None else []   # keep the selected machine visible too
                 used = p.prompt.draw(surf, self.time, avoid + mine, below_first=p.nearby is not None)
                 if used is not None:
-                    avoid.append(used.inflate(2, 2))                    # the next player's bubble keeps clear of this one
-                p.draw_tag(surf)
-            self._draw_waiting(surf)
+                    avoid.append(used.inflate(2, 2))
             self.instructions.draw(surf)
             for hud in self.huds:
                 hud.draw(surf)
@@ -967,23 +809,6 @@ class BaseRoomScene(BaseScene):
             self.popup.draw(surf)
         story.draw_front(surf, self)
 
-    def _draw_waiting(self, surf):
-        text = self.waiting_text
-        if not text:
-            return
-        label = self._labels.get(text)
-        if label is None:
-            w = get_font().size(text)[0] + 12
-            label = pygame.Surface((w, 15), pygame.SRCALPHA)
-            label.blit(neon_panel(w, 15, Col.YELLOW, None, 235), (0, 0))
-            draw_text(label, text, (6, 4), Col.YELLOW)
-            self._labels[text] = label
-        waiting = self.waiting[0][0]
-        rect = label.get_rect(midbottom=(int(waiting.x), int(waiting.y) - 26))
-        rect.clamp_ip(pygame.Rect(2, 2, VIEW_W - 4, 400))
-        if int(self.time * 3) % 3:          # a slow blink
-            surf.blit(label, rect)
-
     def draw_under_sprites(self, surf):
         """Hook: flat things drawn on the floor/wall, below every sprite."""
 
@@ -998,15 +823,11 @@ class RoomHub:
         from hud import CurrencyHUD
         self.game = game
         self.style = style                  # shared by all three rooms
-        self.session = game.session         # one or two LocalPlayers
+        self.session = game.session         # the LocalSession: the one player
         self.avatars = self.session.avatars
-        self.player = self.avatars[0]       # P1 (the only player in a one-player session)
-        if self.session.player_count == 1:
-            self.huds = [CurrencyHUD(self.session.primary.profile)]
-        else:                               # one wallet readout per player, labelled
-            self.huds = [CurrencyHUD(p.profile, p.tag, p.avatar.look.accent, slot=i)
-                         for i, p in enumerate(self.session)]
-        self.hud = self.huds[0]
+        self.player = self.avatars[0]
+        self.hud = CurrencyHUD(self.session.primary.profile)      # the wallet readout
+        self.huds = [self.hud]
         self.ambience = AmbienceManager()
         self.ambience.start()
         from story import StoryDirector         # (imported here: the story layer imports the room modules' helpers)

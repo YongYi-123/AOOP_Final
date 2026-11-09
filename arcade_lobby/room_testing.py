@@ -13,7 +13,7 @@ def goto_room(game, room_id):
 
 
 def with_placeholder_minigame(cls, game_id="puzzle_drop"):
-    """Class decorator for tests of the hub's generic play flow (tokens, coupons, rewards, spectating, saves).
+    """Class decorator for tests of the hub's generic play flow (tokens, coupons, rewards, saves).
 
     Those tests were written when the Puzzle Drop machine had no minigame yet, which made it a cheap stand-in: it loads
     instantly and pays the flat placeholder reward. That machine now runs NEON CAT MAZE, so for these tests only, the

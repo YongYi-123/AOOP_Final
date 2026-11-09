@@ -1,10 +1,9 @@
 """Top-level Game object: window, main loop and pixel-perfect upscaling.
 
 How the game starts:
-  Game(profiles=ProfileManager(...))  the real startup flow: TITLE, PLAYER COUNT,
-                                      PROFILE SELECT, then the arcade hub
-  Game(session=LocalSession(...))     straight into the hub with those players
-  Game(save_path=...)                 straight into a one-player hub with the one
+  Game(profiles=ProfileManager(...))  the real startup flow: TITLE, PROFILE SELECT, then the arcade hub
+  Game(session=LocalSession(...))     straight into the hub with that player
+  Game(save_path=...)                 straight into the hub with the one
                                       profile stored in that single file (the
                                       original behaviour; used by tools and tests)
 """
@@ -32,7 +31,7 @@ class Game:
         self.debug = debug
         self.clock = clock or GameClock()
         self.profiles = profiles            # ProfileManager, when the startup flow is used
-        self.session = None                 # the LocalSession, once players have been chosen
+        self.session = None                 # the LocalSession, once the profile has been chosen
         self.hub = None
         self.store = None
         if session is None and profiles is None:
@@ -75,7 +74,7 @@ class Game:
 
     @property
     def profile(self):
-        """P1's profile (the only one in a one-player game); None until players are chosen."""
+        """The profile being played; None until one is chosen."""
         return self.session.primary.profile if self.session else None
 
     def start_session(self, session, from_menu=False, opening=None):

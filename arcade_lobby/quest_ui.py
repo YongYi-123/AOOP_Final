@@ -362,7 +362,6 @@ class QuestLogUI:
         self.manager = manager
         self.profile = profile
         self.on_close = on_close
-        self.extra_players = ()
         self.closed = False
         self.time = 0.0
         self._hint_face = framed_portrait(miao_frame(eyes="happy", level=3), 2)

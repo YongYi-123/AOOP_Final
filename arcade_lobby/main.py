@@ -1,6 +1,6 @@
 """Neon Corner Arcade - a small top-down arcade hub of three connected rooms
-(ARCADE FLOOR <-> HOME <-> PRIZE PLAZA) for one or two local players, each with
-their own saved profile.
+(ARCADE FLOOR <-> HOME <-> PRIZE PLAZA) for one player at a time; any number of
+saved profiles, each with its own progress.
 
 Run with:  python main.py [--style neon_lofi|lofi|neon] [--debug]
 """

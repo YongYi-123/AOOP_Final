@@ -149,10 +149,10 @@ register_speaker("PLAYER", Speaker("PLAYER", Col.CYAN, player_portrait))
 # ------------------------------------------------------------------ the box
 class StoryDialogue:
     """A sequence of Lines. `on_done()` is called once, when the last line is confirmed.
-    Events are fed by the room's modal flow (`extra_players` lets every local player's confirm key continue)."""
+    Events are fed by the room's modal flow."""
     hides_hud = True                    # the room hides its corner HUD and prompts while this is open
 
-    def __init__(self, lines, context=None, on_done=None, play_sound=None, extra_players=(), top=False, on_line=None):
+    def __init__(self, lines, context=None, on_done=None, play_sound=None, top=False, on_line=None):
         self.top = top                  # True: the box sits along the top edge (the room asks when the speakers stand low)
         self.box = BOX_TOP if top else BOX
         self.lines = tuple(lines)
@@ -162,7 +162,6 @@ class StoryDialogue:
         self.on_done = on_done
         self.on_line = on_line            # on_line(index, line): called as each line starts (cutscenes time their beats on it)
         self.play_sound = play_sound
-        self.extra_players = extra_players
         self.index = 0
         self.shown = 0.0
         self.time = 0.0
