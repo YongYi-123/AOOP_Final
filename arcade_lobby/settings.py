@@ -301,8 +301,8 @@ MACHINES = [
         "id": "puzzle_maze", "name": "Puzzle Maze", "marquee": "PUZZLE MAZE",
         "description": "Explore 22 rooms across two floors in Puzzle Maze 4.2. "
                        "Solve mechanisms, wield the Iron Orb and defeat bosses. Free playtest!",
-        "slot": "island_1", "neon": (81, 195, 165), "accent": (245, 198, 96),
-        "screen": "maze", "play_cost": 0,
+        "slot": "island_1", "neon": (206, 64, 196), "accent": (90, 235, 255),
+        "screen": "dungeon", "play_cost": 0,
     },
 ]
 
