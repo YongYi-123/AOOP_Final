@@ -17,6 +17,7 @@ from decor_ui import DecorationScene
 from gfx import radial_glow, scale_color
 from home_stations import CollectionStation, DecorStation, WardrobeStation
 from lofi_props import (CoffeeTable, FloorLamp, Speaker, make_beanbag, make_couch)
+from magazine import MagazineScene, MagazineStation
 from room import Prop
 from room_art import WALL_STRIP_Y, HubBackdrop
 from room_scene import BaseRoomScene, RoomExit
@@ -128,6 +129,7 @@ class HomeRoomScene(BaseRoomScene):
         self.furniture = [
             FloorLamp((26, 64)),
             Prop(make_couch(), (150, 38), (151, 50, 58, 16)),
+            MagazineStation(),                     # magazine rack beside the couch: RETRO GAMING is in it
             CoffeeTable((166, 94)),
             Prop(make_beanbag(), (234, 102), (235, 110, 20, 8)),
             Speaker((96, 92)),
@@ -193,6 +195,11 @@ class HomeRoomScene(BaseRoomScene):
     def open_collection(self):
         owner = self.session.player_for_avatar(self._actor())
         self.game.scenes.push(CollectionScene(self.game, owner))
+
+    def open_magazine(self):
+        """RETRO GAMING in the rack beside the couch: whoever pressed E reads it (free, repeatable, no quest effect)."""
+        owner = self.session.player_for_avatar(self._actor())
+        self.game.scenes.push(MagazineScene(self.game, owner))
 
     def open_decoration_mode(self):
         """Decoration mode rearranges THIS home (P1's), with P1's own decorations:
