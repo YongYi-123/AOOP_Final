@@ -1203,3 +1203,464 @@ class ComputerTests(TrialCase):
         self.assertEqual(scene.panel.game.state, "clear")
         self.assertTrue(scene.run.breakout_cleared)
         self.assertEqual(scene.panel.stage, "clear")
+
+
+# ------------------------------------------------------------------ 8. the plushie
+class PlushieTests(TrialCase):
+    def test_it_is_an_optional_scene_with_no_reward(self):
+        scene = self.enter()
+        before = (self.manager.secret_items, self.manager.secret_trials, list(scene.run.clues), list(scene.run.inventory),
+                  self.profile.tickets, self.profile.tokens, scene.run.objective)
+        events = len(self.events)
+        self.d.use("plushie")
+        spoken = []
+        while scene.dialogue is not None:
+            spoken.append((scene.dialogue.line.speaker, scene.dialogue.line.text))
+            self.d.seconds(1.8)
+            self.d.tap(K.K_e)
+            self.d.frames(5)
+        self.assertEqual(spoken, [("PLAYER", "Wait... doesn't this look like you?"), ("MIAO MEOW", "Me?!"),
+                                  ("MIAO MEOW", "Hey! That plushie is adorable!"),
+                                  ("MIAO MEOW", "...Actually, I think it looks smarter than me."),
+                                  ("PLAYER", "That's a pretty low bar."), ("MIAO MEOW", "HEY!!")])
+        after = (self.manager.secret_items, self.manager.secret_trials, list(scene.run.clues), list(scene.run.inventory),
+                 self.profile.tickets, self.profile.tokens, scene.run.objective)
+        self.assertEqual(before, after)
+        self.assertEqual(self.events[events:], [])                                  # no story event, no secret item, no trial credit
+        self.assertTrue(scene.run.plushie_seen)
+
+    def test_the_trial_can_be_finished_without_ever_touching_it(self):
+        scene = self.enter()
+        self.d.play_through(plushie=False)
+        self.assertFalse(scene.run.plushie_seen)
+        self.assertTrue(self.manager.trial_done("trial_01"))
+
+    def test_it_is_a_toy_not_the_npc_sprite(self):
+        plush = A.plushie()
+        npc = __import__("miao_meow").miao_frame()
+        self.assertNotEqual(plush.get_size(), npc.get_size())
+        self.assertNotEqual(pygame.image.tostring(pygame.transform.scale(plush, npc.get_size()), "RGBA"), pygame.image.tostring(npc, "RGBA"))
+
+    def test_the_second_time_is_short(self):
+        scene = self.enter()
+        self.d.use("plushie")
+        self.d.talk_through()
+        self.d.use("plushie")
+        self.assertEqual(len(scene.dialogue.lines), 1)
+
+
+# ------------------------------------------------------------------ 10-14. completion, once, leaving, replaying, saving
+class CompletionTests(TrialCase):
+    def test_a_full_playthrough_records_the_trial_once_with_its_fragment(self):
+        scene = self.enter()
+        self.d.play_through()
+        self.assertIsInstance(scene.panel, UI.CompletePanel)
+        self.assertTrue(self.manager.trial_done("trial_01"))
+        self.assertEqual(self.manager.secret_trials, 1)
+        self.assertEqual(self.manager.memory_fragments, 1)
+        self.assertTrue(self.manager.has_memory_fragment("trial_01"))
+        self.assertTrue(self.manager.state["flags"]["memory_fragment_01"])
+        self.assertEqual(self.events.count("secret_trial_done"), 1)
+        self.assertEqual(self.manager.secret_items, 1)                              # the Secret Items are untouched (just the gear)
+        self.assertEqual((self.profile.tickets, self.profile.tokens), (self.TICKETS, self.TOKENS))
+
+    def test_it_is_not_recorded_while_the_room_is_still_unfinished(self):
+        scene = self.enter()
+        self.d.restore_power()
+        self.d.listen_to_phone()
+        self.d.open_cabinet()
+        self.d.read_note()
+        self.assertFalse(self.manager.trial_done("trial_01"))
+        self.assertEqual(self.manager.secret_trials, 0)
+        self.assertNotIn("secret_trial_done", self.events)
+        self.assertFalse(self.manager.has_memory_fragment("trial_01"))
+
+    def test_the_finish_card_offers_a_way_back_and_it_works(self):
+        before = (self.room.player.x, self.room.player.y, self.room.player.facing)
+        scene = self.enter()
+        self.d.play_through()
+        self.d.finish_card()
+        self.assertIsInstance(self.game.scenes.current, LT.LegacyTerminalScene)
+        self.assertEqual(self.game.scenes.current.status(TRIALS[0]).code, "done")
+        self.assertEqual((self.room.player.x, self.room.player.y, self.room.player.facing), before)
+        self.d.tap(K.K_ESCAPE)                                                       # out of the terminal, out of the vending machine
+        self.d.frames(90)
+        self.assertIs(self.game.scenes.current, self.room)
+
+    def test_staying_in_the_room_after_the_finish_is_allowed(self):
+        scene = self.enter()
+        self.d.play_through()
+        self.d.finish_card(stay=True)
+        self.assertIs(self.game.scenes.current, scene)
+        self.assertIsNone(scene.panel)
+        self.d.tap(K.K_RIGHT)
+        self.d.frames(30)                                                           # still walkable
+        self.assertGreater(scene.avatar.x, GS.START[0])
+
+    def test_the_quest_log_and_the_terminal_show_one_of_three(self):
+        scene = self.enter()
+        self.d.play_through()
+        self.d.finish_card()
+        term = self.game.scenes.current
+        self.assertEqual(term.manager.secret_trials, 1)
+        shown = []
+        real = quest_ui.draw_text
+
+        def spy(surf, text, *a, **k):
+            shown.append(str(text))
+            return real(surf, text, *a, **k)
+        with patch.object(quest_ui, "draw_text", spy):
+            quest_ui.QuestLogUI(self.manager, self.profile).draw(pygame.Surface((400, 300)))
+        self.assertIn("1/3", shown)
+        self.assertEqual(self.manager.secret_trials, 1)
+
+    def test_other_trials_and_items_are_not_touched(self):
+        self.enter()
+        self.d.play_through()
+        self.d.finish_card()
+        self.assertEqual(trial_status(self.manager, self.profile, TRIALS[1]).code, "available")
+        self.assertFalse(self.manager.trial_done("trial_02"))
+        self.assertFalse(self.manager.trial_done("trial_03"))
+        self.assertEqual(self.manager.secret_items, 1)
+        status = trial_status(self.manager, self.profile, TRIALS[2])
+        self.assertEqual(status.code, "locked")
+        self.assertIn("COMPLETE TRIAL 02 FIRST", status.reasons)
+        self.assertEqual(self.manager.state["stats"]["secret_trials"], ["trial_01"])
+
+    def test_doing_trial_02_first_makes_no_difference(self):
+        self.manager.handle("secret_trial_done", "trial_02")
+        self.enter()
+        self.d.play_through()
+        self.assertEqual(self.manager.secret_trials, 2)
+        self.assertFalse(self.manager.has_memory_fragment("trial_02"))               # (only trial 01 has a fragment here)
+
+
+class LeaveAndReturnTests(TrialCase):
+    def test_leaving_halfway_records_nothing_and_coming_back_carries_on(self):
+        scene = self.enter()
+        self.d.restore_power()
+        self.d.read_drawer()
+        self.leave_to_terminal()
+        self.assertFalse(self.manager.trial_done("trial_01"))
+        self.assertEqual(self.manager.secret_trials, 0)
+        self.assertNotIn("secret_trial_done", self.events)
+        again = self.d.enter_trial()
+        self.assertIsInstance(again, GS.GoldenAgeScene)
+        self.assertIsNot(again, scene)
+        self.assertTrue(again.run.power)                                             # where they left off
+        self.assertIn("paper", again.run.clues)
+        self.assertEqual(again.light, 1.0)
+        self.d.seconds(1.5)
+        self.assertIsNone(again.dialogue)                                           # the opening does not play twice
+
+    def test_esc_asks_first_and_stay_keeps_you_in_the_room(self):
+        scene = self.enter()
+        self.d.tap(K.K_ESCAPE)
+        self.assertIsInstance(scene.panel, UI.ConfirmPanel)
+        self.d.tap(K.K_e)                                                           # STAY is the default
+        self.assertIs(self.game.scenes.current, scene)
+        self.assertIsNone(scene.panel)
+
+    def test_the_door_leaves_too(self):
+        scene = self.enter()
+        self.d.use("door")
+        self.assertIsInstance(scene.panel, UI.ConfirmPanel)
+        self.d.tap(K.K_LEFT)
+        self.d.tap(K.K_e)
+        self.d.seconds(1.0)
+        self.assertIsInstance(self.game.scenes.current, LT.LegacyTerminalScene)
+
+    def test_the_player_is_put_back_exactly_and_can_walk_in_the_arcade_again(self):
+        px, py, facing = self.room.player.x, self.room.player.y, self.room.player.facing
+        self.enter()
+        self.d.walk_to("bookshelf")
+        self.leave_to_terminal()
+        self.assertEqual((self.room.player.x, self.room.player.y, self.room.player.facing), (px, py, facing))
+        self.d.tap(K.K_ESCAPE)
+        self.d.frames(90)
+        self.assertIs(self.game.scenes.current, self.room)
+        self.assertEqual(self.room.player.feet.collidelist(self.room.solids), -1)
+        self.assertEqual(self.room.player.held, [])
+        self.d.frames(1, [key_down(K.K_LEFT)])
+        self.d.frames(20)
+        self.d.frames(1, [key_up(K.K_LEFT)])
+        self.assertLess(self.room.player.x, px)                                     # no longer stuck
+
+
+class ReplayTests(TrialCase):
+    def test_a_finished_trial_can_be_played_again_but_pays_nothing_twice(self):
+        scene = self.enter()
+        self.d.play_through()
+        self.d.finish_card()
+        before = (self.manager.secret_trials, self.manager.memory_fragments, dict(self.manager.state["flags"]),
+                  dict(self.manager.state["stats"]), self.profile.tickets, self.profile.tokens)
+        events = self.events.count("secret_trial_done")
+        self.d.tap(K.K_e)                                                           # the terminal's use key: visit the room again
+        self.d.frames(60)
+        again = self.game.scenes.current
+        self.assertIsInstance(again, GS.GoldenAgeScene)
+        self.assertIsNot(again, scene)
+        self.assertFalse(again.run.power)                                           # a fresh, dark room
+        self.assertEqual(again.light, 0.0)
+        self.d.seconds(2.0)
+        self.assertIsNone(again.dialogue)                                           # (no second opening)
+        self.d.play_through()
+        self.assertIsInstance(again.panel, UI.CompletePanel)
+        self.assertFalse(again.panel.first_time)
+        after = (self.manager.secret_trials, self.manager.memory_fragments, dict(self.manager.state["flags"]),
+                 dict(self.manager.state["stats"]), self.profile.tickets, self.profile.tokens)
+        self.assertEqual(before, after)
+        self.assertEqual(self.events.count("secret_trial_done"), events)           # no second completion event
+        self.assertEqual(self.manager.secret_trials, 1)
+
+    def test_the_terminal_says_the_room_can_be_visited_again(self):
+        self.manager.handle("secret_trial_done", "trial_01")
+        _shop, term = self.open_terminal()
+        term.draw(pygame.Surface((400, 300)))
+        self.assertEqual(term.status().code, "done")
+        self.d.tap(K.K_e)
+        self.d.frames(60)
+        self.assertIsInstance(self.game.scenes.current, GS.GoldenAgeScene)
+
+
+class SaveTests(TrialCase):
+    def test_the_finish_survives_saving_and_loading_and_the_unfinished_room_does_not(self):
+        tmp = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, tmp, True)
+        path = os.path.join(tmp, "alice.json")
+        ProfileStore(path).autosave(self.profile)
+        self.enter()
+        self.d.restore_power()
+        loaded = ProfileStore(path).load()                                          # halfway: nothing about it was saved
+        self.assertFalse(quests.QuestManager(LocalSession(loaded)).trial_done("trial_01"))
+        self.d.read_drawer()
+        self.d.listen_to_phone()
+        self.d.open_cabinet()
+        self.d.read_note()
+        self.d.get_boot_disk()
+        self.d.boot_computer()
+        loaded = ProfileStore(path).load()
+        m2 = quests.QuestManager(LocalSession(loaded))
+        self.assertTrue(m2.trial_done("trial_01"))
+        self.assertEqual(m2.secret_trials, 1)
+        self.assertEqual(m2.memory_fragments, 1)
+        self.assertTrue(m2.state["flags"]["trial01_intro"])
+        self.assertEqual((loaded.tickets, loaded.tokens), (self.TICKETS, self.TOKENS))
+        self.assertEqual(m2.secret_items, 1)
+        game2 = Game(session=LocalSession(loaded))                                 # a new game: the trial is done, the room starts fresh
+        self.addCleanup(game2.quit)
+        self.assertIsNone(getattr(game2.hub, "trial01_run", None))
+        self.assertEqual(trial_status(game2.hub.story.manager, loaded, TRIALS[0]).code, "done")
+
+    def test_a_damaged_save_never_invents_a_completion(self):
+        p = PlayerProfile(profile_id="bad", display_name="BAD")
+        p.set_story({"opening_done": True, "stats": {"secret_trials": "trial_01", "secret_items": "gem"},
+                     "flags": {"memory_fragment_01": "yes"}})
+        m = quests.QuestManager(LocalSession(p))
+        self.assertFalse(m.trial_done("trial_01"))                                  # a bare string is not a list of trials
+        self.assertEqual(m.secret_trials, 0)
+        self.assertEqual(m.secret_items, 0)
+        self.assertFalse(m.has_secret_item("gem"))
+        self.assertFalse(m.has_memory_fragment("trial_01"))                         # and "yes" is not True
+
+
+# ------------------------------------------------------------------ 17. furniture, walking, collisions
+class RoomTests(TrialCase):
+    def setUp(self):
+        super().setUp()
+        self.scene = self.enter()
+
+    def test_every_interaction_can_be_reached_by_walking(self):
+        for key in self.scene.spots:
+            self.d.walk_to(key)
+            self.assertEqual(self.scene.nearby.key, key)
+            self.assertEqual(self.scene.avatar.feet.collidelist(self.scene.solids), -1)
+
+    PUZZLE = ("power_box", "phone", "drawer", "cabinet", "bookshelf", "computer")
+
+    def test_every_thing_says_the_same_word_so_a_clue_looks_like_decoration(self):
+        prompts = {k: sp.prompt for k, sp in self.scene.spots.items()}
+        self.assertEqual({k for k, v in prompts.items() if v != "INSPECT"}, {"door"})
+        self.assertEqual(prompts["door"], "LEAVE ROOM")
+        for key in self.PUZZLE + ("desk", "window", "noodle_cup", "plushie", "poster"):
+            self.assertEqual(prompts[key], "INSPECT", key)
+
+    def test_there_are_at_least_twenty_things_to_inspect_and_the_main_ones_are_among_them(self):
+        things = [k for k in self.scene.spots if k != "door"]
+        self.assertGreaterEqual(len(things), 20)
+        for key in self.PUZZLE:
+            self.assertIn(key, things)
+        for key in ("plushie", "alarm_clock", "window", "noodle_cup", "coffee_mug", "homework", "textbook", "cartridges", "poster",
+                    "photo_frame", "trash_bin", "cookie_jar", "desk_lamp", "bedside_lamp", "drawer", "desk"):
+            self.assertIn(key, things, key)
+
+    def test_nothing_glows_or_jumps_to_say_it_matters(self):
+        for sp in self.scene.spots.values():
+            self.assertFalse(hasattr(sp, "highlight") or hasattr(sp, "sparkle") or hasattr(sp, "icon"), sp.key)
+        self.d.walk_to("power_box")
+        self.d.frames(30)
+        a = pygame.Surface((400, 300))
+        self.scene.draw(a)
+        self.d.walk_to("window")
+        self.d.frames(30)
+        self.assertEqual(self.scene.avatar.prompt.label, "INSPECT")
+
+    def test_looking_at_ordinary_things_never_moves_the_story_along(self):
+        scene = self.scene
+        before = (scene.run.objective, list(scene.run.clues), list(scene.run.inventory), scene.run.power, scene.run.cabinet_open,
+                  scene.run.phone_plays, self.manager.secret_items, self.manager.secret_trials, self.profile.tickets, self.profile.tokens)
+        ordinary = ("window", "alarm_clock", "bedside_lamp", "plushie", "photo_frame", "poster", "cartridges", "noodle_cup",
+                    "cookie_jar", "coffee_mug", "homework", "textbook", "plant", "trash_bin", "desk", "desk_lamp")
+        for key in ordinary:
+            self.d.use(key)
+            self.assertTrue(scene.dialogue is not None or scene.panel is not None or scene.notice.visible, key)
+            while scene.dialogue is not None or scene.panel is not None:
+                if scene.panel is not None:
+                    self.d.tap(K.K_ESCAPE)
+                else:
+                    self.d.seconds(1.5)
+                    self.d.tap(K.K_e)
+                self.d.frames(3)
+        after = (scene.run.objective, list(scene.run.clues), list(scene.run.inventory), scene.run.power, scene.run.cabinet_open,
+                 scene.run.phone_plays, self.manager.secret_items, self.manager.secret_trials, self.profile.tickets, self.profile.tokens)
+        self.assertEqual(before, after)
+        self.assertEqual(scene.run.objective, "power")
+        self.assertEqual(set(scene.run.inspected), set(ordinary) - {"desk_lamp", "bedside_lamp"})        # (the lamps keep no count)
+
+    def test_the_things_in_the_room_say_what_was_asked_for(self):
+        lines = {k: [[t for _, t, _ in v] for v in info["lines"]] for k, info in C.LIFE.items()}
+        self.assertEqual(lines["window"][0], ["Why is it so windy outside?", "Wait... this almost feels like NYCU."])
+        self.assertEqual(lines["noodle_cup"][0], ["Instant noodles. The universal language of university students."])
+        self.assertEqual(lines["coffee_mug"][0], ["There's still coffee inside.", "...I'm not drinking that."])
+        self.assertEqual(lines["alarm_clock"][0], ["3:47 AM.", "Somebody really needed a better sleep schedule."])
+        self.assertEqual(lines["trash_bin"][0], ["Rejected game ideas. A lot of them.", "Honestly, relatable."])
+        self.assertEqual(lines["cookie_jar"][0], ["Cookies!", "...It's empty.", "That's the saddest thing I've seen all day."])
+        speakers = [sp for sp, _, _ in C.LIFE["cookie_jar"]["lines"][0]]
+        self.assertEqual(speakers, ["PLAYER", "PLAYER", "MIAO MEOW"])
+        for key, info in C.LIFE.items():
+            self.assertGreaterEqual(len(info["lines"]), 1, key)
+
+    def test_each_visit_to_a_thing_can_say_something_different(self):
+        scene = self.scene
+        self.d.use("window")
+        first = scene.dialogue.lines[0].text
+        self.d.talk_through()
+        self.d.use("window")
+        self.assertNotEqual(scene.dialogue.lines[0].text, first)
+        self.d.talk_through()
+
+    def test_lamps_answer_differently_with_and_without_power(self):
+        scene = self.scene
+        self.d.use("desk_lamp")
+        self.assertEqual(scene.dialogue.lines[0].text, C.LAMP_OFF[0][1])
+        self.d.talk_through()
+        scene.run.circuit.rots = scene.run.circuit.solution()
+        scene.run.restore_power()
+        self.d.use("desk_lamp")
+        self.assertEqual(scene.dialogue.lines[0].text, C.LAMP_ON[0][1])
+        self.d.talk_through()
+
+    def test_things_to_read_open_the_book_reader_and_can_be_read_again(self):
+        scene = self.scene
+        for key, tag in (("homework", "homework"), ("textbook", "textbook"), ("desk", "sticky"), ("trash_bin", "trash")):
+            self.d.use(key)
+            self.d.talk_through()
+            self.assertIsInstance(scene.panel, UI.PagedPanel, key)
+            self.assertEqual(scene.panel.tag, tag)
+            pages = len(scene.panel.pages)
+            for _ in range(pages):
+                self.d.tap(K.K_e)
+            self.assertIsNone(scene.panel)
+            self.d.use(key)                                                         # the second time: straight to the pages
+            self.assertIsInstance(scene.panel, UI.PagedPanel)
+            self.d.tap(K.K_ESCAPE)
+
+    def test_prompt_areas_do_not_pile_up_on_each_other(self):
+        spots = list(self.scene.spots.values())
+        for i, a in enumerate(spots):
+            for b in spots[i + 1:]:
+                inter = a.zone.clip(b.zone)
+                self.assertLessEqual(inter.w * inter.h, 160, (a.key, b.key, inter))
+        for sp in spots:
+            self.assertGreaterEqual(sp.zone.w, 13, sp.key)
+
+    def test_no_prompt_area_is_walled_in_by_furniture(self):
+        for sp in self.scene.spots.values():
+            self.assertIsNotNone(self.d.route(self.scene, sp.key), sp.key)
+
+    def test_the_player_cannot_walk_through_walls_or_furniture(self):
+        av = self.scene.avatar
+        for key, limit in ((K.K_LEFT, lambda: av.x >= 20 + 5 - 0.01), (K.K_UP, lambda: av.y - 5 >= A.WALL_SOLID_BOTTOM - 0.01),
+                           (K.K_DOWN, lambda: av.y <= A.FLOOR_BOTTOM + 0.01), (K.K_RIGHT, lambda: av.x <= 400 - 20 - 5 + 0.01)):
+            self.d.frames(1, [key_down(key)])
+            for _ in range(600):
+                self.d.frames(1)
+                self.assertEqual(av.feet.collidelist(self.scene.solids), -1)
+            self.d.frames(1, [key_up(key)])
+            self.assertTrue(limit(), key)
+
+    def test_walking_into_the_desk_and_the_bed_stops_at_their_edge(self):
+        av = self.scene.avatar
+        self.d.walk_to("computer")                                                  # (standing below the desk, push straight up into it)
+        self.d.frames(1, [key_down(K.K_UP)])
+        self.d.frames(90)
+        self.d.frames(1, [key_up(K.K_UP)])
+        self.assertGreaterEqual(av.y - 5, 112 - 0.01)
+
+    def test_nothing_blocks_the_way_from_the_door_to_anything(self):
+        for key in self.scene.spots:
+            self.assertIsNotNone(self.d.route(self.scene, key), key)
+
+    def test_the_start_is_clear_and_nothing_is_stacked_on_a_prompt_area(self):
+        av = self.scene.avatar
+        self.assertEqual(pygame.Rect(int(GS.START[0]) - 5, int(GS.START[1]) - 5, 10, 5).collidelist(self.scene.solids), -1)
+        self.assertIsNone(self.scene.spot_at(*GS.START))                              # no prompt on arrival
+
+    def test_miao_stands_on_open_floor_away_from_everything_you_can_use(self):
+        spots = self.scene.miao_spots
+        self.assertGreaterEqual(len(spots), 6)
+        zones = [s.zone.inflate(8, 8) for s in self.scene.spots.values()]
+        for p in spots:
+            self.assertEqual(pygame.Rect(p[0] - 5, p[1] - 4, 10, 5).collidelist(self.scene.solids), -1)
+            self.assertTrue(all(not z.collidepoint(p) for z in zones), p)
+        for p in GS.MIAO_SPOTS:
+            self.assertIn(p, spots, f"{p} is not clear: remove or move it")
+
+    def test_miao_keeps_near_the_player_without_blocking_a_prompt(self):
+        for key in ("power_box", "drawer", "bookshelf", "phone", "plushie"):
+            self.d.walk_to(key)
+            self.d.seconds(3.0)
+            miao = self.scene.companion
+            for sp in self.scene.spots.values():
+                self.assertFalse(sp.rect.inflate(-2, -2).collidepoint(miao.x, miao.y - 4) and sp.key != "door", (key, sp.key))
+            self.assertLess(((miao.x - self.scene.avatar.x) ** 2 + (miao.y - self.scene.avatar.y) ** 2) ** 0.5, 170)
+
+    def test_a_prompt_shows_for_the_nearest_thing_and_e_uses_it(self):
+        self.d.walk_to("phone")
+        self.assertEqual(self.scene.nearby.key, "phone")
+        self.d.frames(20)
+        self.assertGreater(self.scene.avatar.prompt.alpha, 0.5)
+        self.assertEqual(self.scene.avatar.prompt.label, "INSPECT")
+
+    def test_every_sprite_is_drawn_and_the_whole_room_fits_the_canvas(self):
+        surf = pygame.Surface((400, 300))
+        for _ in range(3):
+            self.scene.draw(surf)
+        self.assertEqual(A.room_shell().get_size(), (400, 300))
+        for name in ("bed", "plushie", "bookshelf", "power_box", "desk", "cabinet", "plant", "game_boxes", "pouf", "door", "window",
+                     "corkboard", "bedside_table", "keyboard", "wall_clock", "photo_frame", "trophy_shelf", "rug", "alarm_clock",
+                     "noodle_cup", "coffee_mug", "cookie_jar", "low_table", "homework", "textbook", "trash_bin", "side_frame",
+                     "side_poster"):
+            self.assertGreater(getattr(A, name)().get_width(), 0, name)
+        for state in ("off", "standby", "on"):
+            self.assertGreater(A.crt(state).get_width(), 0)
+
+    def test_the_room_is_warm_not_neon(self):
+        shell = A.room_shell()
+        r = g = b = 0
+        for x in range(30, 370, 10):
+            for y in range(90, 270, 10):
+                c = shell.get_at((x, y))
+                r, g, b = r + c[0], g + c[1], b + c[2]
+        self.assertGreater(r, g)
+        self.assertGreater(g, b)                                                    # wood: red > green > blue, nothing like the navy arcade
