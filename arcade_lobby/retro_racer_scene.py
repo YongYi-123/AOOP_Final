@@ -18,6 +18,8 @@ from gfx import scale_color, shade
 from minigame import MinigameScene
 from racer_results import RacerVisitResults
 from rewards import RewardResult
+from local_session import GameEvent
+from quests import SECRET_ITEM_RETRO_RACER
 from settings import BACK_KEYS, Col
 
 RETRO_DIR = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)),
@@ -128,6 +130,7 @@ class RetroRacerScene(MinigameScene):
         if self.racer and not self.error:
             self.results.observe(self.racer)
             self.racer.audio.stop_all()
+            self.racer.music_duck = 1.0
 
     # ------------------------------------------------------------ lifecycle
     def on_enter(self):
@@ -142,6 +145,7 @@ class RetroRacerScene(MinigameScene):
             self.results.observe(self.racer)
             self.racer.set_paused(False)
             self.racer.audio.stop_all()      # otherwise the engine hum follows you out
+            self.racer.music_duck = 1.0           # ... and the music is never left lowered
 
     def _load(self):
         cls = type(self)
@@ -175,6 +179,9 @@ class RetroRacerScene(MinigameScene):
         r.audio.stop_all()                       # a clean slate: no engine or effect tail from the last visit
         r.audio.muted = False                    # (the hub owns mute: M)
         r.audio.engine_boost = ENGINE_BOOST
+        r.gear_owned = self._gear_owned()            # the Reverse Gear is a story item: the shared story says if it is found
+        manager = self._manager()
+        r.egg_found = bool(manager and manager.egg_found("out_of_time"))
         r.reset()
         r.state = self._title_state
         r.running = True
@@ -227,6 +234,33 @@ class RetroRacerScene(MinigameScene):
             return
         self.racer.update(dt, self.racer_controls())
         self.results.observe(self.racer)
+        self._relay_secrets()
+
+    # ------------------------------------------------------------ the Reverse Road secret
+    def _manager(self):
+        story = getattr(getattr(self.game, "hub", None), "story", None)
+        return story.manager if story is not None else None
+
+    def _gear_owned(self):
+        manager = self._manager()
+        return bool(manager and manager.has_secret_item(SECRET_ITEM_RETRO_RACER))
+
+    def _relay_secrets(self):
+        """The racer reports a secret it finished (its own event list); the story hears about it once, through the existing
+        "secret_item_found" event. A repeat run, or a quit or failed one, never reaches here with a new item."""
+        pop = getattr(self.racer, "pop_secret_events", None)          # (a racer stand-in in tests has none)
+        for name, _key, _first in (pop() if pop else ()):
+            owner = self.players[0] if self.players else self.game.session.primary
+            if name == "secret_item_found" and not self._gear_owned():
+                self.game.session.dispatch(GameEvent("secret_item_found", owner.player_id, key=SECRET_ITEM_RETRO_RACER))
+            elif name == "easter_egg_found":                  # OUT OF TIME: a note in the story, nothing else changes
+                self.game.session.dispatch(GameEvent("easter_egg_found", owner.player_id, key="out_of_time"))
+
+    @property
+    def music_duck(self):
+        """The hub music sinks under the Reverse Road cutscene and comes back (None: nobody is asking for anything)."""
+        level = getattr(self.racer, "music_duck", 1.0) if self.racer else 1.0
+        return None if level >= 1.0 else level
 
     def _leave(self):
         if self.leaving:
@@ -261,7 +295,7 @@ class RetroRacerScene(MinigameScene):
             return
         text = "  ".join(f"{p.tag} - SPECTATING" for p in self.spectators)
         img = get_font().render_glow(text, Col.TEXT_MUTED, (30, 24, 60), scale=2)
-        if self.racer.state.name in ("PLAYING", "COUNTDOWN"):
+        if self.racer.state.name in ("PLAYING", "COUNTDOWN", "SECRET"):
             surf.blit(img, img.get_rect(midtop=(RACER_SIZE[0] // 2, SPECTATOR_Y)))
         else:           # menus and result screens have no HUD: the bottom-right corner is free there
             surf.blit(img, img.get_rect(bottomright=(RACER_SIZE[0] - 10, RACER_SIZE[1] - 6)))
