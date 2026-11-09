@@ -61,6 +61,27 @@ def _engine_loop(cycles):
     return [0.9 * math.tanh(2.2 * v / peak) for v in raw]                # tanh is periodic-safe: loop stays seamless
 
 
+def _glitch(dur=0.4, vol=0.7):
+    """Electronic static in stuttering bursts (the Reverse Road cutscene)."""
+    rng, n = random.Random(5), int(RATE * dur)
+    out, level = [], 0.0
+    for i in range(n):
+        if i % 900 == 0:
+            level = rng.choice((0.0, 0.6, 1.0, 0.3))
+        out.append(vol * level * (1 - i / n) * rng.uniform(-1, 1) * (1 if (i // 40) % 3 else 0.4))
+    return out
+
+
+def _sweep(f0, f1, dur, vol=0.6, wave=_square):
+    """A tone sliding from f0 to f1 Hz."""
+    n, phase, out = int(RATE * dur), 0.0, []
+    for i in range(n):
+        t = i / n
+        phase += (f0 + (f1 - f0) * t) / RATE
+        out.append(vol * wave(phase) * min(1.0, t * 12, (1 - t) * 6))
+    return out
+
+
 class Audio:
     # name -> (samples factory, base volume)
     # name -> (samples factory, base volume, category). The category picks its volume multiplier in settings.py.
@@ -76,6 +97,18 @@ class Audio:
         "skid": (lambda: _seq((480, 320, 160), 0.08, wave=_saw), 0.8, "item"),
         "hit": (lambda: _seq((520, 380, 240, 160), 0.05, wave=_saw, vol=1.0), 1.0, "item"),   # hostile item landed on you
         "shield": (lambda: _seq((880, 1320), 0.06, vol=0.8), 0.9, "item"),                   # shield swallowed a hit
+        # the Reverse Road secret (reverse_road.py): static, the two titles, the warp into the road and the gear's chime
+        "glitch": (_glitch, 0.8, "race"),
+        "wrongway": (lambda: _sweep(220, 110, 0.45, 0.8, _saw), 0.9, "race"),
+        "rightway": (lambda: _seq((523, 659, 784, 1047, 1319), 0.07, vol=0.7), 0.9, "race"),
+        "warp": (lambda: _sweep(180, 1500, 1.0, 0.5), 0.8, "race"),
+        # OUT OF TIME (out_of_time.py): crackling current, and the jump itself
+        "zap": (lambda: _glitch(0.35, 0.9)[::1] + _sweep(900, 300, 0.25, 0.4, _saw), 0.8, "race"),
+        "timejump": (lambda: _sweep(120, 2600, 1.1, 0.55, _saw) + _glitch(0.3, 0.8), 1.0, "race"),
+        "gear": (lambda: _seq((784, 1047, 1319, 1568), 0.09, vol=0.7) + _tone(2093, 0.55, vol=0.6), 1.0, "race"),
+        "reverse_cue": (lambda: _seq((523, 784, 1047), 0.1, vol=0.7) + _tone(1568, 0.3, vol=0.6), 1.0, "ui"),   # the secret is listening
+        "backup": (lambda: _tone(880, 0.09, vol=0.55), 0.8, "ui"),         # the reversing beep ...
+        "backup_hi": (lambda: _tone(1320, 0.07, vol=0.6) + _tone(1760, 0.07, vol=0.6), 0.9, "ui"),   # ... and its excited version
         "tick": (lambda: _tone(660, 0.04, vol=0.7), 0.8, "ui"),          # menu cursor
         "select": (lambda: _tone(880, 0.06, vol=0.7) + _tone(1320, 0.1, vol=0.7), 0.9, "ui"),
     }
