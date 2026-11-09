@@ -18,6 +18,7 @@ from font import get_font
 from gfx import scale_color, soft_shadow
 from miao_meow import miao_frame
 from player import player_sheet
+from shopkeeper import mochi_frame
 from settings import CONFIRM_KEYS, Col, VIEW_W
 from ui import draw_text, neon_panel, wrap_text
 
@@ -127,7 +128,21 @@ def player_portrait(mood, context=None):
     return face
 
 
+MOCHI_EYES = {"normal": "open", "happy": "happy", "surprised": "open", "gentle": "sleepy"}     # (half-lidded: dry and calm)
+_mochi_faces = {}
+
+
+def mochi_portrait(mood, context=None):
+    """Mochi the shopkeeper, from her own frames (shopkeeper.mochi_frame, which is only read, never changed)."""
+    eyes = MOCHI_EYES.get(mood, "open")
+    face = _mochi_faces.get(eyes)
+    if face is None:
+        face = _mochi_faces[eyes] = framed_portrait(mochi_frame("sit", eyes), 2, (255, 170, 90))
+    return face
+
+
 register_speaker("MIAO MEOW", Speaker("MIAO MEOW", Col.YELLOW, miao_portrait))
+register_speaker("MOCHI", Speaker("MOCHI", (255, 170, 90), mochi_portrait, blip="vend_select"))
 register_speaker("PLAYER", Speaker("PLAYER", Col.CYAN, player_portrait))
 
 
