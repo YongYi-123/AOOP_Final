@@ -9,11 +9,11 @@ branch in QuestManager._met). Nothing else in the game names a quest.
       ("sticky", name)     the event `name` has happened, even before the quest started (a found secret stays found)
       ("counters", {...})  every named counter has reached its target (secret items / trials)
 
-SHARING. The story belongs to the SESSION, not to one person: a one- or two-player session shares one main quest,
-and either player's actions move it. It is saved in EVERY profile of the session (PlayerProfile.story), so each
-save keeps the story and the next session starts from the most advanced copy. A profile saved before the story
-existed has no story: it is read as 'veteran' (opening skipped, finished steps ticked) so nobody is sent back to
-the tutorial or left waiting for something they already did.
+OWNERSHIP. The story belongs to the PROFILE being played: one profile, one main quest, saved in that profile
+(PlayerProfile.story). Other profiles have their own and are never read or written. (Saves made by the old two-player
+game hold a copy of the then-shared story in each of the two profiles; both copies are kept exactly as they are.)
+A profile saved before the story existed has no story: it is read as 'veteran' (opening skipped, finished steps
+ticked) so nobody is sent back to the tutorial or left waiting for something they already did.
 
 THE TOUR. Quests one and two (THE GRAND TOUR, MEET THE LOCALS) are "sticky": the tour conversations (tour.py) fire the
 events "tour_arcade" / "met_mochi" the first time the players reach those rooms, and a found flag stays found, so a
@@ -228,52 +228,10 @@ def migrate_story(story, quests=QUESTS):
     return clean_story(story)
 
 
-def _progress_rank(story):
-    return (len(story.get("completed", ())), len(story.get("flags", ())), bool(story.get("opening_done")),
-            sum(story.get("hints", {}).values()))
-
-
-def merge_stories(stories, quests=QUESTS):
-    """The one shared story of a session: the most advanced copy, plus everything any copy knows.
-    Completed quests are the union (kept in quest order); counters and played machines take the larger / the union."""
-    stories = [clean_story(s) for s in stories]
-    stories = [s for s in stories if s]
-    if not stories:
-        return {}
-    best = copy.deepcopy(max(stories, key=_progress_rank))
-    order = {q.id: i for i, q in enumerate(quests)}
-    done = {c for s in stories for c in s.get("completed", ())}
-    best["completed"] = sorted(done, key=lambda c: order.get(c, len(order)))
-    if any(s.get("opening_done") for s in stories):
-        best["opening_done"] = True
-    flags = {}
-    for s in stories:
-        flags.update(s.get("flags", {}))
-    if flags:
-        best["flags"] = flags
-    played = []
-    for s in stories:
-        for g in s.get("stats", {}).get("played", ()):
-            if g not in played and isinstance(g, str):
-                played.append(g)
-    if played:
-        best.setdefault("stats", {})["played"] = played
-    for s in stories:
-        for key in ("secret_items", "secret_trials"):
-            mine, theirs = best.get("stats", {}).get(key), s.get("stats", {}).get(key)
-            if isinstance(theirs, list):
-                merged = list(dict.fromkeys((mine if isinstance(mine, list) else []) + theirs))
-                best.setdefault("stats", {})[key] = merged
-    for s in stories:
-        for k, n in s.get("hints", {}).items():
-            best.setdefault("hints", {})[k] = max(best.get("hints", {}).get(k, 0), n)
-    return clean_story(best)
-
-
 # ------------------------------------------------------------------ the manager
 class QuestManager:
-    """Owns the session's shared story. Listens to the profiles (games played, tickets earned) and the session
-    (story events), advances quests, queues announcements for the UI and saves into every profile."""
+    """Owns the playing profile's story. Listens to the profile (games played, tickets earned) and the session
+    (story events), advances quests, queues announcements for the UI and saves into the profile."""
 
     def __init__(self, session, quests=QUESTS):
         self.session = session
@@ -283,13 +241,13 @@ class QuestManager:
         self.notifications = deque()
         self._lifetime = {}
         self._change_hooks = []
-        stories = []
-        for p in self.profiles:
-            story = p.story
-            if not story and has_history(p):
-                story = veteran_state(p, self.quests)
-            stories.append(migrate_story(story, self.quests) if story else story)
-        self.state = merge_stories(stories, self.quests)
+        # The story is the playing profile's own: nothing is merged with any other profile's copy
+        # (a two-player session used to write one shared story into both profiles; each keeps what it has).
+        profile = self.profiles[0]
+        story = profile.story
+        if not story and has_history(profile):
+            story = veteran_state(profile, self.quests)
+        self.state = clean_story(migrate_story(story, self.quests)) if story else {}
         self._settle(silent=True)
         for p in self.profiles:
             self._lifetime[id(p)] = p.lifetime_tickets_earned
