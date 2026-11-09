@@ -587,3 +587,619 @@ class CabinetPlayTests(TrialCase):
         self.assertTrue(self.scene.captures_text)
         self.d.tap(K.K_BACKSPACE)
         self.assertEqual(self.scene.panel.text, "WAS")
+
+
+# ------------------------------------------------------------------ 7. the bookshelf
+class BookshelfTests(TrialCase):
+    def prepared(self):
+        scene = self.enter()
+        self.d.restore_power()
+        self.d.listen_to_phone()
+        self.d.open_cabinet()
+        self.d.read_note()
+        return scene
+
+    def test_the_shelf_is_a_browser_and_hands_nothing_over(self):
+        scene = self.enter()
+        wallet = (self.profile.tickets, self.profile.tokens)
+        self.d.use("bookshelf")
+        self.assertIsInstance(scene.panel, UI.BookshelfPanel)
+        self.assertEqual(scene.panel.keys, list(C.BOOK_ORDER))                      # seven ordinary books, no notebook yet
+        self.assertFalse(scene.run.has_boot_disk)
+        self.assertFalse(scene.run.journal_found)
+        self.d.tap(K.K_e)                                                           # take the first one down: it is just a book
+        self.assertIsInstance(scene.panel, UI.PagedPanel)
+        self.assertEqual(scene.panel.tag, "programming")
+        self.assertFalse(scene.run.has_boot_disk)
+        self.assertEqual((self.profile.tickets, self.profile.tokens), wallet)
+
+    def test_every_ordinary_book_can_be_read_and_none_holds_the_disk(self):
+        scene = self.enter()
+        self.d.use("bookshelf")
+        for i, key in enumerate(C.BOOK_ORDER):
+            self.assertIsInstance(scene.panel, UI.BookshelfPanel)
+            while scene.panel.index != i:
+                self.d.tap(K.K_DOWN)
+            self.d.tap(K.K_e)
+            reader = scene.panel
+            self.assertEqual(reader.tag, key)
+            self.assertEqual(len(reader.pages), len(C.BOOKS[key][2]))
+            for _ in reader.pages:                                                  # page through to the end
+                self.d.tap(K.K_e)
+            self.assertIsInstance(scene.panel, UI.BookshelfPanel)                    # and the shelf is open again
+        self.assertEqual(scene.run.books_read, list(C.BOOK_ORDER))
+        self.assertFalse(scene.run.has_boot_disk)
+        self.assertEqual(scene.run.objective, "phone" if scene.run.power else "power")     # reading changed no progress
+
+    def test_the_plain_notebook_only_turns_up_after_the_cabinets_note(self):
+        scene = self.prepared()
+        self.assertEqual(scene.run.shelf(), list(C.BOOK_ORDER) + [C.NOTEBOOK_KEY])
+        self.d.use("bookshelf")
+        self.assertEqual(scene.panel.keys[-1], C.NOTEBOOK_KEY)
+        self.assertEqual(len(scene.panel.keys), 8)
+        self.assertEqual(UI.BookshelfPanel.spine(C.NOTEBOOK_KEY)[0], "UNTITLED NOTEBOOK")
+
+    def test_the_notebook_has_a_cover_and_twelve_entries_and_gives_the_disk(self):
+        scene = self.prepared()
+        wallet = (self.profile.tickets, self.profile.tokens)
+        bag = repr(self.profile.to_dict()["inventory"])
+        self.assertEqual(len(C.JOURNAL_ENTRIES), 12)
+        self.assertEqual(len(C.JOURNAL_PAGES), 13)
+        self.d.use("bookshelf")
+        self.d.tap(K.K_UP)
+        self.d.tap(K.K_e)
+        panel = scene.panel
+        self.assertEqual(panel.tag, "notebook")
+        self.assertEqual(len(panel.pages), 13)
+        self.assertFalse(scene.run.has_boot_disk)                                    # not before the last page
+        for _ in range(len(panel.pages) - 1):
+            self.d.tap(K.K_e)
+        self.assertFalse(scene.run.has_boot_disk)
+        self.d.tap(K.K_e)
+        self.d.seconds(1.0)
+        self.assertIsNotNone(scene.dialogue)                                          # Miao answers in the story's dialogue box
+        spoken = []
+        while scene.dialogue is not None:
+            spoken.append(scene.dialogue.line.text)
+            self.d.seconds(1.8)
+            self.d.tap(K.K_e)
+            self.d.frames(5)
+        self.assertEqual(spoken[:3], [t for _, t, _ in C.JOURNAL_REACTION])
+        self.assertEqual(scene.run.inventory, ["OLD BOOT DISK"])
+        self.assertEqual((self.profile.tickets, self.profile.tokens), wallet)       # a trial item, not a shop item
+        self.assertEqual(repr(self.profile.to_dict()["inventory"]), bag)
+
+    def test_leaving_the_notebook_halfway_gives_no_disk_and_it_can_be_read_again(self):
+        scene = self.prepared()
+        self.d.use("bookshelf")
+        self.d.tap(K.K_UP)
+        self.d.tap(K.K_e)
+        self.d.tap(K.K_e)
+        self.d.tap(K.K_ESCAPE)
+        self.assertFalse(scene.run.has_boot_disk)
+        self.assertIsInstance(scene.panel, UI.BookshelfPanel)                        # back at the shelf
+        self.d.tap(K.K_ESCAPE)
+        self.d.get_boot_disk()
+        self.assertEqual(scene.run.inventory.count("OLD BOOT DISK"), 1)
+        self.d.get_boot_disk()                                                        # reading it again hands out nothing more
+        self.assertEqual(scene.run.inventory.count("OLD BOOT DISK"), 1)
+
+    def test_closing_the_notebook_with_esc_on_the_last_page_gives_the_disk_too(self):
+        scene = self.prepared()
+        self.d.use("bookshelf")
+        self.d.tap(K.K_UP)
+        self.d.tap(K.K_e)
+        panel = scene.panel
+        for _ in range(len(panel.pages) - 1):
+            self.d.tap(K.K_e)
+        self.assertEqual(panel.index, 12)                                            # page 13 of 13
+        self.assertFalse(scene.run.has_boot_disk)
+        self.d.tap(K.K_ESCAPE)
+        self.d.seconds(1.0)
+        self.assertIsNotNone(scene.dialogue)
+        self.d.talk_through()
+        self.assertEqual(scene.run.inventory, ["OLD BOOT DISK"])
+
+    def test_esc_before_the_last_page_still_gives_nothing(self):
+        scene = self.prepared()
+        self.d.use("bookshelf")
+        self.d.tap(K.K_UP)
+        self.d.tap(K.K_e)
+        for _ in range(11):
+            self.d.tap(K.K_e)
+        self.assertEqual(scene.panel.index, 11)                                      # page 12
+        self.d.tap(K.K_ESCAPE)
+        self.assertFalse(scene.run.has_boot_disk)
+
+    def test_the_notebook_can_be_reread_from_the_notes(self):
+        scene = self.prepared()
+        self.d.get_boot_disk()
+        self.d.tap(K.K_TAB)
+        self.assertIn("journal", scene.panel.entries)
+        self.d.tap(K.K_DOWN)
+        self.d.tap(K.K_DOWN)
+        self.d.tap(K.K_DOWN)
+        self.d.tap(K.K_e)
+        self.assertEqual(len(scene.panel.pages), 13)
+
+
+# ------------------------------------------------------------------ 11-13. HAPPY BREAKOUT.EXE
+def bot(game, err=0.0, seconds=900.0, rng=None):
+    """Play a game with a paddle that follows the ball (a little off). Returns the seconds it took."""
+    import random
+    rnd = rng or random.Random(1)
+    t = 0.0
+    while game.state != "clear" and t < seconds:
+        if game.state in ("ready", "over"):
+            game.launch()
+        cx = game.paddle_x + HB.PADDLE_W / 2
+        tx = game.ball_x + HB.BALL / 2 + err
+        game.step(DT, 0 if abs(tx - cx) < 3 else (1 if tx > cx else -1))
+        t += DT
+        if rnd.random() < 0.02:
+            err = rnd.uniform(-14, 14)
+    return t
+
+
+class BreakoutRuleTests(unittest.TestCase):
+    def test_the_wall_and_the_start(self):
+        g = HB.Breakout()
+        self.assertEqual(g.remaining, HB.COLS * HB.ROWS)
+        self.assertEqual(g.lives, 3)
+        self.assertEqual(g.state, "ready")
+        self.assertEqual(g.score, 0)
+        for b in g.bricks:                                                           # every brick is inside the field and none overlap
+            self.assertTrue(0 <= b.x and b.x + HB.BRICK_W <= HB.FIELD_W)
+        rects = [b.rect for b in g.bricks]
+        for i, a in enumerate(rects):
+            for b in rects[i + 1:]:
+                self.assertFalse(pygame.Rect(a).colliderect(pygame.Rect(b)))
+
+    def test_the_paddle_follows_the_keys_and_stays_inside_the_field(self):
+        g = HB.Breakout()
+        x0 = g.paddle_x
+        g.step(0.2, 1)
+        self.assertGreater(g.paddle_x, x0)
+        g.step(0.2, -1)
+        self.assertAlmostEqual(g.paddle_x, x0, delta=1.0)
+        for _ in range(100):
+            g.step(0.1, 1)
+        self.assertEqual(g.paddle_x, HB.FIELD_W - HB.PADDLE_W)
+        for _ in range(100):
+            g.step(0.1, -1)
+        self.assertEqual(g.paddle_x, 0)
+        self.assertEqual(g.state, "ready")                                           # moving never launches the ball
+
+    def test_the_ball_rides_the_paddle_until_launched(self):
+        g = HB.Breakout()
+        g.step(0.3, 1)
+        self.assertAlmostEqual(g.ball_x + HB.BALL / 2, g.paddle_x + HB.PADDLE_W / 2, delta=0.01)
+        g.launch()
+        self.assertEqual(g.state, "playing")
+        self.assertLess(g.vy, 0)
+
+    def test_the_ball_bounces_off_the_walls_and_the_paddle(self):
+        g = HB.Breakout()
+        g.launch()
+        g.ball_x, g.ball_y, g.vx, g.vy = 1.0, 100.0, -80.0, -60.0
+        g.step(0.05)
+        self.assertGreater(g.vx, 0)
+        self.assertIn("wall", [e[0] for e in g.take_events()])
+        g.ball_x, g.ball_y, g.vx, g.vy = 100.0, 0.5, 20.0, -90.0
+        g.step(0.02)
+        self.assertGreater(g.vy, 0)
+        g.paddle_x = 80.0
+        g.ball_x, g.ball_y, g.vx, g.vy = 98.0, HB.PADDLE_Y - 6.0, 0.0, 90.0
+        g.step(0.05)
+        self.assertLess(g.vy, 0)
+        self.assertIn("paddle", [e[0] for e in g.take_events()])
+
+    def test_hitting_the_edge_of_the_paddle_sends_the_ball_that_way(self):
+        for offset, sign in ((-16, -1), (16, 1)):
+            g = HB.Breakout()
+            g.launch()
+            g.paddle_x = 100.0
+            g.ball_x, g.ball_y, g.vx, g.vy = 100 + HB.PADDLE_W / 2 + offset - 2, HB.PADDLE_Y - 3.0, 0.0, 100.0
+            g.step(0.03)
+            self.assertEqual((g.vx > 0) - (g.vx < 0), sign)
+            self.assertGreaterEqual(abs(g.vy), HB.MIN_VERTICAL * g.speed - 1e-6)
+
+    def test_a_brick_disappears_when_hit_and_scores(self):
+        g = HB.Breakout()
+        g.launch()
+        brick = g.bricks[-1]
+        g.ball_x, g.ball_y = brick.x + 10.0, brick.y + HB.BRICK_H + 1.0
+        g.vx, g.vy = 0.0, -100.0
+        before = g.remaining
+        g.step(0.05)
+        self.assertEqual(g.remaining, before - 1)
+        self.assertFalse(brick.alive)
+        self.assertEqual(g.score, HB.POINTS)
+        self.assertGreater(g.vy, 0)                                                  # and the ball turned round
+        self.assertIn("brick", [e[0] for e in g.take_events()])
+
+    def test_the_ball_never_tunnels_through_a_brick_even_in_one_long_frame(self):
+        g = HB.Breakout()
+        g.launch()
+        g.ball_x, g.ball_y = g.bricks[-1].x + 10.0, g.bricks[-1].y + HB.BRICK_H + 9.0
+        g.vx, g.vy = 0.0, -HB.MAX_SPEED
+        g.step(0.1)                                                                  # the longest frame the game allows
+        self.assertLess(g.remaining, HB.COLS * HB.ROWS)
+
+    def test_clearing_every_brick_wins(self):
+        g = HB.Breakout()
+        for b in g.bricks[1:]:
+            b.alive = False
+        last = g.bricks[0]
+        g.launch()
+        g.ball_x, g.ball_y, g.vx, g.vy = last.x + 10.0, last.y + HB.BRICK_H + 1.0, 0.0, -100.0
+        g.step(0.05)
+        self.assertEqual(g.remaining, 0)
+        self.assertEqual(g.state, "clear")
+        self.assertIn("clear", [e[0] for e in g.take_events()])
+        g.step(1.0, 1)                                                               # (nothing moves once it is won)
+        self.assertEqual(g.state, "clear")
+
+    def test_three_lives_then_a_free_restart(self):
+        g = HB.Breakout()
+        for expected in (2, 1, 0):
+            g.launch()
+            g.ball_y = HB.FIELD_H + 5
+            g.step(0.02)
+            self.assertEqual(g.lives, expected)
+            self.assertIn("lose", [e[0] for e in g.take_events()])
+            if expected:
+                self.assertEqual(g.state, "ready")                                   # the ball is back on the paddle
+        self.assertEqual(g.state, "over")
+        g.step(1.0, 1)
+        self.assertEqual(g.state, "over")
+        g.launch()                                                                   # a launch press starts a brand new game
+        self.assertEqual((g.state, g.lives, g.score, g.remaining), ("ready", 3, 0, HB.COLS * HB.ROWS))
+
+    def test_the_ball_always_keeps_a_real_vertical_speed(self):
+        g = HB.Breakout()
+        g.launch()
+        for _ in range(4000):
+            cx = g.paddle_x + HB.PADDLE_W / 2
+            g.step(DT, 0 if abs(g.ball_x - cx) < 3 else (1 if g.ball_x > cx else -1))
+            if g.state == "playing":
+                speed = (g.vx ** 2 + g.vy ** 2) ** 0.5
+                self.assertGreaterEqual(abs(g.vy), HB.MIN_VERTICAL * speed * 0.98 - 1e-6) if speed else None
+            self.assertTrue(-5 <= g.ball_x <= HB.FIELD_W + 5)
+            if g.state != "playing":
+                g.launch() if g.state in ("ready", "over") else None
+            if g.state == "clear":
+                break
+
+    def test_a_ball_inside_the_paddle_or_a_brick_is_pushed_out_not_stuck(self):
+        g = HB.Breakout()
+        g.launch()
+        brick = g.bricks[10]
+        g.ball_x, g.ball_y = brick.x + 12.0, brick.y + 2.0                           # right in the middle of a brick
+        g.vx, g.vy = 30.0, -20.0
+        g.step(0.05)
+        self.assertFalse(brick.alive)
+        for _ in range(200):
+            g.step(DT)
+        self.assertNotEqual(g.vy, 0.0)
+
+    def test_the_game_can_be_cleared_in_a_sensible_time_by_players_of_different_accuracy(self):
+        import random
+        times = []
+        for seed in range(5):
+            g = HB.Breakout()
+            times.append(bot(g, err=random.Random(seed).uniform(-14, 14), rng=random.Random(seed)))
+            self.assertEqual(g.state, "clear", seed)
+            self.assertEqual(g.score, HB.POINTS * HB.COLS * HB.ROWS)
+            self.assertEqual(g.lives, 3)
+        self.assertLess(max(times), 240)                                              # nobody is stuck for minutes
+        self.assertGreater(min(times), 45)                                            # and it is not over in a blink
+
+    def test_no_rally_goes_on_for_ever_without_a_brick_falling(self):
+        import random
+        for seed in range(8):
+            g = HB.Breakout()
+            rnd = random.Random(seed)
+            err, last, since, worst, total = rnd.uniform(-14, 14), g.remaining, 0.0, 0.0, 0.0
+            while g.state != "clear" and total < 900:
+                if g.state in ("ready", "over"):
+                    g.launch()
+                cx = g.paddle_x + HB.PADDLE_W / 2
+                g.step(DT, 0 if abs(g.ball_x + 2 + err - cx) < 3 else (1 if g.ball_x + 2 + err > cx else -1))
+                since += DT
+                total += DT
+                if rnd.random() < 0.02:
+                    err = rnd.uniform(-16, 16)                                      # (a person's aim is never the same twice)
+                if g.remaining != last:
+                    last, worst, since = g.remaining, max(worst, since), 0.0
+            self.assertEqual(g.state, "clear", f"seed {seed}")
+            self.assertLess(max(worst, since), 45, f"seed {seed}: {worst:.0f} s without a brick")
+
+    def test_even_a_paddle_that_always_aims_the_same_way_gets_there(self):
+        for seed in (0, 4, 6):
+            import random
+            g = HB.Breakout()
+            err = random.Random(seed).uniform(-14, 14)
+            t = 0.0
+            while g.state != "clear" and t < 900:
+                if g.state in ("ready", "over"):
+                    g.launch()
+                cx = g.paddle_x + HB.PADDLE_W / 2
+                g.step(DT, 0 if abs(g.ball_x + 2 + err - cx) < 3 else (1 if g.ball_x + 2 + err > cx else -1))
+                t += DT
+            self.assertEqual(g.state, "clear", seed)
+
+    def test_the_speed_stays_in_range(self):
+        g = HB.Breakout()
+        bot(g, seconds=40)
+        self.assertLessEqual(g.speed, HB.MAX_SPEED)
+        self.assertGreaterEqual(g.speed, HB.BASE_SPEED)
+
+
+# ------------------------------------------------------------------ 9. the computer's desktop
+class DesktopTests(unittest.TestCase):
+    def test_the_menu_is_the_one_that_was_asked_for(self):
+        d = G.Desktop()
+        self.assertEqual(d.items, ("PLAY GAME", "HIGH SCORES", "LOCKED FILES", "EXIT"))
+        self.assertEqual(G.BOOT_LINES, ("BOOTING...", "CHECKING DISK...", "LOADING ARCHIVE..."))
+        self.assertEqual(C.BREAKOUT_TITLE, "HAPPY BREAKOUT v0.3")
+        self.assertEqual(C.BREAKOUT_BLURB, '"A tiny game I made instead of doing homework."')
+
+    def test_each_entry_does_its_own_thing(self):
+        d = G.Desktop()
+        self.assertEqual(d.choose(False), "play")
+        d.pick(2)
+        self.assertEqual(d.choose(False), "scores")
+        d.pick(4)
+        self.assertEqual(d.choose(False), "exit")
+        self.assertFalse(d.pick(5))
+        self.assertFalse(d.pick(0))
+
+    def test_the_locked_files_stay_locked_until_the_game_is_cleared(self):
+        d = G.Desktop()
+        d.pick(3)
+        self.assertEqual(d.choose(False), "locked")
+        self.assertIn("ACCESS DENIED", d.message)
+        self.assertEqual(d.choose(True), "files")
+        self.assertEqual(d.message, "")
+
+    def test_the_cursor_wraps(self):
+        d = G.Desktop()
+        d.move(-1)
+        self.assertEqual(d.items[d.cursor], "EXIT")
+        d.move(1)
+        self.assertEqual(d.items[d.cursor], "PLAY GAME")
+
+
+class ComputerTests(TrialCase):
+    def prepared(self):
+        scene = self.enter()
+        self.d.restore_power()
+        self.d.listen_to_phone()
+        self.d.open_cabinet()
+        self.d.read_note()
+        return scene
+
+    def to_desktop(self):
+        scene = self.prepared()
+        self.d.get_boot_disk()
+        self.d.use("computer")
+        self.assertIsInstance(scene.panel, UI.ComputerPanel)
+        self.d.tap(K.K_e)                                                           # INSERT BOOT DISK? YES
+        self.d.seconds(4.7)
+        self.assertEqual(scene.panel.stage, "desktop")
+        return scene
+
+    def test_it_cannot_be_started_without_the_boot_disk(self):
+        scene = self.prepared()
+        self.assertEqual(scene.run.computer_state(), "standby")
+        self.assertFalse(scene.run.finish_computer())
+        self.d.use("computer")
+        self.assertIsNone(scene.panel)
+        self.assertFalse(scene.run.computer_done)
+        self.assertEqual(self.manager.secret_trials, 0)
+
+    def test_it_needs_the_power_the_cabinet_the_disk_and_the_game(self):
+        run = G.TrialRun()
+        self.assertEqual(run.computer_state(), "dark")
+        run.power = True
+        self.assertEqual(run.computer_state(), "standby")
+        run.inventory.append("OLD BOOT DISK")                                      # a disk alone (without the cabinet) is not enough
+        self.assertEqual(run.computer_state(), "standby")
+        run.cabinet_open = True
+        self.assertEqual(run.computer_state(), "ready")
+        self.assertFalse(run.finish_computer())                                    # the game has not been cleared
+        run.clear_breakout()
+        self.assertTrue(run.finish_computer())
+        self.assertEqual(run.computer_state(), "done")
+
+    def test_the_disk_question_boots_into_the_desktop_with_its_texts(self):
+        scene = self.prepared()
+        self.d.get_boot_disk()
+        shown = []
+        real = UI.draw_text
+
+        def spy(surf, text, *a, **k):
+            shown.append(str(text))
+            return real(surf, text, *a, **k)
+        with patch.object(UI, "draw_text", spy):
+            self.d.use("computer")
+            self.assertEqual(scene.panel.stage, "ask")
+            self.d.frames(2)
+            self.d.tap(K.K_e)
+            self.assertEqual(scene.panel.stage, "boot")
+            self.d.seconds(4.7)
+        joined = "\n".join(shown).upper()
+        for needle in ("INSERT BOOT DISK?", "BOOTING...", "CHECKING DISK...", "LOADING ARCHIVE...", "PERSONAL COMPUTER", "DISK A:",
+                       "HAPPY BREAKOUT V0.3", "A TINY GAME I MADE INSTEAD OF DOING HOMEWORK.", "[1] PLAY GAME", "[2] HIGH SCORES",
+                       "[3] LOCKED FILES", "[4] EXIT"):
+            self.assertIn(needle, joined, needle)
+        names = [n for _, n in self.d.sounds]
+        self.assertEqual(names.count("disk_insert"), 1)
+        self.assertEqual(names.count("crt_boot"), 1)
+
+    def test_saying_no_keeps_the_disk_and_closes_the_screen(self):
+        scene = self.prepared()
+        self.d.get_boot_disk()
+        self.d.use("computer")
+        self.d.tap(K.K_RIGHT)
+        self.d.tap(K.K_e)
+        self.assertIsNone(scene.panel)
+        self.assertTrue(scene.run.has_boot_disk)
+
+    def test_the_locked_files_refuse_to_open_before_the_game_is_cleared(self):
+        scene = self.to_desktop()
+        self.d.tap(K.K_3)
+        self.assertEqual(scene.panel.stage, "desktop")
+        self.assertIn("ACCESS DENIED", scene.panel.desktop.message)
+        for _ in range(10):                                                          # mashing E there does not open them either
+            self.d.tap(K.K_e)
+        self.assertEqual(scene.panel.stage, "desktop")
+        self.assertFalse(scene.run.computer_done)
+        self.assertFalse(scene.run.breakout_cleared)
+
+    def test_high_scores_and_exit_work_and_cost_nothing(self):
+        scene = self.to_desktop()
+        wallet = (self.profile.tickets, self.profile.tokens)
+        self.d.tap(K.K_2)
+        self.assertEqual(scene.panel.stage, "scores")
+        self.d.tap(K.K_e)
+        self.assertEqual(scene.panel.stage, "desktop")
+        self.d.tap(K.K_4)
+        self.assertIsNone(scene.panel)
+        self.assertEqual((self.profile.tickets, self.profile.tokens), wallet)
+        self.assertTrue(scene.run.has_boot_disk)
+
+    def test_the_paddle_answers_the_arrow_keys_and_the_game_does_not_clash_with_other_keys(self):
+        scene = self.to_desktop()
+        self.d.tap(K.K_1)
+        panel = scene.panel
+        self.assertEqual(panel.stage, "game")
+        x0 = panel.game.paddle_x
+        self.d.frames(1, [key_down(K.K_RIGHT)])
+        self.d.frames(20)
+        self.d.frames(1, [key_up(K.K_RIGHT)])
+        x1 = panel.game.paddle_x
+        self.assertGreater(x1, x0 + 20)
+        self.d.frames(10)
+        self.assertEqual(panel.game.paddle_x, x1)                                    # released: it stops
+        self.d.frames(1, [key_down(K.K_a)])
+        self.d.frames(20)
+        self.d.frames(1, [key_up(K.K_a)])
+        self.assertLess(panel.game.paddle_x, x1)                                     # A moves left, too
+        px, py = scene.avatar.x, scene.avatar.y
+        self.d.tap(K.K_q)                                                            # the Quest Log key does nothing in here
+        self.d.tap(K.K_TAB)
+        self.assertIs(scene.panel, panel)
+        self.assertEqual(self.story.log, None)
+        self.assertEqual((scene.avatar.x, scene.avatar.y), (px, py))                 # the player's own movement keys do not walk the player
+        self.d.tap(K.K_SPACE)
+        self.assertEqual(panel.game.state, "playing")
+        self.assertIn("breakout_paddle", [n for _, n in self.d.sounds])
+
+    def test_esc_pauses_and_a_second_esc_goes_back_to_the_desktop_without_losing_anything(self):
+        scene = self.to_desktop()
+        self.d.tap(K.K_1)
+        panel = scene.panel
+        self.d.tap(K.K_SPACE)
+        self.d.seconds(0.5)
+        self.d.tap(K.K_ESCAPE)
+        self.assertTrue(panel.paused)
+        y = panel.game.ball_y
+        self.d.seconds(1.0)
+        self.assertEqual(panel.game.ball_y, y)                                       # paused: the ball is frozen
+        self.d.tap(K.K_e)
+        self.assertFalse(panel.paused)
+        self.d.tap(K.K_ESCAPE)
+        self.d.tap(K.K_ESCAPE)
+        self.assertEqual(panel.stage, "desktop")
+        self.assertIs(scene.panel, panel)
+
+    def test_losing_all_three_lives_just_lets_you_try_again_for_free(self):
+        scene = self.to_desktop()
+        wallet = (self.profile.tickets, self.profile.tokens)
+        self.d.tap(K.K_1)
+        panel = scene.panel
+        g = panel.game
+        for expected in (2, 1, 0):
+            self.d.tap(K.K_SPACE)
+            g.ball_y = HB.FIELD_H + 3                                               # (the ball slips past the paddle)
+            self.d.seconds(0.1)
+            self.assertEqual(g.lives, expected)
+        self.assertEqual(g.state, "over")
+        self.assertIn("breakout_lose", [n for _, n in self.d.sounds])
+        self.d.frames(2)
+        shown = []
+        real = UI.draw_text
+        with patch.object(UI, "draw_text", lambda surf, text, *a, **k: (shown.append(str(text)), real(surf, text, *a, **k))[1]):
+            self.d.frames(2)
+        self.assertTrue(any("TRY AGAIN" in t for t in shown))
+        self.assertFalse(scene.run.breakout_cleared)
+        self.d.tap(K.K_e)                                                           # restart
+        self.assertEqual((g.state, g.lives, g.remaining), ("ready", 3, HB.COLS * HB.ROWS))
+        self.assertEqual((self.profile.tickets, self.profile.tokens), wallet)       # nothing was charged
+
+    def test_clearing_the_game_shows_game_clear_and_opens_the_locked_files(self):
+        scene = self.to_desktop()
+        self.d.tap(K.K_1)
+        shown = []
+        real = UI.draw_text
+        with patch.object(UI, "draw_text", lambda surf, text, *a, **k: (shown.append(str(text)), real(surf, text, *a, **k))[1]):
+            self.d.play_breakout()
+            self.d.seconds(4.5)
+        self.assertEqual(scene.panel.stage, "clear")
+        joined = "\n".join(shown).upper()
+        for needle in ("GAME CLEAR!", "FINALLY FIXED THE COLLISION BUG.", "ONLY TOOK ME THREE NIGHTS.", "I SHOULD PROBABLY DO MY HOMEWORK NOW."):
+            self.assertIn(needle, joined, needle)
+        self.assertTrue(scene.run.breakout_cleared)
+        self.assertIn("breakout_clear", [n for _, n in self.d.sounds])
+        self.d.tap(K.K_e)
+        self.assertEqual(scene.panel.stage, "desktop")                              # back on the old computer's desktop
+        self.d.tap(K.K_3)
+        self.assertEqual(scene.panel.stage, "files")
+        self.assertFalse(scene.run.computer_done)                                    # not done until the files are read
+        self.d.seconds(1.0)
+        self.d.tap(K.K_e)
+        self.assertEqual(scene.panel.stage, "files")                                 # (too early to skip the reveal)
+        self.d.seconds(3.7)
+        shown.clear()
+        with patch.object(UI, "draw_text", lambda surf, text, *a, **k: (shown.append(str(text)), real(surf, text, *a, **k))[1]):
+            self.d.frames(2)
+        joined = "\n".join(shown).upper()
+        for needle in ("PLAYER_000", "SYSTEM ADMINISTRATOR ACCESS"):
+            self.assertIn(needle, joined)
+        self.assertNotIn("KEVIN", joined)
+
+    def test_the_trial_finishes_after_the_files_and_miaos_lines_and_not_before(self):
+        scene = self.to_desktop()
+        self.d.tap(K.K_1)
+        self.d.play_breakout()
+        self.d.seconds(0.5)
+        self.d.tap(K.K_e)
+        self.d.tap(K.K_3)
+        self.d.seconds(4.6)
+        self.assertFalse(self.manager.trial_done("trial_01"))                       # the files are on screen: not yet
+        self.d.tap(K.K_e)
+        self.d.seconds(0.5)
+        spoken = []
+        while scene.dialogue is not None:
+            spoken.append((scene.dialogue.line.speaker, scene.dialogue.line.text))
+            self.assertFalse(self.manager.trial_done("trial_01"))                   # still not, while the lines are being read
+            self.d.seconds(1.8)
+            self.d.tap(K.K_e)
+            self.d.frames(5)
+        self.assertEqual(spoken, [("PLAYER", "Wait... the top player had administrator access?"),
+                                  ("MIAO MEOW", "I think I've seen that name on the leaderboard before..."),
+                                  ("MIAO MEOW", "But I thought they just really liked playing games.")])
+        self.assertIsInstance(scene.panel, UI.CompletePanel)
+        self.assertTrue(self.manager.trial_done("trial_01"))
+
+    def test_the_game_can_be_played_with_real_key_presses_from_start_to_finish(self):
+        scene = self.to_desktop()
+        self.d.tap(K.K_1)
+        for b in scene.panel.game.bricks[:-5]:                                       # (the rest of the wall is cleared to keep the test short)
+            b.alive = False
+        self.d.play_breakout(real=True)
+        self.assertEqual(scene.panel.game.state, "clear")
+        self.assertTrue(scene.run.breakout_cleared)
+        self.assertEqual(scene.panel.stage, "clear")
