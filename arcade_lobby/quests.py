@@ -32,6 +32,9 @@ from player_profile import clean_story
 VENDING_SECRET_FLAG = "vending_konami_discovered"      # the profile secret vending_ui.py already records
 SECRET_ITEMS_NEEDED = 3
 SECRET_TRIALS_NEEDED = 3
+SECRET_ITEM_RETRO_RACER = "retro_racer_reverse_gear"    # Secret Item 01: the key its "secret_item_found" event carries
+MOCHI_ARCADE_STORY = "mochi_arcade_story"               # story flag: Mochi's first Retro Racer story has been told
+MIAO_REVERSE_ROAD = "miao_reverse_road"                 # story flag: Miao Meow's talk about the secret road has been told
 
 
 @dataclass(frozen=True)
@@ -344,6 +347,29 @@ class QuestManager:
         return trial_id in self.state.get("stats", {}).get("secret_trials", ())
 
     @property
+    def secret_interface_unlocked(self):
+        """True once the vending machine's REAL secret screen has opened (the "vending_secret" flag): ordinary use of
+        the machine, or standing next to it, never sets it."""
+        return bool(self.state.get("flags", {}).get("vending_secret"))
+
+    def egg_found(self, key):
+        """Has this pure-fun easter egg (e.g. "out_of_time") been discovered by anyone in the session?"""
+        return bool(self.state.get("flags", {}).get(f"egg_{key}"))
+
+    def has_secret_item(self, key):
+        return key in self.state.get("stats", {}).get("secret_items", ())
+
+    @property
+    def mochi_story_stage(self):
+        """Where Mochi's Retro Racer talk stands: None (locked: she says nothing about it), "new" (unlocked, the first
+        story not heard), "heard" (heard; the hint is offered) or "found" (Secret Item 01 is in hand)."""
+        if not self.secret_interface_unlocked:
+            return None
+        if self.has_secret_item(SECRET_ITEM_RETRO_RACER):
+            return "found"
+        return "heard" if self.state.get("flags", {}).get(MOCHI_ARCADE_STORY) else "new"
+
+    @property
     def secret_items(self):
         return min(self.counter("secret_items"), SECRET_ITEMS_NEEDED)
 
@@ -411,7 +437,7 @@ class QuestManager:
                 self.handle("tickets_earned")
 
     def _on_session_event(self, owner, event):
-        if event.type in ("vending_secret", "secret_item_found", "secret_trial_done"):
+        if event.type in ("vending_secret", "secret_item_found", "secret_trial_done", "easter_egg_found"):
             self.handle(event.type, event.key)
 
     def handle(self, name, key=None):
@@ -429,6 +455,18 @@ class QuestManager:
             ident = key if isinstance(key, str) and key else f"{counter}_{len(found) + 1}"
             if ident not in found:
                 found.append(ident)
+                changed = True
+        elif name == "easter_egg_found":                      # a pure-fun discovery: a note in the story, never a counter or a reward
+            flag = f"egg_{key}" if isinstance(key, str) and key else None
+            if flag and not state.setdefault("flags", {}).get(flag):
+                state["flags"][flag] = True
+                self.save()                                   # (kept quietly: no progress pop-up, no counters, no reward)
+            return
+        elif name in (MOCHI_ARCADE_STORY, MIAO_REVERSE_ROAD):
+            flags = state.setdefault("flags", {})
+            ready = self.secret_interface_unlocked if name == MOCHI_ARCADE_STORY else self.has_secret_item(SECRET_ITEM_RETRO_RACER)
+            if ready and not flags.get(name):         # once, and only when what it talks about has really happened
+                flags[name] = True
                 changed = True
         elif name == "vending_secret" or name in TOUR_EVENTS:
             if not state.setdefault("flags", {}).get(name):
