@@ -1664,3 +1664,494 @@ class RoomTests(TrialCase):
                 r, g, b = r + c[0], g + c[1], b + c[2]
         self.assertGreater(r, g)
         self.assertGreater(g, b)                                                    # wood: red > green > blue, nothing like the navy arcade
+
+
+# ------------------------------------------------------------------ the opening and the hints
+class OpeningTests(TrialCase):
+    def test_the_opening_plays_once_with_the_exact_lines_then_hands_back_control(self):
+        scene = self.enter(watch_intro=False)
+        self.d.seconds(1.0)
+        spoken = []
+        while scene.dialogue is not None:
+            spoken.append((scene.dialogue.line.speaker, scene.dialogue.line.text))
+            self.d.seconds(2.0)
+            self.d.tap(K.K_e)
+            self.d.frames(5)
+        self.assertEqual(spoken, [("SYSTEM", "TRIAL 01 - THE GOLDEN AGE"), ("SYSTEM", "Explore the room."),
+                                  ("PLAYER", "This doesn't look like an arcade..."), ("PLAYER", "More like someone's old bedroom."),
+                                  ("MIAO MEOW", "Whoa... it's actually kind of cozy!"),
+                                  ("MIAO MEOW", "Well, except for the part where nothing works.")])
+        self.assertTrue(self.manager.state["flags"][G.INTRO_FLAG])
+        x = scene.avatar.x
+        self.d.frames(1, [key_down(K.K_RIGHT)])
+        self.d.frames(20)
+        self.d.frames(1, [key_up(K.K_RIGHT)])
+        self.assertGreater(scene.avatar.x, x)                                       # control is back
+
+    def test_the_opening_uses_the_existing_dialogue_box(self):
+        import story_dialogue
+        scene = self.enter(watch_intro=False)
+        self.d.seconds(1.0)
+        self.assertIsInstance(scene.dialogue, story_dialogue.StoryDialogue)
+        self.assertEqual(scene.dialogue.speaker.name, "SYSTEM")
+
+    def test_esc_skips_the_opening_and_it_is_not_shown_again(self):
+        scene = self.enter(watch_intro=False)
+        self.d.seconds(1.0)
+        self.d.tap(K.K_ESCAPE)
+        self.assertIsNone(scene.dialogue)
+        self.assertTrue(self.manager.state["flags"][G.INTRO_FLAG])
+        self.leave_to_terminal()
+        again = self.d.enter_trial()
+        self.d.seconds(2.0)
+        self.assertIsNone(again.dialogue)
+
+
+class HiddenGoalTests(TrialCase):
+    """The room never tells the player what to do next: no goal list, no objective banner, no answer-shaped text."""
+    BANNED = ("RESTORE THE POWER", "DECODE", "FIND THE BOOKSHELF", "ENTER SHELF", "FIND THE BOOT DISK", "NEW OBJECTIVE", "OBJECTIVE",
+              "GOAL:", "SEARCH THE BOOKSHELF", "UNLOCK THE FILE CABINET", "BOOT THE OLD COMPUTER", "INVESTIGATE THE TELEPHONE")
+
+    def record(self):
+        shown = []
+        real_text, real_show = GS.draw_text, GS.Notice.show
+
+        def text(surf, t, *a, **k):
+            shown.append(str(t))
+            return real_text(surf, t, *a, **k)
+
+        def show(notice, title, lines=(), *a, **k):
+            shown.append(title)
+            shown.extend(t for t, _ in lines)
+            return real_show(notice, title, lines, *a, **k)
+        return shown, patch.object(GS, "draw_text", text), patch.object(GS.Notice, "show", show)
+
+    def test_a_whole_playthrough_never_shows_a_goal_or_an_answer_shaped_instruction(self):
+        shown, p1, p2 = self.record()
+        said = []
+        with p1, p2:
+            scene = self.enter()
+            self.d.play_through(plushie=True)
+        for text in shown:
+            for banned in self.BANNED:
+                self.assertNotIn(banned, text.upper(), text)
+        self.assertNotIn("SHELF", " ".join(shown).upper().replace("BOOKSHELF", ""))
+
+    def test_the_hud_is_just_the_notes_key(self):
+        scene = self.enter()
+        shown, p1, p2 = self.record()
+        with p1, p2:
+            for _ in range(5):
+                scene.draw(pygame.Surface((400, 300)))
+        self.assertEqual({t for t in shown if t.strip()}, {"[TAB] NOTES"})
+
+    def test_the_notes_list_has_no_objective(self):
+        scene = self.enter()
+        self.d.tap(K.K_TAB)
+        shown = []
+        real = UI.draw_text
+        with patch.object(UI, "draw_text", lambda surf, text, *a, **k: (shown.append(str(text)), real(surf, text, *a, **k))[1]):
+            scene.panel.draw(pygame.Surface((400, 300)))
+        joined = " ".join(shown).upper()
+        self.assertNotIn("OBJECTIVE", joined)
+        self.assertIn("CLUES FOUND", joined)
+
+    def test_coming_back_shows_only_the_title_and_explore_the_room(self):
+        self.enter()
+        self.leave_to_terminal()
+        shown = []
+        real_show = GS.Notice.show
+
+        def show(notice, title, lines=(), *a, **k):
+            shown.append((title, [t for t, _ in lines]))
+            return real_show(notice, title, lines, *a, **k)
+        with patch.object(GS.Notice, "show", show):
+            self.d.enter_trial()
+            self.d.seconds(1.0)
+        self.assertEqual(shown, [("TRIAL 01 - THE GOLDEN AGE", ["Explore the room."])])
+
+    def test_miao_does_not_volunteer_hints(self):
+        scene = self.enter()
+        self.d.seconds(90)
+        self.assertFalse(scene.bubble.visible)
+        self.assertIsNone(scene.dialogue)
+        self.assertEqual(scene.run.hints, {})
+
+
+class HintTests(TrialCase):
+    def talk_to_miao(self, scene):
+        scene.avatar.x, scene.avatar.y = 270.0, 162.0                               # open floor, nothing to use here
+        scene.companion.x, scene.companion.y = 282.0, 166.0
+        scene.companion.target = None
+        self.d.frames(2)
+        self.assertEqual(scene.nearby.key, "miao")
+        self.d.tap(K.K_e)
+
+    def test_hints_come_only_from_talking_to_miao_in_three_steps_and_never_give_the_password(self):
+        scene = self.enter()
+        self.talk_to_miao(scene)
+        self.assertTrue(scene.bubble.visible)
+        first = scene.bubble.text
+        self.assertEqual(first, C.HINTS["power"][0])
+        self.talk_to_miao(scene)
+        second = scene.bubble.text
+        self.talk_to_miao(scene)
+        third = scene.bubble.text
+        self.assertEqual([first, second, third], list(C.HINTS["power"]))
+        self.assertEqual(len({first, second, third}), 3)
+        self.talk_to_miao(scene)
+        self.assertEqual(scene.bubble.text, third)                                  # the last one just repeats
+        for tiers in C.HINTS.values():
+            for text in tiers:
+                self.assertNotRegex(text.upper(), r"\bSHELF\b")
+                self.assertNotRegex(text, r"\.\.\.\.")
+                self.assertNotIn("SHELF", text.upper().replace("SHELVES", "").replace("BOOKSHELF", ""))
+
+    def test_the_old_hint_key_does_nothing(self):
+        scene = self.enter()
+        self.d.tap(K.K_h)
+        self.assertFalse(scene.bubble.visible)
+        self.assertEqual(scene.run.hints, {})
+
+    def test_each_stage_has_three_steps_vague_then_area_then_direction(self):
+        run = G.TrialRun()
+        order = [run.objective]
+        run.circuit.rots = run.circuit.solution()
+        run.restore_power()
+        order.append(run.objective)
+        run.play_phone()
+        order.append(run.objective)
+        run.try_cabinet("SHELF")
+        order.append(run.objective)
+        run.finish_journal()
+        order.append(run.objective)
+        run.clear_breakout()
+        run.finish_computer()
+        order.append(run.objective)
+        self.assertEqual(order, ["power", "phone", "cabinet", "bookshelf", "computer", "done"])
+        for key in order[:5]:
+            self.assertEqual(len(C.HINTS[key]), 3, key)
+        self.assertEqual(len(C.HINTS["done"]), 1)
+
+    def test_hints_never_cover_a_puzzle_screen(self):
+        scene = self.enter()
+        self.talk_to_miao(scene)
+        self.assertTrue(scene.bubble.visible)
+        self.d.walk_to("power_box")
+        self.d.tap(K.K_e)
+        self.assertIsInstance(scene.panel, UI.CircuitPanel)
+        self.assertFalse(scene.bubble.visible)                                       # opening a puzzle clears it
+
+    def test_miao_is_never_what_you_get_when_a_thing_is_in_reach(self):
+        scene = self.enter()
+        self.d.walk_to("power_box")
+        scene.companion.x, scene.companion.y = scene.avatar.x + 4, scene.avatar.y + 4
+        self.d.frames(2)
+        self.assertEqual(scene.nearby.key, "power_box")
+
+    def test_the_notes_list_shows_the_inventory_and_nothing_pushy(self):
+        scene = self.enter()
+        self.d.tap(K.K_TAB)
+        self.assertIsInstance(scene.panel, UI.NotesPanel)
+        surf = pygame.Surface((400, 300))
+        scene.panel.draw(surf)
+        self.d.tap(K.K_TAB)
+        self.assertIsNone(scene.panel)
+        scene.run.inventory.append("OLD BOOT DISK")
+        self.d.tap(K.K_n)
+        scene.panel.draw(surf)
+
+
+# ------------------------------------------------------------------ the writing: English only, funny, anonymous, fits the page
+def all_strings(obj):
+    if isinstance(obj, str):
+        yield obj
+    elif isinstance(obj, dict):
+        for k, v in obj.items():
+            yield from all_strings(k)
+            yield from all_strings(v)
+    elif isinstance(obj, (list, tuple, set)):
+        for v in obj:
+            yield from all_strings(v)
+
+
+class ContentTests(unittest.TestCase):
+    @staticmethod
+    def player_visible():
+        """Every string a player can read in the trial (content, rules and the screens' own words)."""
+        out = []
+        for name in dir(C):
+            if name.isupper():
+                out += list(all_strings(getattr(C, name)))
+        out += list(all_strings([G.CABINET_NOTE, G.DRAWER_PAPER, G.BOOT_LINES, [c.title for c in G.CLUES.values()]]))
+        out += list(all_strings([G.MORSE]))
+        return out
+
+    def test_all_the_text_is_english_and_drawable_by_the_pixel_font(self):
+        from font import _GLYPHS
+        allowed = set(_GLYPHS) | set(" \n")
+        strings = self.player_visible()
+        self.assertGreater(len(strings), 150)
+        for text in strings:
+            self.assertTrue(text.isascii(), text)                                    # no Chinese, no curly quotes, no dashes
+            for ch in text.upper():
+                self.assertIn(ch, allowed, f"{ch!r} in {text[:50]!r}")
+
+    def test_the_scenes_and_screens_have_no_non_english_text_in_their_sources(self):
+        for name in ("golden_age.py", "golden_age_content.py", "golden_age_ui.py", "golden_age_scene.py", "happy_breakout.py"):
+            with open(os.path.join(HERE, name), encoding="utf-8") as f:
+                for line in f:
+                    self.assertTrue(line.isascii(), f"{name}: {line.strip()[:60]}")
+
+    def test_the_notebook_is_twelve_entries_behind_a_cover_with_the_dates_and_jokes_that_were_asked_for(self):
+        self.assertEqual(len(C.JOURNAL_ENTRIES), 12)
+        titles = [e["title"] for e in C.JOURNAL_ENTRIES]
+        self.assertEqual(len(set(titles)), 12)
+        text = " ".join(e["text"] for e in C.JOURNAL_ENTRIES).upper()
+        for word in ("NYCU", "WIND", "PROFESSOR", "ASSIGNMENT", "DEADLINE", "NOODLES", "3 AM", "BUG", "COLLISION", "CAT", "HOMEWORK",
+                     "FORGOT", "FRIEND", "LAUGH"):
+            self.assertIn(word, text, word)
+        self.assertIn("The wind at NYCU almost launched me into another dimension today.", C.JOURNAL_ENTRIES[0]["text"])
+        self.assertTrue(C.JOURNAL_ENTRIES[0]["title"].startswith("OCT 17"))
+        self.assertIn("Maybe you do not always have to win.", " ".join(e["text"] for e in C.JOURNAL_ENTRIES))
+
+    def test_the_owner_stays_anonymous_and_no_ending_is_given_away(self):
+        text = " ".join(self.player_visible()).upper()
+        for banned in ("KEVIN", "I CREATED THIS ARCADE", "I BUILT THIS ARCADE", "MAKE EVERYONE HAPPY", "MY NAME", "SINCERELY", "YOURS,"):
+            self.assertNotIn(banned, text, banned)
+        self.assertEqual(text.count("PLAYER_000"), 1)                                # the one mysterious name, once
+        self.assertNotIn("ARCADE", " ".join(e["text"] for e in C.JOURNAL_ENTRIES).upper())
+
+    def test_there_are_seven_books_on_the_shelf_each_a_few_pages(self):
+        self.assertEqual(set(C.BOOK_ORDER), set(C.BOOKS))
+        self.assertGreaterEqual(len(C.BOOKS), 5)
+        self.assertLessEqual(len(C.BOOKS) + 1, 8)
+        for key, (title, colour, pages) in C.BOOKS.items():
+            self.assertGreaterEqual(len(pages), 2, key)
+            self.assertEqual(len(colour), 3)
+        self.assertEqual(len(C.STICKY_NOTES), 5)
+        self.assertGreaterEqual(len(C.HOMEWORK_PAGES), 3)
+
+    def test_every_page_fits_on_the_paper_without_shrinking_and_wraps_to_the_width(self):
+        from font import get_font
+        pages = [("journal", p) for p in C.JOURNAL_PAGES] + [("trash", p) for p in C.TRASH_PAGES] + \
+                [("sticky", p) for p in C.STICKY_NOTES] + [("homework", p) for p in C.HOMEWORK_PAGES] + \
+                [("textbook", p) for p in C.TEXTBOOK_PAGES]
+        for _, (title, colour, book_pages) in C.BOOKS.items():
+            pages += [("book", p) for p in book_pages]
+        font = get_font()
+        for kind, page in pages:
+            rows = UI.page_rows(page["text"], 1)
+            self.assertLessEqual(len(rows), UI.MAX_ROWS, f"{kind}: {page['title']} has {len(rows)} rows")
+            for row in rows:
+                self.assertLessEqual(font.size(row)[0], UI.TEXT_W, row)
+            self.assertLessEqual(len(UI.wrap_text(page["title"], UI.TEXT_W)), 2, page["title"])
+        self.assertEqual(UI.page_rows("a\n\nb"), ["a", "", "b"])                        # paragraphs keep their blank line
+        long_word = "X" * 80
+        self.assertTrue(all(font.size(r)[0] <= UI.TEXT_W * 3 for r in UI.page_rows(long_word)))
+
+    def test_the_reader_draws_every_page_inside_the_canvas_and_pages_turn(self):
+        sounds = []
+        keys = ["journal", "sticky", "homework", "textbook", "trash"] + list(C.BOOK_ORDER)
+        for key in keys:
+            panel = UI.PagedPanel(UI.paper_pages(key), sounds.append, tag=key)
+            surf = pygame.Surface((400, 300))
+            for i in range(len(panel.pages)):
+                panel.draw(surf)
+                panel.handle_event(key_down(K.K_RIGHT))
+            self.assertEqual(panel.index, len(panel.pages) - 1)
+            for i in range(len(panel.pages)):
+                panel.handle_event(key_down(K.K_LEFT))
+            self.assertEqual(panel.index, 0)
+        self.assertTrue(sounds and set(sounds) == {"page_turn"})                      # a soft page-turn sound, nothing else
+        panel = UI.PagedPanel(UI.paper_pages("journal"), tag="journal")
+        panel.handle_event(key_down(K.K_ESCAPE))
+        self.assertTrue(panel.closed)                                                 # closes at any page, and can be opened again
+        again = UI.PagedPanel(UI.paper_pages("journal"), tag="journal")
+        self.assertFalse(again.closed)
+        self.assertEqual(again.index, 0)
+
+    def test_the_page_number_is_shown(self):
+        panel = UI.PagedPanel(UI.paper_pages("journal"))
+        shown = []
+        real = UI.draw_text
+        with patch.object(UI, "draw_text", lambda surf, text, *a, **k: (shown.append(str(text)), real(surf, text, *a, **k))[1]):
+            panel.draw(pygame.Surface((400, 300)))
+        self.assertIn("1/13", shown)
+
+    def test_the_hints_and_the_opening_use_the_words_that_were_asked_for(self):
+        self.assertEqual(C.OPENING[0][1], "TRIAL 01 - THE GOLDEN AGE")
+        self.assertEqual(C.OPENING[1][1], "Explore the room.")
+        self.assertEqual(len(C.OPENING), 6)
+        for text in ("Restore the power", "Decode", "Boot Disk", "SHELF"):
+            self.assertNotIn(text.upper(), " ".join(t for _, t, _ in C.OPENING).upper())
+
+
+# ------------------------------------------------------------------ 18. the story and the save
+class BreakoutSaveTests(TrialCase):
+    def test_a_cleared_game_is_remembered_in_the_save_and_a_failed_replay_does_not_take_it_away(self):
+        tmp = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, tmp, True)
+        path = os.path.join(tmp, "alice.json")
+        ProfileStore(path).autosave(self.profile)
+        scene = self.enter()
+        self.d.restore_power()
+        self.d.listen_to_phone()
+        self.d.open_cabinet()
+        self.d.read_note()
+        self.d.get_boot_disk()
+        self.assertFalse(self.manager.state.get("flags", {}).get(G.BREAKOUT_FLAG))
+        self.d.use("computer")
+        self.d.tap(K.K_e)
+        self.d.seconds(4.7)
+        self.d.tap(K.K_1)
+        self.d.play_breakout()
+        self.d.seconds(0.5)
+        self.assertTrue(self.manager.state["flags"][G.BREAKOUT_FLAG])
+        loaded = ProfileStore(path).load()
+        self.assertTrue(quests.QuestManager(LocalSession(loaded)).state["flags"][G.BREAKOUT_FLAG])
+        self.assertFalse(quests.QuestManager(LocalSession(loaded)).trial_done("trial_01"))        # cleared the game, not yet the trial
+        panel = scene.panel
+        self.d.tap(K.K_e)                                                           # desktop
+        self.d.tap(K.K_1)                                                           # play again and lose on purpose
+        for _ in range(3):
+            self.d.tap(K.K_SPACE)
+            panel.game.ball_y = HB.FIELD_H + 3
+            self.d.seconds(0.1)
+        self.assertEqual(panel.game.state, "over")
+        self.assertTrue(scene.run.breakout_cleared)                                  # still cleared
+        self.assertTrue(self.manager.state["flags"][G.BREAKOUT_FLAG])
+        self.d.tap(K.K_ESCAPE)                                                       # pause ...
+        self.d.tap(K.K_ESCAPE)                                                       # ... and back to the desktop
+        self.d.tap(K.K_3)
+        self.assertEqual(panel.stage, "files")                                       # and the files still open
+
+    def test_a_game_that_was_cleared_before_opens_the_files_in_a_later_visit(self):
+        self.manager.handle(G.BREAKOUT_FLAG)
+        scene = self.enter()
+        self.assertTrue(scene.run.breakout_cleared)
+        self.d.restore_power()
+        self.d.listen_to_phone()
+        self.d.open_cabinet()
+        self.d.read_note()
+        self.d.get_boot_disk()
+        self.d.use("computer")
+        self.d.tap(K.K_e)
+        self.d.seconds(4.7)
+        self.d.tap(K.K_3)
+        self.assertEqual(scene.panel.stage, "files")
+
+    def test_the_memory_fragment_and_the_trial_are_recorded_once_with_the_game_in_the_chain(self):
+        self.enter()
+        self.d.play_through()
+        self.assertEqual(self.manager.memory_fragments, 1)
+        self.assertEqual(self.manager.secret_trials, 1)
+        self.assertEqual(self.manager.state["stats"]["secret_trials"], ["trial_01"])
+        self.assertEqual(self.manager.secret_items, 1)
+        self.assertEqual(self.events.count("secret_trial_done"), 1)
+
+    def test_an_old_profile_without_any_of_the_new_notes_loads_and_works(self):
+        p = PlayerProfile(profile_id="old", display_name="OLD", tickets=50, tokens=5)
+        p.set_story({"opening_done": True, "completed": ["get_your_bearings"], "stats": {"secret_trials": ["trial_02"]}})
+        m = quests.QuestManager(LocalSession(p))
+        self.assertTrue(m.trial_done("trial_02"))
+        self.assertFalse(m.state.get("flags", {}).get(G.BREAKOUT_FLAG))
+        self.assertEqual(m.memory_fragments, 0)
+        m.handle("secret_trial_done", "trial_01")
+        self.assertEqual(m.memory_fragments, 1)
+        self.assertEqual(m.secret_trials, 2)
+        m.handle("secret_trial_done", "trial_01")
+        self.assertEqual(m.secret_trials, 2)
+
+
+# ------------------------------------------------------------------ 19. one player, and everything else stays as it was
+class SinglePlayerTests(TrialCase):
+    def test_one_player_the_solo_keys_and_no_second_player_anywhere(self):
+        scene = self.enter()
+        self.assertEqual(len(self.game.session.players), 1)
+        self.assertIs(scene.controls, SOLO_CONTROLS)
+        x = scene.avatar.x
+        for k in (K.K_o, K.K_RCTRL, K.K_SLASH, K.K_RSHIFT, K.K_l, K.K_k):
+            self.d.frames(1, [key_down(k)])
+            self.d.frames(10)
+            self.d.frames(1, [key_up(k)])
+        self.assertEqual(scene.avatar.x, x)
+
+    def test_the_trial_sources_know_nothing_of_a_second_player_or_of_kevin(self):
+        text = ""
+        for name in ("golden_age.py", "golden_age_art.py", "golden_age_ui.py", "golden_age_scene.py", "golden_age_testing.py",
+                     "golden_age_content.py", "happy_breakout.py"):
+            with open(os.path.join(HERE, name), encoding="utf-8") as f:
+                text += f.read().lower()
+        for banned in ("kevin", "player 2", "player2", "p2 ", "two-player", "two player", "joinprompt", "join prompt"):
+            self.assertNotIn(banned, text, banned)
+
+    def test_the_hub_rooms_are_as_they_were_after_a_visit(self):
+        self.enter()
+        self.d.play_through()
+        self.d.finish_card()
+        self.d.tap(K.K_ESCAPE)
+        self.d.frames(90)
+        self.assertIs(self.game.scenes.current, self.room)
+        self.assertFalse(any(isinstance(s, GS.GoldenAgeScene) for s in self.game.scenes.stack))
+        self.assertIs(self.room.player.profile, self.profile)
+        self.assertEqual(len(self.game.session.players), 1)
+
+
+# ------------------------------------------------------------------ audio
+class AudioTests(unittest.TestCase):
+    NEW_SFX = ("circuit_click", "circuit_connect", "power_on", "phone_blip", "morse_dot", "morse_dash", "drawer_open", "page_turn",
+               "disk_insert", "crt_boot", "trial_complete",
+               "breakout_paddle", "breakout_brick", "breakout_wall", "breakout_lose", "breakout_clear")
+
+    def test_every_new_effect_is_registered_generated_and_on_disk(self):
+        for name in self.NEW_SFX:
+            self.assertIn(name, am.SFX_FILES)
+            self.assertIn(name, audio_synth.SFX)
+            self.assertIn(name, am.PRIORITY)
+            path = os.path.join(HERE, "assets", "sfx", f"{name}.wav")
+            self.assertTrue(os.path.isfile(path), path)
+        self.assertEqual(am.MUSIC_FILES["golden_age"], "golden_age")
+        self.assertTrue(os.path.isfile(os.path.join(HERE, "assets", "music", "golden_age.wav")))
+        self.assertIn("golden_age", audio_synth.MUSIC)
+
+    def test_every_sound_the_trial_asks_for_exists(self):
+        names = set()
+        for fn in ("golden_age_scene.py", "golden_age_ui.py"):
+            with open(os.path.join(HERE, fn), encoding="utf-8") as f:
+                names |= set(re.findall(r'play\("([a-z_]+)"\)', f.read()))
+        names |= {"breakout_" + n for n in ("paddle", "wall", "lose")}                  # (built from the event names in the computer's screen)
+        known = set(am.SFX_FILES) | set(am.AudioManager.EFFECTS)
+        self.assertTrue(names)
+        self.assertLessEqual(names, known)
+
+    def test_the_music_is_quiet_in_the_dark_and_warmer_with_the_lights_on(self):
+        self.assertLess(GS.MUSIC_DARK, GS.MUSIC_LIT)
+
+
+class SoundTimingTests(TrialCase):
+    def test_each_event_plays_its_sound_once(self):
+        scene = self.enter()
+        self.d.use("drawer")
+        self.d.tap(K.K_ESCAPE)
+        self.assertEqual([n for _, n in self.d.sounds].count("drawer_open"), 1)
+        self.d.use("drawer")
+        self.d.tap(K.K_ESCAPE)
+        self.assertEqual([n for _, n in self.d.sounds].count("drawer_open"), 1)       # opening it again is silent
+        self.d.use("drawer")
+        self.d.tap(K.K_e)
+        self.assertEqual([n for _, n in self.d.sounds].count("page_turn"), 1)          # one page turned, one sound
+        self.d.tap(K.K_e)                                                              # (the last page: no turn)
+        self.assertEqual([n for _, n in self.d.sounds].count("page_turn"), 1)
+
+    def test_the_finish_chime_plays_once_with_the_card(self):
+        self.enter()
+        self.d.play_through()
+        names = [n for _, n in self.d.sounds]
+        self.assertEqual(names.count("trial_complete"), 1)
+        self.assertEqual(names.count("disk_insert"), 1)
+        self.assertEqual(names.count("crt_boot"), 1)
+
+
+if __name__ == "__main__":
+    unittest.main()
