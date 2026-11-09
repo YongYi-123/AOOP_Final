@@ -30,7 +30,7 @@ DOOR = pygame.Rect(5, 43, 26, 14)
 W_BODY, H_BODY_END = 36, 59      # cabinet width; row below which the kick plate (checkered flag for the racer) starts
 
 
-TICKER_STYLES = ("volley", "racer", "galaxy", "maze")      # marquees too long for 32px: they scroll the whole name
+TICKER_STYLES = ("volley", "racer", "galaxy", "maze", "dungeon")      # marquees too long for 32px: they scroll the whole name
 
 
 def marquee_frames(style, label):
@@ -571,13 +571,151 @@ def headroom_maze(s, pad, frame, neon, accent):
     s.fill(MAZE_CYAN, (25, pad, 10, 1))
 
 
+# ----------------------------------------------------------------- Puzzle Maze (the dungeon cabinet)
+DUN_MAGENTA = (255, 90, 215)
+DUN_CYAN = (90, 235, 255)
+DUN_GOLD = (255, 208, 92)
+DUN_BODY, DUN_SIDE = (44, 24, 92), (28, 14, 60)
+_DUN_STONE, _DUN_STONE_HI = (92, 72, 150), (128, 106, 190)
+_DUN_MAP = ("########",
+            "#S.#K..#",
+            "#.##.#.D",
+            "#....#.#",
+            "########")                                   # 8x5 tiles of 3px = the 24x15 attract screen
+_DUN_ROUTE = ((1, 1), (1, 2), (1, 3), (2, 3), (3, 3), (4, 3), (4, 2), (4, 1), (5, 1), (6, 1), (6, 2), (7, 2))
+_DUN_KEY_STEP = 7                                         # route index of the key; the last step is the door
+_DUN_GATE = (3, 1)                                        # one wall tile that crumbles away and grows back
+_DUN_END = 0.78                                           # the hero reaches the door here; the rest of the loop is the victory
+
+
+def _dun_wall(s, tx, ty, crumble=0):
+    x, y = tx * 3, ty * 3
+    h = 3 - crumble
+    s.fill(_DUN_STONE, (x, y + 3 - h, 3, h))
+    if h >= 2:
+        s.set_at((x, y + 3 - h), _DUN_STONE_HI)
+        s.set_at((x + 1, y + 3 - h), _DUN_STONE_HI)
+    if h == 3:
+        s.set_at((x + 2, y + 2), scale_color(_DUN_STONE, 0.6))      # mortar
+
+
+def screen_dungeon(s, p, accent, neon):
+    """A tiny dungeon maze: a pixel hero walks the route, picks up the golden key, a gate crumbles open and a slime
+    bobs in a dead end, and the locked door opens for a sparkle before the loop starts again."""
+    s.fill((10, 6, 28))
+    u = min(p / _DUN_END, 1.0) * (len(_DUN_ROUTE) - 1)               # how many tiles of the route are walked
+    step = int(u)
+    have_key = u >= _DUN_KEY_STEP
+    won = u >= len(_DUN_ROUTE) - 1
+    gate = 0 if p < 0.4 or p > 0.75 else 3 if 0.45 <= p <= 0.7 else 1
+    for ty, row in enumerate(_DUN_MAP):
+        for tx, ch in enumerate(row):
+            if ch == "#":
+                if (tx, ty) == _DUN_GATE:
+                    if gate < 3:
+                        _dun_wall(s, tx, ty, gate)
+                else:
+                    _dun_wall(s, tx, ty)
+    for tx, ty in _DUN_ROUTE[1:max(1, step)]:                        # a faint cyan trail behind the hero
+        s.set_at((tx * 3 + 1, ty * 3 + 1), scale_color(DUN_CYAN, 0.35))
+    kx, ky = _DUN_ROUTE[_DUN_KEY_STEP][0] * 3, _DUN_ROUTE[_DUN_KEY_STEP][1] * 3
+    if not have_key:                                                 # the golden key, twinkling
+        glow = scale_color(DUN_GOLD, 1.0 if int(p * 48) % 4 < 2 else 0.7)
+        s.fill(glow, (kx, ky + 1, 2, 2))
+        s.set_at((kx + 2, ky + 2), glow)
+        s.set_at((kx + 1, ky), (255, 255, 255) if int(p * 48) % 8 == 0 else glow)
+    dx, dy = _DUN_ROUTE[-1][0] * 3, _DUN_ROUTE[-1][1] * 3
+    if not won:                                                      # the locked door
+        s.fill(DUN_GOLD, (dx, dy, 3, 3))
+        s.fill((60, 30, 10), (dx + 1, dy + 1, 1, 2))
+    elif p < 0.94:                                                   # open: sparkles circle the doorway
+        sp = int((p - _DUN_END) * 90)
+        for i, (ox, oy) in enumerate(((0, 0), (2, 0), (2, 2), (0, 2))):
+            if (i + sp) % 4 < 2:
+                s.set_at((dx + ox, dy + oy), (255, 255, 255) if (i + sp) % 2 else DUN_GOLD)
+    sx, sy = 6 * 3, 3 * 3                                            # the slime in the dead end
+    bob = int(p * 96) % 2
+    s.fill(DUN_MAGENTA, (sx, sy + 1 + bob, 3, 2 - bob))
+    s.set_at((sx, sy + 1 + bob), (255, 255, 255))
+    s.set_at((sx + 2, sy + 1 + bob), (255, 255, 255))
+    if won and p >= 0.94 and int(p * 48) % 2:                        # the hero blinks out through the door
+        return
+    f = min(u, len(_DUN_ROUTE) - 1)
+    a = int(f)
+    b = min(a + 1, len(_DUN_ROUTE) - 1)
+    k = f - a
+    hx = round((_DUN_ROUTE[a][0] + (_DUN_ROUTE[b][0] - _DUN_ROUTE[a][0]) * k) * 3)
+    hy = round((_DUN_ROUTE[a][1] + (_DUN_ROUTE[b][1] - _DUN_ROUTE[a][1]) * k) * 3)
+    s.fill(DUN_CYAN, (hx, hy, 3, 3))
+    s.fill(DUN_GOLD if have_key else (255, 255, 255), (hx, hy, 3, 1))     # plume turns gold with the key
+    s.set_at((hx + 1, hy + 2), (20, 30, 80))
+
+
+def marquee_dungeon(s, r, label, frame, neon, accent):
+    """A scrolling PUZZLE MAZE in neon cyan, magenta chase lights above and below."""
+    _ticker(s, r, label, frame, "dungeon", DUN_CYAN, DUN_MAGENTA, scale_color(DUN_MAGENTA, 0.4))
+
+
+def _flame(s, x, y, frame):
+    """A two-pixel torch flame that flickers between gold and magenta-hot."""
+    top = (255, 240, 150) if frame % 3 else DUN_GOLD
+    s.set_at((x, y), top)
+    s.set_at((x, y + 1), (255, 150, 70) if frame % 2 else DUN_MAGENTA)
+    if frame % 4 == 0:
+        s.set_at((x, y - 1), (255, 200, 90))
+
+
+def decorate_dungeon(s, frame, n, neon, accent):
+    """The lower door is a dungeon gate: stone bricks, a barred arch with a gold keyhole, two flickering torches
+    and the coin slot."""
+    d = DOOR
+    s.fill((22, 12, 48), d)
+    for row in range(0, d.h, 3):                                      # brick courses, joints staggered per course
+        s.fill((34, 20, 70), (d.x, d.y + row, d.w, 1))
+        for jx in range(2 + (row // 3 % 2) * 3, d.w, 6):
+            s.fill((34, 20, 70), (d.x + jx, d.y + row, 1, 3))
+    arch = pygame.Rect(d.centerx - 5, d.y + 2, 10, 9)
+    s.fill((8, 4, 20), arch)
+    pygame.draw.rect(s, _DUN_STONE_HI, arch, 1)
+    s.fill(_DUN_STONE_HI, (arch.x + 1, arch.y - 1, arch.w - 2, 1))
+    for bx in range(arch.x + 2, arch.right - 1, 2):                   # portcullis bars
+        s.fill(scale_color(DUN_CYAN, 0.35), (bx, arch.y + 1, 1, arch.h - 2))
+    s.fill(scale_color(DUN_CYAN, 0.35), (arch.x + 1, arch.y + 4, arch.w - 2, 1))
+    glow = DUN_GOLD if (frame // 2) % 3 else (255, 245, 190)          # the keyhole glints
+    s.fill(glow, (arch.centerx - 1, arch.y + 3, 2, 2))
+    s.fill(glow, (arch.centerx - 1, arch.y + 5, 1, 2))
+    for tx in (d.x + 3, d.right - 4):                                 # wall torches either side of the gate
+        s.fill((120, 80, 60), (tx, d.y + 6, 1, 3))
+        _flame(s, tx, d.y + 4, frame + tx)
+    s.fill((6, 4, 14), (d.centerx - 1, d.bottom - 1, 3, 1))
+    s.fill(DUN_MAGENTA, (d.centerx - 2, d.bottom - 2, 5, 1))
+    _bezel_leds(s, frame, n, DUN_CYAN, DUN_MAGENTA, scale_color(DUN_MAGENTA, 0.45))
+
+
+def headroom_dungeon(s, pad, frame, neon, accent):
+    """Castle battlements on the marquee housing, with torch flames in the gaps and a gold key charm in the middle."""
+    for x in (1, 10, 19, 28):
+        s.fill(DUN_BODY, (x, pad - 4, 6, 4))
+        s.fill(_DUN_STONE_HI, (x, pad - 4, 6, 1))
+        s.set_at((x + 3, pad - 2), scale_color(DUN_BODY, 0.6))
+        s.fill(DUN_MAGENTA, (x, pad - 3, 1, 3))
+        s.fill(DUN_MAGENTA, (x + 5, pad - 3, 1, 3))
+    s.fill(DUN_BODY, (1, pad - 1, 33, 1))
+    _flame(s, 8, pad - 3, frame)
+    _flame(s, 26, pad - 3, frame + 2)
+    s.set_at((17, pad - 2), DUN_GOLD)
+    s.set_at((17, pad - 3), (255, 255, 255) if frame % 6 == 0 else DUN_GOLD)
+
+
 # ----------------------------------------------------------------- registry
 SCREEN_PAINTERS = {"cat": screen_cat, "volley": screen_volley, "racer": screen_racer, "galaxy": screen_galaxy,
-                   "maze": screen_maze}
+                   "maze": screen_maze, "dungeon": screen_dungeon}
 MARQUEES = {"cat": marquee_cat, "volley": marquee_volley, "racer": marquee_racer, "galaxy": marquee_galaxy,
-            "maze": marquee_maze}
+            "maze": marquee_maze, "dungeon": marquee_dungeon}
 BODY_DECORATORS = {"cat": lambda s, f, n, neon, accent: decorate_cat(s, f, neon, accent),
                    "volley": decorate_volley, "racer": decorate_racer, "galaxy": decorate_galaxy,
-                   "maze": decorate_maze}
-BODY_COLORS = {"racer": (CHARCOAL, CHARCOAL_SIDE), "maze": (MAZE_BODY, MAZE_SIDE)}   # cabinet body / side colours where not the default
-HEADROOM = {"cat": (5, headroom_cat), "racer": (4, headroom_racer), "maze": (6, headroom_maze)}              # style -> (extra rows above the cabinet, painter)
+                   "maze": decorate_maze, "dungeon": decorate_dungeon}
+BODY_COLORS = {"racer": (CHARCOAL, CHARCOAL_SIDE), "maze": (MAZE_BODY, MAZE_SIDE),
+               "dungeon": (DUN_BODY, DUN_SIDE)}   # cabinet body / side colours where not the default
+HEADROOM = {"cat": (5, headroom_cat), "racer": (4, headroom_racer), "maze": (6, headroom_maze),
+            "dungeon": (5, headroom_dungeon)}              # style -> (extra rows above the cabinet, painter)

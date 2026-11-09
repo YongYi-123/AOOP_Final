@@ -32,6 +32,7 @@ STYLES = {
     "volley": dict(frames=32, fps=12, marquee=0.07, pulse=0.12),
     "galaxy": dict(frames=32, fps=12, marquee=0.07, pulse=0.12),
     "maze": dict(frames=40, fps=12, marquee=0.07, pulse=0.16),
+    "dungeon": dict(frames=48, fps=8, marquee=0.07, pulse=0.18, wake=True),   # wake: the screen brightens near a player
 }
 
 
@@ -317,7 +318,8 @@ class ArcadeMachine(AnimatedSprite):
             surf.blit(halo, (self.rect.x - GLOW_SPREAD, self.rect.y - GLOW_SPREAD),
                       special_flags=pygame.BLEND_RGB_ADD)
         cx, cy = self.screen_center
-        surf.fill(scale_color(self.accent, 0.12), (cx - 12, cy - 8, 24, 16),
+        near = STYLES[self.style].get("wake") and (self.highlight or self.flash_time > 0)
+        surf.fill(scale_color(self.accent, 0.15 if near else 0.12), (cx - 12, cy - 8, 24, 16),
                   special_flags=pygame.BLEND_RGB_ADD)
 
 
