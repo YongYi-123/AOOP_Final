@@ -15,6 +15,11 @@ save keeps the story and the next session starts from the most advanced copy. A 
 existed has no story: it is read as 'veteran' (opening skipped, finished steps ticked) so nobody is sent back to
 the tutorial or left waiting for something they already did.
 
+THE TOUR. Quests one and two (THE GRAND TOUR, MEET THE LOCALS) are "sticky": the tour conversations (tour.py) fire the
+events "tour_arcade" / "met_mochi" the first time the players reach those rooms, and a found flag stays found, so a
+player who wanders to the Prize Plaza first is not sent back, and a conversation that has played never plays again.
+Saves from before the tour are migrated (migrate_story): whoever was already past "Get Your Bearings" skips the tour.
+
 The vending-machine step is only completed by the REAL hidden screen (vending_ui.py fires a "vending_secret"
 event the moment its listener recognises the secret sequence); opening the ordinary shop never counts.
 """
@@ -42,20 +47,29 @@ class QuestDef:
     intro: str = ""             # the line shown under the NEW MAIN QUEST banner
 
 
+TOUR_EVENTS = ("tour_home", "tour_arcade", "met_mochi")     # the tour conversations that have played (flags in the story)
+LEGACY_QUESTS = {"get_your_bearings"}                        # a quest the tour replaced: reading it in a save means 'tour done'
+
 QUESTS = (
-    QuestDef("get_your_bearings", "Get Your Bearings", "Try an arcade machine.", "TRY AN ARCADE MACHINE",
-             ("played", 1),
-             ("Let's try an arcade machine first! Walk up to one and press E.",
-              "Any cabinet will do. Even one quick game counts!"),
+    QuestDef("grand_tour", "The Grand Tour", "Follow Miao Meow and see the Arcade Floor.", "SEE THE ARCADE FLOOR",
+             ("sticky", "tour_arcade"),
+             ("Let's see the Arcade Floor! It's through the left door in HOME.",
+              "Left door, then straight on. That's where all the machines live!"),
              miao_anchor=("home", "hub")),
-    QuestDef("arcade_explorer", "Arcade Explorer", "Try 3 different arcade machines.", "TRY 3 DIFFERENT MACHINES",
-             ("played", 3),
-             ("Every machine here is different! Let's try a few.",
+    QuestDef("meet_the_locals", "Meet the Locals", "Go to the Prize Plaza and meet Mochi.",
+             "MEET MOCHI AT THE PRIZE PLAZA", ("sticky", "met_mochi"),
+             ("Next, the Prize Plaza! Take the right door in HOME.",
+              "Somebody there runs the Prize Counter. She's very calm. I'm... not always."),
+             miao_anchor=("home", "hub")),
+    QuestDef("arcade_explorer", "Give It a Try", "Try 3 different machines on the Arcade Floor.",
+             "TRY 3 MACHINES ON THE ARCADE FLOOR", ("played", 3),
+             ("Every machine on the Arcade Floor is different! Let's try a few.",
               "Some are fast, some are puzzly. Try one you haven't played yet!")),
-    QuestDef("earn_some_rewards", "Earn Some Rewards", "Win some tickets from a game.", "WIN TICKETS FROM A GAME",
+    QuestDef("earn_some_rewards", "Earn Your Rewards", "Win Tickets from an Arcade Floor game, then see what they can buy.",
+             "WIN TICKETS ON THE ARCADE FLOOR",
              ("event", "tickets_earned"),
-             ("Games pay out tickets when you finish! Check the corner of your screen.",
-              "Play a round all the way through. Your ticket count will tick up!")),
+             ("Arcade Floor games pay out Tickets when you finish! Check the corner of your screen.",
+              "Play a round all the way through. Your Ticket count will tick up. Then the Prize Plaza awaits!")),
     QuestDef("check_the_vending_machine", "Check the Vending Machine", "Find out what's up with the vending machine.",
              "CHECK THE VENDING MACHINE", ("sticky", "vending_secret"),
              ("That vending machine on the Arcade Floor has been acting really weird lately...",
@@ -168,9 +182,11 @@ def has_history(profile):
 def veteran_state(profile, quests=QUESTS):
     """The story implied by what an old profile has already done: opening skipped, finished steps ticked."""
     played = list(profile.high_scores)
-    state = {"opening_done": True, "completed": [], "stats": {"played": played[:SECRET_ITEMS_NEEDED * 4]}}
+    state = {"opening_done": True, "completed": [], "stats": {"played": played[:SECRET_ITEMS_NEEDED * 4]},
+             "flags": {name: True for name in TOUR_EVENTS}}            # (somebody who has played has seen the place)
     checks = {
-        "get_your_bearings": profile.total_games_played >= 1 or bool(played),
+        "grand_tour": True,
+        "meet_the_locals": True,
         "arcade_explorer": profile.total_games_played >= 3 or len(played) >= 3,
         "earn_some_rewards": profile.lifetime_tickets_earned > 0,
         "check_the_vending_machine": profile.has_secret(VENDING_SECRET_FLAG),
@@ -181,8 +197,32 @@ def veteran_state(profile, quests=QUESTS):
         else:
             break
     if profile.has_secret(VENDING_SECRET_FLAG):
-        state["flags"] = {"vending_secret": True}
+        state["flags"]["vending_secret"] = True
     return clean_story(state)
+
+
+def migrate_story(story, quests=QUESTS):
+    """A saved story from before the tour, read with today's quests: whoever had already got past the first step (or has
+    any later quest done) has seen the arcade, so THE GRAND TOUR and MEET THE LOCALS are ticked, the tour
+    conversations count as played and nothing is replayed. A story that was still at its first step starts the tour.
+    The story is returned as-is when it needs nothing."""
+    story = copy.deepcopy(story)
+    done = list(story.get("completed", ()))
+    ids = {q.id for q in quests}
+    if "grand_tour" not in ids:                                  # (a custom quest list that has no tour)
+        return story
+    later = [c for c in done if c in ids and c not in ("grand_tour", "meet_the_locals")]
+    if not (LEGACY_QUESTS & set(done)) and not later:
+        return story
+    done = [c for c in done if c not in LEGACY_QUESTS]
+    for tour_id in ("meet_the_locals", "grand_tour"):
+        if tour_id not in done:
+            done.insert(0, tour_id)
+    story["completed"] = done
+    flags = dict(story.get("flags", {}))
+    flags.update({name: True for name in TOUR_EVENTS})
+    story["flags"] = flags
+    return clean_story(story)
 
 
 def _progress_rank(story):
@@ -245,7 +285,7 @@ class QuestManager:
             story = p.story
             if not story and has_history(p):
                 story = veteran_state(p, self.quests)
-            stories.append(story)
+            stories.append(migrate_story(story, self.quests) if story else story)
         self.state = merge_stories(stories, self.quests)
         self._settle(silent=True)
         for p in self.profiles:
@@ -390,9 +430,9 @@ class QuestManager:
             if ident not in found:
                 found.append(ident)
                 changed = True
-        elif name == "vending_secret":
-            if not state.setdefault("flags", {}).get("vending_secret"):
-                state["flags"]["vending_secret"] = True
+        elif name == "vending_secret" or name in TOUR_EVENTS:
+            if not state.setdefault("flags", {}).get(name):
+                state["flags"][name] = True
                 changed = True
         elif name == "tickets_earned":
             q = self.active

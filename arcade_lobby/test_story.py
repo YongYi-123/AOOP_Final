@@ -52,11 +52,15 @@ def fresh(pid="a", **kw):
     return PlayerProfile(profile_id=pid, display_name=pid.upper(), **kw)
 
 
-def finished(profile_id="a", **kw):
-    """A manager whose opening is over (so quests are live), on a one-player session."""
+def finished(profile_id="a", tour=True, **kw):
+    """A manager whose opening is over (so quests are live), on a one-player session. The arcade tour (quests one and two,
+    which need the conversations in tour.py) has been taken too unless `tour=False`: most tests are about what comes after."""
     p = fresh(profile_id, **kw)
     m = QuestManager(session_of(p))
     m.finish_opening()
+    if tour:
+        m.handle("tour_arcade")
+        m.handle("met_mochi")
     m.notifications.clear()
     return p, m
 
@@ -78,13 +82,14 @@ def all_text():
 
 # ------------------------------------------------------------------ the quest data
 class QuestDataTests(unittest.TestCase):
-    def test_the_four_opening_quests_and_the_way_out_in_order(self):
-        self.assertEqual([q.id for q in QUESTS], ["get_your_bearings", "arcade_explorer", "earn_some_rewards",
+    def test_the_five_opening_quests_and_the_way_out_in_order(self):
+        self.assertEqual([q.id for q in QUESTS], ["grand_tour", "meet_the_locals", "arcade_explorer", "earn_some_rewards",
                                                   "check_the_vending_machine", "the_way_out"])
-        self.assertEqual([q.title for q in QUESTS], ["Get Your Bearings", "Arcade Explorer", "Earn Some Rewards",
-                                                     "Check the Vending Machine", "The Way Out"])
-        self.assertEqual(QUESTS[0].objective, "Try an arcade machine.")
-        self.assertEqual(QUESTS[4].objective, "Collect 3 Secret Items and complete 3 Secret Trials.")
+        self.assertEqual([q.title for q in QUESTS], ["The Grand Tour", "Meet the Locals", "Give It a Try",
+                                                     "Earn Your Rewards", "Check the Vending Machine", "The Way Out"])
+        self.assertEqual(QUESTS[0].objective, "Follow Miao Meow and see the Arcade Floor.")
+        self.assertEqual(QUESTS[1].objective, "Go to the Prize Plaza and meet Mochi.")
+        self.assertEqual(QUESTS[5].objective, "Collect 3 Secret Items and complete 3 Secret Trials.")
 
     def test_every_quest_is_well_formed(self):
         ids = [q.id for q in QUESTS]
@@ -163,23 +168,29 @@ class QuestProgressTests(unittest.TestCase):
         p = fresh()
         m = QuestManager(session_of(p))
         self.assertTrue(m.finish_opening())
-        self.assertEqual(m.active.id, "get_your_bearings")
+        self.assertEqual(m.active.id, "grand_tour")
         n = list(m.notifications)
-        self.assertEqual([(x.kind, x.quest.id) for x in n], [("quest", "get_your_bearings")])
+        self.assertEqual([(x.kind, x.quest.id) for x in n], [("quest", "grand_tour")])
         self.assertFalse(m.finish_opening())                          # (idempotent)
         self.assertEqual(len(m.notifications), 1)
 
-    def test_playing_any_machine_completes_quest_one(self):
-        p, m = finished()
-        play(m, "retro_racer")
-        self.assertEqual(m.completed_ids, ["get_your_bearings"])
+    def test_the_tour_conversations_complete_quests_one_and_two(self):
+        p, m = finished(tour=False)
+        play(m, "retro_racer")                                          # playing does not skip the tour
+        self.assertEqual(m.completed_ids, [])
+        m.handle("tour_arcade")
+        self.assertEqual(m.completed_ids, ["grand_tour"])
+        self.assertEqual(m.active.id, "meet_the_locals")
+        self.assertEqual([(x.kind, x.quest.id) for x in m.notifications], [("quest", "meet_the_locals")])
+        m.handle("met_mochi")
+        self.assertEqual(m.completed_ids, ["grand_tour", "meet_the_locals"])
         self.assertEqual(m.active.id, "arcade_explorer")
-        self.assertEqual([(x.kind, x.quest.id) for x in m.notifications], [("quest", "arcade_explorer")])
+        self.assertEqual(m.progress(), (1, 3))                          # the machine played earlier still counts
 
     def test_a_real_game_played_event_from_the_profile_counts(self):
         p, m = finished()
         p.record_game_played("neon21")
-        self.assertEqual(m.completed_ids, ["get_your_bearings"])
+        self.assertEqual(m.state["stats"]["played"], ["neon21"])
 
     def test_arcade_explorer_needs_three_different_machines(self):
         p, m = finished()
@@ -209,7 +220,7 @@ class QuestProgressTests(unittest.TestCase):
     def test_tickets_won_before_quest_three_do_not_complete_it_early(self):
         p, m = finished()
         p.add_tickets(5)
-        self.assertEqual(m.active.id, "get_your_bearings")
+        self.assertEqual(m.active.id, "arcade_explorer")
         play(m, "a", "b", "c")
         self.assertEqual(m.active.id, "earn_some_rewards")             # the player still gets to earn them
 
@@ -234,8 +245,8 @@ class QuestProgressTests(unittest.TestCase):
 
     def test_finding_the_secret_early_is_remembered_and_not_lost(self):
         p, m = finished()
-        m.handle("vending_secret")                                     # long before quest four
-        self.assertEqual(m.active.id, "get_your_bearings")
+        m.handle("vending_secret")                                     # long before quest five
+        self.assertEqual(m.active.id, "arcade_explorer")
         play(m, "a", "b", "c")
         p.add_tickets(5)
         self.assertEqual(m.active.id, "the_way_out")                   # quest four completes the moment it is reached
@@ -302,9 +313,9 @@ class QuestProgressTests(unittest.TestCase):
 
     def test_the_hud_text_follows_progress(self):
         p, m = finished()
-        self.assertEqual(m.hud_text(), "TRY AN ARCADE MACHINE")
+        self.assertEqual(m.hud_text(), "TRY 3 MACHINES ON THE ARCADE FLOOR 0/3")
         play(m, "a")
-        self.assertEqual(m.hud_text(), "TRY 3 DIFFERENT MACHINES 1/3")
+        self.assertEqual(m.hud_text(), "TRY 3 MACHINES ON THE ARCADE FLOOR 1/3")
 
 
 # ------------------------------------------------------------------ hints
@@ -325,9 +336,10 @@ class HintTests(unittest.TestCase):
         p, m = finished()
         first = m.take_hint()
         play(m, "a")
+        play(m, "b", "c")                                              # the quest moves on to earning Tickets
         second = m.take_hint()
         self.assertNotEqual(first, second)
-        self.assertEqual(second, QUESTS[1].hints[0])
+        self.assertEqual(second, QUESTS[3].hints[0])
 
     def test_no_hint_pops_up_by_itself(self):
         p, m = finished()
@@ -340,7 +352,7 @@ class HintTests(unittest.TestCase):
     def test_hint_progress_is_saved(self):
         p, m = finished()
         m.take_hint()
-        self.assertEqual(p.story["hints"], {"get_your_bearings": 1})
+        self.assertEqual(p.story["hints"], {"arcade_explorer": 1})
 
 
 # ------------------------------------------------------------------ saving, sharing, old saves
@@ -360,11 +372,14 @@ class StorySaveTests(unittest.TestCase):
         store.autosave(p)
         m = QuestManager(session_of(p))
         m.finish_opening()
+        m.handle("tour_arcade")
+        m.handle("met_mochi")
         play(m, "a")
         with open(self.path, encoding="utf-8") as f:
             data = json.load(f)
         self.assertTrue(data["story"]["opening_done"])
-        self.assertEqual(data["story"]["completed"], ["get_your_bearings"])
+        self.assertEqual(data["story"]["completed"], ["grand_tour", "meet_the_locals"])
+        self.assertTrue(data["story"]["flags"]["tour_arcade"])
         loaded = ProfileStore(self.path).load()
         m2 = QuestManager(session_of(loaded))
         self.assertTrue(m2.opening_done)
@@ -421,7 +436,7 @@ class StorySaveTests(unittest.TestCase):
         p.set_story({"opening_done": True, "completed": ["gone_quest", "get_your_bearings"], "active": "gone_quest"})
         m = QuestManager(session_of(p))
         self.assertEqual(m.active.id, "arcade_explorer")
-        self.assertEqual([q.id for q in m.completed], ["get_your_bearings"])
+        self.assertEqual([q.id for q in m.completed], ["grand_tour", "meet_the_locals"])
 
     def test_set_story_saves_only_when_it_changes(self):
         p = fresh()
@@ -445,7 +460,7 @@ class VeteranSaveTests(unittest.TestCase):
     def test_finished_steps_are_ticked_and_the_first_open_one_is_active(self):
         p = fresh(total_games_played=5, lifetime_tickets_earned=40)
         m = QuestManager(session_of(p))
-        self.assertEqual(m.completed_ids, ["get_your_bearings", "arcade_explorer", "earn_some_rewards"])
+        self.assertEqual(m.completed_ids, ["grand_tour", "meet_the_locals", "arcade_explorer", "earn_some_rewards"])
         self.assertEqual(m.active.id, "check_the_vending_machine")
         self.assertFalse(m.notifications)
         self.assertEqual(p.story["completed"], m.completed_ids)
@@ -475,14 +490,17 @@ class TwoPlayerStoryTests(unittest.TestCase):
         a, b = fresh("a"), fresh("b")
         m = QuestManager(session_of(a, b))
         m.finish_opening()
+        m.handle("tour_arcade")
         play(m, "x")
         self.assertEqual(a.story, b.story)
-        self.assertEqual(a.story["completed"], ["get_your_bearings"])
+        self.assertEqual(a.story["completed"], ["grand_tour"])
 
     def test_either_players_actions_move_the_one_quest(self):
         a, b = fresh("a"), fresh("b")
         m = QuestManager(session_of(a, b))
         m.finish_opening()
+        m.handle("tour_arcade")
+        m.handle("met_mochi")
         a.record_game_played("one")
         b.record_game_played("two")
         self.assertEqual(m.progress(), (2, 3))
@@ -506,7 +524,7 @@ class TwoPlayerStoryTests(unittest.TestCase):
         b.set_story({"opening_done": True, "completed": ["get_your_bearings", "arcade_explorer"],
                      "stats": {"played": ["y", "z"]}, "flags": {"vending_secret": True}})
         m = QuestManager(session_of(a, b))
-        self.assertEqual(m.completed_ids[:2], ["get_your_bearings", "arcade_explorer"])
+        self.assertEqual(m.completed_ids[:3], ["grand_tour", "meet_the_locals", "arcade_explorer"])
         self.assertTrue(m.state["flags"]["vending_secret"])
         self.assertEqual(sorted(m.state["stats"]["played"]), ["x", "y", "z"])
         self.assertEqual(a.story, b.story)
@@ -515,6 +533,8 @@ class TwoPlayerStoryTests(unittest.TestCase):
         a, b = fresh("a"), fresh("b")
         m = QuestManager(session_of(a, b))
         m.finish_opening()
+        m.handle("tour_arcade")
+        m.handle("met_mochi")
         play(m, "x", "y", "z")
         a.add_tickets(3)
         self.assertEqual(m.active.id, "check_the_vending_machine")
@@ -896,7 +916,7 @@ class ChatTests(unittest.TestCase):
         self.assertNotEqual(first.lines[0].text, second.lines[0].text)
 
     def test_the_hint_follows_the_story(self):
-        play(self.story.manager, "a")
+        self.story.manager.handle("tour_arcade")
         self.assertEqual(self.talk().lines[1].text, QUESTS[1].hints[0])
 
     def test_the_box_goes_to_the_top_when_the_speakers_stand_low_and_stays_below_otherwise(self):
@@ -1194,14 +1214,14 @@ class OpeningTests(unittest.TestCase):
         self.assertFalse(self.story.locked)
         m = self.story.manager
         self.assertTrue(m.opening_done)
-        self.assertEqual(m.active.id, "get_your_bearings")
+        self.assertEqual(m.active.id, "grand_tour")
         self.assertIsNotNone(self.room.popup)                            # the daily bonus, held back for the opening
         self.frames(1, [down(K.K_e)])
         self.frames(120)
         self.assertIsNone(self.room.popup)
         self.frames(30)
         self.assertTrue(self.story.banner.busy)
-        self.assertEqual(self.story.banner.current.quest.id, "get_your_bearings")
+        self.assertEqual(self.story.banner.current.quest.id, "grand_tour")
 
     def test_movement_works_again_after_the_opening(self):
         self.start()
@@ -2527,6 +2547,8 @@ class StoryGameTests(unittest.TestCase):
 
     def test_a_minigame_still_pays_and_counts_toward_the_quest(self):
         self.story.manager.finish_opening()
+        self.story.manager.handle("tour_arcade")
+        self.story.manager.handle("met_mochi")
         machine = self.room.machines[0]
         self.p.record_game_played(machine.game_id)
         self.assertEqual(self.story.manager.active.id, "arcade_explorer")

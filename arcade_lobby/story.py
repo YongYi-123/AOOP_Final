@@ -25,6 +25,10 @@ any frame rate; `trace` records when each event was scheduled and when it really
 (ESC during the intro / the run-in): the remaining events are marked done silently and the end state is applied at
 once; cleanup() always puts the ambience and the music back, so nothing is left muffled, however it ends.
 
+AFTER THE OPENING the ARCADE TOUR (tour.py) plays: one short conversation the first time the players reach HOME, the
+ARCADE FLOOR and the PRIZE PLAZA (where Miao Meow and Mochi bicker). Each plays once, is saved as a flag in the shared
+story, and its events are what quests THE GRAND TOUR and MEET THE LOCALS wait for (quests.py). Players stay free to roam.
+
 Input is locked (players stand still) for the whole scene; the dialogue is the only thing that answers keys. It is saved
 the moment it ends, in every profile of the session, so it never plays twice. A save that predates the story is read as a
 veteran's (see quests.py), so nobody is sent back to it.
@@ -36,6 +40,7 @@ from quest_ui import ObjectiveTracker, QuestBanner, QuestLogUI
 from quests import QuestManager
 from settings import VIEW_H, VIEW_W
 from story_dialogue import LOW_ON_SCREEN as D_LOW, Line, StoryDialogue
+from tour import TourGuide
 from ui import speech_bubble_image
 
 MIAO, YOU = "MIAO MEOW", "PLAYER"
@@ -386,6 +391,7 @@ class StoryDirector:
         self.sound_log = []                     # (cutscene clock or None, effect, volume, event): what the story played, in order
         self.opening_enabled = False            # set by the startup flow: only a real game start plays the intro
         self._chats = 0
+        self.guide = TourGuide(self)              # the one-time tour conversations (tour.py)
 
     def close(self):
         if self.cutscene is not None:
@@ -435,6 +441,7 @@ class StoryDirector:
 
     def on_room_enter(self, room):
         self.brain.on_room_enter(room)
+        self.guide.on_room_enter(room)
         self._sync_anchor()
 
     def toggle_tracker(self, room=None):
@@ -476,6 +483,7 @@ class StoryDirector:
             self.log.update(dt)
             if self.log.closed:
                 self.log = None
+        self.guide.update(dt, room)
 
     def _can_start(self, room):
         scenes = room.game.scenes
@@ -503,6 +511,8 @@ class StoryDirector:
         """The player pressed E on Miao Meow: a short chat with the hint for where the story is. Hints are only ever
         given when asked for (never pushed), and each ask is a little less vague."""
         if self.locked or self.modal is not None:
+            return
+        if self.guide.press_e_on_miao(room):                  # she is leading the tour: E starts it right here
             return
         player = player or room.player
         m = self.manager
