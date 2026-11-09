@@ -14,6 +14,7 @@ import pygame
 
 from font import LINE_H, get_font
 from gfx import scale_color
+import mochi_chat
 from item_registry import ITEM_REGISTRY
 from item_icons import item_icon
 from menu_kit import FRAME, GOLD, ROSE, ROW_H, MenuScene, fit_text, item_icon_for_ticket
@@ -85,6 +86,19 @@ class ShopScene(MenuScene):
             self.open_garage()
         elif action == "menu" and self.category == EXCHANGE:    # the bag key: straight to REDEEM
             self.open_exchange("REDEEM")
+        elif action == "menu" and self.chat_ready():            # the bag key on the other tabs: a word with Mochi
+            self.open_chat()
+
+    def chat_ready(self):
+        """Is there anything to chat about? Only after the vending machine's real Secret Interface has opened; before
+        that the shop offers (and hints at) nothing, and the bag key does nothing here."""
+        hub = getattr(self.game, "hub", None)
+        story = getattr(hub, "story", None)
+        return story is not None and mochi_chat.chat_available(self.game)
+
+    def open_chat(self):
+        self.play("confirm")
+        self.game.scenes.push(mochi_chat.MochiChatScene(self.game, self.owner, keeper=self.keeper))
 
     def set_tab(self, tab):
         if tab != self.tab:
@@ -201,6 +215,9 @@ class ShopScene(MenuScene):
 
     def draw_body(self, surf):
         self.hints = self._hints.get(self.category, self._hints[None])     # the footer names what the tab's keys do
+        if self.category not in (RACING, EXCHANGE) and self.chat_ready():
+            bag = self.owner.controls.label("menu") or "I"
+            self.hints = self.hints[:-1] + (f"{bag} CHAT", self.hints[-1])
         self.draw_frame(surf)
         self._draw_keeper(surf)
         self.draw_tabs(surf, TABS, self.tab, on_click=self.set_tab)
