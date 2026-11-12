@@ -68,6 +68,18 @@ def _plush(s, c, a):
     s.fill(a, (6, 10, 2, 1))
 
 
+def _bunny(s, c, a):
+    """A bunny plush: a round head and two tall ears with pink insides."""
+    pygame.draw.circle(s, c, (7, 9), 5)
+    s.fill(c, (3, 0, 3, 6))
+    s.fill(c, (8, 0, 3, 6))
+    s.fill(a, (4, 1, 1, 4))
+    s.fill(a, (9, 1, 1, 4))
+    s.fill(Col.OUTLINE, (5, 8, 1, 2))
+    s.fill(Col.OUTLINE, (8, 8, 1, 2))
+    s.fill(a, (6, 11, 2, 1))
+
+
 def _plant(s, c, a):
     pygame.draw.ellipse(s, c, (3, 0, 8, 8))
     pygame.draw.ellipse(s, shade(c, 0.35), (5, 1, 3, 4))
@@ -329,7 +341,7 @@ def _fish(s, c, a):
 
 
 PAINTERS = {"sticker": _sticker, "cap": _cap, "ticket": _ticket, "badge": _badge,
-            "lamp": _lamp, "plush": _plush, "plant": _plant, "clock": _clock, "frame": _frame,
+            "lamp": _lamp, "plush": _plush, "bunny": _bunny, "plant": _plant, "clock": _clock, "frame": _frame,
             "rug": _rug, "star": _star, "ears": _ears, "glasses": _glasses, "swatch": _swatch,
             "headphones": _headphones, "crown": _crown, "visor": _visor, "medal": _medal,
             "clip": _clip, "tail": _tail, "jacket": _jacket, "trophy": _trophy, "coin": _coin, "clover": _clover, "cabinet": _cabinet,

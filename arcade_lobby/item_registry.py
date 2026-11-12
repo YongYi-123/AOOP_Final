@@ -196,6 +196,31 @@ _CAPSULE_ITEMS = (
                   "trophy", _GOLD, (255, 250, 200)),
 )
 
+# ---- NEON CLAW plushies (the claw machine in Prize Plaza, see claw_machine.py). Stackable collectibles like the capsule
+# goods: a plushie won twice is a counted duplicate. They only sit in the bag, HOME's collection and the showcase.
+CLAW_STACK = 99
+
+
+def _claw_plush(item_id, name, text, rarity, shape, color, accent):
+    return ItemDefinition(item_id, name, text, COLLECTIBLE, rarity, stackable=True, max_stack=CLAW_STACK,
+                          icon={"shape": shape, "color": color, "accent": accent}, use_hint=_COLLECT_USE)
+
+
+_CLAW_ITEMS = (
+    _claw_plush("claw_plush_berry", "BERRY KITTY", "A strawberry pink kitten plush from the claw machine.", COMMON,
+                "plush", (255, 140, 190), (255, 230, 240)),
+    _claw_plush("claw_plush_snowball", "SNOWBALL", "A fluffy white kitten plush. Very huggable.", COMMON,
+                "plush", (240, 240, 255), (255, 160, 200)),
+    _claw_plush("claw_plush_marmalade", "MARMALADE", "An orange tabby plush with a sleepy smile.", COMMON,
+                "plush", (255, 170, 80), (255, 236, 200)),
+    _claw_plush("claw_plush_midnight", "MIDNIGHT KITTY", "A navy kitten plush with glowing cyan ears.", UNCOMMON,
+                "plush", (64, 60, 110), (150, 240, 255)),
+    _claw_plush("claw_plush_bunny", "NEON BUNNY", "A lilac bunny plush with very long ears.", UNCOMMON,
+                "bunny", (196, 160, 255), (255, 190, 230)),
+    _claw_plush("claw_plush_chonk", "BIG CHONK", "The roundest cat plush in the machine. Heavy.", RARE,
+                "plush", (170, 176, 204), (255, 200, 220)),
+)
+
 # ---- NEON VEND-O-MATIC novelty goods (Arcade Floor). Pure fun: using one only plays a little effect
 # (novelty.py) and never touches scores, tokens, tickets, movement or any minigame.
 NOVELTY_STACK = 9
@@ -235,4 +260,4 @@ _RACING_ITEMS = tuple(
                    if d.id.startswith("racing_decoration_") else d.icon,
                    use_hint=_DECOR_USE if d.id.startswith("racing_decoration_") else "")
     for d in _RACING_ITEMS)
-ITEM_REGISTRY = ItemRegistry(_ITEMS + _SHOP_ITEMS + _CAPSULE_ITEMS + _NOVELTY_ITEMS + _RACING_ITEMS)
+ITEM_REGISTRY = ItemRegistry(_ITEMS + _SHOP_ITEMS + _CAPSULE_ITEMS + _CLAW_ITEMS + _NOVELTY_ITEMS + _RACING_ITEMS)
