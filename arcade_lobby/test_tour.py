@@ -181,11 +181,11 @@ class TextTests(unittest.TestCase):
 
 # ------------------------------------------------------------------ the quests
 class QuestTests(unittest.TestCase):
-    def test_the_five_quests_in_the_requested_order_then_the_way_out(self):
+    def test_the_five_quests_in_the_requested_order_then_chapter_01(self):
         self.assertEqual([q.title.upper() for q in QUESTS[:5]],
                          ["THE GRAND TOUR", "MEET THE LOCALS", "GIVE IT A TRY", "EARN YOUR REWARDS",
                           "CHECK THE VENDING MACHINE"])
-        self.assertEqual(QUESTS[5].id, "the_way_out")
+        self.assertEqual(QUESTS[5].id, "ch1_secret_item")
 
     def test_the_tour_quests_wait_for_the_conversations_not_for_any_other_action(self):
         self.assertEqual(QUESTS[0].trigger, ("sticky", "tour_arcade"))
@@ -224,7 +224,7 @@ class QuestTests(unittest.TestCase):
             m.handle(event)
         self.assertEqual(m.active.id, "check_the_vending_machine")
         m.handle("vending_secret")
-        self.assertEqual(m.active.id, "the_way_out")
+        self.assertEqual(m.active.id, "ch1_secret_item")
 
 
 # ------------------------------------------------------------------ first entry
@@ -480,12 +480,12 @@ class OldSaveTests(unittest.TestCase):
         self.assertEqual(m.completed_ids, ["grand_tour", "meet_the_locals", "arcade_explorer", "earn_some_rewards"])
         self.assertEqual(m.active.id, "check_the_vending_machine")
 
-    def test_a_save_that_already_found_the_secret_goes_straight_to_the_way_out(self):
+    def test_a_save_that_already_found_the_secret_goes_straight_to_chapter_01(self):
         p = fresh()
         p.set_story({"opening_done": True, "completed": ["get_your_bearings", "arcade_explorer", "earn_some_rewards"],
                      "flags": {"vending_secret": True}})
         m = QuestManager(LocalSession([p]))
-        self.assertEqual(m.active.id, "the_way_out")
+        self.assertEqual(m.active.id, "ch1_secret_item")
 
     def test_a_save_still_at_the_first_step_gets_the_tour(self):
         p = fresh()

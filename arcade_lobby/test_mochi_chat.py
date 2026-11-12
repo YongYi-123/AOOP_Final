@@ -171,12 +171,12 @@ class UnlockedTests(Base):
         chat = self.open_chat()
         self.assertEqual(self.labels(chat), [C.STORIES])
 
-    def test_with_the_earlier_quests_done_the_secret_moves_the_story_to_the_way_out(self):
+    def test_with_the_earlier_quests_done_the_secret_moves_the_story_to_chapter_01(self):
         for event, key in (("tour_arcade", None), ("met_mochi", None), ("game_played", "a"), ("game_played", "b"),
                            ("game_played", "c"), ("tickets_earned", None)):
             self.m.handle(event, key)
         self.unlock_for_real()
-        self.assertEqual(self.m.active.id, "the_way_out")
+        self.assertEqual(self.m.active.id, "ch1_secret_item")
         self.assertEqual(self.m.mochi_story_stage, "new")
 
     def test_the_shop_names_the_chat_key_once_unlocked(self):
@@ -257,8 +257,15 @@ class SecretItemTests(Base):
         self.assertEqual([l.text for l in lines], ["So you actually found that strange road, huh?",
                                                     "Heh. Guess you're one of those players who don't follow the rules either."])
 
-    def test_an_item_found_before_the_unlock_goes_straight_to_the_found_talk(self):
-        self.m.handle("secret_item_found", SECRET_ITEM_RETRO_RACER)
+    def test_an_item_found_before_the_unlock_is_not_recorded(self):
+        self.m.handle("secret_item_found", SECRET_ITEM_RETRO_RACER)          # chapter 01 is not open: it does not count
+        self.assertFalse(self.m.has_secret_item(SECRET_ITEM_RETRO_RACER))
+        self.assertIsNone(self.m.mochi_story_stage)
+        self.unlock_for_real()
+        self.assertEqual(self.m.mochi_story_stage, "new")
+
+    def test_an_item_an_older_save_already_holds_goes_straight_to_the_found_talk(self):
+        self.m.state.setdefault("stats", {})["secret_items"] = [SECRET_ITEM_RETRO_RACER]    # found under the old rules: kept
         self.assertIsNone(self.m.mochi_story_stage)
         self.unlock_for_real()
         self.assertEqual(self.m.mochi_story_stage, "found")

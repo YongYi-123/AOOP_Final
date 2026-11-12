@@ -26,7 +26,7 @@ from game import Game  # noqa: E402
 from local_session import GameEvent, LocalSession  # noqa: E402
 from player_profile import PlayerProfile, ProfileStore, clean_story  # noqa: E402
 from quest_ui import ObjectiveTracker, QuestBanner, QuestLogUI  # noqa: E402
-from quests import (QUESTS, TRIALS, Notification, QuestDef, QuestManager, TrialDef, exit_status, trial_cost,
+from quests import (QUESTS, TRIALS, Notification, QuestDef, QuestManager, TrialDef, exit_status,
                     trial_status)  # noqa: E402
 from room_testing import goto_room  # noqa: E402
 from vending_ui import SECRET_FLAG, SECRET_DUCK, VendingScene, GLITCH_TIME, TERMINAL_TYPED  # noqa: E402
@@ -65,6 +65,17 @@ def finished(profile_id="a", tour=True, **kw):
     return p, m
 
 
+def finish_chapters(m, upto=3):
+    """Collect each chapter's Secret Item and finish its trial, in story order (the real stable ids)."""
+    for ch in Q.CHAPTERS[:upto]:
+        m.handle("secret_item_found", ch.item)
+        m.handle("secret_trial_done", ch.trial)
+
+
+CHAPTER_QUESTS = ["ch1_secret_item", "ch1_secret_trial", "ch2_secret_item", "ch2_secret_trial", "ch3_secret_item",
+                  "ch3_secret_trial", "reopen_the_arcade"]
+
+
 def play(m, *games):
     for g in games:
         m.handle("game_played", g)
@@ -82,21 +93,21 @@ def all_text():
 
 # ------------------------------------------------------------------ the quest data
 class QuestDataTests(unittest.TestCase):
-    def test_the_five_opening_quests_and_the_way_out_in_order(self):
+    def test_the_five_opening_quests_then_the_three_chapters_and_the_finale_in_order(self):
         self.assertEqual([q.id for q in QUESTS], ["grand_tour", "meet_the_locals", "arcade_explorer", "earn_some_rewards",
-                                                  "check_the_vending_machine", "the_way_out"])
-        self.assertEqual([q.title for q in QUESTS], ["The Grand Tour", "Meet the Locals", "Give It a Try",
-                                                     "Earn Your Rewards", "Check the Vending Machine", "The Way Out"])
+                                                  "check_the_vending_machine"] + CHAPTER_QUESTS)
+        self.assertEqual([q.title for q in QUESTS[:5]], ["The Grand Tour", "Meet the Locals", "Give It a Try",
+                                                         "Earn Your Rewards", "Check the Vending Machine"])
+        self.assertEqual([q.chapter for q in QUESTS], [0, 0, 0, 0, 0, 1, 1, 2, 2, 3, 3, 4])
         self.assertEqual(QUESTS[0].objective, "Follow Miao Meow and see the Arcade Floor.")
         self.assertEqual(QUESTS[1].objective, "Go to the Prize Plaza and meet Mochi.")
-        self.assertEqual(QUESTS[5].objective, "Collect 3 Secret Items and complete 3 Secret Trials.")
 
     def test_every_quest_is_well_formed(self):
         ids = [q.id for q in QUESTS]
         self.assertEqual(len(ids), len(set(ids)))
         for q in QUESTS:
             self.assertTrue(q.hints, q.id)
-            self.assertIn(q.trigger[0], ("played", "event", "sticky", "counters"))
+            self.assertIn(q.trigger[0], ("played", "event", "sticky", "counters", "item", "trial"))
             for h in q.hints:
                 self.assertLess(len(h), 100, h)
 
@@ -230,15 +241,15 @@ class QuestProgressTests(unittest.TestCase):
         p.add_tokens(10, "DAILY")
         self.assertEqual(m.active.id, "earn_some_rewards")
 
-    def test_the_vending_event_completes_quest_four_and_opens_the_way_out(self):
+    def test_the_vending_event_completes_quest_four_and_opens_chapter_01(self):
         p, m = finished()
         play(m, "a", "b", "c")
         p.add_tickets(5)
         m.notifications.clear()
         m.handle("vending_secret")
-        self.assertEqual(m.active.id, "the_way_out")
+        self.assertEqual(m.active.id, "ch1_secret_item")
         kinds = [(x.kind, x.quest.id if x.quest else None) for x in m.notifications]
-        self.assertEqual(kinds, [("protocol", None), ("quest", "the_way_out")])
+        self.assertEqual(kinds, [("protocol", None), ("quest", "ch1_secret_item")])
         self.assertEqual(list(m.notifications)[0].lines,
                          ("LEGACY PROTOCOL ACTIVE", "3 SECRET ITEMS REQUIRED", "3 SECRET TRIALS REQUIRED"))
         self.assertTrue(m.protocol_active)
@@ -249,33 +260,38 @@ class QuestProgressTests(unittest.TestCase):
         self.assertEqual(m.active.id, "arcade_explorer")
         play(m, "a", "b", "c")
         p.add_tickets(5)
-        self.assertEqual(m.active.id, "the_way_out")                   # quest four completes the moment it is reached
+        self.assertEqual(m.active.id, "ch1_secret_item")               # quest four completes the moment it is reached
 
-    def test_the_way_out_tracks_secret_items_and_trials_without_new_levels(self):
+    def test_the_chapters_track_secret_items_and_trials_in_order(self):
         p, m = finished()
         play(m, "a", "b", "c")
         p.add_tickets(5)
         m.handle("vending_secret")
         self.assertEqual((m.secret_items, m.secret_trials), (0, 0))
-        m.handle("secret_item_found", "gem_cyan")
-        m.handle("secret_item_found", "gem_cyan")                      # the same item twice counts once
-        m.handle("secret_item_found", "gem_pink")
-        m.handle("secret_trial_done", "trial_1")
-        self.assertEqual((m.secret_items, m.secret_trials), (2, 1))
-        self.assertEqual(m.progress(), (3, 6))
-        self.assertEqual(m.active.id, "the_way_out")
-        m.handle("secret_item_found", "gem_gold")
-        m.handle("secret_trial_done", "trial_2")
-        m.handle("secret_trial_done", "trial_3")
-        self.assertEqual(m.active, None)                               # all three and three: the story's current end
-        self.assertEqual(m.completed_ids[-1], "the_way_out")
+        m.handle("secret_item_found", Q.SECRET_ITEM_RETRO_RACER)
+        m.handle("secret_item_found", Q.SECRET_ITEM_RETRO_RACER)       # the same item twice counts once
+        m.handle("secret_item_found", Q.SECRET_ITEM_CLAW)              # chapter 02 is not open: not collected
+        m.handle("secret_item_found", "gem_pink")                      # not a Secret Item at all
+        self.assertEqual((m.secret_items, m.secret_trials), (1, 0))
+        self.assertEqual(m.active.id, "ch1_secret_trial")
+        m.handle("secret_trial_done", "trial_01")
+        self.assertEqual(m.active.id, "ch2_secret_item")
+        m.handle("secret_item_found", Q.SECRET_ITEM_CLAW)
+        m.handle("secret_trial_done", "trial_02")
+        m.handle("secret_item_found", Q.SECRET_ITEM_DUNGEON)
+        m.handle("secret_trial_done", "trial_03")
+        self.assertEqual((m.secret_items, m.secret_trials), (3, 3))
+        self.assertEqual(m.active.id, "reopen_the_arcade")             # the final chapter waits for the reopening itself
+        self.assertTrue(m.finale_unlocked)
+        m.handle(Q.FINALE_EVENT)
+        self.assertIsNone(m.active)
 
     def test_session_events_reach_the_manager(self):
         p, m = finished()
         session = m.session
         session.dispatch(GameEvent("vending_secret", "a"))
         self.assertTrue(m.state["flags"]["vending_secret"])
-        session.dispatch(GameEvent("secret_item_found", "a", key="x"))
+        session.dispatch(GameEvent("secret_item_found", "a", key=Q.SECRET_ITEM_RETRO_RACER))
         self.assertEqual(m.counter("secret_items"), 1)
 
     def test_no_quest_goes_twice_and_a_finished_quest_never_rewards_again(self):
@@ -306,9 +322,8 @@ class QuestProgressTests(unittest.TestCase):
             p.record_game_played(g)
         p.add_tickets(8)
         m.handle("vending_secret")
-        for i in range(3):
-            m.handle("secret_item_found", f"i{i}")
-            m.handle("secret_trial_done", f"t{i}")
+        finish_chapters(m)
+        m.handle(Q.FINALE_EVENT)
         self.assertIsNone(m.active)
 
     def test_the_hud_text_follows_progress(self):
@@ -390,7 +405,7 @@ class StorySaveTests(unittest.TestCase):
     def test_secret_counters_and_flags_survive(self):
         p, m = finished()
         m.handle("vending_secret")
-        m.handle("secret_item_found", "x")
+        m.handle("secret_item_found", Q.SECRET_ITEM_RETRO_RACER)
         loaded = self.reload(p)
         m2 = QuestManager(session_of(loaded))
         self.assertTrue(m2.state["flags"]["vending_secret"])
@@ -465,10 +480,10 @@ class VeteranSaveTests(unittest.TestCase):
         self.assertFalse(m.notifications)
         self.assertEqual(p.story["completed"], m.completed_ids)
 
-    def test_a_veteran_who_already_found_the_vending_secret_starts_at_the_way_out(self):
+    def test_a_veteran_who_already_found_the_vending_secret_starts_at_chapter_01(self):
         p = fresh(total_games_played=9, lifetime_tickets_earned=90, secrets={SECRET_FLAG: True})
         m = QuestManager(session_of(p))
-        self.assertEqual(m.active.id, "the_way_out")
+        self.assertEqual(m.active.id, "ch1_secret_item")
         self.assertTrue(m.protocol_active)
 
     def test_a_veteran_with_gaps_is_not_stuck(self):
@@ -478,7 +493,7 @@ class VeteranSaveTests(unittest.TestCase):
         play(m, "a", "b", "c")
         p.add_tickets(5)
         m.handle("vending_secret")
-        self.assertEqual(m.active.id, "the_way_out")
+        self.assertEqual(m.active.id, "ch1_secret_item")
 
     def test_a_brand_new_profile_is_not_a_veteran(self):
         m = QuestManager(session_of(fresh()))
@@ -759,13 +774,14 @@ class QuestUITests(unittest.TestCase):
         m = self.story.manager
         surf = pygame.Surface((400, 300))
         states = [lambda: None, lambda: play(m, "a"), lambda: play(m, "b", "c"), lambda: self.p.add_tickets(5),
-                  lambda: m.handle("vending_secret"), lambda: m.handle("secret_item_found", "i1"),
-                  lambda: m.handle("secret_trial_done", "t1")]
+                  lambda: m.handle("vending_secret"), lambda: m.handle("secret_item_found", Q.SECRET_ITEM_RETRO_RACER),
+                  lambda: m.handle("secret_trial_done", "trial_01"), lambda: self.p.add_tokens(20, "TEST"),
+                  lambda: self.p.add_tickets(200), lambda: finish_chapters(m)]
         for step in states:
             step()
             log = QuestLogUI(m, self.p)
             log.draw(surf)
-        self.assertEqual((m.secret_items, m.secret_trials), (1, 1))
+        self.assertEqual((m.secret_items, m.secret_trials), (3, 3))
 
     def test_the_log_reads_but_never_changes_the_story(self):
         m = self.story.manager
@@ -967,9 +983,9 @@ class ChatTests(unittest.TestCase):
         play(m, "a", "b", "c")
         self.p.add_tickets(5)
         m.handle("vending_secret")
-        for i in range(3):
-            m.handle("secret_item_found", f"i{i}")
-            m.handle("secret_trial_done", f"t{i}")
+        finish_chapters(m)
+        m.handle(Q.FINALE_EVENT)
+        m.handle(Q.MIAO_REVERSE_ROAD)                                  # (her one-time secret-road talk is already told)
         d = self.talk()
         self.assertEqual(len(d.lines), 2)
 
@@ -1039,13 +1055,13 @@ class VendingStoryTests(unittest.TestCase):
             self.tap(k)
         self.assertEqual(self.story.manager.active.id, "check_the_vending_machine")
 
-    def test_only_the_real_secret_screen_completes_it_and_opens_the_way_out(self):
+    def test_only_the_real_secret_screen_completes_it_and_opens_chapter_01(self):
         shop = self.open_shop()
         for k in CLASSIC:
             self.tap(k)
         self.assertIsNotNone(shop.secret)
         m = self.story.manager
-        self.assertEqual(m.active.id, "the_way_out")
+        self.assertEqual(m.active.id, "ch1_secret_item")
         self.assertTrue(self.p.has_secret(SECRET_FLAG))                 # the existing flag, set by the existing screen
         self.assertEqual([n.kind for n in m.notifications], ["protocol", "quest"])
         self.assertTrue(self.p.story["flags"]["vending_secret"])
@@ -1084,7 +1100,7 @@ class VendingStoryTests(unittest.TestCase):
         for _ in range(10):
             game.step([], DT)
         game.hub.story.manager.session.dispatch(GameEvent("vending_secret", "a"))
-        self.assertEqual(game.hub.story.manager.active.id, "the_way_out")
+        self.assertEqual(game.hub.story.manager.active.id, "ch1_secret_item")
         self.assertTrue(a.story["flags"]["vending_secret"])
         self.assertNotIn("vending_secret", b.story.get("flags", {}))           # b keeps the story it had
         self.assertIsNotNone(room)
@@ -1655,15 +1671,19 @@ class OpeningSkipTests(unittest.TestCase):
 
 # ------------------------------------------------------------------ the quest tracker's layout
 def way_out_manager(title=None, objective=None):
-    """A manager whose active quest is the secret-counter one (optionally with a very long title)."""
+    """A manager whose active quest asks for the most lines: Secret Trial 02 with too small a wallet (or a counter quest
+    with a very long title)."""
+    p = fresh("lay")
     if title:
         quests = (QuestDef("long", title, objective or "Do the thing.", "DO THE THING", ("counters", {"secret_items": 3, "secret_trials": 3}),
                            ("h",)),)
-    else:
-        quests = QUESTS
-    p = fresh("lay")
-    p.set_story({"opening_done": True, "completed": [q.id for q in quests[:-1]]})
-    return p, QuestManager(session_of(p), quests)
+        p.set_story({"opening_done": True})
+        return p, QuestManager(session_of(p), quests)
+    p.set_story({"opening_done": True, "completed": [q.id for q in QUESTS[:5]], "flags": {"vending_secret": True},
+                 "stats": {"secret_items": [Q.SECRET_ITEM_RETRO_RACER, Q.SECRET_ITEM_CLAW], "secret_trials": ["trial_01"]}})
+    m = QuestManager(session_of(p))
+    assert m.active.id == "ch2_secret_trial", m.active.id
+    return p, m
 
 
 class TrackerLayoutTests(unittest.TestCase):
@@ -1711,18 +1731,17 @@ class TrackerLayoutTests(unittest.TestCase):
         self.assertGreater(spec["title"][0][1].top, spec["label"].bottom)
         self.assertGreater(spec["detail"][0][2].top, spec["title"][-1][1].bottom)
 
-    def test_the_secret_counters_are_two_readable_groups_side_by_side(self):
+    def test_a_trial_step_shows_the_earnings_it_asks_for_until_they_are_reached(self):
         p, m = way_out_manager()
         t = ObjectiveTracker(m)
         spec = t.layout()
+        self.check(spec)
         texts = [d[0] for d in spec["detail"]]
-        self.assertEqual(texts, ["ITEMS 0/3", "TRIALS 0/3"])
-        a, b = spec["detail"][0][2], spec["detail"][1][2]
-        self.assertEqual(a.top, b.top)
-        self.assertGreaterEqual(b.left - a.right, ObjectiveTracker.GAP)                  # clear space between them
-        m.handle("secret_item_found", "x")
-        m.handle("secret_trial_done", "trial_01")
-        self.assertEqual([d[0] for d in t.layout()["detail"]], ["ITEMS 1/3", "TRIALS 1/3"])
+        self.assertEqual(texts, ["CH 02: COMPLETE SECRET TRIAL 02", "TOKENS EARNED 0/15", "TICKETS EARNED 0/150"])
+        p.add_tokens(15, "TEST")
+        p.add_tickets(150)
+        p.spend_tokens(15, "PLAY")                                          # spent again: what was earned stays earned
+        self.assertEqual([d[0] for d in t.layout()["detail"]], ["CH 02: COMPLETE SECRET TRIAL 02"])   # enough: just the step
 
     def test_long_quest_titles_wrap_instead_of_overflowing(self):
         p, m = way_out_manager("The Extraordinarily Long Name Of A Quest That Keeps Going And Going", "A very long objective sentence that also would not fit on one line of the tracker")
@@ -1797,151 +1816,7 @@ class TrackerLayoutTests(unittest.TestCase):
         self.assertGreater(len(story.tracker.layout(story.tracker._free_width(room))["title"]), 1)
 
 
-# ------------------------------------------------------------------ the trial rules (data only, no screen)
-class TrialRuleTests(unittest.TestCase):
-    def setUp(self):
-        self.p = fresh("tr", tickets=0, tokens=0)
-        self.m = QuestManager(session_of(self.p))
-        self.m.finish_opening()
-
-    def st(self, n):
-        return trial_status(self.m, self.p, TRIALS[n - 1])
-
-    def test_there_are_three_trials_with_the_expected_names(self):
-        self.assertEqual([t.title for t in TRIALS], ["THE GOLDEN AGE", "THE UNBEATEN RECORD", "THE FINAL LOCK"])
-        self.assertEqual([t.number for t in TRIALS], [1, 2, 3])
-
-    def test_trial_two_is_open_from_the_start_and_trial_one_needs_only_the_reverse_gear(self):
-        self.assertEqual(self.m.secret_items, 0)
-        s = self.st(2)
-        self.assertEqual((s.code, s.reasons, s.needs_currency), ("available", (), False))
-        s = self.st(1)                                                               # (no money, but the Reverse Gear is the key)
-        self.assertEqual((s.code, s.reasons, s.needs_currency), ("locked", ("NEED THE REVERSE GEAR (SECRET ITEM 01)",), False))
-        self.m.handle("secret_item_found", Q.SECRET_ITEM_RETRO_RACER)
-        s = self.st(1)
-        self.assertEqual((s.code, s.reasons, s.needs_currency), ("available", (), False))
-
-    def test_one_and_two_can_be_done_in_either_order(self):
-        self.m.handle("secret_item_found", Q.SECRET_ITEM_RETRO_RACER)
-        self.m.handle("secret_trial_done", "trial_02")
-        self.assertEqual((self.st(1).code, self.st(2).code), ("available", "done"))
-        self.m.handle("secret_trial_done", "trial_01")
-        self.assertEqual((self.st(1).code, self.st(2).code), ("done", "done"))
-        p2, m2 = fresh("o"), None
-        m2 = QuestManager(session_of(p2))
-        m2.finish_opening()
-        m2.handle("secret_trial_done", "trial_01")
-        self.assertEqual(trial_status(m2, p2, TRIALS[1]).code, "available")
-
-    def test_trial_three_is_locked_until_one_and_two_are_done_and_says_why(self):
-        s = self.st(3)
-        self.assertEqual(s.code, "locked")
-        self.assertIn("COMPLETE TRIALS 01 AND 02 FIRST", s.reasons)
-        self.m.handle("secret_trial_done", "trial_01")
-        self.assertIn("COMPLETE TRIAL 02 FIRST", self.st(3).reasons)
-        self.m.handle("secret_trial_done", "trial_02")
-        self.assertFalse(any("COMPLETE TRIAL" in r for r in self.st(3).reasons))
-
-    def test_trial_three_needs_enough_tickets_and_tokens_and_shows_the_balance(self):
-        self.m.handle("secret_trial_done", "trial_01")
-        self.m.handle("secret_trial_done", "trial_02")
-        s = self.st(3)
-        self.assertEqual((s.tickets_needed, s.tokens_needed), (300, 30))
-        self.assertEqual((s.tickets_have, s.tokens_have), (self.p.tickets, self.p.tokens))
-        self.assertEqual(s.code, "locked")
-        self.assertIn(f"NEED 300 TICKETS (YOU HAVE {self.p.tickets})", s.reasons)
-        self.assertIn(f"NEED 30 TOKENS (YOU HAVE {self.p.tokens})", s.reasons)
-        self.p.add_tickets(300)
-        s = self.st(3)
-        self.assertEqual(s.code, "locked")                                                # tickets alone are not enough
-        self.assertEqual(len(s.reasons), 1)
-        self.assertTrue(s.reasons[0].startswith("NEED 30 TOKENS"))
-        self.p.add_tokens(30, "TEST")
-        self.assertEqual(self.st(3).code, "available")
-        self.assertEqual((self.p.tickets, self.p.tokens), (300, 30))                      # holding is not spending
-
-    def test_one_short_is_still_locked(self):
-        self.m.handle("secret_trial_done", "trial_01")
-        self.m.handle("secret_trial_done", "trial_02")
-        self.p.add_tickets(299)
-        self.p.add_tokens(30, "T")
-        self.assertEqual(self.st(3).code, "locked")
-        self.p.add_tickets(1)
-        self.assertEqual(self.st(3).code, "available")
-
-    def test_the_numbers_are_settings_not_hard_coded(self):
-        old = (settings.TRIAL_FINAL_TICKETS, settings.TRIAL_FINAL_TOKENS)
-        self.addCleanup(lambda: (setattr(settings, "TRIAL_FINAL_TICKETS", old[0]), setattr(settings, "TRIAL_FINAL_TOKENS", old[1])))
-        settings.TRIAL_FINAL_TICKETS, settings.TRIAL_FINAL_TOKENS = 5, 2
-        self.assertEqual(trial_cost(TRIALS[2]), (5, 2))
-        self.m.handle("secret_trial_done", "trial_01")
-        self.m.handle("secret_trial_done", "trial_02")
-        self.p.add_tickets(5)
-        self.p.add_tokens(2, "T")
-        self.assertEqual(self.st(3).code, "available")
-        self.assertEqual(old, (300, 30))                                                  # the provisional defaults
-
-    def test_looking_never_changes_the_wallet_the_story_or_the_save(self):
-        before = (self.p.to_dict(), json.dumps(self.m.state, sort_keys=True))
-        for _ in range(5):
-            for n in (1, 2, 3):
-                self.st(n)
-            exit_status(self.m)
-        self.assertEqual((self.p.to_dict(), json.dumps(self.m.state, sort_keys=True)), before)
-
-    def test_the_exit_needs_every_item_and_every_trial_but_items_do_not_gate_the_trials(self):
-        ok, reasons = exit_status(self.m)
-        self.assertFalse(ok)
-        self.assertEqual(len(reasons), 2)
-        self.m.handle("secret_trial_done", "trial_01")
-        self.m.handle("secret_trial_done", "trial_02")
-        self.p.add_tickets(300)
-        self.p.add_tokens(30, "T")
-        self.assertEqual(self.st(3).code, "available")                                    # with no items at all
-        self.m.handle("secret_trial_done", "trial_03")
-        ok, reasons = exit_status(self.m)
-        self.assertFalse(ok)
-        self.assertEqual(reasons, ("NEED 3 SECRET ITEMS (HAVE 0)",))
-        for i in range(3):
-            self.m.handle("secret_item_found", f"gem{i}")
-        self.assertEqual(exit_status(self.m), (True, ()))
-
-    def test_completed_trials_and_items_survive_a_save_and_load(self):
-        d = tempfile.mkdtemp()
-        self.addCleanup(shutil.rmtree, d, True)
-        path = os.path.join(d, "p.json")
-        store = ProfileStore(path)
-        p = fresh("sv", tickets=50)
-        store.autosave(p)
-        m = QuestManager(session_of(p))
-        m.finish_opening()
-        m.handle("secret_trial_done", "trial_02")
-        m.handle("secret_item_found", "gem_a")
-        m.handle("secret_item_found", Q.SECRET_ITEM_RETRO_RACER)
-        loaded = ProfileStore(path).load()
-        m2 = QuestManager(session_of(loaded))
-        self.assertTrue(m2.trial_done("trial_02"))
-        self.assertFalse(m2.trial_done("trial_01"))
-        self.assertEqual(m2.secret_items, 2)
-        self.assertEqual(trial_status(m2, loaded, TRIALS[0]).code, "available")
-        self.assertEqual(trial_status(m2, loaded, TRIALS[1]).code, "done")
-        self.assertEqual(trial_status(m2, loaded, TRIALS[2]).code, "locked")
-        self.assertEqual(loaded.tickets, 50)
-
-    def test_each_profile_is_judged_by_its_own_wallet_and_its_own_trial_progress(self):
-        a, b = fresh("a", tickets=400, tokens=40), fresh("b", tickets=5, tokens=0)
-        m = QuestManager(session_of(a))
-        m.finish_opening()
-        m.handle("secret_trial_done", "trial_01")
-        m.handle("secret_trial_done", "trial_02")
-        self.assertEqual(trial_status(m, a, TRIALS[2]).code, "available")
-        self.assertEqual(trial_status(m, b, TRIALS[2]).code, "locked")      # (b's wallet is judged by b's own money)
-        self.assertEqual(b.story, {})                                         # and b never received a's progress
-
-    def test_progress_is_never_marked_by_looking_or_choosing(self):
-        self.assertEqual(self.m.secret_trials, 0)
-        self.st(1), self.st(2), self.st(3)
-        self.assertEqual(self.m.secret_trials, 0)
+# ------------------------------------------------------------------ the trial rules: see test_chapters.py (chapters, earnings, gates)
 
 
 # ------------------------------------------------------------------ the legacy terminal (a real screen in the real game)
@@ -2047,6 +1922,7 @@ class LegacyTerminalTests(LegacyBase):
         self.assertEqual(self.game.audio.duck, 1.0)                          # and the music is back
 
     def test_visiting_again_after_leaving_works_and_shows_the_same_progress(self):
+        self.story.manager.handle("vending_secret")
         self.story.manager.handle("secret_trial_done", "trial_01")
         shop, term = self.open_terminal()
         self.tap(K.K_ESCAPE)
@@ -2069,19 +1945,29 @@ class LegacyTerminalTests(LegacyBase):
 
     def test_the_terminal_shows_the_real_progress_and_the_players_own_wallet(self):
         m = self.story.manager
+        m.handle("vending_secret")
+        m.handle("secret_item_found", Q.SECRET_ITEM_RETRO_RACER)
         m.handle("secret_trial_done", "trial_01")
-        m.handle("secret_item_found", "gem_a")
-        m.handle("secret_item_found", "gem_b")
         shop, term = self.open_terminal()
-        self.assertEqual([term.status(t).code for t in TRIALS], ["done", "available", "locked"])
-        self.assertEqual(term.manager.secret_items, 2)
-        self.assertEqual(term.status(TRIALS[2]).tickets_have, 120)
-        self.assertEqual(term.status(TRIALS[2]).tokens_have, 12)
-        self.assertIn("NEED 300 TICKETS (YOU HAVE 120)", term.status(TRIALS[2]).reasons)
+        codes = [term.status(t).code for t in TRIALS]
+        self.assertEqual(codes, ["done", "locked", "locked"])
+        self.assertEqual(term.status(TRIALS[1]).lock, Q.LOCK_EARNINGS)                # chapter 02 is open, nothing earned yet
+        self.assertEqual(term.status(TRIALS[2]).lock, Q.LOCK_CHAPTER)
+        self.assertEqual(term.manager.secret_items, 1)
+        self.assertEqual(term.status(TRIALS[1]).tickets_earned, 0)                    # (a starting wallet of 120 is not 'earned')
+        self.assertEqual(term.status(TRIALS[1]).tokens_earned, 0)
+        self.assertIn("EARN 150 TICKETS IN TOTAL (EARNED 0)", term.status(TRIALS[1]).reasons)
+        self.assertEqual(term.chapter_line(), "CHAPTER 02  THE FORGOTTEN GAMES")
         surf = pygame.Surface((400, 300))
         term.draw(surf)
 
     def test_selecting_an_open_trial_that_is_not_built_shows_the_placeholder_and_changes_nothing(self):
+        m = self.story.manager
+        m.handle("vending_secret")
+        m.handle("secret_item_found", Q.SECRET_ITEM_RETRO_RACER)
+        m.handle("secret_trial_done", "trial_01")
+        self.profiles[0].add_tickets(150)                                             # exactly 150 / 15 earned
+        self.profiles[0].add_tokens(15, "T")
         shop, term = self.open_terminal()
         self.frames(60)
         self.tap(K.K_DOWN)                                                            # trial 02 (trial 01 is built now)
@@ -2094,7 +1980,7 @@ class LegacyTerminalTests(LegacyBase):
         term.draw(pygame.Surface((400, 300)))
         after = (self.profiles[0].to_dict(), json.dumps(self.story.manager.state, sort_keys=True), term.index)
         self.assertEqual(before, after)
-        self.assertEqual(self.story.manager.secret_trials, 0)                          # not falsely marked complete
+        self.assertEqual(self.story.manager.secret_trials, 1)                          # not falsely marked complete
         self.assertFalse(self.story.manager.trial_done("trial_02"))
         self.tap(K.K_e)                                                               # OK closes the card
         self.assertIsNone(term.notice)
@@ -2108,16 +1994,14 @@ class LegacyTerminalTests(LegacyBase):
         self.tap(K.K_e)
         self.frames(5)
         self.assertEqual(term.notice["title"], "ACCESS DENIED")
-        self.assertIn("COMPLETE TRIALS 01 AND 02 FIRST", term.notice["lines"])
-        self.assertIn("NEED 300 TICKETS (YOU HAVE 120)", term.notice["lines"])
-        self.assertIn("NEED 30 TOKENS (YOU HAVE 12)", term.notice["lines"])
+        self.assertEqual(term.notice["lines"], ["COMPLETE CHAPTER 02 FIRST"])
         term.draw(pygame.Surface((400, 300)))
         self.assertEqual((self.profiles[0].tickets, self.profiles[0].tokens), before)
 
     def test_trial_three_available_still_charges_nothing_and_shows_the_placeholder(self):
         m = self.story.manager
-        m.handle("secret_trial_done", "trial_01")
-        m.handle("secret_trial_done", "trial_02")
+        m.handle("vending_secret")
+        finish_chapters(m, 2)
         self.profiles[0].add_tickets(300)
         self.profiles[0].add_tokens(30, "T")
         shop, term = self.open_terminal()
@@ -2131,6 +2015,8 @@ class LegacyTerminalTests(LegacyBase):
         self.assertFalse(m.trial_done("trial_03"))
 
     def test_a_finished_trial_that_has_no_room_says_so(self):
+        self.story.manager.handle("vending_secret")
+        finish_chapters(self.story.manager, 1)
         self.story.manager.handle("secret_trial_done", "trial_02")
         shop, term = self.open_terminal()
         self.frames(60)
@@ -2157,10 +2043,11 @@ class LegacyTerminalTests(LegacyBase):
     def test_it_draws_every_state_inside_the_canvas(self):
         shop, term = self.open_terminal()
         m = self.story.manager
-        steps = [lambda: None, lambda: m.handle("secret_trial_done", "trial_01"), lambda: m.handle("secret_item_found", "a"),
+        steps = [lambda: None, lambda: m.handle("secret_item_found", Q.SECRET_ITEM_RETRO_RACER),
+                 lambda: m.handle("secret_trial_done", "trial_01"), lambda: m.handle("secret_item_found", Q.SECRET_ITEM_CLAW),
                  lambda: m.handle("secret_trial_done", "trial_02"), lambda: self.profiles[0].add_tickets(300),
-                 lambda: self.profiles[0].add_tokens(30, "T"), lambda: m.handle("secret_trial_done", "trial_03"),
-                 lambda: [m.handle("secret_item_found", f"g{i}") for i in range(3)]]
+                 lambda: self.profiles[0].add_tokens(30, "T"), lambda: m.handle("secret_item_found", Q.SECRET_ITEM_DUNGEON),
+                 lambda: m.handle("secret_trial_done", "trial_03")]
         for step in steps:
             step()
             for index in range(3):
@@ -2192,6 +2079,7 @@ class LegacyTerminalTests(LegacyBase):
         patcher = patch.dict(LT.TRIAL_SCENES, {"trial_01": Fake})          # (the real room is put back afterwards)
         patcher.start()
         self.addCleanup(patcher.stop)
+        self.story.manager.handle("vending_secret")
         self.story.manager.handle("secret_item_found", Q.SECRET_ITEM_RETRO_RACER)
         shop, term = self.open_terminal()
         self.frames(60)
@@ -2232,11 +2120,11 @@ class LegacyTerminalOtherSavedProfileTests(LegacyBase):
     def test_it_shows_the_wallet_of_the_playing_profile_only(self):
         self.profiles[0].add_tickets(500)
         self.profiles[0].add_tokens(50, "T")
-        self.story.manager.handle("secret_trial_done", "trial_01")
-        self.story.manager.handle("secret_trial_done", "trial_02")
+        self.story.manager.handle("vending_secret")
+        finish_chapters(self.story.manager, 2)
         _shop, term = self.open_terminal()
         self.assertEqual(term.status(TRIALS[2]).code, "available")                    # the player's 500 / 50 qualify
-        self.assertEqual(term.status(TRIALS[2]).tickets_have, 620)
+        self.assertEqual(term.status(TRIALS[2]).tickets_earned, 500)
         self.assertEqual(self.profiles[1].tickets, 120)                               # the other wallet: as it was
 
 
@@ -2267,7 +2155,8 @@ class DrawerBase(unittest.TestCase):
         self.frames(int(round(s / DT)))
 
     def progress(self):
-        self.story.manager.handle("secret_item_found", f"g{len(self.story.manager.state.get('stats', {}).get('secret_items', []))}")
+        m = self.story.manager
+        m.handle("game_played", f"g{len(m.state.get('stats', {}).get('played', []))}")       # a new machine played: real progress
 
 
 class DrawerTests(DrawerBase):

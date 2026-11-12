@@ -54,7 +54,7 @@ class TrialCase(unittest.TestCase):
         self.addCleanup(self.game.quit)
         self.story = self.game.hub.story
         self.manager = self.story.manager
-        self.manager.handle("secret_item_found", quests.SECRET_ITEM_RETRO_RACER)        # the Reverse Gear: the way in needs it
+        self.manager.state.setdefault("stats", {})["secret_items"] = [quests.SECRET_ITEM_RETRO_RACER]   # the Reverse Gear, already owned
         self.room = goto_room(self.game, "arcade_floor")
         self.d = Driver(self.game)
         self.d.frames(10)
@@ -173,8 +173,8 @@ class EntryTests(TrialCase):
         self.assertTrue(self.manager.has_secret_item(quests.SECRET_ITEM_RETRO_RACER))
         self.assertEqual(self.manager.secret_items, 1)
 
-    def test_it_can_be_done_before_or_after_trial_02(self):
-        self.manager.handle("secret_trial_done", "trial_02")
+    def test_an_old_save_that_already_finished_trial_02_keeps_it_and_trial_01_still_opens(self):
+        self.manager.state["stats"]["secret_trials"] = ["trial_02"]                     # (the old any-order rules allowed it)
         _shop, term = self.open_terminal()
         self.assertEqual(term.status(TRIALS[0]).code, "available")
         self.assertEqual(term.status(TRIALS[1]).code, "done")
@@ -1318,17 +1318,19 @@ class CompletionTests(TrialCase):
         self.enter()
         self.d.play_through()
         self.d.finish_card()
-        self.assertEqual(trial_status(self.manager, self.profile, TRIALS[1]).code, "available")
+        status = trial_status(self.manager, self.profile, TRIALS[1])                  # chapter 02 opens; nothing earned yet
+        self.assertEqual((status.code, status.lock), ("locked", quests.LOCK_EARNINGS))
+        self.assertTrue(self.manager.chapter_unlocked(2))
         self.assertFalse(self.manager.trial_done("trial_02"))
         self.assertFalse(self.manager.trial_done("trial_03"))
         self.assertEqual(self.manager.secret_items, 1)
         status = trial_status(self.manager, self.profile, TRIALS[2])
         self.assertEqual(status.code, "locked")
-        self.assertIn("COMPLETE TRIAL 02 FIRST", status.reasons)
+        self.assertIn("COMPLETE CHAPTER 02 FIRST", status.reasons)
         self.assertEqual(self.manager.state["stats"]["secret_trials"], ["trial_01"])
 
-    def test_doing_trial_02_first_makes_no_difference(self):
-        self.manager.handle("secret_trial_done", "trial_02")
+    def test_an_old_save_with_trial_02_done_first_makes_no_difference(self):
+        self.manager.state["stats"]["secret_trials"] = ["trial_02"]
         self.enter()
         self.d.play_through()
         self.assertEqual(self.manager.secret_trials, 2)
@@ -1414,6 +1416,7 @@ class ReplayTests(TrialCase):
         self.assertEqual(self.manager.secret_trials, 1)
 
     def test_the_terminal_says_the_room_can_be_visited_again(self):
+        self.manager.handle("vending_secret")
         self.manager.handle("secret_trial_done", "trial_01")
         _shop, term = self.open_terminal()
         term.draw(pygame.Surface((400, 300)))
@@ -2052,7 +2055,8 @@ class BreakoutSaveTests(TrialCase):
 
     def test_an_old_profile_without_any_of_the_new_notes_loads_and_works(self):
         p = PlayerProfile(profile_id="old", display_name="OLD", tickets=50, tokens=5)
-        p.set_story({"opening_done": True, "completed": ["get_your_bearings"], "stats": {"secret_trials": ["trial_02"]}})
+        p.set_story({"opening_done": True, "completed": ["get_your_bearings"], "flags": {"vending_secret": True},
+                     "stats": {"secret_trials": ["trial_02"]}})
         m = quests.QuestManager(LocalSession(p))
         self.assertTrue(m.trial_done("trial_02"))
         self.assertFalse(m.state.get("flags", {}).get(G.BREAKOUT_FLAG))
