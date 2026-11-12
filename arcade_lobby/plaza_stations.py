@@ -339,3 +339,53 @@ class ShowcaseStation(Station):
                 surf.fill((255, 244, 200), (x, y - 1, 1, 3))
                 surf.fill((255, 244, 200), (x - 1, y, 3, 1))
 
+
+# ------------------------------------------------------------------ claw machine
+class ClawStation(Station):
+    """NEON CLAW: the claw machine. Opening it is free; E opens the game screen for the player who pressed it
+    (claw_scene.ClawScene), where each attempt costs CLAW_PLAY_COST Tokens. In the room it runs a little demo: the
+    claw glides along its rail and now and then dips into the plushies."""
+    prompt_label = "CLAW MACHINE"
+
+    def __init__(self, pos):
+        import claw_art as art
+        from claw_machine import PLUSHIES
+        from settings import CLAW_PLAY_COST
+        x, y = pos
+        w, h = art.CABINET_SIZE
+        super().__init__(art.cabinet_sprite(CLAW_PLAY_COST), pos, (x + 2, y + 52, w - 4, 12), art.PINK, art.CYAN, 0.3)
+        self.art = art
+        ordinary = [p for p in PLUSHIES if not p.hidden]
+        self.pile = [(art.mini_plush(ordinary[(i * 5 + 2) % len(ordinary)].look), pt)
+                     for i, pt in enumerate(art.pile_layout())]
+
+    def interact(self, scene):
+        scene.open_claw()
+
+    def draw(self, surf):
+        super().draw(surf)
+        art, t = self.art, self.time
+        ox, oy = self.rect.topleft
+        for i, (img, (px, py)) in enumerate(self.pile):                 # the plush pile (front row bobs a touch)
+            bob = 1 if i >= 4 and int(t * 2 + i) % 5 == 0 else 0
+            surf.blit(img, (ox + px, oy + py - bob))
+        g = art.GLASS_RECT
+        k, dip, open_k = art.sway(t)
+        cx = ox + 16 + int(round(k * (g.right - 20 - 16)))
+        surf.fill(art.METAL, (cx - 3, oy + art.RAIL_Y - 1, 7, 2))      # the carriage on the rail
+        top = oy + art.RAIL_Y + 1
+        hang = top + 2 + int(dip * 13)
+        surf.fill(art.METAL_DARK, (cx, top, 1, hang - top))              # the cable
+        surf.fill(art.METAL, (cx - 2, hang, 5, 1))                       # the tiny claw
+        spread = 1 + int(open_k * 2)
+        surf.fill(art.METAL, (cx - 2 - spread + 1, hang + 1, 1, 3))
+        surf.fill(art.METAL, (cx + 2 + spread - 1, hang + 1, 1, 3))
+        surf.fill(art.METAL_DARK, (cx, hang + 1, 1, 2))
+        art.glass_shine(surf, ox, oy, t)
+        for i in range(6):                                               # marquee bulbs chasing round the plate
+            if int(t * 4 + i) % 3 == 0:
+                surf.fill(art.GOLD if i % 2 else art.CYAN, (ox + 6 + i * 6, oy + 11, 2, 1))
+        pulse = 0.5 + 0.5 * math.sin(t * 2.2)                            # soft cabinet light on the posts
+        light = scale_color(art.PINK, 0.6 + 0.4 * pulse)
+        surf.fill(light, (ox + 1, oy + 14 + int(pulse * 20), 1, 4))
+        surf.fill(light, (ox + art.CABINET_SIZE[0] - 2, oy + 34 - int(pulse * 20), 1, 4))
