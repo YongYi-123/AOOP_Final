@@ -32,7 +32,7 @@ SIGN = (26, 6, 100, 32)                                    # the PRIZE COUNTER m
 # left = PRIZE COUNTER, centre = SHOWCASE, upper right = CAPSULE CORNER, lower right = LUCKY CORNER
 COUNTER_POS = (36, 104)
 SHOWCASE_POS = (130, 66)                               # the main display focus: centred against the back wall
-CAPSULE_POS = {CAT: (270, 74), RETRO: (322, 74)}       # the two capsule machines, side by side
+CAPSULE_POS = {CAT: (268, 78), RETRO: (329, 78)}       # the two (compact) capsule machines, centred on the rug halves
 CAPSULE_RUG = (254, 68, 122, 68)                       # the Capsule Corner's floor: x, y, w, h
 CAPSULE_SIGN = (262, 30, 106, 30)                      # its marquee on the back wall
 LUCKY_POS = (268, 158)                                 # the Lucky Corner block sits under the capsules

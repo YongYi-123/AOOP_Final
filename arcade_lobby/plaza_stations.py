@@ -19,7 +19,6 @@ from settings import Col
 from showcase import CAR, COLLECTIBLE_SLOT, SHOWCASE_SLOTS, TROPHY, ShowcaseService
 from stations import Station
 
-CAPSULE_SIZE = (38, 58)
 SHOWCASE_SIZE = (112, 72)
 
 # per machine: body, body shade, trim, glow/neon, accent, dome glass, capsule colours (top, bottom)
@@ -33,9 +32,30 @@ _LOOK = {
                 pods=(((140, 245, 255), (30, 150, 230)), ((255, 232, 130), (230, 160, 30)),
                       ((255, 255, 255), (70, 130, 230)), ((200, 235, 255), (255, 190, 60)))),
 }
-# where the capsules sit in the dome (x, y of centres), and which bob
-_PODS = ((10, 35, 0), (18, 35, 1), (26, 35, 2), (14, 28, 3), (22, 28, 1), (18, 22, 2), (28, 27, 0))
-DOME = pygame.Rect(4, 19, 30, 21)
+
+# Two drawings of the same machine, pixel for pixel the same design:
+#   FULL     38 x 58, the original size. The pull screen (capsule_ui) shows it at 2x.
+#   COMPACT  34 x 52 (about 0.9x each way, 80% of the area), the machine standing in Prize Plaza.
+# Every coordinate the sprite, its animation and its footprint use lives in one of these tables, so the two
+# sizes keep the same proportions instead of a blurry rescale of the pixel art.
+FULL = dict(
+    size=(38, 58), ear_x=(3, 25), ear_w=10, ear_h=8, crest_x=(6, 12, 18, 24), crest_w=7, cup_x=16,
+    head=(6, 12), eyes=(10, 25), eye_y=9, nose=(18, 12), mouth_y=14, whisker_x=(3, 31), whisker_w=5, whisker_y=11,
+    label_y=9, sparks=(4, 32), dome_body=(18, 25), dome=(4, 19, 30, 21), panel=(41, 12), knob=(10, 47, 5),
+    plaque=(19, 43, 17, 8), tray=(53, 5), tray_slot=(8, 22), bulb_y=6, peek=(18, 56), pod_r=4,
+    pods=((10, 35, 0), (18, 35, 1), (26, 35, 2), (14, 28, 3), (22, 28, 1), (18, 22, 2), (28, 27, 0)),
+    footprint=(3, 48, 32, 10))
+COMPACT = dict(
+    size=(34, 52), ear_x=(3, 22), ear_w=9, ear_h=7, crest_x=(5, 11, 17, 23), crest_w=6, cup_x=14,
+    head=(5, 11), eyes=(9, 22), eye_y=8, nose=(15, 11), mouth_y=13, whisker_x=(2, 28), whisker_w=4, whisker_y=10,
+    label_y=7, sparks=(), dome_body=(15, 21), dome=(4, 16, 26, 18), panel=(35, 11), knob=(9, 41, 4),
+    plaque=(17, 37, 15, 8), tray=(46, 6), tray_slot=(7, 20), bulb_y=5, peek=(17, 50), pod_r=4,
+    pods=((9, 30, 0), (17, 30, 1), (25, 30, 2), (13, 24, 3), (21, 24, 1), (17, 19, 2)),
+    footprint=(3, 43, 28, 9))
+CAPSULE_SIZE = COMPACT["size"]          # the machine in the room
+# where the capsules sit in the full-size dome (x, y of centres, bob phase); the pull screen draws these at 2x
+_PODS = FULL["pods"]
+DOME = pygame.Rect(FULL["dome"])
 
 
 def _pod(surf, center, top, bottom, kind=None):
@@ -53,80 +73,96 @@ def _pod(surf, center, top, bottom, kind=None):
         surf.fill(shade(top, 0.6), (x + 3, y - 4, 1, 1))
 
 
-def _capsule_sprite(kind):
+def _capsule_sprite(kind, g=FULL):
+    """The machine drawn with the geometry table `g` (FULL for the pull screen, COMPACT for the room)."""
     look = _LOOK[kind]
-    w, h = CAPSULE_SIZE
+    w, h = g["size"]
     s = pygame.Surface((w, h), pygame.SRCALPHA)
     body, dark, trim, accent = look["body"], look["dark"], look["trim"], look["accent"]
     font = get_font()
+    head_y, head_h = g["head"]
     # head: cat ears, or a stepped retro crest with a trophy
     if kind == CAT:
-        for x0 in (3, 25):
-            pygame.draw.polygon(s, body, [(x0, 8), (x0 + 5, 0), (x0 + 10, 8)])
-            pygame.draw.polygon(s, trim, [(x0 + 3, 7), (x0 + 5, 3), (x0 + 7, 7)])
+        ew, eh = g["ear_w"], g["ear_h"]
+        for x0 in g["ear_x"]:
+            pygame.draw.polygon(s, body, [(x0, eh), (x0 + ew // 2, 0), (x0 + ew, eh)])
+            pygame.draw.polygon(s, trim, [(x0 + 3, eh - 1), (x0 + ew // 2, 3), (x0 + ew - 3, eh - 1)])
     else:
-        for i, x0 in enumerate((6, 12, 18, 24)):
-            s.fill(dark if i % 3 == 0 else body, (x0, 5 - (1 if i in (1, 2) else 0) * 3, 7, 4))
-        s.fill(look["accent"], (16, 0, 6, 3))                       # a little gold cup on the crest
-        s.fill(look["accent"], (18, 3, 2, 3))
-        s.fill(look["accent"], (14, 1, 2, 1))
-        s.fill(look["accent"], (22, 1, 2, 1))
-    s.fill(body, (0, 6, w, 12))                                      # marquee head
-    s.fill(dark, (1, 7, w - 2, 10))
-    s.fill(trim, (0, 6, w, 1))
-    s.fill(trim, (0, 17, w, 1))
+        cw = g["crest_w"]
+        for i, x0 in enumerate(g["crest_x"]):
+            s.fill(dark if i % 3 == 0 else body, (x0, head_y - 1 - (1 if i in (1, 2) else 0) * 3, cw, 4))
+        cx = g["cup_x"]
+        s.fill(accent, (cx, 0, 6, 3))                                  # a little gold cup on the crest
+        s.fill(accent, (cx + 2, 3, 2, 3))
+        s.fill(accent, (cx - 2, 1, 2, 1))
+        s.fill(accent, (cx + 6, 1, 2, 1))
+    s.fill(body, (0, head_y, w, head_h + 1))                         # marquee head
+    s.fill(dark, (1, head_y + 1, w - 2, head_h - 1))
+    s.fill(trim, (0, head_y, w, 1))
+    s.fill(trim, (0, head_y + head_h, w, 1))
     if kind == CAT:                                                  # a face: eyes, nose, mouth, whiskers
-        for ex in (10, 25):
-            s.fill((255, 255, 255), (ex, 9, 3, 3))
-            s.fill(Col.OUTLINE, (ex + 1, 10, 2, 2))
-        s.fill(trim, (18, 12, 3, 2))
-        s.fill(trim, (17, 14, 1, 1))
-        s.fill(trim, (21, 14, 1, 1))
-        s.fill(trim, (19, 14, 1, 1))
+        ey = g["eye_y"]
+        for ex in g["eyes"]:
+            s.fill((255, 255, 255), (ex, ey, 3, 3))
+            s.fill(Col.OUTLINE, (ex + 1, ey + 1, 2, 2))
+        nx, ny = g["nose"]
+        my = g["mouth_y"]
+        s.fill(trim, (nx, ny, 3, 2))
+        for mx in (nx - 1, nx + 1, nx + 3):
+            s.fill(trim, (mx, my, 1, 1))
         for dy in (0, 2):
-            s.fill(accent, (3, 11 + dy, 5, 1))
-            s.fill(accent, (31, 11 + dy, 5, 1))
+            for wx in g["whisker_x"]:
+                s.fill(accent, (wx, g["whisker_y"] + dy, g["whisker_w"], 1))
     else:
-        label = font.render("RETRO", look["accent"])
-        s.blit(label, ((w - label.get_width()) // 2, 9))
-        for sx in (4, 32):
+        label = font.render("RETRO", accent)
+        s.blit(label, ((w - label.get_width()) // 2, g["label_y"]))
+        for sx in g["sparks"]:
             s.fill(trim, (sx, 11, 3, 1))
             s.fill(trim, (sx + 1, 10, 1, 3))
     # dome
-    s.fill(body, (0, 18, w, 25))
-    s.fill(trim, (0, 18, 1, 25))
-    s.fill(trim, (w - 1, 18, 1, 25))
-    pygame.draw.rect(s, look["glass"], DOME.inflate(2, 2), border_radius=6)
-    pygame.draw.rect(s, shade(look["glass"], 0.35), DOME.inflate(2, 2), 1, border_radius=6)
+    dy, dh = g["dome_body"]
+    dome = pygame.Rect(g["dome"])
+    s.fill(body, (0, dy, w, dh))
+    s.fill(trim, (0, dy, 1, dh))
+    s.fill(trim, (w - 1, dy, 1, dh))
+    pygame.draw.rect(s, look["glass"], dome.inflate(2, 2), border_radius=6)
+    pygame.draw.rect(s, shade(look["glass"], 0.35), dome.inflate(2, 2), 1, border_radius=6)
     # control panel: a big knob, the price plaque and a coin slot
-    s.fill(dark, (1, 41, w - 2, 12))
-    s.fill(trim, (0, 41, w, 1))
-    pygame.draw.circle(s, shade(trim, 0.15), (10, 47), 5)
-    pygame.draw.circle(s, scale_color(trim, 0.55), (10, 47), 5, 1)
-    s.fill(shade(trim, 0.7), (9, 43, 2, 4))
-    plaque = pygame.Rect(19, 43, 17, 8)
+    py, ph = g["panel"]
+    s.fill(dark, (1, py, w - 2, ph + 1))
+    s.fill(trim, (0, py, w, 1))
+    kx, ky, kr = g["knob"]
+    pygame.draw.circle(s, shade(trim, 0.15), (kx, ky), kr)
+    pygame.draw.circle(s, scale_color(trim, 0.55), (kx, ky), kr, 1)
+    s.fill(shade(trim, 0.7), (kx - 1, ky - kr + 1, 2, kr - 1))
+    plaque = pygame.Rect(g["plaque"])
     s.fill((10, 6, 26), plaque)
     pygame.draw.rect(s, accent, plaque, 1)
-    price = str(CAPSULE_MACHINES[kind].cost)
-    text = font.render(price, accent)
+    text = font.render(str(CAPSULE_MACHINES[kind].cost), accent)
     s.blit(text, (plaque.x + 2, plaque.y + 1))
     # tray
-    s.fill(dark, (0, 53, w, 5))
-    s.fill((8, 4, 20), (8, 54, 22, 4))
-    s.fill(trim, (8, 54, 22, 1))
+    ty, th = g["tray"]
+    tx, tw = g["tray_slot"]
+    s.fill(dark, (0, ty, w, th))
+    s.fill((8, 4, 20), (tx, ty + 1, tw, th - 1))
+    s.fill(trim, (tx, ty + 1, tw, 1))
     return s
 
 
 class CapsuleStation(Station):
-    """A capsule machine. E opens its pull screen for the player who pressed it."""
+    """A capsule machine. E opens its pull screen for the player who pressed it.
 
-    def __init__(self, pos, kind):
+    It stands in the room at the COMPACT size; the pull screen still shows the FULL drawing."""
+
+    def __init__(self, pos, kind, geometry=COMPACT):
         x, y = pos
         look = _LOOK[kind]
         spec = CAPSULE_MACHINES[kind]
         self.capsule_kind = kind                    # (not `kind`: that names a Lucky Corner cabinet)
         self.look = look
-        super().__init__(_capsule_sprite(kind), pos, (x + 3, y + 48, 32, 10), look["neon"], look["trim"], 0.26)
+        self.geometry = g = geometry
+        fx, fy, fw, fh = g["footprint"]
+        super().__init__(_capsule_sprite(kind, g), pos, (x + fx, y + fy, fw, fh), look["neon"], look["trim"], 0.26)
         self.prompt_label = spec.name
 
     def interact(self, scene):
@@ -135,18 +171,20 @@ class CapsuleStation(Station):
     def draw(self, surf):
         super().draw(surf)
         ox, oy = self.rect.topleft
-        look, t = self.look, self.time
-        for i, (px, py, phase) in enumerate(_PODS):                    # capsules shuffle gently in the dome
+        look, t, g = self.look, self.time, self.geometry
+        for i, (px, py, phase) in enumerate(g["pods"]):                # capsules shuffle gently in the dome
             top, bottom = look["pods"][i % len(look["pods"])]
             bob = int(round(math.sin(t * 2.4 + phase * 1.7) * 0.9))
             _pod(surf, (ox + px, oy + py + bob), top, bottom, self.capsule_kind)
-        surf.fill((235, 245, 255), (ox + DOME.x + 2, oy + DOME.y + 3, 1, 6))     # glass shine
-        surf.fill((235, 245, 255), (ox + DOME.x + 2, oy + DOME.y + 11, 1, 1))
-        for i in range(0, CAPSULE_SIZE[0] - 4, 6):                       # marquee bulbs chasing
+        dome = pygame.Rect(g["dome"])
+        surf.fill((235, 245, 255), (ox + dome.x + 2, oy + dome.y + 3, 1, dome.h * 2 // 7))     # glass shine
+        surf.fill((235, 245, 255), (ox + dome.x + 2, oy + dome.y + dome.h // 2, 1, 1))
+        for i in range(0, g["size"][0] - 4, 6):                          # marquee bulbs chasing
             if int(t * 3 + i / 6) % 3 == 0:
-                surf.fill(look["accent"], (ox + 2 + i, oy + 6, 2, 1))
+                surf.fill(look["accent"], (ox + 2 + i, oy + g["bulb_y"], 2, 1))
         if int(t * 1.5) % 6 == 0:                                        # a pod peeks out of the tray now and then
-            _pod(surf, (ox + 18, oy + 56), *look["pods"][1], self.capsule_kind)
+            px, py = g["peek"]
+            _pod(surf, (ox + px, oy + py), *look["pods"][1], self.capsule_kind)
 
 
 # ------------------------------------------------------------------ showcase
@@ -300,3 +338,4 @@ class ShowcaseStation(Station):
                 x, y = ox + sx, oy + sy
                 surf.fill((255, 244, 200), (x, y - 1, 1, 3))
                 surf.fill((255, 244, 200), (x - 1, y, 3, 1))
+
