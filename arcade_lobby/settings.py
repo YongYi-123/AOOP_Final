@@ -179,6 +179,23 @@ PINBALL_TOKEN_REWARD = 1
 PINBALL_DAILY_TICKET_CAP = 30
 PINBALL_DAILY_TOKEN_CAP = 2
 
+# NEON CLAW (the claw machine in Prize Plaza). Opening it is free; every attempt costs CLAW_PLAY_COST Tokens, paid
+# once when the claw is started. A plushie that reaches the prize chute pays its Tickets (CLAW_PLUSH_TICKETS, by item
+# id) and goes into the bag; a missed or slipped grab pays nothing. CLAW_AIM_TIME seconds after the start the claw
+# drops by itself. CLAW_GRIP_* shape how forgiving a grab is (see claw_machine.grab_odds).
+CLAW_PLAY_COST = 2
+CLAW_AIM_TIME = 15.0
+CLAW_PLUSH_TICKETS = {
+    "claw_plush_berry": 3,          # BERRY KITTY      common
+    "claw_plush_snowball": 3,       # SNOWBALL         common
+    "claw_plush_marmalade": 4,      # MARMALADE        common
+    "claw_plush_midnight": 5,       # MIDNIGHT KITTY   uncommon
+    "claw_plush_bunny": 5,          # NEON BUNNY       uncommon (tall: a little harder)
+    "claw_plush_chonk": 8,          # BIG CHONK        rare (wide and heavy: the hardest)
+}
+CLAW_GRIP_FAIR = 0.55           # a grab inside the plushie but off its centre keeps this share of the centred chance
+CLAW_GRIP_EDGE = 0.18           # a prong that only catches the edge of a plushie
+
 
 class Col:
     """Neon arcade palette: dark navy/purple base with bright accents."""
