@@ -54,6 +54,47 @@ def _count(value, default):
     return value
 
 
+LIFETIME_BASELINE_VERSION = 1   # a save carrying this "lifetime_baseline" version has had its lifetime totals settled
+
+
+def _lifetime_migration(data, tokens, tickets, tickets_earned, history):
+    """(lifetime_tokens_earned, lifetime_tickets_won, baseline) for a saved profile. Runs its migration ONCE: a save
+    that already carries "lifetime_baseline" is read exactly as saved (idempotent; nothing grows on reload).
+
+    For an older save:
+      Tokens   lifetime_tokens_earned has been tracked since the first wallet, so a saved value is kept as it is. Only a
+               save without it gets a baseline: the larger of the current balance and the positive, non-refund entries
+               still in the (short) transaction history. Spending before that point cannot be reconstructed.
+      Tickets  game-room winnings (NEON 21, Coin Pusher, Pinball) were never counted anywhere and there is no Ticket
+               history. What can be recovered is each machine's saved count for its last day played; on top of that,
+               any part of the current balance that lifetime_tickets_earned does not explain is taken as received
+               (never zero for Tickets the player owns). Winnings already spent cannot be reconstructed, and the
+               baseline cannot tell staff-panel Tickets apart from winnings.
+    What was assumed is written into "lifetime_baseline" so it stays visible in the save."""
+    tokens_saved = _count(data.get("lifetime_tokens_earned"), None)
+    won_saved = _count(data.get("lifetime_tickets_won"), None)
+    if isinstance(data.get("lifetime_baseline"), dict) and _count(data["lifetime_baseline"].get("version"), 0) >= LIFETIME_BASELINE_VERSION:
+        return tokens_saved or 0, won_saved or 0, dict(data["lifetime_baseline"])
+    note = {"version": LIFETIME_BASELINE_VERSION}
+    if tokens_saved is None:
+        in_history = sum(e["delta"] for e in history if e["delta"] > 0 and not e["reason"].upper().endswith("REFUND"))
+        tokens_earned = max(tokens, in_history)
+        note["tokens_earned_assumed"] = tokens_earned
+    else:
+        tokens_earned = tokens_saved
+    recorded = 0
+    for key in ("neon21", "coin_pusher", "pinball"):                  # each machine's Tickets for its last day played
+        part = data.get(key)
+        if isinstance(part, dict):
+            recorded += _count(part.get("tickets"), 0)
+    won = max(won_saved or 0, recorded, tickets - tickets_earned)
+    if won > (won_saved or 0):
+        note["tickets_won_recovered"] = min(won, recorded)
+        if won > recorded:
+            note["tickets_won_assumed"] = won - recorded
+    return tokens_earned, won, note
+
+
 STORY_MAX_ITEMS = 64            # a saved story never holds more than this many entries per list / dict
 
 
@@ -118,7 +159,7 @@ class PlayerProfile:
                  home_decorations=None, profile_id=None, display_name=None, racing_selection=None,
                  neon21=None, appearance=None, collection_display=None, basic_appearance=None,
                  secrets=None, coin_pusher=None, pinball=None, showcase=None, capsule_stamps=0,
-                 cheats_used=False, story=None):
+                 cheats_used=False, story=None, lifetime_tickets_won=0, lifetime_baseline=None):
         # Who this profile is. The id is the save identity (never the name);
         # both are None for a bare profile that is not managed by a ProfileManager.
         self.profile_id = profile_id
@@ -130,6 +171,11 @@ class PlayerProfile:
         self._lifetime_tickets_earned = lifetime_tickets_earned
         self._lifetime_tokens_earned = lifetime_tokens_earned
         self._lifetime_tokens_spent = lifetime_tokens_spent
+        # Tickets paid as game-room WINNINGS (NEON 21, Coin Pusher, Pinball). Kept apart from lifetime_tickets_earned,
+        # which the daily task and the early quest read as 'won by playing an Arcade Floor game'; the two never overlap.
+        self._lifetime_tickets_won = lifetime_tickets_won
+        # How the lifetime totals of a save from before they were all tracked were settled (done once, see from_dict).
+        self._lifetime_baseline = dict(lifetime_baseline) if isinstance(lifetime_baseline, dict) else {"version": LIFETIME_BASELINE_VERSION}
         self._chance_games_played = chance_games_played
         self._cats_petted = cats_petted
         self.clock = clock or GameClock()
@@ -224,6 +270,21 @@ class PlayerProfile:
     @property
     def lifetime_tokens_spent(self):
         return self._lifetime_tokens_spent
+
+    @property
+    def lifetime_tickets_won(self):
+        return self._lifetime_tickets_won
+
+    @property
+    def lifetime_tickets_received(self):
+        """Every Ticket this profile has ever legitimately received: game rewards plus game-room winnings. Spending
+        never lowers it; refunds, staff-panel grants and loading a save never raise it."""
+        return self._lifetime_tickets_earned + self._lifetime_tickets_won
+
+    @property
+    def lifetime_baseline(self):
+        """{"version", and for a migrated save what had to be assumed}: see from_dict."""
+        return dict(self._lifetime_baseline)
 
     @property
     def chance_games_played(self):
@@ -550,6 +611,7 @@ class PlayerProfile:
             self._neon21_tickets = self.neon21_tickets_today() + amount
             self._neon21_date = self.clock.today().isoformat()
             self._tickets += amount
+            self._lifetime_tickets_won += amount
             self._notify(self.TICKET, amount, self._tickets)
         return True
 
@@ -580,6 +642,7 @@ class PlayerProfile:
             self._pusher_tickets = self.pusher_tickets_today() + amount
             self._pusher_date = self.clock.today().isoformat()
             self._tickets += amount
+            self._lifetime_tickets_won += amount
             self._notify(self.TICKET, amount, self._tickets)
         return True
 
@@ -619,6 +682,7 @@ class PlayerProfile:
             self._pinball_date = today
         if tickets:
             self._tickets += tickets
+            self._lifetime_tickets_won += tickets
             self._notify(self.TICKET, tickets, self._tickets)
         if tokens:
             self.add_tokens(tokens, "LUCKY CAT PINBALL")
@@ -788,6 +852,8 @@ class PlayerProfile:
             "lifetime_tickets_earned": self._lifetime_tickets_earned,
             "lifetime_tokens_earned": self._lifetime_tokens_earned,
             "lifetime_tokens_spent": self._lifetime_tokens_spent,
+            "lifetime_tickets_won": self._lifetime_tickets_won,
+            "lifetime_baseline": dict(self._lifetime_baseline),
             "chance_games_played": self._chance_games_played,
             "cats_petted": self._cats_petted,
             "high_scores": dict(self._high_scores),
@@ -836,13 +902,17 @@ class PlayerProfile:
         decorations = data.get("home_decorations")
         decorations = {k: v for k, v in decorations.items() if isinstance(k, str) and isinstance(v, str)
                        } if isinstance(decorations, dict) else {}
+        tickets_earned = _count(data.get("lifetime_tickets_earned"), tickets)   # missing: assume all were earned
+        tokens_earned, tickets_won, baseline = _lifetime_migration(data, tokens, tickets, tickets_earned, history)
         return cls(
             tokens=tokens,
             tickets=tickets,
             high_scores=scores,
             total_games_played=_count(data.get("total_games_played"), 0),
-            lifetime_tickets_earned=_count(data.get("lifetime_tickets_earned"), tickets),   # missing: assume all were earned
-            lifetime_tokens_earned=_count(data.get("lifetime_tokens_earned"), 0),
+            lifetime_tickets_earned=tickets_earned,
+            lifetime_tokens_earned=tokens_earned,
+            lifetime_tickets_won=tickets_won,
+            lifetime_baseline=baseline,
             lifetime_tokens_spent=_count(data.get("lifetime_tokens_spent"), 0),
             chance_games_played=_count(data.get("chance_games_played"), 0),
             cats_petted=_count(data.get("cats_petted"), 0),
