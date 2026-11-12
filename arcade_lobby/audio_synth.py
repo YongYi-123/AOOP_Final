@@ -1255,6 +1255,70 @@ def sfx_breakout_clear():
 ROOM_MUSIC["golden_age"] = MUSIC["golden_age"] = golden_age
 
 
+# ---- NEON CLAW (Prize Plaza): a soft motor, a whirring drop, a metal clack, a plush tumble, the chute and a fanfare
+def sfx_claw_move():
+    """The gantry motor: a short low whirr (repeated while the claw moves, never stacked)."""
+    m = _sfx(0.34)
+    m.note(0, 0.3, 110, "tri", 0.22, attack=0.03, release=0.06, vibrato=18)
+    m.note(0, 0.3, 220, "sq", 0.04, attack=0.03, release=0.06, vibrato=18)
+    return m.finish(peak=0.3, fade=0.03)
+
+
+def sfx_claw_drop():
+    """The cable unwinds: a falling whirr with a soft ratchet."""
+    m = _sfx(0.55)
+    m.note(0, 0.5, 520, "tri", 0.25, attack=0.02, release=0.08, slide=-340)
+    for k in range(6):
+        m.noise(k * 0.08, 0.02, 0.18, decay=160, bright=0.5, seed=300 + k)
+    return m.finish(peak=0.4, fade=0.03)
+
+
+def sfx_claw_grab():
+    """The prongs snap shut: a metal clack and a little servo squeak."""
+    m = _sfx(0.36)
+    m.noise(0, 0.04, 0.6, decay=90, bright=0.85, seed=311)
+    m.note(0, 0.05, 900, "sq", 0.18, release=0.03, slide=-300)
+    m.note(0.07, 0.18, 640, "sine", 0.18, release=0.08, slide=260)
+    return m.finish(peak=0.45, fade=0.02)
+
+
+def sfx_claw_slip():
+    """The plushie wiggles free and flops down: a slide whistle and a soft thump."""
+    m = _sfx(0.5)
+    m.note(0, 0.3, 880, "sine", 0.22, release=0.06, slide=-620, vibrato=9)
+    m.noise(0.32, 0.06, 0.4, decay=60, bright=0.25, seed=321)
+    m.note(0.32, 0.08, 120, "sine", 0.4, release=0.06, slide=-40)
+    return m.finish(peak=0.45, fade=0.03)
+
+
+def sfx_claw_chute():
+    """The prize drops down the chute and lands on the flap: a hollow bump and a sparkle."""
+    m = _sfx(0.45)
+    m.note(0, 0.12, 420, "tri", 0.3, release=0.04, slide=-260)
+    m.noise(0.12, 0.05, 0.45, decay=70, bright=0.35, seed=331)
+    m.note(0.12, 0.08, 150, "sine", 0.4, release=0.06)
+    m.note(0.24, 0.12, hz(midi("E6")), "bell", 0.16, release=0.1)
+    return m.finish(peak=0.45, fade=0.03)
+
+
+def sfx_claw_win():
+    """The reward: a bright little arpeggio and a meow-ish top note."""
+    m = _sfx(0.75)
+    for k, name in enumerate(("C5", "E5", "G5", "C6", "E6")):
+        m.note(k * 0.07, 0.1, hz(midi(name)), "p25", 0.22, release=0.06)
+    m.note(0.36, 0.3, hz(midi("G6")), "bell", 0.2, release=0.2)
+    m.note(0.42, 0.2, 780, "sine", 0.12, release=0.1, vibrato=7, slide=220)
+    return m.finish(peak=0.5, fade=0.03)
+
+
+def sfx_claw_lose():
+    """An empty claw comes home: two gentle falling notes, more 'aww' than 'buzz'."""
+    m = _sfx(0.5)
+    m.note(0, 0.16, hz(midi("E5")), "tri", 0.25, release=0.08)
+    m.note(0.17, 0.26, hz(midi("C5")), "tri", 0.22, release=0.14, slide=-40)
+    return m.finish(peak=0.4, fade=0.03)
+
+
 SFX = {"footstep": sfx_footstep, "confirm": sfx_confirm, "cancel": sfx_cancel, "machine": sfx_machine,
        "token": sfx_token, "ticket": sfx_ticket, "purchase": sfx_purchase, "card": sfx_card,
        "equip": sfx_equip, "meow": sfx_meow, "pet": sfx_pet, "pet_b": sfx_pet_b, "pet_c": sfx_pet_c, "purr": sfx_purr, "emote": sfx_emote, "sit": sfx_sit,
@@ -1274,7 +1338,9 @@ SFX = {"footstep": sfx_footstep, "confirm": sfx_confirm, "cancel": sfx_cancel, "
        "drawer_open": sfx_drawer_open, "page_turn": sfx_page_turn, "disk_insert": sfx_disk_insert,
        "crt_boot": sfx_crt_boot, "trial_complete": sfx_trial_complete,
        "breakout_paddle": sfx_breakout_paddle, "breakout_brick": sfx_breakout_brick, "breakout_wall": sfx_breakout_wall,
-       "breakout_lose": sfx_breakout_lose, "breakout_clear": sfx_breakout_clear}
+       "breakout_lose": sfx_breakout_lose, "breakout_clear": sfx_breakout_clear,
+       "claw_move": sfx_claw_move, "claw_drop": sfx_claw_drop, "claw_grab": sfx_claw_grab, "claw_slip": sfx_claw_slip,
+       "claw_chute": sfx_claw_chute, "claw_win": sfx_claw_win, "claw_lose": sfx_claw_lose}
 
 
 def generate(only=None):

@@ -46,7 +46,9 @@ PRIORITY = {"footstep": 0, "meow": 1, "card": 1, "sit": 1, "pet": 1, "pet_b": 1,
             # TRIAL 01: a Morse tone is never cut off by a menu click; the power surge and the finale outrank everything
             "circuit_click": 1, "circuit_connect": 3, "power_on": 4, "phone_blip": 2, "morse_dot": 3, "morse_dash": 3,
             "drawer_open": 2, "page_turn": 1, "disk_insert": 3, "crt_boot": 3, "trial_complete": 4,
-            "breakout_wall": 0, "breakout_paddle": 1, "breakout_brick": 2, "breakout_lose": 3, "breakout_clear": 4}
+            "breakout_wall": 0, "breakout_paddle": 1, "breakout_brick": 2, "breakout_lose": 3, "breakout_clear": 4,
+            # NEON CLAW: the motor never cuts off anything; the grab, the slip and the chute outrank the drop; the reward tops it
+            "claw_move": 0, "claw_drop": 1, "claw_grab": 2, "claw_slip": 3, "claw_lose": 3, "claw_chute": 3, "claw_win": 4}
 SFX_FILES = ("footstep", "confirm", "cancel", "machine", "token", "ticket", "purchase", "card", "equip",
              "pet", "pet_b", "pet_c", "purr", "emote", "sit", "meow", "vend_hum", "vend_select", "vend_drop", "burp", "munch", "rainbow",
              "squeak", "zap", "mystery", "glitch",
@@ -57,7 +59,8 @@ SFX_FILES = ("footstep", "confirm", "cancel", "machine", "token", "ticket", "pur
              "capsule_turn", "capsule_drop", "capsule_pop_cat", "capsule_pop_retro",
              "circuit_click", "circuit_connect", "power_on", "phone_blip", "morse_dot", "morse_dash", "drawer_open",
              "page_turn", "disk_insert", "crt_boot", "trial_complete",
-             "breakout_paddle", "breakout_brick", "breakout_wall", "breakout_lose", "breakout_clear")
+             "breakout_paddle", "breakout_brick", "breakout_wall", "breakout_lose", "breakout_clear",
+             "claw_move", "claw_drop", "claw_grab", "claw_slip", "claw_chute", "claw_win", "claw_lose")
 # some effects are meant to be barely there
 SFX_GAIN = {"footstep": 0.3, "card": 0.7, "confirm": 0.8, "cancel": 0.8, "sit": 0.7, "emote": 0.8, "meow": 0.6, "purr": 1.0, "vend_hum": 0.6, "vend_select": 0.7, "vend_drop": 0.8, "burp": 0.7,
             # the shooter fires dozens of these a second of play: keep them a soft texture, not a buzz
@@ -65,10 +68,12 @@ SFX_GAIN = {"footstep": 0.3, "card": 0.7, "confirm": 0.8, "cancel": 0.8, "sit": 
             "maze_fish": 0.55, "maze_fish_b": 0.55, "maze_catnip_end": 0.8,
             "coin_clink": 0.5, "pusher_hum": 0.55, "coin_drop": 0.8,
             "pin_rail": 0.5, "pin_flipper": 0.65, "pin_bumper": 0.85, "pin_launch": 0.85, "pin_drain": 0.8,
-            "capsule_turn": 0.7, "capsule_drop": 0.8, "capsule_pop_cat": 0.8, "capsule_pop_retro": 0.75}
+            "capsule_turn": 0.7, "capsule_drop": 0.8, "capsule_pop_cat": 0.8, "capsule_pop_retro": 0.75,
+            "claw_move": 0.45, "claw_drop": 0.6, "claw_grab": 0.75, "claw_slip": 0.7, "claw_chute": 0.75,
+            "claw_win": 0.75, "claw_lose": 0.65}
 MIN_GAP = {"footstep": 0.16, "pet": 0.35, "pet_b": 0.35, "pet_c": 0.35, "purr": 0.35, "meow": 1.2, "laser": 0.14, "boom": 0.09, "point": 0.1, "bounce": 0.08,
            "hit": 0.07, "coin_clink": 0.11, "pusher_hum": 1.5, "coin_tray": 0.12,
-           "pin_rail": 0.09, "pin_flipper": 0.05, "pin_bumper": 0.07}                              # seconds between two plays of the same effect (default .06)
+           "pin_rail": 0.09, "pin_flipper": 0.05, "pin_bumper": 0.07, "claw_move": 0.3}                              # seconds between two plays of the same effect (default .06)
 DEFAULT_BGM, DEFAULT_SFX = .5, .7      # the music files are mastered at about -14 dB, so .5 is comfortable
 FADE_MS = 700           # music crossfade length, driven by game time (not by the audio clock: a stalled device cannot freeze it)
 WATCHDOG_GRACE = .35    # seconds the music may be missing before it is restarted
