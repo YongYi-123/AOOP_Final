@@ -575,6 +575,17 @@ class PlayerProfile:
             self._notify(self.TICKET, amount, self._tickets)
             self._task_event("tickets_earned", amount)
 
+    def award_prize_tickets(self, amount):
+        """Pay a Prize Plaza prize machine's Tickets (the NEON CLAW). They count in lifetime_tickets_received (through
+        lifetime_tickets_won, like the game rooms' winnings) and toward the EARN TICKETS daily task, but NOT in
+        lifetime_tickets_earned, which the story reads as 'won from an Arcade Floor game'. No daily cap."""
+        _check_amount(amount)
+        if amount:
+            self._tickets += amount
+            self._lifetime_tickets_won += amount
+            self._notify(self.TICKET, amount, self._tickets)
+            self._task_event("tickets_earned", amount)
+
     def spend_tickets(self, amount):
         _check_amount(amount)
         if self._tickets < amount:

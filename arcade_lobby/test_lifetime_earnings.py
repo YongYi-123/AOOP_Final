@@ -58,6 +58,18 @@ class EarningTests(unittest.TestCase):
         self.assertEqual(totals(self.p), (paid[1], 20))                      # pinball tokens: once, exactly what was paid
         self.assertEqual(self.p.tokens, 10 + paid[1])
 
+    def test_claw_prize_tickets_count_once_toward_trials_but_not_as_an_arcade_floor_win(self):
+        from local_session import LocalSession
+        from quests import QuestManager
+        p = PlayerProfile(profile_id="claw", display_name="C", tokens=10, tickets=0)
+        p.set_story({"opening_done": True, "completed": ["grand_tour", "meet_the_locals", "arcade_explorer"]})
+        m = QuestManager(LocalSession(p))
+        self.assertEqual(m.active.id, "earn_some_rewards")
+        p.award_prize_tickets(25)
+        self.assertEqual((p.tickets, p.lifetime_tickets_won, p.lifetime_tickets_earned), (25, 25, 0))
+        self.assertEqual(totals(p), (0, 25))
+        self.assertEqual(m.active.id, "earn_some_rewards")                  # (only an Arcade Floor win completes it)
+
     def test_spending_never_lowers_the_totals(self):
         self.p.add_tokens(30, "WIN")
         self.p.add_tickets(300)
