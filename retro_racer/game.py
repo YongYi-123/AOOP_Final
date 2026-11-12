@@ -85,6 +85,7 @@ class Game:
         self.reverse_trigger = ReverseTrigger()      # the Reverse Road secret (reverse_road.py)
         self.beep_clock = 0.0
         self.gear_owned = False                      # has the Reverse Gear been found? (the arcade sets this from the story)
+        self.secret_road_open = True                 # may the Reverse Road be found? (the arcade closes it until its story chapter opens)
         self.egg_found = False                       # has OUT OF TIME been discovered? (the arcade sets this from the story)
         self.secret_events = []                      # ("secret_item_found", key, first_time) for the embedding program
         self.car_menu = CarSelectMenu(CAR_CATALOG)
@@ -413,7 +414,7 @@ class Game:
     def _reverse_beep(self, dt):
         """A truck-style beep while the car backs up. Once the stillness has been served it quickens and climbs, rising with every
         metre, so a player who is on to something can hear it.""" 
-        if self.state is State.PLAYING and self.reverse_trigger.take_cue():
+        if self.state is State.PLAYING and self.reverse_trigger.take_cue() and self.secret_road_open:
             self.audio.play("reverse_cue")                  # "you may reverse now"
         if self.state is not State.PLAYING or not self.player.reversing:
             self.beep_clock = 0.0
@@ -479,7 +480,7 @@ class Game:
         if self.manager.next_checkpoint != checkpoints:
             self.flash_time = CHECKPOINT_FLASH
             self.audio.play("checkpoint")
-        if self.state is State.PLAYING and self.reverse_trigger.update(dt, self.player, True):
+        if self.state is State.PLAYING and self.reverse_trigger.update(dt, self.player, True) and self.secret_road_open:
             self.begin_reverse_road()
             return
         if self.state is State.FINISHED:

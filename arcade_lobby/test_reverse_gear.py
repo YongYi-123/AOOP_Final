@@ -39,6 +39,7 @@ def keyup(k):
 
 class RacerHubBase(unittest.TestCase):
     players = 1
+    chapter_open = True             # the vending machine's Secret Interface has opened CHAPTER 01 (the road may be found)
 
     def setUp(self):
         self.profiles = [PlayerProfile(profile_id="ra", display_name="Ann", tokens=20, tickets=50),
@@ -51,6 +52,8 @@ class RacerHubBase(unittest.TestCase):
         self.story = self.game.hub.story
         self.m = self.story.manager
         self.m.finish_opening()
+        if self.chapter_open:
+            self.m.handle("vending_secret")
 
     # ------------------------------------------------------------ driving the real scene
     def launch(self):
@@ -176,29 +179,18 @@ class TheItemTests(RacerHubBase):
         self.frames(60)
         self.assertEqual(self.m.secret_items, 0)
 
-    def test_it_can_be_found_before_the_vending_secret_and_mochi_stays_silent(self):
-        self.assertFalse(self.m.secret_interface_unlocked)
-        self.launch()
-        self.to_secret()
-        self.finish_run()
-        self.assertEqual(self.m.secret_items, 1)
-        self.assertIsNone(self.m.mochi_story_stage)             # no chat option until the real Secret Interface opens
-        self.assertEqual(C.chat_options(self.m.mochi_story_stage), [])
-        self.m.handle("vending_secret")
-        self.assertEqual(self.m.mochi_story_stage, "found")     # ... and then she goes straight to the found-talk
-        self.assertIn(C.RACE, [label for label, _ in C.chat_options(self.m.mochi_story_stage)])
-        self.assertNotIn(C.HINT, [label for label, _ in C.chat_options(self.m.mochi_story_stage)])
-
     def test_the_quest_log_and_tracker_show_one_of_three(self):
         for event, k in (("tour_arcade", None), ("met_mochi", None), ("game_played", "a"), ("game_played", "b"),
                          ("game_played", "c"), ("tickets_earned", None), ("vending_secret", None)):
             self.m.handle(event, k)
-        self.assertEqual(self.m.active.id, "the_way_out")
+        self.assertEqual(self.m.active.id, "ch1_secret_item")
+        self.assertEqual(ObjectiveTracker(self.m)._detail()[0][0], "CH 01: FIND SECRET ITEM 01")
         self.launch()
         self.to_secret()
         self.finish_run()
+        self.assertEqual(self.m.active.id, "ch1_secret_trial")                  # the next step of the same chapter
         detail = ObjectiveTracker(self.m)._detail()
-        self.assertEqual(detail[0][0], "ITEMS 1/3")
+        self.assertEqual(detail[0][0], "CH 01: COMPLETE SECRET TRIAL 01")
         log = QuestLogUI(self.m, self.profiles[0])
         shown = []
         with mock.patch("quest_ui.draw_text", lambda surf, text, *a, **k: shown.append(str(text))):
@@ -244,11 +236,12 @@ class SaveAndSessionTests(RacerHubBase):
         self.assertIsNone(m.mochi_story_stage)
 
     def test_an_old_save_whose_story_has_other_items_keeps_them(self):
-        self.m.handle("secret_item_found", "gem_cyan")
+        self.m.state.setdefault("stats", {})["secret_items"] = ["gem_cyan"]       # an entry an older build wrote
         self.launch()
         self.to_secret()
         self.finish_run()
-        self.assertEqual(self.m.secret_items, 2)
+        self.assertEqual(self.m.state["stats"]["secret_items"], ["gem_cyan", SECRET_ITEM_RETRO_RACER])   # nothing lost
+        self.assertEqual(self.m.secret_items, 1)                                  # only the real Secret Items count
 
 
 class OtherSavedProfileTests(RacerHubBase):
@@ -520,6 +513,56 @@ class OutOfTimeHubTests(RacerHubBase):
         self.frames(120)
         self.assertIs(self.game.scenes.current, self.game.hub.room("arcade_floor"))
         self.assertEqual(self.game.audio.duck, 1.0)
+
+
+class BeforeChapterOneTests(RacerHubBase):
+    """The vending machine's Secret Interface has NOT opened yet: Chapter 01 is locked."""
+    chapter_open = False
+
+    def still_and_reverse(self):
+        self.begin_race()
+        self.scene_frames(20.3)
+        down = self.move_key("down")
+        self.hold(down)
+        for _ in range(60 * 8):
+            self.scene.update(DT)
+        self.release(down)
+
+    def test_the_road_stays_shut_and_the_item_cannot_be_collected_early(self):
+        self.assertFalse(self.m.secret_interface_unlocked)
+        self.launch()
+        self.assertFalse(self.racer.secret_road_open)
+        self.still_and_reverse()                                    # exactly what opens the road once the chapter is open
+        self.assertIsNone(self.racer.secret)
+        self.assertEqual(self.m.secret_items, 0)
+        self.assertIsNone(self.m.mochi_story_stage)                 # Mochi says nothing about it either
+
+    def test_ordinary_racing_still_works(self):
+        self.launch()
+        self.begin_race()
+        self.scene_frames(3.0)
+        self.assertIs(self.racer.state, self.racer.state.__class__.PLAYING)
+
+    def test_a_stray_item_event_is_ignored_until_the_chapter_opens(self):
+        self.m.handle("secret_item_found", SECRET_ITEM_RETRO_RACER)
+        self.assertFalse(self.m.has_secret_item(SECRET_ITEM_RETRO_RACER))
+        self.m.handle("vending_secret")
+        self.assertTrue(self.m.can_collect(SECRET_ITEM_RETRO_RACER))
+        self.scene = None
+        self.launch()
+        self.assertTrue(self.racer.secret_road_open)                # the next visit to the racer lets the road be found
+        self.to_secret()
+        self.finish_run()
+        self.assertEqual(self.m.secret_items, 1)
+        self.assertEqual(self.m.mochi_story_stage, "found")
+
+    def test_an_older_save_that_already_owns_the_gear_keeps_it(self):
+        self.m.state.setdefault("stats", {})["secret_items"] = [SECRET_ITEM_RETRO_RACER]
+        self.assertTrue(self.m.has_secret_item(SECRET_ITEM_RETRO_RACER))
+        self.launch()
+        self.assertTrue(self.racer.gear_owned)
+        self.assertTrue(self.racer.secret_road_open)                # (it can still be driven again, as before)
+
 
 
 if __name__ == "__main__":

@@ -180,6 +180,8 @@ class RetroRacerScene(MinigameScene):
         r.audio.engine_boost = ENGINE_BOOST
         r.gear_owned = self._gear_owned()            # the Reverse Gear is a story item: the shared story says if it is found
         manager = self._manager()
+        # The secret road only opens with CHAPTER 01 (the vending machine's Secret Interface); ordinary racing never changes.
+        r.secret_road_open = bool(manager is None or manager.can_collect(SECRET_ITEM_RETRO_RACER))
         r.egg_found = bool(manager and manager.egg_found("out_of_time"))
         r.reset()
         r.state = self._title_state
