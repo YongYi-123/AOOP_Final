@@ -1,8 +1,10 @@
 """PRIZE PLAZA: the flashy room right of HOME, for TICKET rewards.
 
-Four zones: the PRIZE COUNTER on the left (Mochi sells things for Tickets), the SHOWCASE in the
+Five zones: the PRIZE COUNTER on the left (Mochi sells things for Tickets), the SHOWCASE in the
 centre (the room's one display: a favourite car / collectible / trophy per player), the CAPSULE
-CORNER at the upper right (CAT CAPSULE and RETRO CAPSULE) and the LUCKY CORNER bonus games below it.
+CORNER at the upper right (CAT CAPSULE and RETRO CAPSULE), the LUCKY CORNER bonus games below it,
+and the NEON CLAW claw machine standing on its own rug in the open floor south-west of the showcase
+(the left half of the room had only the counter; the right half is full).
 The back wall carries only decoration (framed neon art, sconces and the two corner signs).
 """
 import pygame
@@ -21,7 +23,8 @@ from neon21_art import suit_icon
 from room_art import HubBackdrop, Twinkles
 from room_scene import BaseRoomScene, RoomExit
 from settings import Col, Lofi, VIEW_H, VIEW_W
-from plaza_stations import CAPSULE_SIZE, SHOWCASE_SIZE, CapsuleStation, ShowcaseStation
+from claw_scene import ClawScene
+from plaza_stations import CAPSULE_SIZE, SHOWCASE_SIZE, CapsuleStation, ClawStation, ShowcaseStation
 from stations import CoinPusherStation, PinballStation, PrizeCounter, build_lucky_corner
 from racing_progression.ui import PrizeCounterScene
 from shop_ui import ShopScene
@@ -39,6 +42,12 @@ LUCKY_POS = (268, 158)                                 # the Lucky Corner block 
 DAIS = (122, 122, 128, 36)                             # the showcase's floor stage
 MOCHI_POS = (COUNTER_POS[0] + 60, COUNTER_POS[1] + 2)      # her feet: the middle of the counter top
 WALL_ART = ((138, 24), (176, 24), (214, 24))           # framed neon pictures on the back wall (decoration only)
+# NEON CLAW: a free-standing island in the open floor, south-west of the showcase dais. It leaves 14 px of floor under
+# the dais, the HOME doorway and its welcome mat stay clear to the left, and the walk from the door to the Lucky Corner
+# passes in front of (south of) it; the player plays it from the front.
+CLAW_POS = (146, 172)
+CLAW_RUG = (134, 222, 68, 32)                          # its floor: x, y, w, h (paint only)
+GUMBALL_X = (206, 230)                                 # the two gumball stands, moved right of the claw machine
 
 
 class PlazaBackdrop(HubBackdrop):
@@ -56,6 +65,25 @@ class PlazaBackdrop(HubBackdrop):
         self.paint_dais(surf)
         self.paint_capsule_corner(surf)
         self.paint_lucky_corner(surf)
+        self.paint_claw_spot(surf)
+
+    def paint_claw_spot(self, surf):
+        """The claw machine's floor: a small rounded rug in pink and cyan with a paw print each side and a pink
+        neon pool under the cabinet. Paint only."""
+        rug = pygame.Rect(CLAW_RUG)
+        pygame.draw.rect(surf, (64, 22, 86), rug, border_radius=6)
+        pygame.draw.rect(surf, (90, 32, 112), rug.inflate(-6, -6), border_radius=4)
+        pygame.draw.rect(surf, (255, 120, 200), rug, 1, border_radius=6)
+        pygame.draw.rect(surf, (90, 230, 255), rug.inflate(-6, -6), 1, border_radius=4)
+        for px in (rug.x + 5, rug.right - 11):
+            py = rug.bottom - 11
+            surf.fill((255, 150, 210), (px, py + 2, 5, 4))
+            for dx, dy in ((-1, 0), (1, -1), (3, -1), (5, 0)):
+                surf.fill((255, 150, 210), (px + dx, py + dy, 1, 1))
+        pool = pygame.Surface((50, 14), pygame.SRCALPHA)
+        for yy in range(14):                                              # floor reflection, fading out
+            pool.fill((255, 110, 200, int(80 * (1 - yy / 14) ** 2)), (0, yy, 50, 1))
+        surf.blit(pool, (CLAW_POS[0] - 3, CLAW_POS[1] + 60))
 
     def paint_dais(self, surf):
         """The showcase's stage: a plum ellipse with a gold ring, so the centre reads as the focus."""
@@ -225,7 +253,7 @@ class PrizePlazaScene(BaseRoomScene):
     exits = (RoomExit("left", "home", "right"),)
     cat_spots = {
         "tango": ((92, 172), (62, 188), (104, 182)),          # curious: sniffs around the prize counter
-        "duchess": ((236, 190), (200, 214)),                 # regal: surveys the room from the walkway
+        "duchess": ((236, 190), (208, 204)),                 # regal: surveys the room from the walkway
     }
     music_id = "prize_plaza"
     hint_rows = (
@@ -241,15 +269,16 @@ class PrizePlazaScene(BaseRoomScene):
         capsules = [CapsuleStation(pos, kind) for kind, pos in CAPSULE_POS.items()]
         showcase = ShowcaseStation(SHOWCASE_POS, owners=lambda: [("", p.profile) for p in self.session])
         lucky = build_lucky_corner(*LUCKY_POS)
+        claw = ClawStation(CLAW_POS)
         # the two former SOON bays are NEON COIN PUSHER and LUCKY CAT PINBALL
         pusher = CoinPusherStation((LUCKY_POS[0], LUCKY_POS[1] + 70))
         pinball = PinballStation((LUCKY_POS[0] + 40, LUCKY_POS[1] + 70))
         plant = make_plant(Lofi.TERRACOTTA, Lofi.TERRACOTTA_HI)
-        return ([counter] + capsules + [showcase] + lucky + [pusher, pinball] + [
+        return ([counter] + capsules + [showcase] + lucky + [pusher, pinball, claw] + [
             Prop(plant, (24, 76), (27, 92, 13, 10)),
             Prop(plant, (358, 244), (361, 260, 13, 10)),
-            Prop(make_gumball(), (166, 254), (167, 270, 12, 6)),
-            Prop(make_gumball(), (206, 254), (207, 270, 12, 6)),
+            Prop(make_gumball(), (GUMBALL_X[0], 254), (GUMBALL_X[0] + 1, 270, 12, 6)),
+            Prop(make_gumball(), (GUMBALL_X[1], 254), (GUMBALL_X[1] + 1, 270, 12, 6)),
             self.make_miao(),
         ])
 
@@ -285,7 +314,8 @@ class PrizePlazaScene(BaseRoomScene):
                  ((76, 126), 60, (44, 28, 10), 0.6),                # prize counter
                  ((294, 104), 40, (44, 16, 40), 0.55),              # cat capsule
                  ((342, 104), 40, (10, 28, 44), 0.55),              # retro capsule
-                 ((322, 206), 62, (40, 14, 34), 0.6)]               # lucky corner
+                 ((322, 206), 62, (40, 14, 34), 0.6),               # lucky corner
+                 ((CLAW_POS[0] + 22, CLAW_POS[1] + 40), 44, (48, 14, 44), 0.55)]     # claw machine
         lighting = LightingOverlay((VIEW_W, VIEW_H), edge=t.light_edge, center=t.light_center,
                                    pools=[(pos, r, style.light(c), sq) for pos, r, c, sq in pools])
         return BackgroundRenderer(backdrop, animator, lighting)
@@ -295,7 +325,7 @@ class PrizePlazaScene(BaseRoomScene):
         machines, the showcase and the Lucky Corner cabinets all stand close together."""
         rects = super().prompt_avoid_rects()
         rects += [pygame.Rect(p.rect) for p in self.props
-                  if isinstance(p, (CapsuleStation, ShowcaseStation)) or hasattr(p, "kind")]
+                  if isinstance(p, (CapsuleStation, ShowcaseStation, ClawStation)) or hasattr(p, "kind")]
         return rects
 
     # ------------------------------------------------------------ Mochi
@@ -321,6 +351,15 @@ class PrizePlazaScene(BaseRoomScene):
     def open_capsule(self, kind):
         owner = self.session.player_for_avatar(self._actor())
         self.game.scenes.push(CapsuleScene(self.game, owner, kind))
+
+    def open_claw(self, player=None):
+        """Walk up to NEON CLAW. Nothing is charged here: the Tokens are only taken, from the player who walked up,
+        when they press START inside the machine. Open in every chapter of the main quest."""
+        if self.active_play is not None or self.game.scenes.transitioning:
+            return
+        player = self._actor(player)
+        self._pause_for_minigame()
+        self.game.scenes.push(ClawScene(self.game, self.session.player_for_avatar(player)))
 
     def open_showcase(self):
         owner = self.session.player_for_avatar(self._actor())

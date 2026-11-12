@@ -203,7 +203,7 @@ DOOR_Y = 226                                                # the middle of ever
 SPOTS = {
     HOME: {"hub": (186, 216), "couch": (176, 152), "nook": (70, 150), "corner": (300, 232), "bed": (128, 244)},
     ARCADE: {"corner": (130, 250), "centre": (210, 252), "right": (300, 240)},
-    PLAZA: {"walkway": (186, 234), "left": (104, 230), "island": (222, 172)},
+    PLAZA: {"walkway": (230, 232), "left": (104, 230), "island": (222, 172)},   # (walkway clears the claw machine)
 }
 # door spot (just inside) and the point inside the doorway itself, per room and side
 DOORS = {
