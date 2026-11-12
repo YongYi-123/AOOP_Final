@@ -44,6 +44,7 @@ EVENT_HANDLERS = {
     "secret_item_found": lambda profile, e: None,
     "easter_egg_found": lambda profile, e: None,            # (OUT OF TIME: only the story keeps a note of it)
     "secret_trial_done": lambda profile, e: None,
+    "arcade_reopened": lambda profile, e: None,             # (the final chapter's reopening, for when it is built)
 }
 
 

@@ -17,7 +17,7 @@ from font import get_font
 from gfx import scale_color
 from hud import _ticket_icon, _token_icon
 from miao_meow import miao_frame
-from quests import SECRET_ITEMS_NEEDED, SECRET_TRIALS_NEEDED
+from quests import CHAPTERS, FINAL_CHAPTER_TITLE, SECRET_ITEMS_NEEDED, SECRET_TRIALS_NEEDED, objective_text
 from settings import BACK_KEYS, Col, VIEW_H, VIEW_W
 from story_dialogue import framed_portrait, solid_panel
 from ui import dim_screen, draw_text, wrap_text
@@ -125,6 +125,11 @@ class ObjectiveTracker:
             return [(f"ITEMS {m.secret_items}/{SECRET_ITEMS_NEEDED}", Col.CYAN if m.secret_items < SECRET_ITEMS_NEEDED else Col.GREEN),
                     (f"TRIALS {m.secret_trials}/{SECRET_TRIALS_NEEDED}",
                      Col.PURPLE if m.secret_trials < SECRET_TRIALS_NEEDED else Col.GREEN)]
+        earned = m.earnings_check(q)
+        if earned and (earned[0] < earned[1] or earned[2] < earned[3]):           # guide the player to EARN enough first
+            tk, need_k, tt, need_t = earned
+            return [(m.hud_text(), Col.TEXT), (f"TOKENS EARNED {tk}/{need_k}", Col.GREEN if tk >= need_k else Col.YELLOW),
+                    (f"TICKETS EARNED {tt}/{need_t}", Col.GREEN if tt >= need_t else Col.YELLOW)]
         return [(m.hud_text(), Col.TEXT)]
 
     def layout(self, max_width=None):
@@ -142,7 +147,8 @@ class ObjectiveTracker:
             detail_rows = [[(row, groups[0][1])] for row in wrap_text(groups[0][0], inner_cap)]
         else:
             joined = sum(font.size(t)[0] for t, _ in groups) + self.GAP * 2 * (len(groups) - 1)
-            detail_rows = [groups] if joined <= inner_cap else [[g] for g in groups]
+            detail_rows = [groups] if joined <= inner_cap else \
+                [[(row, colour)] for text, colour in groups for row in wrap_text(text, inner_cap)]
         hint = "TAB HIDE"
         content_w = max([header_w, font.size(hint)[0]] + [font.size(r)[0] for r in title_rows]
                         + [sum(font.size(t)[0] for t, _ in row) + self.GAP * 2 * (len(row) - 1) for row in detail_rows])
@@ -296,7 +302,7 @@ class QuestBanner:
             return img
         q = n.quest
         w = max(236, font.size(q.title.upper())[0] * 2 + 28)
-        rows = wrap_text("OBJECTIVE: " + q.objective.rstrip("."), w - 30)
+        rows = wrap_text("OBJECTIVE: " + objective_text(q).rstrip("."), w - 30)
         h = 46 + len(rows) * 10
         img = solid_panel(w, h, Col.MAGENTA, Col.YELLOW, 246)
         draw_text(img, "NEW MAIN QUEST", (w // 2, 7), Col.YELLOW, 1, "midtop", glow=scale_color(Col.MAGENTA, 0.9))
@@ -396,16 +402,55 @@ class QuestLogUI:
         draw_text(surf, (q.title if q else "ALL QUESTS DONE"), (lx, y + 44), Col.YELLOW, glow=scale_color(Col.YELLOW, 0.3))
         draw_text(surf, "CURRENT OBJECTIVE", (lx, y + 62), Col.CYAN)
         if q:
-            for i, row in enumerate(wrap_text(q.objective, 190)[:3]):
+            for i, row in enumerate(wrap_text(m.objective_text(q), 190)[:3]):
                 draw_text(surf, row, (lx + 8, y + 74 + i * 10), Col.TEXT)
             p = m.progress(q)
-            if p:
+            earned = m.earnings_check(q)
+            if earned:                                          # lifetime earnings against the milestone (never the wallet)
+                tk, need_k, tt, need_t = earned
+                draw_text(surf, f"TOKENS EARNED {tk}/{need_k}", (lx + 8, y + 103), Col.GREEN if tk >= need_k else Col.YELLOW)
+                draw_text(surf, f"TICKETS EARNED {tt}/{need_t}", (lx + 8, y + 111), Col.GREEN if tt >= need_t else Col.YELLOW)
+            elif p:
                 bar = pygame.Rect(lx + 8, y + 106, 120, 5)
                 pygame.draw.rect(surf, (40, 30, 80), bar)
                 pygame.draw.rect(surf, Col.CYAN, (bar.x, bar.y, int(bar.w * p[0] / p[1]), 5))
                 pygame.draw.rect(surf, scale_color(Col.CYAN, 0.55), bar, 1)
                 draw_text(surf, f"{p[0]}/{p[1]}", (bar.right + 6, bar.y - 1), Col.CYAN)
             surf.fill(Col.YELLOW, (lx, y + 75, 2, 2))
+        if m.protocol_active:
+            self._chapters(surf, lx, y + 122)
+        else:
+            self._completed(surf, lx, y + 122)
+        self._right(surf, x, y, w, h)
+
+    def chapter_rows(self):
+        """[(label, title, state)] for the Quest Log's chapter list; state is "DONE", "NOW" or "LOCKED". A locked chapter
+        shows only its name: nothing about where its secret hides or how it is found."""
+        m = self.manager
+        rows = []
+        for ch in CHAPTERS:
+            state = "DONE" if m.chapter_unlocked(ch.number) and m.chapter_complete(ch.number) else \
+                "NOW" if m.chapter_unlocked(ch.number) else "LOCKED"
+            rows.append((f"{ch.number:02d}", ch.title, state))
+        rows.append(("FIN", FINAL_CHAPTER_TITLE, "NOW" if m.finale_unlocked else "LOCKED"))
+        return rows
+
+    def _chapters(self, surf, lx, top):
+        draw_text(surf, "CHAPTERS", (lx, top), Col.CYAN)
+        for i, (label, title, state) in enumerate(self.chapter_rows()):
+            oy = top + 12 + i * 10
+            color = {"DONE": Col.GREEN, "NOW": Col.YELLOW, "LOCKED": scale_color(Col.TEXT_MUTED, 0.7)}[state]
+            if state == "DONE":
+                pygame.draw.rect(surf, Col.GREEN, (lx, oy, 7, 7), 1)
+                for ox, dy in ((1, 3), (2, 4), (3, 3), (4, 2), (5, 1)):
+                    surf.set_at((lx + ox, oy + dy), Col.GREEN)
+            elif state == "NOW":
+                draw_text(surf, ">", (lx + 1, oy), Col.YELLOW)
+            draw_text(surf, f"{label} {title}", (lx + 12, oy), color)
+
+    def _completed(self, surf, lx, top):
+        m = self.manager
+        y = top - 122
         draw_text(surf, "COMPLETED", (lx, y + 122), Col.CYAN)
         done = m.completed
         if not done:
@@ -416,6 +461,10 @@ class QuestLogUI:
             for ox, dy in ((1, 3), (2, 4), (3, 3), (4, 2), (5, 1)):
                 surf.set_at((lx + ox, oy + dy), Col.GREEN)
             draw_text(surf, quest.title.upper(), (lx + 12, oy), scale_color(Col.TEXT_MUTED, 0.9))
+
+    def _right(self, surf, x, y, w, h):
+        m = self.manager
+        lx = x + 14
 
         # ---- hint from Miao Meow
         rx = x + 214
@@ -464,7 +513,7 @@ class QuestLogUI:
         # ---- footer
         surf.fill(scale_color(Col.CYAN, 0.45), (x + 12, y + h - 42, w - 24, 1))
         if unlocked:
-            draw_text(surf, "THE ARCADE IS SEALED. FIND 3 SECRET ITEMS, BEAT 3 SECRET TRIALS.",
+            draw_text(surf, "THREE CHAPTERS, IN ORDER. ONE SECRET ITEM AND ONE TRIAL EACH.",
                       (x + w // 2, y + h - 35), scale_color(Col.TEXT_MUTED, 0.95), anchor="midtop")
         else:
             draw_text(surf, "KEEP EXPLORING THE ARCADE WITH MIAO MEOW.", (x + w // 2, y + h - 35),

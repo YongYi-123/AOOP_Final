@@ -7,7 +7,9 @@ branch in QuestManager._met). Nothing else in the game names a quest.
       ("played", N)        N different arcade machines have been played (a running story-wide count)
       ("event", name)      the event `name` happens while this quest is the active one
       ("sticky", name)     the event `name` has happened, even before the quest started (a found secret stays found)
-      ("counters", {...})  every named counter has reached its target (secret items / trials)
+      ("counters", {...})  every named counter has reached its target
+      ("item", key)        the Secret Item `key` is owned (kept, so an item found in an older save still counts)
+      ("trial", trial_id)  the Secret Trial is complete (its earnings milestone is the terminal's business, not the quest's)
 
 OWNERSHIP. The story belongs to the PROFILE being played: one profile, one main quest, saved in that profile
 (PlayerProfile.story). Other profiles have their own and are never read or written. (Saves made by the old two-player
@@ -20,6 +22,19 @@ events "tour_arcade" / "met_mochi" the first time the players reach those rooms,
 player who wanders to the Prize Plaza first is not sent back, and a conversation that has played never plays again.
 Saves from before the tour are migrated (migrate_story): whoever was already past "Get Your Bearings" skips the tour.
 
+THE CHAPTERS. After the vending secret the story runs in three chapters, strictly in order (CHAPTERS):
+    CHAPTER 01  THE GOLDEN AGE        Secret Item "retro_racer_reverse_gear" (Retro Racer)  +  Secret Trial 01
+    CHAPTER 02  THE FORGOTTEN GAMES   Secret Item "claw_secret_reward" (Claw Machine)      +  Secret Trial 02
+    CHAPTER 03  THE FINAL CHALLENGE   Secret Item "dungeon_grey_pixel" (Dungeon Maze)      +  Secret Trial 03
+    FINAL CHAPTER  REOPEN THE ARCADE  needs all six
+Chapter 01 opens with the vending secret; each later chapter opens when the one before it has BOTH its item and its trial.
+Items are recorded by their stable key (never by slot number), and only while their chapter is open; what an older save
+already holds is kept and counted wherever it is. Nothing about a chapter is stored: it is worked out from what is
+owned every time, so an old profile needs no migration. Ordinary games never look at any of this.
+A trial also asks for LIFETIME EARNINGS (settings.SECRET_TRIAL_EARNINGS): every Token and Ticket the player has ever
+legitimately received, not the wallet. Spending never lowers them, so once reached a milestone never closes the trial
+again; nothing is ever charged, and a completed trial stays completed.
+
 The vending-machine step is only completed by the REAL hidden screen (vending_ui.py fires a "vending_secret"
 event the moment its listener recognises the secret sequence); opening the ordinary shop never counts.
 """
@@ -30,9 +45,10 @@ from dataclasses import dataclass, field
 from player_profile import clean_story
 
 VENDING_SECRET_FLAG = "vending_konami_discovered"      # the profile secret vending_ui.py already records
-SECRET_ITEMS_NEEDED = 3
-SECRET_TRIALS_NEEDED = 3
-SECRET_ITEM_RETRO_RACER = "retro_racer_reverse_gear"    # Secret Item 01: the key its "secret_item_found" event carries
+SECRET_ITEM_RETRO_RACER = "retro_racer_reverse_gear"    # Secret Item 01: the key its "secret_item_found" event carries (saved as is)
+SECRET_ITEM_CLAW = "claw_secret_reward"                 # Secret Item 02: the Claw Machine's secret reward
+SECRET_ITEM_DUNGEON = "dungeon_grey_pixel"              # Secret Item 03: the Dungeon Maze's grey pixel
+ITEM_ALIASES = {"reverse_gear": SECRET_ITEM_RETRO_RACER}     # the racer's own name for its item (retro_racer/reverse_road.ITEM_KEY)
 MOCHI_ARCADE_STORY = "mochi_arcade_story"               # story flag: Mochi's first Retro Racer story has been told
 MIAO_REVERSE_ROAD = "miao_reverse_road"                 # story flag: Miao Meow's talk about the secret road has been told
 
@@ -48,6 +64,54 @@ class QuestDef:
     miao_anchor: tuple = None   # (room_id, spot): Miao Meow waits there while this quest is active
     reward_tokens: int = 0      # optional: tokens paid once, to every profile of the session, when it is completed
     intro: str = ""             # the line shown under the NEW MAIN QUEST banner
+    chapter: int = 0            # 1..3 for a chapter's steps, 4 for the final chapter, 0 before the chapters begin
+
+
+# ------------------------------------------------------------------ Secret Items and chapters
+@dataclass(frozen=True)
+class SecretItemDef:
+    key: str                    # the STABLE id saved in the story (never the slot number)
+    slot: int                   # the number shown: SECRET ITEM 01, 02, 03
+    name: str                   # shown once it is found
+    source: str                 # the game it hides in (said only once its chapter is open)
+    chapter: int
+
+
+SECRET_ITEMS = (
+    SecretItemDef(SECRET_ITEM_RETRO_RACER, 1, "REVERSE GEAR", "RETRO RACER", 1),
+    SecretItemDef(SECRET_ITEM_CLAW, 2, "CLAW MACHINE PRIZE", "CLAW MACHINE", 2),
+    SecretItemDef(SECRET_ITEM_DUNGEON, 3, "GREY PIXEL", "DUNGEON MAZE", 3),
+)
+ITEMS_BY_KEY = {i.key: i for i in SECRET_ITEMS}
+
+
+@dataclass(frozen=True)
+class ChapterDef:
+    number: int
+    title: str
+    item: str                   # the Secret Item key this chapter hands out
+    trial: str                  # the Secret Trial id this chapter ends with
+
+    @property
+    def label(self):
+        return f"CHAPTER {self.number:02d}"
+
+
+CHAPTERS = (
+    ChapterDef(1, "THE GOLDEN AGE", SECRET_ITEM_RETRO_RACER, "trial_01"),
+    ChapterDef(2, "THE FORGOTTEN GAMES", SECRET_ITEM_CLAW, "trial_02"),
+    ChapterDef(3, "THE FINAL CHALLENGE", SECRET_ITEM_DUNGEON, "trial_03"),
+)
+FINAL_CHAPTER_TITLE = "REOPEN THE ARCADE"
+FINALE_EVENT = "arcade_reopened"            # the (not yet built) finale fires this when the arcade reopens
+SECRET_ITEMS_NEEDED = len(SECRET_ITEMS)
+SECRET_TRIALS_NEEDED = len(CHAPTERS)
+
+
+def canonical_item(key):
+    """The stable key for an item event's key (an alias is mapped), or None if it is not a Secret Item at all."""
+    key = ITEM_ALIASES.get(key, key) if isinstance(key, str) else None
+    return key if key in ITEMS_BY_KEY else None
 
 
 MEMORY_FRAGMENTS = {"trial_01": "memory_fragment_01"}      # a trial's first completion unseals its Memory Fragment (a story flag, kept once)
@@ -80,83 +144,135 @@ QUESTS = (
              ("That vending machine on the Arcade Floor has been acting really weird lately...",
               "Why not take a closer look at it? Arcade machines always have a few tricks up their sleeves.",
               "I can't tell you what it wants. Keep exploring the Arcade and trust your curiosity!")),
-    QuestDef("the_way_out", "The Way Out", "Collect 3 Secret Items and complete 3 Secret Trials.",
-             "COLLECT SECRETS, FINISH TRIALS",
-             ("counters", {"secret_items": SECRET_ITEMS_NEEDED, "secret_trials": SECRET_TRIALS_NEEDED}),
-             ("We need 3 secret items and 3 secret trials. I don't know where they are... yet!",
-              "Keep exploring every room. Secrets love to hide where we've stopped looking.")),
+    # ---- CHAPTER 01: THE GOLDEN AGE
+    QuestDef("ch1_secret_item", "Chapter 01: The Golden Age", "Find Secret Item 01. Mochi at the Prize Plaza remembers an old Retro Racer story.",
+             "CH 01: FIND SECRET ITEM 01", ("item", SECRET_ITEM_RETRO_RACER),
+             ("The vending machine woke something up! Mochi has run the Prize Plaza forever. Ask her?",
+              "Old racing games had their own little secrets. Ask Mochi about the Retro Racer!",
+              "If a road only goes one way... is that really the only way? I'm just a cat, I don't know cars!"),
+             chapter=1),
+    QuestDef("ch1_secret_trial", "Chapter 01: The Golden Age", "Open the Legacy Terminal in the vending machine and complete Secret Trial 01.",
+             "CH 01: COMPLETE SECRET TRIAL 01", ("trial", "trial_01"),
+             ("Secret Trial 01 is waiting inside the vending machine. Use the same secret to open it again!",
+              "Take your time in there. Every little thing in a room can tell you something."),
+             chapter=1),
+    # ---- CHAPTER 02: THE FORGOTTEN GAMES
+    QuestDef("ch2_secret_item", "Chapter 02: The Forgotten Games", "Find Secret Item 02. Clues are hidden across the arcade's games. They lead to the Claw Machine.",
+             "CH 02: FIND SECRET ITEM 02", ("item", SECRET_ITEM_CLAW),
+             ("The old games are whispering again! Keep playing them and watch for anything odd.",
+              "A clue in one game can point to another. Write things down, I always forget!"),
+             chapter=2),
+    QuestDef("ch2_secret_trial", "Chapter 02: The Forgotten Games", "Earn {tokens} Tokens and {tickets} Tickets in total, then complete Secret Trial 02 at the Legacy Terminal.",
+             "CH 02: COMPLETE SECRET TRIAL 02", ("trial", "trial_02"),
+             ("Trial 02 opens for players who have earned enough Tokens and Tickets. Spending is fine!",
+              "Everything you ever win counts. Keep playing, then visit the vending machine again."),
+             chapter=2),
+    # ---- CHAPTER 03: THE FINAL CHALLENGE
+    QuestDef("ch3_secret_item", "Chapter 03: The Final Challenge", "Find Secret Item 03. Something very small is hidden deep in the Dungeon Maze.",
+             "CH 03: FIND SECRET ITEM 03", ("item", SECRET_ITEM_DUNGEON),
+             ("The Dungeon Maze is the hardest game here. The last secret would hide somewhere like that!",
+              "The smallest things are the easiest to miss. Look everywhere, even where nothing seems to be."),
+             chapter=3),
+    QuestDef("ch3_secret_trial", "Chapter 03: The Final Challenge", "Earn {tokens} Tokens and {tickets} Tickets in total, then complete Secret Trial 03 at the Legacy Terminal.",
+             "CH 03: COMPLETE SECRET TRIAL 03", ("trial", "trial_03"),
+             ("The last trial wants a lot of Tokens and Tickets earned. It counts everything you ever won!",
+              "Spend whatever you like. What you have earned stays earned."),
+             chapter=3),
+    # ---- FINAL CHAPTER: REOPEN THE ARCADE
+    QuestDef("reopen_the_arcade", "Final Chapter: Reopen the Arcade", "All three Secret Items and Secret Trials are done. Return to the Legacy Terminal.",
+             "REOPEN THE ARCADE", ("event", FINALE_EVENT),
+             ("We did it! Everything is ready. The Legacy Terminal is waiting for us.",),
+             chapter=4),
 )
 _ORDER = {q.id: i for i, q in enumerate(QUESTS)}
 
 # ------------------------------------------------------------------ the three Secret Trials
 @dataclass(frozen=True)
 class TrialDef:
-    """One Secret Trial (an escape room). `requires` are trials that must be done first; `cost_names` name the
-    settings constants holding the Tickets / Tokens the player must HOLD (read at use, so they stay configurable)."""
+    """One Secret Trial (an escape room), the end of chapter `chapter`. `needs_items` are Secret Items the player must
+    already own to be let in. The lifetime Tokens / Tickets it asks the player to have EARNED are
+    settings.SECRET_TRIAL_EARNINGS[id] (read at use, so they stay configurable in one place)."""
     id: str
     number: int
     title: str
-    requires: tuple = ()
-    cost_names: tuple = None            # ("SETTING_FOR_TICKETS", "SETTING_FOR_TOKENS")
-    needs_items: tuple = ()             # ((secret item key, short name), ...) the player must already own to be let in
+    chapter: int
+    needs_items: tuple = ()             # ((secret item key, short name), ...)
 
 
 TRIALS = (
-    TrialDef("trial_01", 1, "THE GOLDEN AGE", needs_items=((SECRET_ITEM_RETRO_RACER, "REVERSE GEAR (SECRET ITEM 01)"),)),
-    TrialDef("trial_02", 2, "THE UNBEATEN RECORD"),
-    TrialDef("trial_03", 3, "THE FINAL LOCK", requires=("trial_01", "trial_02"),
-             cost_names=("TRIAL_FINAL_TICKETS", "TRIAL_FINAL_TOKENS")),
+    TrialDef("trial_01", 1, "THE GOLDEN AGE", 1, needs_items=((SECRET_ITEM_RETRO_RACER, "REVERSE GEAR (SECRET ITEM 01)"),)),
+    TrialDef("trial_02", 2, "THE FORGOTTEN GAMES", 2),
+    TrialDef("trial_03", 3, "THE FINAL CHALLENGE", 3),
 )
 TRIALS_BY_ID = {t.id: t for t in TRIALS}
+
+# Why a trial is locked (TrialStatus.lock):
+LOCK_CHAPTER = "chapter"        # an earlier chapter is not finished (its Secret Item and Secret Trial)
+LOCK_ITEM = "item"              # this chapter's own way in (Trial 01 needs the Reverse Gear) is not found yet
+LOCK_EARNINGS = "earnings"      # the chapter is open but the player has not yet EARNED enough Tokens and Tickets in total
 
 
 @dataclass(frozen=True)
 class TrialStatus:
     code: str                           # "done", "available" or "locked"
     reasons: tuple = ()                 # why it is locked, one short line each
+    tokens_needed: int = 0              # lifetime earnings the trial asks for ...
     tickets_needed: int = 0
-    tokens_needed: int = 0
-    tickets_have: int = 0
-    tokens_have: int = 0
+    tokens_earned: int = 0              # ... and what the player has earned so far (never the wallet)
+    tickets_earned: int = 0
+    lock: str = None                    # LOCK_CHAPTER / LOCK_ITEM / LOCK_EARNINGS when locked
 
     @property
-    def needs_currency(self):
+    def needs_earnings(self):
         return bool(self.tickets_needed or self.tokens_needed)
 
     @property
+    def earnings_ok(self):
+        return self.tickets_earned >= self.tickets_needed and self.tokens_earned >= self.tokens_needed
+
+    @property
     def short(self):
+        if self.code == "locked" and self.lock == LOCK_EARNINGS:
+            return "NEED EARNINGS"
         return {"done": "COMPLETE", "available": "AVAILABLE", "locked": "LOCKED"}[self.code]
 
 
-def trial_cost(trial):
-    """(tickets, tokens) the player must hold for `trial`, read from settings every time."""
-    if not trial.cost_names:
-        return 0, 0
+def trial_earnings(trial):
+    """(tokens, tickets) the player must have EARNED in total to go into `trial`, read from settings every time."""
     import settings
-    return getattr(settings, trial.cost_names[0]), getattr(settings, trial.cost_names[1])
+    need = settings.SECRET_TRIAL_EARNINGS.get(trial.id if hasattr(trial, "id") else trial, {})
+    return int(need.get("tokens", 0)), int(need.get("tickets", 0))
+
+
+def lifetime_earnings(profile):
+    """(tokens, tickets) this profile has ever legitimately received (PlayerProfile's lifetime totals, never the wallet)."""
+    return profile.lifetime_tokens_earned, profile.lifetime_tickets_received
 
 
 def trial_status(manager, profile, trial):
     """Whether `trial` can be entered by the player holding `profile`: done, available, or locked (and exactly why).
-    Reading this never changes anything, and never charges anything."""
-    tickets, tokens = trial_cost(trial)
-    have_t, have_k = profile.tickets, profile.tokens
-    base = dict(tickets_needed=tickets, tokens_needed=tokens, tickets_have=have_t, tokens_have=have_k)
+    Reading this never changes anything, and never charges anything. The milestone is LIFETIME earnings, so spending
+    never closes a trial again; a done trial stays done (and replayable)."""
+    tokens, tickets = trial_earnings(trial)
+    have_k, have_t = lifetime_earnings(profile)
+    base = dict(tokens_needed=tokens, tickets_needed=tickets, tokens_earned=have_k, tickets_earned=have_t)
     if manager.trial_done(trial.id):
         return TrialStatus("done", **base)
-    reasons = []
-    for key, name in trial.needs_items:
-        if not manager.has_secret_item(key):
-            reasons.append(f"NEED THE {name}")
-    missing = [TRIALS_BY_ID[r] for r in trial.requires if not manager.trial_done(r)]
+    if not manager.chapter_unlocked(trial.chapter):
+        before = trial.chapter - 1
+        return TrialStatus("locked", (f"COMPLETE CHAPTER {before:02d} FIRST" if before else "THE LEGACY SYSTEM IS SEALED",),
+                           lock=LOCK_CHAPTER, **base)
+    missing = [f"NEED THE {name}" for key, name in trial.needs_items if not manager.has_secret_item(key)]
     if missing:
-        nums = " AND ".join(f"{t.number:02d}" for t in missing)
-        reasons.append(f"COMPLETE TRIAL{'S' if len(missing) > 1 else ''} {nums} FIRST")
-    if tickets and have_t < tickets:
-        reasons.append(f"NEED {tickets} TICKETS (YOU HAVE {have_t})")
-    if tokens and have_k < tokens:
-        reasons.append(f"NEED {tokens} TOKENS (YOU HAVE {have_k})")
-    return TrialStatus("locked" if reasons else "available", tuple(reasons), **base)
+        return TrialStatus("locked", tuple(missing), lock=LOCK_ITEM, **base)
+    reasons = []
+    if have_k < tokens:
+        reasons.append(f"EARN {tokens} TOKENS IN TOTAL (EARNED {have_k})")
+    if have_t < tickets:
+        reasons.append(f"EARN {tickets} TICKETS IN TOTAL (EARNED {have_t})")
+    if reasons:
+        return TrialStatus("locked", tuple(reasons), lock=LOCK_EARNINGS, **base)
+    return TrialStatus("available", **base)
 
 
 def exit_status(manager):
@@ -167,6 +283,14 @@ def exit_status(manager):
     if manager.secret_trials < SECRET_TRIALS_NEEDED:
         reasons.append(f"NEED {SECRET_TRIALS_NEEDED} SECRET TRIALS (HAVE {manager.secret_trials})")
     return not reasons, tuple(reasons)
+
+
+def objective_text(quest):
+    """The quest's full sentence, with the earnings a trial step asks for filled in from settings."""
+    if quest.trigger[0] == "trial":
+        tokens, tickets = trial_earnings(quest.trigger[1])
+        return quest.objective.format(tokens=tokens, tickets=tickets)
+    return quest.objective
 
 
 # What the legacy-protocol screen says once the vending secret is found (shown by the quest UI)
@@ -293,14 +417,72 @@ class QuestManager:
 
     @property
     def way_out_active(self):
+        """Is the story in its chapters (the vending secret's quest is behind it)?"""
         q = self.active
-        return q is not None and q.trigger[0] == "counters"
+        return q is not None and q.chapter > 0
 
     @property
     def protocol_active(self):
         """Has the legacy protocol been unlocked (the vending secret found and its quest completed)?"""
         return "check_the_vending_machine" in self.completed_ids or self.way_out_active or \
             (self.active is None and bool(self.completed_ids))
+
+    # ------------------------------------------------------------ chapters (worked out from what is owned, never stored)
+    def chapter(self, number):
+        return CHAPTERS[number - 1]
+
+    def chapter_complete(self, number):
+        """Chapter `number` (1..3) is done: its Secret Item is owned AND its Secret Trial is complete."""
+        ch = self.chapter(number)
+        return self.has_secret_item(ch.item) and self.trial_done(ch.trial)
+
+    def chapter_unlocked(self, number):
+        """Chapter 01 opens with the vending machine's Secret Interface; each later one when the one before is complete.
+        Number 4 is the final chapter: every chapter complete."""
+        if number <= 1:
+            return self.secret_interface_unlocked
+        return self.chapter_unlocked(number - 1) and self.chapter_complete(number - 1)
+
+    @property
+    def current_chapter(self):
+        """0 before the Secret Interface, 1..3 for the chapter being played, 4 once the final chapter is open."""
+        if not self.chapter_unlocked(1):
+            return 0
+        return next((n for n in range(1, len(CHAPTERS) + 1) if not self.chapter_complete(n)), len(CHAPTERS) + 1)
+
+    @property
+    def finale_unlocked(self):
+        """The final chapter (and with it the last message) opens only with all three items AND all three trials."""
+        return self.chapter_unlocked(len(CHAPTERS) + 1)
+
+    def can_collect(self, key):
+        """May the Secret Item `key` be picked up now? Only while its chapter is open (or if it is already owned)."""
+        key = canonical_item(key)
+        if key is None:
+            return False
+        return self.has_secret_item(key) or self.chapter_unlocked(ITEMS_BY_KEY[key].chapter)
+
+    def can_finish_trial(self, trial_id):
+        """May a completion of `trial_id` be recorded? Only once its chapter is open (a player inside the room is never
+        sent out, nor robbed of the result, whatever happens to the wallet)."""
+        trial = TRIALS_BY_ID.get(trial_id)
+        return trial is not None and (self.trial_done(trial_id) or self.chapter_unlocked(trial.chapter))
+
+    def objective_text(self, quest=None):
+        q = quest or self.active
+        return objective_text(q) if q is not None else ""
+
+    def earnings_check(self, quest=None):
+        """For a trial step with an earnings milestone: (tokens_earned, tokens_need, tickets_earned, tickets_need), else None.
+        Lifetime earnings of the playing profile, never its wallet."""
+        q = quest or self.active
+        if q is None or q.trigger[0] != "trial":
+            return None
+        tokens, tickets = trial_earnings(q.trigger[1])
+        if not (tokens or tickets):
+            return None
+        have_k, have_t = lifetime_earnings(self.profiles[0])
+        return have_k, tokens, have_t, tickets
 
     def counter(self, name):
         found = self.state.get("stats", {}).get(name, [])
@@ -332,6 +514,7 @@ class QuestManager:
 
     def has_secret_item(self, key):
         found = self.state.get("stats", {}).get("secret_items")
+        key = ITEM_ALIASES.get(key, key) if isinstance(key, str) else key
         return isinstance(found, (list, tuple)) and key in found
 
     @property
@@ -346,11 +529,12 @@ class QuestManager:
 
     @property
     def secret_items(self):
-        return min(self.counter("secret_items"), SECRET_ITEMS_NEEDED)
+        """How many of the three Secret Items are owned (by stable key; other keys an old save may hold are kept, not counted)."""
+        return sum(1 for item in SECRET_ITEMS if self.has_secret_item(item.key))
 
     @property
     def secret_trials(self):
-        return min(self.counter("secret_trials"), SECRET_TRIALS_NEEDED)
+        return sum(1 for trial in TRIALS if self.trial_done(trial.id))
 
     def progress(self, quest=None):
         """(done, total) for the quest's counter, or None for a quest that is a single step."""
@@ -412,7 +596,7 @@ class QuestManager:
                 self.handle("tickets_earned")
 
     def _on_session_event(self, owner, event):
-        if event.type in ("vending_secret", "secret_item_found", "secret_trial_done", "easter_egg_found"):
+        if event.type in ("vending_secret", "secret_item_found", "secret_trial_done", "easter_egg_found", FINALE_EVENT):
             self.handle(event.type, event.key)
 
     def handle(self, name, key=None):
@@ -425,9 +609,19 @@ class QuestManager:
                 played.append(key)
                 changed = True
         elif name in ("secret_item_found", "secret_trial_done"):
-            counter = "secret_items" if name == "secret_item_found" else "secret_trials"
+            # Only the real items and trials, by their stable ids, and only once their chapter is open: a secret found
+            # too early is simply not recorded (the game that hides it is asked to keep it closed: can_collect).
+            if name == "secret_item_found":
+                counter, ident = "secret_items", canonical_item(key)
+                allowed = ident is not None and self.can_collect(ident)
+            else:
+                counter, ident = "secret_trials", key
+                allowed = self.can_finish_trial(key)
+            if not allowed:
+                return
             found = state.setdefault("stats", {}).setdefault(counter, [])
-            ident = key if isinstance(key, str) and key else f"{counter}_{len(found) + 1}"
+            if not isinstance(found, list):
+                found = state["stats"][counter] = []
             if ident not in found:
                 found.append(ident)
                 changed = True
@@ -454,6 +648,11 @@ class QuestManager:
         elif name == "vending_secret" or name in TOUR_EVENTS:
             if not state.setdefault("flags", {}).get(name):
                 state["flags"][name] = True
+                changed = True
+        elif name == FINALE_EVENT:                            # the reopening itself: only once all six are done
+            q = self.active
+            if q is not None and q.trigger == ("event", FINALE_EVENT) and self.finale_unlocked:
+                state.setdefault("progress", {}).setdefault(q.id, {})["done"] = True
                 changed = True
         elif name == "tickets_earned":
             q = self.active
@@ -490,6 +689,10 @@ class QuestManager:
             return bool(flags.get(quest.trigger[1]))
         if kind == "counters":
             return all(len(stats.get(k, ())) >= n for k, n in quest.trigger[1].items())
+        if kind == "item":
+            return self.has_secret_item(quest.trigger[1])
+        if kind == "trial":
+            return self.trial_done(quest.trigger[1])
         return False
 
     def _settle(self, silent=False):

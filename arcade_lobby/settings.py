@@ -70,10 +70,15 @@ DEFAULT_PLAY_COST = 1           # tokens per play, unless a machine sets play_co
 PLACEHOLDER_REWARD_TICKETS = 5
 TRANSACTION_HISTORY_SIZE = 30   # how many recent token changes are saved
 
-# Secret Trial 03 (THE FINAL LOCK) asks the player to hold this much. PROVISIONAL numbers, not finished balancing: they
-# are only compared with the wallet (nothing is ever charged for looking at, or entering, the legacy terminal).
-TRIAL_FINAL_TICKETS = 300
-TRIAL_FINAL_TOKENS = 30
+# The LIFETIME EARNINGS each Secret Trial asks for (the one place these numbers live; quests.trial_earnings reads them
+# every time). Cumulative milestones: every Token / Ticket the player has ever legitimately received counts
+# (PlayerProfile.lifetime_tokens_earned / lifetime_tickets_received). Not the current wallet, not a fee: spending never
+# closes a trial again, nothing is charged for looking or going in, and a completed trial stays completed.
+SECRET_TRIAL_EARNINGS = {
+    "trial_01": {"tokens": 0, "tickets": 0},        # CHAPTER 01  THE GOLDEN AGE
+    "trial_02": {"tokens": 15, "tickets": 150},     # CHAPTER 02  THE FORGOTTEN GAMES
+    "trial_03": {"tokens": 30, "tickets": 300},     # CHAPTER 03  THE FINAL CHALLENGE
+}
 
 # Daily login: the reward for streak day 1, 2, 3, ... Each entry is a token
 # amount, or a dict such as {"tokens": 15, "items": {"free_play_coupon": 1}}.

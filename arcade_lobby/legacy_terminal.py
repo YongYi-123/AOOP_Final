@@ -6,13 +6,13 @@ Trials and shows the shared story's real progress and the real wallet of the pla
 
     SECRET ITEMS 0 / 3        SECRET TRIALS 0 / 3
     [01] THE GOLDEN AGE            STATUS: AVAILABLE
-    [02] THE UNBEATEN RECORD       STATUS: AVAILABLE
-    [03] THE FINAL LOCK            STATUS: LOCKED     <- and why, with the Tickets / Tokens it asks for and the wallet
+    [02] THE FORGOTTEN GAMES       STATUS: LOCKED        <- chapter 01 is not finished
+    [03] THE FINAL CHALLENGE       STATUS: NEED EARNINGS <- chapter open, too little earned so far (TOKENS EARNED 8 / 30 ...)
     EXIT PROTOCOL: LOCKED
 
-Rules live in quests.py (trial_status / exit_status): trials 01 and 02 in any order; 03 needs both plus enough
-Tickets and Tokens HELD (the numbers are settings, not final balance). Looking at this screen, or choosing a trial,
-never takes anything from the wallet and never records progress. The three escape rooms are not built yet:
+Rules live in quests.py (trial_status / exit_status): one trial per chapter, strictly in order, and each asks the
+player to have EARNED Tokens and Tickets in total (settings.SECRET_TRIAL_EARNINGS; lifetime totals, never the wallet). Looking at this screen, or choosing a trial, never takes
+anything from the wallet and never records progress; a completed trial stays open to replay whatever the wallet holds. The three escape rooms are not built yet:
 choosing an available trial shows TRIAL NOT YET AVAILABLE. When one is built it registers a scene factory in
 TRIAL_SCENES and the terminal starts it; nothing else here changes.
 
@@ -27,7 +27,8 @@ from golden_age_scene import GoldenAgeScene
 from gfx import scale_color
 from menu_kit import MenuScene
 from quest_ui import _door_icon, _gem_icon
-from quests import SECRET_ITEMS_NEEDED, SECRET_TRIALS_NEEDED, TRIALS, exit_status, trial_status
+from quests import (CHAPTERS, FINAL_CHAPTER_TITLE, LOCK_CHAPTER, LOCK_EARNINGS, SECRET_ITEMS_NEEDED, SECRET_TRIALS_NEEDED,
+                    TRIALS, exit_status, trial_status)
 from settings import VIEW_H, VIEW_W, Col
 from story_dialogue import solid_panel
 from ui import draw_text, wrap_text
@@ -37,6 +38,7 @@ MUSIC_DUCK = 0.3                    # the secret page's own music level (vending
 BG_TOP, BG_BOTTOM = (6, 8, 26), (22, 10, 44)
 CYAN, SOFT_MAGENTA = Col.CYAN, (230, 110, 200)
 GREEN = (110, 255, 170)
+YELLOW = Col.YELLOW
 ROW_Y, ROW_H = 84, 17
 DETAIL = pygame.Rect(16, 142, VIEW_W - 32, 82)
 BOOT_LINES = (("SYSTEM OVERRIDE", 2), ("", 1), ("USER: UNKNOWN", 1), ("ACCESS LEVEL: 01", 1), ("", 1), ("THE ARCADE REMEMBERS.", 1))
@@ -145,7 +147,11 @@ class LegacyTerminalScene(MenuScene):
             self.notice = {"title": f"TRIAL {n} COMPLETE", "lines": ["YOU HAVE ALREADY BEATEN THIS ONE."], "color": GREEN}
         elif status.code == "locked":
             self.play("cancel")
-            self.notice = {"title": "ACCESS DENIED", "lines": list(status.reasons), "color": SOFT_MAGENTA}
+            if status.lock == LOCK_EARNINGS:
+                self.notice = {"title": "EARNINGS REQUIRED", "color": YELLOW,
+                               "lines": list(status.reasons) + ["SPENDING NEVER LOWERS WHAT YOU HAVE EARNED.", "NOTHING WAS CHARGED."]}
+            else:
+                self.notice = {"title": "ACCESS DENIED", "lines": list(status.reasons), "color": SOFT_MAGENTA}
         elif trial.id in TRIAL_SCENES:
             self.game.scenes.push(TRIAL_SCENES[trial.id](self.game, self.owner))
         else:
@@ -203,8 +209,16 @@ class LegacyTerminalScene(MenuScene):
         if shown < len(TITLE) or int(self.time * 2) % 2 == 0:             # a blinking block cursor
             surf.fill(CYAN, (x0 + (font.size(part, 2)[0] + 3 if part else 0), 14, 7, 14))
         surf.fill(scale_color(CYAN, 0.5), (16, 34, VIEW_W - 32, 1))
-        draw_text(surf, f"USER: {(self.profile.display_name or 'PLAYER').upper()}", (VIEW_W // 2, 38),
+        draw_text(surf, f"USER: {(self.profile.display_name or 'PLAYER').upper()}     {self.chapter_line()}", (VIEW_W // 2, 38),
                   scale_color(Col.TEXT_MUTED, 0.9), anchor="midtop")
+
+    def chapter_line(self):
+        """The chapter the story is in (the same one the Quest Log names)."""
+        n = self.manager.current_chapter
+        if n > len(CHAPTERS):
+            return f"FINAL CHAPTER  {FINAL_CHAPTER_TITLE}"
+        ch = CHAPTERS[max(n, 1) - 1]
+        return f"{ch.label}  {ch.title}"
 
     def _counters(self, surf):
         m = self.manager
@@ -232,50 +246,55 @@ class LegacyTerminalScene(MenuScene):
                     draw_text(surf, ">", (22, y + 1), Col.YELLOW)
             name_color = Col.TEXT if st.code != "locked" else scale_color(Col.TEXT_MUTED, 0.9)
             draw_text(surf, f"[{trial.number:02d}] {trial.title}", (34, y + 1), name_color)
-            color = {"done": GREEN, "available": CYAN, "locked": SOFT_MAGENTA}[st.code]
+            color = YELLOW if st.lock == LOCK_EARNINGS else {"done": GREEN, "available": CYAN, "locked": SOFT_MAGENTA}[st.code]
             draw_text(surf, f"STATUS: {st.short}", (VIEW_W - 22, y + 1), color, anchor="topright")
+
+    def detail_rows(self, trial=None):
+        """What the detail panel says about `trial`: [(text, ok or None, extra)]. ok None is a plain line. Never names a
+        puzzle's answer: a locked chapter says only which chapter to finish."""
+        trial = trial or self.trial
+        st = self.status(trial)
+        rows = []
+        built = trial.id in TRIAL_SCENES
+        if st.code == "done":
+            rows.append(("COMPLETE. REPLAYABLE." if built else "COMPLETE.", None, ""))
+            if built:
+                rows.append((f"[{self.confirm_label}] VISIT THE ROOM AGAIN. NOTHING MORE CAN BE EARNED.", None, ""))
+            if self.manager.has_memory_fragment(trial.id):
+                rows.append((f"MEMORY FRAGMENT {trial.number:02d} KEPT.", None, ""))
+            return rows
+        ch = CHAPTERS[trial.chapter - 1]
+        if st.lock == LOCK_CHAPTER:
+            rows.append((f"{ch.label} IS LOCKED.", None, ""))
+            rows.append((st.reasons[0], False, ""))
+        else:
+            for key, name in trial.needs_items:
+                rows.append((name, self.manager.has_secret_item(key), ""))
+        if st.needs_earnings:
+            rows.append((f"TOKENS EARNED: {st.tokens_earned} / {st.tokens_needed}", st.tokens_earned >= st.tokens_needed, ""))
+            rows.append((f"TICKETS EARNED: {st.tickets_earned} / {st.tickets_needed}", st.tickets_earned >= st.tickets_needed, ""))
+        if st.code == "available":
+            rows.append((f"[{self.confirm_label}] ENTER THE ROOM." if built else "THE ESCAPE ROOM ITSELF IS NOT BUILT YET.", None, ""))
+        return rows
 
     def _detail(self, surf):
         trial, st = self.trial, self.status()
         surf.blit(solid_panel(DETAIL.w, DETAIL.h, scale_color(CYAN, 0.7), None, 235), DETAIL.topleft)
         x, y = DETAIL.x + 8, DETAIL.y + 7
         draw_text(surf, f"TRIAL {trial.number:02d}  {trial.title}", (x, y), Col.YELLOW)
+        color = YELLOW if st.lock == LOCK_EARNINGS else {"done": GREEN, "available": CYAN, "locked": SOFT_MAGENTA}[st.code]
+        draw_text(surf, st.short, (DETAIL.right - 8, y), color, anchor="topright")
         y += 13
-        built = trial.id in TRIAL_SCENES
-        if st.code == "done":
-            rows = ["COMPLETE. NOTHING MORE TO DO HERE."]
-            if built:
-                rows = ["COMPLETE.", "[" + self.confirm_label + "] VISIT THE ROOM AGAIN. NOTHING MORE CAN BE EARNED."]
-            if self.manager.has_memory_fragment(trial.id):
-                rows.append(f"MEMORY FRAGMENT {trial.number:02d} KEPT.")
-            for row in rows:
-                draw_text(surf, row, (x, y), GREEN)
-                y += 10
-            return
-        if not trial.requires and not st.needs_currency and not trial.needs_items:
-            for row in ("NO REQUIREMENTS. TRIALS 01 AND 02 CAN BE DONE IN ANY ORDER.",
-                        f"[{self.confirm_label}] ENTER THE ROOM." if built else "THE ESCAPE ROOM ITSELF IS NOT BUILT YET."):
-                draw_text(surf, row, (x, y), Col.TEXT_MUTED)
-                y += 10
-            return
-        for key, name in trial.needs_items:
-            self._requirement(surf, x, y, name, self.manager.has_secret_item(key))
+        for text, ok, extra in self.detail_rows(trial):
+            if ok is None:
+                c = GREEN if st.code in ("done", "available") else Col.TEXT_MUTED
+                draw_text(surf, text, (x, y + 1), c)
+            else:
+                self._requirement(surf, x, y, text, ok, extra)
             y += 11
-        for req in trial.requires:
-            done = self.manager.trial_done(req)
-            self._requirement(surf, x, y, f"TRIAL {req[-2:]} COMPLETE", done)
-            y += 11
-        if st.needs_currency:
-            self._requirement(surf, x, y, f"{st.tickets_needed} TICKETS", st.tickets_have >= st.tickets_needed,
-                              f"YOU HAVE {st.tickets_have}")
-            y += 11
-            self._requirement(surf, x, y, f"{st.tokens_needed} TOKENS", st.tokens_have >= st.tokens_needed,
-                              f"YOU HAVE {st.tokens_have}")
-            y += 11
-        if built and st.code == "available":
-            draw_text(surf, f"[{self.confirm_label}] ENTER THE ROOM.", (x, y + 2), GREEN)
-        if st.needs_currency:
-            draw_text(surf, "HELD, NOT SPENT. VIEWING COSTS NOTHING.", (x, DETAIL.bottom - 12), scale_color(Col.TEXT_MUTED, 0.8))
+        if st.needs_earnings and st.code != "done":
+            draw_text(surf, "LIFETIME EARNINGS. SPENDING NEVER LOWERS THEM.", (x, DETAIL.bottom - 12),
+                      scale_color(Col.TEXT_MUTED, 0.8))
 
     @staticmethod
     def _requirement(surf, x, y, text, ok, extra=""):
@@ -295,7 +314,7 @@ class LegacyTerminalScene(MenuScene):
         if not unlocked:
             draw_text(surf, "  /  ".join(reasons), (18, y + 11), scale_color(Col.TEXT_MUTED, 0.85))
         else:
-            draw_text(surf, "THE FINAL REOPENING IS NOT BUILT YET.", (18, y + 11), scale_color(Col.TEXT_MUTED, 0.85))
+            draw_text(surf, "FINAL CHAPTER OPEN. THE REOPENING ITSELF IS NOT BUILT YET.", (18, y + 11), scale_color(Col.TEXT_MUTED, 0.85))
         key = self.confirm_label
         draw_text(surf, f"[{key}] SELECT      [ESC] BACK", (VIEW_W // 2, VIEW_H - 26), scale_color(CYAN, 0.9), anchor="midtop")
 
