@@ -45,6 +45,9 @@ EVENT_HANDLERS = {
     "easter_egg_found": lambda profile, e: None,            # (OUT OF TIME: only the story keeps a note of it)
     "secret_trial_done": lambda profile, e: None,
     "arcade_reopened": lambda profile, e: None,             # (the final chapter's reopening, for when it is built)
+    "forgotten_clue_found": lambda profile, e: None,        # Chapter 02: a clue found in a minigame (quests.CLUE_FOUND_EVENT)
+    "forgotten_clue_try": lambda profile, e: None,          # Chapter 02: a meaningful failed try (quests.CLUE_TRY_EVENT)
+    "forgotten_clue_route": lambda profile, e: None,        # Chapter 02: an ACE milestone reached (quests.CLUE_ROUTE_EVENT)
 }
 
 

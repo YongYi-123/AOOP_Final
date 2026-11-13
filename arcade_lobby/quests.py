@@ -52,6 +52,34 @@ ITEM_ALIASES = {"reverse_gear": SECRET_ITEM_RETRO_RACER}     # the racer's own n
 MOCHI_ARCADE_STORY = "mochi_arcade_story"               # story flag: Mochi's first Retro Racer story has been told
 MIAO_REVERSE_ROAD = "miao_reverse_road"                 # story flag: Miao Meow's talk about the secret road has been told
 
+# ---- CHAPTER 02, THE FORGOTTEN GAMES (the game-facing rules live in forgotten_games.py). All of it is saved in the
+# playing profile's story and is only ever written while Chapter 02 is open (Trial 01 complete).
+CH2_CLUES = ("maze", "galaxy", "volley")                # NEON CAT MAZE, STARFALL ASSAULT, CAT VOLLEYBALL
+CH2_CLUE_FLAGS = {"maze": "ch2_clue_corridor",          # the forgotten corridor behind the maze
+                  "galaxy": "ch2_clue_signal",          # the quiet, non-hostile ship and its signal
+                  "volley": "ch2_clue_ticket"}          # the old spectator ticket
+# The symbol each clue shows, in the lock's fixed order (I, II, III), with the game it is found in. The record of a
+# found symbol (CH2_SYMBOLS_FOUND) is written next to its clue flag; the Quest Log reads both and never shows a symbol
+# that is not found (it stays "???").
+CH2_SYMBOLS = (("maze", "I", "STAR", "NEON CAT MAZE"),
+               ("galaxy", "II", "MOON", "STARFALL ASSAULT"),
+               ("volley", "III", "PAW", "CAT VOLLEYBALL"))
+CH2_SYMBOLS_FOUND = "ch2_symbols"                       # stats: {numeral: {"symbol": ..., "game": ...}} once found
+CH2_TRIES_NEEDED = {"maze": 12, "galaxy": 12, "volley": 12}   # PERSISTENCE route: meaningful failed tries per game
+#   (cumulative over any number of sessions, never reset by a win; what counts as meaningful is each game's own rule:
+#    neon_cat_maze/corridor.TRY_MIN_SCORE, galaxy_defender/quiet_signal.TRY_MIN_SCORE, pixel_volleyball/old_ticket.py)
+CH2_ROUTE_FLAGS = {"maze": "ch2_route_maze",            # flag: the ACE route was earned in that game (kept for good,
+                   "galaxy": "ch2_route_galaxy",        #   so the encounter stays available after leaving or reloading)
+                   "volley": "ch2_route_volley"}
+CH2_TRIES = "ch2_tries"                                 # stats: {clue: meaningful failed tries counted so far}
+CH2_CARD_PITY = "ch2_card_pity"                         # stats: capsule pulls in a row without a hint card
+CH2_GOLDEN_MISSES = "ch2_golden_misses"                 # stats: grabs on the Golden Cat that slipped
+CH2_RIDDLE_SOLVED = "ch2_riddle_solved"                 # flag: Mochi's maintenance lock was opened (STAR MOON PAW)
+MIAO_CH2_HINT = "miao_ch2_hint"                         # flag: Miao Meow's "Mochi was acting weird" talk is told
+CLUE_FOUND_EVENT = "forgotten_clue_found"               # session event (key: a CH2_CLUES entry)
+CLUE_TRY_EVENT = "forgotten_clue_try"                   # session event: a meaningful failed try (key: a clue)
+CLUE_ROUTE_EVENT = "forgotten_clue_route"               # session event: a game's ACE milestone was reached (key: a clue)
+
 
 @dataclass(frozen=True)
 class QuestDef:
@@ -157,9 +185,10 @@ QUESTS = (
               "Take your time in there. Every little thing in a room can tell you something."),
              chapter=1),
     # ---- CHAPTER 02: THE FORGOTTEN GAMES
-    QuestDef("ch2_secret_item", "Chapter 02: The Forgotten Games", "Find Secret Item 02. Clues are hidden across the arcade's games. They lead to the Claw Machine.",
+    QuestDef("ch2_secret_item", "Chapter 02: The Forgotten Games", "Find Secret Item 02. Clues are hidden across the arcade's games.",
              "CH 02: FIND SECRET ITEM 02", ("item", SECRET_ITEM_CLAW),
              ("The old games are whispering again! Keep playing them and watch for anything odd.",
+              "The capsule machines in the Prize Plaza have some funny old cards in them now. Maybe they help?",
               "A clue in one game can point to another. Write things down, I always forget!"),
              chapter=2),
     QuestDef("ch2_secret_trial", "Chapter 02: The Forgotten Games", "Earn {tokens} Tokens and {tickets} Tickets in total, then complete Secret Trial 02 at the Legacy Terminal.",
@@ -484,6 +513,95 @@ class QuestManager:
         have_k, have_t = lifetime_earnings(self.profiles[0])
         return have_k, tokens, have_t, tickets
 
+    # ------------------------------------------------------------ CHAPTER 02 (the clues, the record, the Golden Cat)
+    @property
+    def chapter_two_open(self):
+        """Chapter 02 opens with Trial 01 (and the Reverse Gear): only then do its cards, clues and prize exist."""
+        return self.chapter_unlocked(2)
+
+    def clue_found(self, clue):
+        return clue in CH2_CLUE_FLAGS and bool(self.state.get("flags", {}).get(CH2_CLUE_FLAGS[clue]))
+
+    @property
+    def clues_found(self):
+        return sum(1 for clue in CH2_CLUES if self.clue_found(clue))
+
+    def recovered_symbols(self):
+        """[(numeral, symbol or None, game or None)] in the lock's fixed order I, II, III, whatever order they were found
+        in. A symbol not found yet is (numeral, None, None): nothing about it is shown anywhere."""
+        rows = []
+        for clue, numeral, symbol, game in CH2_SYMBOLS:
+            if not self.clue_found(clue):
+                rows.append((numeral, None, None))
+                continue
+            rows.append((numeral, symbol, game))
+        return rows
+
+    @property
+    def all_clues_found(self):
+        return self.clues_found == len(CH2_CLUES)
+
+    def _stat_int(self, value):
+        return value if isinstance(value, int) and not isinstance(value, bool) and value > 0 else 0
+
+    def clue_tries(self, clue):
+        """Meaningful failed tries counted towards `clue`'s PERSISTENCE route (only while Chapter 02 was open)."""
+        tries = self.state.get("stats", {}).get(CH2_TRIES)
+        return self._stat_int(tries.get(clue)) if isinstance(tries, dict) else 0
+
+    def clue_route_open(self, clue):
+        """Has either route made `clue`'s secret available for good: the ACE milestone (a saved flag) or the PERSISTENCE
+        count? It stays so after leaving the game or reloading the profile. (Finding it is still up to the player.)"""
+        if not self.chapter_two_open or clue not in CH2_ROUTE_FLAGS:
+            return False
+        ace = bool(self.state.get("flags", {}).get(CH2_ROUTE_FLAGS[clue]))
+        return ace or self.clue_tries(clue) >= CH2_TRIES_NEEDED[clue]
+
+    def clue_due(self, clue):
+        """Is `clue`'s encounter waiting in its game right now: a route is open and it has not been found yet?"""
+        return self.clue_route_open(clue) and not self.clue_found(clue)
+
+    def clue_route(self, clue):
+        """How the route was opened, for tools and tests: "ace", "persistence", or None."""
+        if not self.chapter_two_open:
+            return None
+        if self.state.get("flags", {}).get(CH2_ROUTE_FLAGS.get(clue, "")):
+            return "ace"
+        return "persistence" if self.clue_tries(clue) >= CH2_TRIES_NEEDED.get(clue, 1 << 30) else None
+
+    @property
+    def riddle_solved(self):
+        return bool(self.state.get("flags", {}).get(CH2_RIDDLE_SOLVED))
+
+    @property
+    def golden_cat_wanted(self):
+        """The Golden Cat sits in the claw machine: the record was solved and Secret Item 02 is not owned yet."""
+        return self.chapter_two_open and self.riddle_solved and not self.has_secret_item(SECRET_ITEM_CLAW)
+
+    @property
+    def miao_ch2_hint_due(self):
+        return self.chapter_two_open and self.all_clues_found and not self.state.get("flags", {}).get(MIAO_CH2_HINT)
+
+    @property
+    def card_pity(self):
+        return self._stat_int(self.state.get("stats", {}).get(CH2_CARD_PITY))
+
+    def set_card_pity(self, value):
+        stats = self.state.setdefault("stats", {})
+        value = max(0, int(value))
+        if stats.get(CH2_CARD_PITY, 0) != value:
+            stats[CH2_CARD_PITY] = value
+            self.save()
+
+    @property
+    def golden_misses(self):
+        return self._stat_int(self.state.get("stats", {}).get(CH2_GOLDEN_MISSES))
+
+    def note_golden_miss(self):
+        if self.golden_cat_wanted:
+            self.state.setdefault("stats", {})[CH2_GOLDEN_MISSES] = self.golden_misses + 1
+            self.save()
+
     def counter(self, name):
         found = self.state.get("stats", {}).get(name, [])
         return len(found) if isinstance(found, list) else 0
@@ -596,7 +714,8 @@ class QuestManager:
                 self.handle("tickets_earned")
 
     def _on_session_event(self, owner, event):
-        if event.type in ("vending_secret", "secret_item_found", "secret_trial_done", "easter_egg_found", FINALE_EVENT):
+        if event.type in ("vending_secret", "secret_item_found", "secret_trial_done", "easter_egg_found", FINALE_EVENT,
+                          CLUE_FOUND_EVENT, CLUE_TRY_EVENT, CLUE_ROUTE_EVENT):
             self.handle(event.type, event.key)
 
     def handle(self, name, key=None):
@@ -638,6 +757,44 @@ class QuestManager:
             if flag and not state.setdefault("flags", {}).get(flag):
                 state["flags"][flag] = True
                 self.save()                                   # (kept quietly: no progress pop-up, no counters, no reward)
+            return
+        elif name == CLUE_ROUTE_EVENT:
+            # the ACE milestone: kept in the profile so the encounter stays available until it is found
+            if key not in CH2_ROUTE_FLAGS or not self.chapter_two_open or self.clue_found(key):
+                return
+            flags = state.setdefault("flags", {})
+            if not flags.get(CH2_ROUTE_FLAGS[key]):
+                flags[CH2_ROUTE_FLAGS[key]] = True
+                self.save()
+            return
+        elif name in (CLUE_FOUND_EVENT, CLUE_TRY_EVENT):
+            # Quiet (no pop-up, no counter on screen) and only while Chapter 02 is open: a clue found earlier, or by
+            # an unknown game, is simply not recorded. A try only counts towards a clue that is not found yet.
+            if key not in CH2_CLUE_FLAGS or not self.chapter_two_open or self.clue_found(key):
+                return
+            if name == CLUE_FOUND_EVENT:
+                state.setdefault("flags", {})[CH2_CLUE_FLAGS[key]] = True
+                numeral, symbol, game = next((n, sym, g) for c, n, sym, g in CH2_SYMBOLS if c == key)
+                found = state.setdefault("stats", {}).get(CH2_SYMBOLS_FOUND)
+                found = dict(found) if isinstance(found, dict) else {}
+                found[numeral] = {"symbol": symbol, "game": game}
+                state["stats"][CH2_SYMBOLS_FOUND] = found
+                self.save()
+                self._fire("progress")                       # the corner tracker's SYMBOLS count moves (no pop-up)
+                return
+            else:
+                tries = state.setdefault("stats", {}).get(CH2_TRIES)
+                tries = dict(tries) if isinstance(tries, dict) else {}
+                tries[key] = self.clue_tries(key) + 1
+                state["stats"][CH2_TRIES] = tries
+            self.save()
+            return
+        elif name in (MIAO_CH2_HINT, CH2_RIDDLE_SOLVED):
+            # once, and only after all three clues (the record's question does not exist before that)
+            if not (self.chapter_two_open and self.all_clues_found) or state.get("flags", {}).get(name):
+                return
+            state.setdefault("flags", {})[name] = True
+            self.save()
             return
         elif name in (MOCHI_ARCADE_STORY, MIAO_REVERSE_ROAD):
             flags = state.setdefault("flags", {})
