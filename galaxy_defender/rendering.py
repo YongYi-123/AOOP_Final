@@ -6,6 +6,7 @@ import pygame
 from arcade_lobby.font import get_font
 from . import art
 from . import config as cfg
+from . import quiet_signal as secret
 
 BG_TOP, BG_BOTTOM = (8, 6, 32), (30, 14, 70)
 CYAN, PINK, VIOLET, BLUE = art.CYAN, art.MAGENTA, art.VIOLET, art.BLUE
@@ -99,6 +100,8 @@ class Renderer:
         line = cfg.DEFENSE_LINE
         for x in range(0, cfg.FIELD_W, 8):                           # the defence line: a dashed force field
             surface.fill((70, 130, 255) if (x // 8) % 2 else (50, 50, 140), (x, line, 4, 1))
+        if run.signal is not None:
+            self._signal(surface, run.signal, t)
         for e in run.enemies:
             frame = art.sprite(f"{e.kind}_b" if int(t * 2.5 + e.col) % 2 else e.kind, e.flash > 0)
             rect = frame.get_rect(center=(round(e.x), round(e.y)))
@@ -145,6 +148,38 @@ class Renderer:
             self._banner(surface, run)
         if run.combo >= cfg.COMBO["step"] and game.screen.value != "over":
             self._combo(surface, run)
+
+    def _signal(self, surface, signal, t):
+        """THE QUIET SIGNAL: an old grey ship with a pale beam. Its hologram is part of the sky, not a pop-up."""
+        x, y = round(signal.x), round(signal.y)
+        k = signal.strength
+        beam = pygame.Surface((cfg.FIELD_W, cfg.FIELD_H), pygame.SRCALPHA)
+        top, bottom = y + secret.HEIGHT // 2, cfg.PLAYER_Y + 6
+        alpha = int(18 + 34 * k + (10 * math.sin(t * 5) if not signal.received else 0))
+        pygame.draw.polygon(beam, (170, 230, 255, max(0, alpha)),
+                            [(x - 4, top), (x + 4, top), (x + secret.BEAM_HALF, bottom), (x - secret.BEAM_HALF, bottom)])
+        surface.blit(beam, (0, 0))
+        hull, dark, light = (128, 136, 160), (70, 74, 96), (190, 200, 220)
+        w, h = secret.WIDTH, secret.HEIGHT
+        pygame.draw.ellipse(surface, dark, (x - w // 2, y - h // 4, w, h // 2 + 2))
+        pygame.draw.ellipse(surface, hull, (x - w // 2 + 2, y - h // 4, w - 4, h // 2))
+        pygame.draw.ellipse(surface, light, (x - 6, y - h // 2, 12, h // 2 + 1))
+        for i in range(-2, 3):                                             # its little running lights, slow and calm
+            on = (int(t * 2) + i) % 3 == 0
+            surface.fill((255, 226, 140) if on else (90, 84, 70), (x + i * 6 - 1, y + 2, 2, 1))
+        if signal.projecting:                                              # the hologram: MOON, marked II
+            cx = min(max(x, 24), cfg.FIELD_W - 24)
+            flicker = 0.7 + 0.3 * math.sin(t * 9) if not getattr(self, "reduced", False) else 1.0
+            glow = (110, 190, 255)
+            holo = pygame.Surface((44, 34), pygame.SRCALPHA)
+            pygame.draw.polygon(holo, (*glow, 40), [(20, 33), (2, 4), (42, 4)])        # the projection cone
+            _pixels(holo, secret.MOON_PIXELS, (6, 6), (*glow, 150), 2)
+            _pixels(holo, secret.NUMERAL_PIXELS, (27, 8), (*glow, 150), 2)
+            holo.set_alpha(int(255 * flicker))
+            surface.blit(holo, (cx - 20, y - h // 2 - 34))
+            pygame.draw.line(surface, (190, 230, 255), (x, y - h // 2), (x, y - h // 2 - 2))
+        elif k > 0:
+            surface.fill((190, 230, 255), (x - 8, y - h, round(16 * k), 1))  # the radio tuning in
 
     def _laser(self, surface, b):
         x, y = round(b.x), round(b.y)
@@ -339,3 +374,12 @@ class Renderer:
         elif run.result().tickets < result.tickets:
             self.text(surface, "BEST RUN OF THIS PLAY PAYS", (cx, 178), MUTED)
         self._menu(surface, game, 200)
+
+
+def _pixels(surface, rows, pos, colour, scale=1):
+    """Paint a little '#'-pattern at `pos`."""
+    x0, y0 = pos
+    for dy, row in enumerate(rows):
+        for dx, ch in enumerate(row):
+            if ch == "#":
+                surface.fill(colour, (x0 + dx * scale, y0 + dy * scale, scale, scale))
