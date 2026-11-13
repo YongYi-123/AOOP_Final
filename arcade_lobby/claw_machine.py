@@ -20,9 +20,11 @@ Tickets use profile.award_prize_tickets (lifetime Tickets, but not an Arcade Flo
 plushie goes into the bag as a stackable collectible (item_registry), inside
 one profile.batch(), so the save holds both or neither. Key presses only ask; mashing cannot pay or charge twice.
 
-Hidden prizes (later): a PlushSpec with hidden=True never appears in the normal stock. A `special` object passed to
-ClawGame can place one (special.stock(game, slot) -> PlushSpec or None) and hears about wins
-(special.on_win(game, spec, profile)); the machine itself needs no other change. Nothing uses this yet.
+Hidden prizes: a PlushSpec with hidden=True never appears in the normal stock. A `special` object passed to
+ClawGame can place one (special.stock(game, slot) -> PlushSpec or None), may adjust the grip on its own prize
+(special.adjust_odds(game, spec, odds) -> odds), and hears about results (special.on_win(game, spec, profile),
+special.on_lose(game, attempt)); every hook is optional and the machine itself needs no other change. Chapter 02's
+Golden Cat (forgotten_games.GoldenCatPrize) is the one user; without a special the machine is exactly the ordinary one.
 """
 import random
 from dataclasses import dataclass, field
@@ -342,6 +344,8 @@ class ClawGame:
         if target is None:
             return
         a.odds = grab_odds(self.x - target.x, target.spec)
+        if self.special is not None and hasattr(self.special, "adjust_odds"):
+            a.odds = self.special.adjust_odds(self, target.spec, a.odds)
         if a.odds <= 0:
             return
         a.holds = self.rng.random() < a.odds
@@ -380,6 +384,8 @@ class ClawGame:
             return
         a.settled = True
         if not won:
+            if self.special is not None and hasattr(self.special, "on_lose"):
+                self.special.on_lose(self, a)
             return
         spec = self.in_chute.spec
         with self.profile.batch():

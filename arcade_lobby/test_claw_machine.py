@@ -303,7 +303,7 @@ class MoneyTests(unittest.TestCase):
 
 class SpecialHookTests(unittest.TestCase):
     def test_a_special_prize_can_be_stocked_and_heard_without_changing_the_machine(self):
-        """The future hidden prize plugs in through `special`; nothing in the game uses it yet."""
+        """A hidden prize plugs in through `special` (Chapter 02's Golden Cat does: test_forgotten_games)."""
         seen = []
         prize = cm.PlushSpec(cm.PLUSHIES[0].item_id, "TEST PRIZE", 16, 14, 0.9, 1, cm.PLUSHIES[0].look, hidden=True)
 
