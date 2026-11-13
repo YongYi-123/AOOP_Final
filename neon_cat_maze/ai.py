@@ -39,6 +39,8 @@ def choose(maze, robot, cat, scattering, difficulty, rng):
     if not opts:
         return (0, 0)
     cat_tile = cat.nearest_tile()
+    if not maze.is_open(cat_tile):                 # the cat is in a passage robots cannot enter: they aim for its doorstep
+        cat_tile = getattr(cat, "doorstep", None) or cat_tile
     if robot.mode == "exit":
         return best_option(maze, opts, maze.door)[0]
     if robot.mode == "eyes":

@@ -8,6 +8,7 @@ from collections import namedtuple
 
 from . import ai
 from . import config as cfg
+from .corridor import ENTRANCE, Corridor, CorridorMaze
 from .mazes import maze_for_level
 from .pathing import distance_field
 from .settlement import RunResult
@@ -71,6 +72,7 @@ class Cat(Mover):
     def __init__(self, tile):
         super().__init__(tile)
         self.buffer, self.buffer_ttl = STOP, 0.0       # the wanted turn, kept until the next intersection
+        self.doorstep = None                           # where robots aim while the cat is in a passage they cannot enter
         self.walk = 0.0                                # walk-cycle phase (for the sprite)
 
     def reset(self, tile):
@@ -132,11 +134,14 @@ class Run:
         self.golden = None                 # (tile, seconds left) while a golden fish is out
         self._golden_given = 0
         self.last_clear_bonus = 0
+        self.corridor = None               # THE FORGOTTEN CORRIDOR of this level, once the game opens it (corridor.py)
+        self.corridor_found = False        # the cat reached its end during this run
         self._load_level()
 
     # ------------------------------------------------------------ level set-up
     def _load_level(self):
         self.maze = maze_for_level(self.level)
+        self.corridor = None               # a new level is walled up again until the game opens it
         self.diff = cfg.difficulty_for(self.level)
         self.fish = set(self.maze.fish) | set(self.maze.catnip)
         self.fish_total = len(self.fish)
@@ -197,6 +202,35 @@ class Run:
                 self.lives += 1
                 self._emit("extra_life", *self.cat.pos)
 
+    # ------------------------------------------------------------ the forgotten corridor
+    def open_corridor(self):
+        """Crack the left wall open for the rest of this level (the game decides when). Idempotent."""
+        if self.corridor is None:
+            self.corridor = Corridor()
+            self.cat.doorstep = ENTRANCE                # (quietly: only a hairline crack shows, nothing is announced)
+        return self.corridor
+
+    def _cat_maze(self):
+        return self.maze if self.corridor is None else CorridorMaze(self.maze, self.corridor)
+
+    def _visit_corridor(self, dt):
+        corridor = self.corridor
+        if corridor is None:
+            return
+        corridor.update(dt)
+        tile = self.cat.nearest_tile()
+        x, y = self.cat.pos
+        if corridor.reveal(tile):
+            self._emit("corridor_revealed", *tile)
+        if abs(x - tile[0]) < 0.25 and abs(y - tile[1]) < 0.25 and corridor.visit(tile):
+            self.corridor_found = True
+            self._emit("corridor_found", *tile)
+
+    def _cat_tile_in_maze(self):
+        """The cat's tile, or the corridor's doorstep while it is inside the passage (for paths and spawns)."""
+        tile = self.cat.nearest_tile()
+        return tile if self.maze.is_open(tile) else ENTRANCE
+
     # ------------------------------------------------------------ input
     def steer(self, d):
         if self.phase in ("ready", "run"):
@@ -242,10 +276,11 @@ class Run:
         self._tick_catnip(dt)
         self._tick_phase(dt)
         self._tick_golden(dt)
-        self.cat.advance(cfg.CAT_SPEED * dt, self.cat.chooser(self.maze))
+        self.cat.advance(cfg.CAT_SPEED * dt, self.cat.chooser(self._cat_maze()))
         if self.cat.dir != STOP:
             self.cat.walk += dt
         self._eat()
+        self._visit_corridor(dt)
         for robot in self.robots:
             self._move_robot(robot, dt)
         self._collide()
@@ -282,7 +317,7 @@ class Run:
 
     def _spawn_golden(self):
         """Put a golden fish on a corridor tile at least 7 steps from the cat (seeded choice, so tests can replay it)."""
-        field = distance_field(self.maze, self.cat.nearest_tile())
+        field = distance_field(self.maze, self._cat_tile_in_maze())
         spots = sorted(t for t in self.maze.floor() if t not in self.maze.restricted and field.get(t, 0) >= 7)
         if spots:
             tile = self.rng.choice(spots)
