@@ -11,6 +11,7 @@ BURSTS = {                      # kind -> (count, speed, life, colours, size)
     "disable": (18, 64, 0.65, ((255, 150, 60), WHITE, (120, 180, 255)), 2),
     "death": (26, 58, 1.0, ((255, 190, 110), (255, 120, 205), WHITE), 2),
     "confetti": (3, 60, 1.6, (PINK, CYAN, GOLD, GREEN), 2),
+    "dust": (16, 30, 0.9, ((96, 74, 46), (140, 118, 90), (60, 48, 40)), 1),    # an old wall crumbling
 }
 
 

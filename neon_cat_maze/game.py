@@ -4,6 +4,7 @@ import random
 from enum import Enum
 
 from . import config as cfg
+from . import corridor as secret
 from .effects import Fx
 from .mazes import MAZES
 from .model import Run, STOP
@@ -26,7 +27,8 @@ DIRECTIONS = {"up": (0, -1), "down": (0, 1), "left": (-1, 0), "right": (1, 0)}
 
 SOUNDS = {"fish": "maze_fish", "golden": "maze_golden", "catnip": "maze_catnip", "disable": "maze_disable",
           "life_lost": "maze_life", "level_clear": "maze_clear", "game_over": "maze_over", "extra_life": "powerup",
-          "golden_spawn": "maze_golden_spawn", "catnip_end": "maze_catnip_end"}
+          "golden_spawn": "maze_golden_spawn", "catnip_end": "maze_catnip_end",
+          "corridor_revealed": "maze_golden_spawn", "corridor_found": "maze_golden"}
 
 
 class CatMazeGame:
@@ -52,6 +54,14 @@ class CatMazeGame:
         self._fish_toggle = False
         self.time = 0.0
         self.paused = False
+        # THE FORGOTTEN CORRIDOR (corridor.py). The hub sets these; on its own the game never shows the corridor.
+        self.secret_enabled = False          # may the corridor exist at all?
+        self.secret_ready = False            # True: it is there from the first level (a route was earned before)
+        self.secret_found = False            # True: already found once (it stays, for a look back)
+        self.secret_events = []              # "unlocked" (this run COMPLETED level ACE_LEVELS_CLEARED) /
+        #                                      "found" (the cat reached its end) / "try" (a real run ended in GAME OVER)
+        self._ace_run = None                 # the run that earned the ACE route (reported once)
+        self._tried = None                   # the Run already reported as a try
 
     # ------------------------------------------------------------ records
     @property
@@ -82,6 +92,32 @@ class CatMazeGame:
         self.session_level = max(self.session_level, result.level)
         if result.better_than(self.best):
             self.best = result
+
+    def pop_secret_events(self):
+        events, self.secret_events = self.secret_events, []
+        return events
+
+    def _secret_tick(self):
+        """Make the corridor available when it has been earned: the hub's route (secret_ready / secret_found), or this
+        run COMPLETING level ACE_LEVELS_CLEARED (reported once as "unlocked", so the hub keeps it for later runs)."""
+        run = self.run
+        if not self.secret_enabled:
+            return
+        if run.levels_cleared >= secret.ACE_LEVELS_CLEARED and self._ace_run is not run:
+            self._ace_run = run
+            if not (self.secret_ready or self.secret_found):
+                self.secret_events.append("unlocked")
+        if run.corridor is not None or run.phase not in ("ready", "run"):
+            return
+        if self.secret_ready or self.secret_found or self._ace_run is run:
+            run.open_corridor()
+
+    def _note_try(self):
+        run = self.run
+        if run.over and run is not self._tried and run.score >= secret.TRY_MIN_SCORE and not run.corridor_found:
+            self._tried = run
+            if self.secret_enabled:
+                self.secret_events.append("try")
 
     def hint_line(self):
         return f"{self.keys['move']} MOVE  {self.keys['pause']} PAUSE  ESC MENU"
@@ -173,9 +209,11 @@ class CatMazeGame:
             if self.screen is Screen.OVER:
                 self.fx.update(dt)
             return
+        self._secret_tick()
         self.run.update(dt)
         for event in self.run.take_events():
             self._react(event)
+        self._note_try()
         if self.run.phase == "clear":
             self.fx.confetti(dt, cfg.FIELD_W)
         self.fx.update(dt)
@@ -213,6 +251,13 @@ class CatMazeGame:
             fx.ring(x, y, 60, (255, 214, 90), 0.8)
         elif kind == "extra_life":
             fx.popup("EXTRA LIFE!", x, y - 10, (255, 120, 205), 1.3)
+        elif kind == "corridor_found":
+            if self.secret_enabled:
+                self.secret_events.append("found")
+        elif kind == "corridor_revealed":                     # the cat pushed into the crack: the old wall crumbles
+            gx, gy = tile_center(*secret.GATE)
+            fx.burst("dust", gx, gy)
+            fx.ring(gx, gy, 12, (255, 214, 90), 0.6)
         elif kind == "golden_spawn":
             fx.ring(x, y, 14, (255, 214, 90), 0.5)
         if kind == "fish":                                    # two alternating pitches make a happy munch
