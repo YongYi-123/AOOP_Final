@@ -28,6 +28,15 @@ SLOT, GAP = 30, 4
 W, H = 330, 186
 GRID_X, GRID_Y = 12, 50
 DETAIL = pygame.Rect(GRID_X + COLS * (SLOT + GAP) + 8, GRID_Y - 2, W - 12 - (GRID_X + COLS * (SLOT + GAP) + 8), 3 * (SLOT + GAP) + 2)
+INSPECT = pygame.Rect(GRID_X, GRID_Y - 2, W - 12 - GRID_X, DETAIL.h)      # the inspect view covers the grid too
+
+
+def _ellipsis(text, width):
+    """`text` cut so that it plus "..." fits `width` pixels."""
+    font = get_font()
+    while text and font.size(text + "...")[0] > width:
+        text = text[:-1].rstrip()
+    return text + "..."
 
 
 class InventoryUI:
@@ -39,6 +48,7 @@ class InventoryUI:
         self.use_keys, self.on_use = tuple(use_keys), on_use
         self.tab = 0
         self.selected = 0           # slot index within the current tab
+        self.first_row = 0          # the first grid row on screen (moves only when the cursor would leave the view)
         self.inspecting = False
         self.closed = False
         self.anim = 0.0
@@ -78,8 +88,16 @@ class InventoryUI:
 
     @property
     def scroll_row(self):
-        """First visible grid row, kept so the selection is on screen."""
-        return max(0, self.selected // COLS - ROWS + 1)
+        """First visible grid row: it only moves when the selection would leave the view (so moving back up a row does
+        not scroll), and never past the last row."""
+        row = self.selected // COLS
+        last = max(0, self.slot_count // COLS - ROWS)
+        if row < self.first_row:
+            self.first_row = row
+        elif row >= self.first_row + ROWS:
+            self.first_row = row - ROWS + 1
+        self.first_row = max(0, min(self.first_row, last))
+        return self.first_row
 
     # ------------------------------------------------------------ input
     def handle_event(self, event):
@@ -94,7 +112,7 @@ class InventoryUI:
         elif key == pygame.K_TAB:
             step = -1 if event.mod & pygame.KMOD_SHIFT else 1
             self.tab = (self.tab + step) % len(TABS)
-            self.selected, self.inspecting = 0, False
+            self.selected, self.inspecting, self.first_row = 0, False, 0
         elif key in self.use_keys and self.on_use and self.can_use:
             self.on_use(self.selected_entry[0].id)         # the bag closes so the effect can be seen
             self.closed = True
@@ -115,7 +133,7 @@ class InventoryUI:
 
     # ------------------------------------------------------------ build
     def _snapshot(self):
-        return (self.tab, self.selected, self.inspecting,
+        return (self.tab, self.selected, self.scroll_row, self.inspecting,
                 tuple((d.id, q) for d, q in self.inventory.get_all_items()))
 
     def _rebuild(self):
@@ -174,8 +192,62 @@ class InventoryUI:
             draw_text(img, more, (GRID_X + COLS * (SLOT + GAP) - GAP, GRID_Y + ROWS * (SLOT + GAP)),
                       Col.TEXT_MUTED, anchor="topright")
 
+    def detail_rect(self):
+        """The detail box: beside the grid, or (while inspecting) over the whole grid so everything fits."""
+        return INSPECT if self.inspecting else DETAIL
+
+    def detail_lines(self, definition, qty):
+        """[(text, colour, x, y)] the detail box shows for one item. Rows flow top to bottom and never overlap: text
+        that does not fit is cut with "..." (the full text is in the inspect view, which has room for all of it)."""
+        box = self.detail_rect()
+        rows = []
+        if self.inspecting:
+            x, width = box.x + 64, box.right - 6 - (box.x + 64)
+            y = box.y + 6
+        else:
+            x, width = box.x + 26, box.right - 6 - (box.x + 26)
+            y = box.y + 6
+        for line in wrap_text(definition.name, width)[:2]:
+            rows.append((line, Col.TEXT, x, y))
+            y += LINE_H
+        rows.append((definition.category, RARITY_COLORS[definition.rarity], x, y))
+        y += LINE_H
+        kind = f"STACKS TO {definition.limit}" if definition.stackable else "ONE ONLY"
+        if self.inspecting:
+            rows.append((f"{definition.rarity}  {kind}", scale_color(Col.TEXT_MUTED, 0.85), x, y))
+            y += LINE_H
+            rows.append((f"OWNED: {qty}", Col.YELLOW, x, y))
+            y += LINE_H + 3
+        else:
+            x, width = box.x + 6, box.w - 12                  # below the icon the text uses the full width
+            y = max(y, box.y + 24) + 3
+        footer = []
+        if self.on_use and is_usable(definition.id):
+            footer.append((f"{self.use_label}: USE", Col.GREEN))
+        if not self.inspecting:
+            footer.append((f"OWNED: {qty}", Col.YELLOW))
+        bottom = box.bottom - 5 - LINE_H * len(footer)       # the last row the text may use
+        body = [(line, Col.TEXT_MUTED) for line in wrap_text(definition.description, width)]
+        if definition.use_hint:
+            body += [(line, Col.CYAN) for line in wrap_text(definition.use_hint, width)]
+        room = max(0, (bottom - y) // LINE_H)
+        if len(body) > room and room:
+            body = body[:room]
+            last, colour = body[-1]
+            body[-1] = (_ellipsis(last, width), colour)
+        else:
+            body = body[:room]
+        for text, colour in body:
+            rows.append((text, colour, x, y))
+            y += LINE_H
+        fy = box.bottom - 5 - LINE_H * len(footer)
+        for text, colour in footer:
+            rows.append((text, colour, box.x + 6, fy))
+            fy += LINE_H
+        return rows
+
     def _draw_detail(self, img, font):
-        box = DETAIL
+        box = self.detail_rect()
         img.fill((10, 6, 26), box)
         pygame.draw.rect(img, scale_color(Col.PURPLE, 0.8), box, 1)
         entry = self.selected_entry
@@ -184,35 +256,15 @@ class InventoryUI:
             draw_text(img, msg, box.center, Col.TEXT_MUTED, anchor="center")
             return
         definition, qty = entry
-        pad, y = box.x + 6, box.y + 6
         if self.inspecting:
             icon = item_icon(definition, 3)
-            img.blit(icon, icon.get_rect(midtop=(box.centerx, y)))
-            y += icon.get_height() + 4
+            img.blit(icon, icon.get_rect(center=(box.x + 32, box.y + 6 + 26)))
         else:
             icon = item_icon(definition)
-            img.blit(icon, (pad, y - 2))
-        name_x = pad if self.inspecting else pad + 20
-        for line in wrap_text(definition.name, box.right - name_x - 4):
-            draw_text(img, line, (name_x, y), Col.TEXT, glow=scale_color(Col.CYAN, 0.4))
-            y += LINE_H
-        draw_text(img, definition.category, (name_x, y), RARITY_COLORS[definition.rarity])
-        y += LINE_H + 6
-        for line in wrap_text(definition.description, box.w - 12):
-            draw_text(img, line, (pad, y), Col.TEXT_MUTED)
-            y += LINE_H
-        if definition.use_hint:                               # where the item is used
-            y += 3
-            for line in wrap_text(definition.use_hint, box.w - 12):
-                draw_text(img, line, (pad, y), Col.CYAN)
-                y += LINE_H
-        bottom = box.bottom - 6 - LINE_H
-        if self.on_use and is_usable(definition.id):
-            draw_text(img, f"{self.use_label}: USE", (pad, bottom - LINE_H * (2 if self.inspecting else 1)), Col.GREEN)
-        draw_text(img, f"OWNED: {qty}", (pad, bottom), Col.YELLOW)
-        if self.inspecting:
-            kind = f"STACKS TO {definition.limit}" if definition.stackable else "ONE ONLY"
-            draw_text(img, f"{definition.rarity}  {kind}", (pad, bottom - LINE_H), scale_color(Col.TEXT_MUTED, 0.85))
+            img.blit(icon, (box.x + 5, box.y + 4))
+        for i, (text, colour, x, y) in enumerate(self.detail_lines(definition, qty)):
+            glow = scale_color(Col.CYAN, 0.4) if colour == Col.TEXT and i < 2 else None
+            draw_text(img, text, (x, y), colour, glow=glow)
 
     # ------------------------------------------------------------ draw
     def draw(self, surf):
