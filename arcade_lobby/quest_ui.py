@@ -17,7 +17,9 @@ from font import get_font
 from gfx import scale_color
 from hud import _ticket_icon, _token_icon
 from miao_meow import miao_frame
-from quests import CHAPTERS, FINAL_CHAPTER_TITLE, SECRET_ITEMS_NEEDED, SECRET_TRIALS_NEEDED, objective_text
+from quests import (CH2_SYMBOLS, CHAPTERS, FINAL_CHAPTER_TITLE, SECRET_ITEM_CLAW, SECRET_ITEMS_NEEDED,
+                    SECRET_TRIALS_NEEDED, objective_text)
+from symbol_art import symbol_image
 from settings import BACK_KEYS, Col, VIEW_H, VIEW_W
 from story_dialogue import framed_portrait, solid_panel
 from ui import dim_screen, draw_text, wrap_text
@@ -39,6 +41,9 @@ def _star(surf, cx, cy, color, size=3):
     for d in (-1, 1):
         surf.set_at((cx + d, cy + d), scale_color(color, 0.7))
         surf.set_at((cx + d, cy - d), scale_color(color, 0.7))
+
+
+SYMBOLS_QUEST = "ch2_secret_item"       # the quest step whose tracker counts Chapter 02's recovered symbols
 
 
 # ------------------------------------------------------------------ objective tracker
@@ -130,6 +135,10 @@ class ObjectiveTracker:
             tk, need_k, tt, need_t = earned
             return [(m.hud_text(), Col.TEXT), (f"TOKENS EARNED {tk}/{need_k}", Col.GREEN if tk >= need_k else Col.YELLOW),
                     (f"TICKETS EARNED {tt}/{need_t}", Col.GREEN if tt >= need_t else Col.YELLOW)]
+        if q.id == SYMBOLS_QUEST:                                               # Chapter 02: only the count, never the symbols
+            found = m.clues_found
+            return [(m.hud_text(), Col.TEXT),
+                    (f"SYMBOLS {found}/{len(CH2_SYMBOLS)}", Col.GREEN if found >= len(CH2_SYMBOLS) else Col.YELLOW)]
         return [(m.hud_text(), Col.TEXT)]
 
     def layout(self, max_width=None):
@@ -361,8 +370,13 @@ def _door_icon(done, locked):
 
 
 class QuestLogUI:
-    """The Quest Log modal (Q). Read-only view of the QuestManager plus one profile's wallet."""
+    """The Quest Log modal (Q). Read-only view of the QuestManager plus one profile's wallet.
+
+    Page 1 is the overview. Once Chapter 02 is open there is a second page (LEFT / RIGHT or A / D turns it):
+    CHAPTER 02 THE FORGOTTEN GAMES, RECOVERED SYMBOLS, always in the lock's order I, II, III, a found symbol with the
+    game it came from and an unknown one as ???. It stays readable after the chapter is over."""
     hides_hud = False
+    PAGE_KEYS = {pygame.K_LEFT: -1, pygame.K_a: -1, pygame.K_RIGHT: 1, pygame.K_d: 1}
 
     def __init__(self, manager, profile, on_close=None):
         self.manager = manager
@@ -370,13 +384,26 @@ class QuestLogUI:
         self.on_close = on_close
         self.closed = False
         self.time = 0.0
+        self.page = 0
         self._hint_face = framed_portrait(miao_frame(eyes="happy", level=3), 2)
+
+    @property
+    def pages(self):
+        """The page names, in order."""
+        return ("OVERVIEW", "CHAPTER 02") if self.manager.chapter_two_open else ("OVERVIEW",)
 
     def handle_event(self, event):
         if self.closed or event.type != pygame.KEYDOWN:
             return
         if event.key == pygame.K_q or event.key in BACK_KEYS:
             self.close()
+        elif event.key in self.PAGE_KEYS and len(self.pages) > 1:
+            self.page = (self.page + self.PAGE_KEYS[event.key]) % len(self.pages)
+
+    def symbol_rows(self):
+        """[(numeral, shown symbol, source line)] for RECOVERED SYMBOLS: fixed order I, II, III; ??? until found."""
+        return [(numeral, symbol or "???", f"FOUND IN {game}" if symbol else "NOT FOUND YET")
+                for numeral, symbol, game in self.manager.recovered_symbols()]
 
     def close(self):
         if not self.closed:
@@ -394,6 +421,13 @@ class QuestLogUI:
         surf.blit(solid_panel(w, h, Col.CYAN, Col.MAGENTA, 250), (x, y))
         draw_text(surf, "QUEST LOG", (x + w // 2, y + 8), Col.YELLOW, 2, "midtop", glow=scale_color(Col.MAGENTA, 0.9))
         surf.fill(scale_color(Col.CYAN, 0.6), (x + 12, y + 26, w - 24, 1))
+        self.page = min(self.page, len(self.pages) - 1)
+        if len(self.pages) > 1:
+            draw_text(surf, f"< PAGE {self.page + 1}/{len(self.pages)} >", (x + w - 12, y + 11),
+                      scale_color(Col.TEXT_MUTED, 0.95), anchor="topright")
+        if self.pages[self.page] == "CHAPTER 02":
+            self._symbols_page(surf, x, y, w, h)
+            return
         q = m.active
         lx = x + 14
 
@@ -410,6 +444,11 @@ class QuestLogUI:
                 tk, need_k, tt, need_t = earned
                 draw_text(surf, f"TOKENS EARNED {tk}/{need_k}", (lx + 8, y + 103), Col.GREEN if tk >= need_k else Col.YELLOW)
                 draw_text(surf, f"TICKETS EARNED {tt}/{need_t}", (lx + 8, y + 111), Col.GREEN if tt >= need_t else Col.YELLOW)
+            elif q.id == SYMBOLS_QUEST:                       # only the count here; page 2 lists the symbols
+                found = m.clues_found
+                draw_text(surf, f"SYMBOLS {found}/{len(CH2_SYMBOLS)}", (lx + 8, y + 103),
+                          Col.GREEN if found >= len(CH2_SYMBOLS) else Col.YELLOW)
+                draw_text(surf, "RIGHT: RECOVERED SYMBOLS", (lx + 8, y + 111), scale_color(Col.TEXT_MUTED, 0.9))
             elif p:
                 bar = pygame.Rect(lx + 8, y + 106, 120, 5)
                 pygame.draw.rect(surf, (40, 30, 80), bar)
@@ -422,6 +461,48 @@ class QuestLogUI:
         else:
             self._completed(surf, lx, y + 122)
         self._right(surf, x, y, w, h)
+
+    def _symbols_page(self, surf, x, y, w, h):
+        """CHAPTER 02  THE FORGOTTEN GAMES / RECOVERED SYMBOLS, I II III in that order whatever order they were found."""
+        m = self.manager
+        lx = x + 20
+        draw_text(surf, "CHAPTER 02  THE FORGOTTEN GAMES", (lx, y + 36), Col.YELLOW, glow=scale_color(Col.YELLOW, 0.3))
+        draw_text(surf, "RECOVERED SYMBOLS", (lx, y + 52), Col.CYAN)
+        found = m.clues_found
+        draw_text(surf, f"{found}/{len(CH2_SYMBOLS)}", (x + w - 20, y + 52), Col.GREEN if found == len(CH2_SYMBOLS)
+                  else Col.YELLOW, anchor="topright")
+        for i, (numeral, symbol, source) in enumerate(self.symbol_rows()):
+            row = pygame.Rect(lx, y + 66 + i * 34, w - 40, 30)
+            known = symbol != "???"
+            pygame.draw.rect(surf, (14, 9, 34), row)
+            pygame.draw.rect(surf, scale_color(Col.CYAN if known else Col.TEXT_MUTED, 0.5), row, 1)
+            draw_text(surf, numeral, (row.x + 8, row.y + 11), Col.YELLOW if known else scale_color(Col.TEXT_MUTED, 0.8))
+            box = pygame.Rect(row.x + 28, row.y + 1, 28, 28)
+            pygame.draw.rect(surf, (8, 6, 20), box)
+            pygame.draw.rect(surf, scale_color(Col.CYAN if known else Col.TEXT_MUTED, 0.6), box, 1)
+            if known:
+                image = symbol_image(symbol, fit=26)
+                surf.blit(image, image.get_rect(center=box.center))
+            else:
+                draw_text(surf, "?", box.center, scale_color(Col.TEXT_MUTED, 0.7), anchor="center")
+            draw_text(surf, symbol, (box.right + 10, row.y + 6), Col.TEXT if known else scale_color(Col.TEXT_MUTED, 0.8))
+            draw_text(surf, source, (box.right + 10, row.y + 17), scale_color(Col.TEXT_MUTED, 0.9))
+        ty = y + 172
+        if m.has_secret_item(SECRET_ITEM_CLAW):
+            status, colour = "SECRET ITEM 02 FOUND", Col.GREEN
+        elif m.riddle_solved:
+            status, colour = "THE PRIZE LOCK IS OPEN. SOMETHING WAITS IN THE CLAW MACHINE.", Col.YELLOW
+        elif found == len(CH2_SYMBOLS):
+            status, colour = "ALL THREE FOUND. MOCHI MAY KNOW WHAT THEY ARE FOR.", Col.CYAN
+        else:
+            status, colour = "KEEP PLAYING THE OLD GAMES AND WATCH CLOSELY.", scale_color(Col.TEXT_MUTED, 0.95)
+        for i, row in enumerate(wrap_text(status, w - 40)[:2]):
+            draw_text(surf, row, (lx, ty + i * 10), colour)
+        surf.fill(scale_color(Col.CYAN, 0.45), (x + 12, y + h - 42, w - 24, 1))
+        draw_text(surf, "SYMBOLS YOU FIND ARE KEPT HERE.", (x + w // 2, y + h - 35),
+                  scale_color(Col.TEXT_MUTED, 0.95), anchor="midtop")
+        r = _key_chip(surf, "Q", (x + w // 2 - 54, y + h - 20), Col.CYAN)
+        draw_text(surf, "/ ESC   CLOSE", (r.right + 5, y + h - 18), Col.TEXT_MUTED)
 
     def chapter_rows(self):
         """[(label, title, state)] for the Quest Log's chapter list; state is "DONE", "NOW" or "LOCKED". A locked chapter
