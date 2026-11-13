@@ -1,6 +1,7 @@
 """Thin player-input and settlement adapter for the independent volleyball package."""
 import pygame
 from audio_manager import GameSoundBus
+from forgotten_games import ClueLink
 from minigame import MinigameScene, MiniGameResult, PlayerResult
 from rewards import RewardBundle
 from pixel_volleyball.game import VolleyGame
@@ -14,6 +15,7 @@ class PixelVolleyballScene(MinigameScene):
         self.volley = VolleyGame()
         self.leaving = False
         self._tapped = set()    # item presses since the last frame, even if already released
+        self.clue = ClueLink(self, "volley")      # Chapter 02: THE OLD SPECTATOR TICKET (pixel_volleyball/old_ticket.py)
 
     def attach_players(self, players):
         super().attach_players(players)
@@ -66,7 +68,9 @@ class PixelVolleyballScene(MinigameScene):
         controls = [VolleyInput(held.axis("left", "right"), held.held("up"),
                                 held.held("item") or "item" in self._tapped)]
         self._tapped.clear()
+        self.clue.sync(self.volley)
         self.volley.update(dt, controls)
+        self.clue.sync(self.volley)
 
     def draw(self, surface):
         self.volley.draw(surface)

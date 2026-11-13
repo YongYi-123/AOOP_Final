@@ -4,6 +4,7 @@ Single-player: only the player who started the machine plays, scores and is paid
 the play session is the one reported, so Retry and Restart can never pay twice."""
 import pygame
 from audio_manager import GameSoundBus
+from forgotten_games import ClueLink
 from minigame import MinigameScene, MiniGameResult, PlayerResult
 from rewards import RewardBundle
 from galaxy_defender.game import GalaxyGame, Screen
@@ -17,6 +18,8 @@ class GalaxyDefenderScene(MinigameScene):
         super().__init__(game, machine)
         self.galaxy = GalaxyGame()
         self.leaving = False
+        self.clue = ClueLink(self, "galaxy")      # Chapter 02: THE QUIET SIGNAL (galaxy_defender/quiet_signal.py)
+        self.clue.sync(self.galaxy)
         self._wire_audio()
 
     def _wire_audio(self):
@@ -63,7 +66,9 @@ class GalaxyDefenderScene(MinigameScene):
         if self.leaving:
             return
         move = self.input.axis("left", "right")
+        self.clue.sync(self.galaxy)
         self.galaxy.update(dt, move, self.input.held("item"))
+        self.clue.sync(self.galaxy)
 
     def draw(self, surface):
         self.galaxy.draw(surface)

@@ -4,6 +4,7 @@ Single-player: the player who started the machine plays, scores and is paid; the
 pay twice."""
 import pygame
 from audio_manager import GameSoundBus
+from forgotten_games import ClueLink
 from minigame import MinigameScene, MiniGameResult, PlayerResult
 from rewards import RewardBundle
 from neon_cat_maze.game import CatMazeGame, Screen
@@ -19,6 +20,8 @@ class CatMazeScene(MinigameScene):
         self.cat_maze = CatMazeGame()
         self.leaving = False
         self.order = []                 # direction actions currently held, oldest first: the newest one steers
+        self.clue = ClueLink(self, "maze")    # Chapter 02: THE FORGOTTEN CORRIDOR (neon_cat_maze/corridor.py)
+        self.clue.sync(self.cat_maze)
         self._wire_audio()
         self._refresh_keys()
 
@@ -79,7 +82,9 @@ class CatMazeScene(MinigameScene):
             return
         if self.order and self.cat_maze.screen is Screen.PLAYING:
             self.cat_maze.steer(self.order[-1])             # a held key keeps asking for its turn
+        self.clue.sync(self.cat_maze)
         self.cat_maze.update(dt)
+        self.clue.sync(self.cat_maze)
 
     def draw(self, surface):
         self.cat_maze.draw(surface)
