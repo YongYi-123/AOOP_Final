@@ -9,6 +9,11 @@ taken exactly once and a prize is granted exactly once.
 Duplicates: the capsule-only collectibles are stackable, so a repeat is simply counted
 (you hold X2, X3, ...) and reported as a DUPLICATE. Wardrobe / decoration prizes are
 single items, so a pull never picks one you already own; it only offers what is still new.
+
+Extras: a `bonus` object may add prizes to the ordinary pool for one profile (Chapter 02's RETRO HINT CARDS,
+forgotten_games.HintCardDraw): bonus.extra_prizes(service, kind) -> [CapsulePrize], bonus.forced(service, kind) -> the
+pull must be one of them, bonus.after_pull(service, kind, item_id, offered) inside the pull's batch. Without a bonus a
+pull is exactly the ordinary one, and the machines' own prize lists never change.
 """
 from dataclasses import dataclass
 import random
@@ -69,8 +74,9 @@ def _fail(code, message):
 class CapsuleService:
     """Pulling from a capsule machine for one profile."""
 
-    def __init__(self, profile, rng=None, registry=ITEM_REGISTRY, machines=None):
+    def __init__(self, profile, rng=None, registry=ITEM_REGISTRY, machines=None, bonus=None):
         self.profile = profile
+        self.bonus = bonus
         self.rng = rng or random.Random()
         self.registry = registry
         self.machines = machines or CAPSULE_MACHINES
@@ -96,6 +102,17 @@ class CapsuleService:
                 out.append(prize)
         return out
 
+    def extras(self, kind):
+        """The bonus prizes this pull may also give (never one the profile cannot hold)."""
+        if self.bonus is None or self.spec(kind) is None:
+            return []
+        out = []
+        for prize in self.bonus.extra_prizes(self, kind):
+            definition = self.registry.get(prize.item_id)
+            if definition is not None and self.quantity(prize.item_id) < definition.limit:
+                out.append(prize)
+        return out
+
     def pull(self, kind):
         """Pay for one capsule and receive its prize. A refusal changes nothing."""
         spec = self.spec(kind)
@@ -104,6 +121,11 @@ class CapsuleService:
         if not self.can_afford(kind):
             return _fail("need_tickets", f"NEED {spec.cost - self.profile.tickets} MORE TICKETS")
         pool = self.available(kind)
+        extra = self.extras(kind)
+        if extra and self.bonus.forced(self, kind):
+            pool = extra                            # the bonus's pity: this pull is one of its prizes
+        else:
+            pool = pool + extra
         if not pool:
             return _fail("failed", "MACHINE IS EMPTY")
         prize = self.rng.choices(pool, weights=[p.weight for p in pool])[0]
@@ -115,6 +137,8 @@ class CapsuleService:
             if not grant.success:
                 self.profile.refund_tickets(spec.cost)
                 return _fail("failed", "CAPSULE JAMMED - NOT CHARGED")
+            if self.bonus is not None:
+                self.bonus.after_pull(self, kind, prize.item_id, bool(extra))
         definition = self.registry.get(prize.item_id)
         duplicate = before > 0
         count = self.quantity(prize.item_id)
