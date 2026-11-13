@@ -17,6 +17,8 @@ import pygame
 
 import claw_art as art
 import claw_machine as cm
+from claw_lock import ClawLockScene, lock_pending
+from forgotten_games import GOLDEN_CAT, GOLDEN_SLOT, golden_cat_for, story_manager
 from controls import SOLO_CONTROLS
 from daily_ui import token_icon
 from font import get_font
@@ -62,7 +64,8 @@ class ClawScene(BaseScene):
         """player: the LocalPlayer at the cabinet - their profile pays and wins."""
         super().__init__(game)
         self.player = player
-        self.claw = claw or cm.ClawGame(self.profile, rng=rng)
+        # Chapter 02's Golden Cat joins the stock only while it waits (forgotten_games.py); otherwise no special at all
+        self.claw = claw or cm.ClawGame(self.profile, rng=rng, special=golden_cat_for(self))
         self.rand = random.Random(7)    # cosmetic only (sparkles, shake); never decides an outcome
         self.time = 0.0
         self.lock = INPUT_DELAY
@@ -123,6 +126,34 @@ class ClawScene(BaseScene):
             self.held.add(event.key)
         elif action in ("interact", "item") and self.lock <= 0:
             self.press()
+        elif action == "up" and self.lock <= 0 and self.lock_waiting and self.claw.phase == cm.IDLE:
+            self.open_lock()
+
+    # ------------------------------------------------------------ Chapter 02: the prize lock (claw_lock.py)
+    @property
+    def lock_waiting(self):
+        """Is the old prize lock on this cabinet, still shut? (Only once all three symbols are found.)"""
+        return lock_pending(story_manager(self.game))
+
+    def open_lock(self):
+        self.held.clear()
+        self._sound("confirm")
+        owner = self.player or self.game.session.primary
+        self.game.scenes.push(ClawLockScene(self.game, owner))
+
+    def _wake_golden_cat(self):
+        """The lock was just opened: the Golden Cat drops into its spot (once the claw is idle)."""
+        if self.claw.special is not None or self.claw.phase != cm.IDLE:
+            return
+        special = golden_cat_for(self)
+        if special is None:
+            return
+        self.claw.special = special
+        spot = next((p for p in self.claw.plushies if p.slot == GOLDEN_SLOT), None)
+        if spot is not None and spot.spec is not GOLDEN_CAT:
+            spot.spec = GOLDEN_CAT
+            self._burst(FX + spot.x, FLOOR - 8, 24, (art.GOLD, (255, 250, 220), art.PINK))
+            self._sound("win")
 
     def press(self):
         """START when idle, DROP while aiming; anything else (mid-drop, mid-lift ...) is ignored."""
@@ -153,6 +184,7 @@ class ClawScene(BaseScene):
     def update(self, dt):
         self.time += dt
         self.lock = max(0.0, self.lock - dt)
+        self._wake_golden_cat()
         self.token_flash = max(0.0, self.token_flash - dt)
         claw = self.claw
         claw.update(dt, self.direction() if claw.phase == cm.AIM else 0)
@@ -205,7 +237,10 @@ class ClawScene(BaseScene):
         c = self.controls
         move = f"{c.label('left', limit=1) or '?'}/{c.label('right', limit=1) or '?'}"
         use = c.label("interact", limit=1) or c.label("item", limit=1) or "?"
-        return [(move, "MOVE"), (use, "PLAY/DROP"), ("ESC", "LEAVE")]
+        lines = [(move, "MOVE"), (use, "PLAY/DROP"), ("ESC", "LEAVE")]
+        if self.lock_waiting:
+            lines.insert(2, (c.label("up", limit=1) or "W", "PRIZE LOCK"))
+        return lines
 
     # ------------------------------------------------------------ draw
     def draw(self, surf):
@@ -286,6 +321,8 @@ class ClawScene(BaseScene):
         x = FX + p.x + (int(round(math.sin(self.time * 9) * 1)) if wobble else 0)
         rect = img.get_rect(midbottom=(int(round(x)), int(round(TIP0 + p.y))))
         surf.blit(img, rect)
+        if p.spec.look.get("kind") == "golden" and int(self.time * 3 + p.x) % 4 == 0:      # the Golden Cat twinkles
+            surf.fill((255, 255, 255), (rect.right - 3, rect.top + 2, 1, 1))
         if outline is not None and int(self.time * 4) % 2 == 0:
             surf.fill(outline, (rect.centerx - 1, rect.top - 4, 3, 2))                 # a little marker above it
 
@@ -298,6 +335,14 @@ class ClawScene(BaseScene):
                 shine.fill((220, 240, 255, 26), (gx - GLASS.x + i // 3, i, 6, 1))
             surf.blit(shine, GLASS.topleft)
         pygame.draw.rect(surf, art.CYAN, GLASS, 1)
+        if self.lock_waiting:                                        # the old brass prize lock, hanging on the glass
+            x, y = GLASS.right - 22, GLASS.bottom - 24
+            pygame.draw.rect(surf, (120, 84, 30), (x + 3, y - 7, 10, 10), 2, border_radius=4)
+            surf.fill((196, 150, 64), (x, y, 16, 13))
+            pygame.draw.rect(surf, (120, 84, 30), (x, y, 16, 13), 1)
+            surf.fill((60, 40, 16), (x + 7, y + 4, 2, 5))
+            if int(self.time * 2) % 2 == 0:
+                surf.fill((255, 240, 180), (x + 2, y + 2, 1, 1))
 
     def _draw_deck(self, surf):
         claw = self.claw
@@ -415,8 +460,10 @@ class ClawScene(BaseScene):
             self.text(surf, "YOU GOT IT!", box.centerx, box.y + 5, art.GOLD, 2, glow=scale_color(art.PINK, 0.5))
             self.text(surf, f"{name}  +{self.last_result.tickets} TICKETS", box.centerx, box.y + 26, Col.TEXT,
                       max_w=box.w - 8)
-            self.text(surf, "ADDED TO YOUR BAG" if self.last_result.item_added else "BAG FULL - TICKETS ONLY",
-                      box.centerx, box.y + 36, Col.TEXT_MUTED, max_w=box.w - 8)
+            golden = spec is not None and spec.item_id == GOLDEN_CAT.item_id
+            note = "SECRET ITEM 02 FOUND" if golden else \
+                "ADDED TO YOUR BAG" if self.last_result.item_added else "BAG FULL - TICKETS ONLY"
+            self.text(surf, note, box.centerx, box.y + 36, Col.YELLOW if golden else Col.TEXT_MUTED, max_w=box.w - 8)
         elif claw.phase == cm.LOST:
             self._card(surf, "SO CLOSE!" if self.slipped else "MISSED!", "CENTRE THE CLAW AND TRY AGAIN",
                        (255, 140, 180))
