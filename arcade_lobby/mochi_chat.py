@@ -7,12 +7,17 @@ Nothing here is a second unlock system. It only READS the shared story (quests.Q
     "new"     unlocked, the first story not heard yet                         "Any stories about the old arcade?"
     "heard"   the first story was told, Secret Item 01 not found yet           + "Tell me more about Retro Racer." (a hint to STOP)
     "found"   Secret Item 01 (Reverse Gear) is in hand                        + "About that secret race..." (the hint is gone)
+    Chapter 02, once all three of its clues are found                        + "Did you find something unusual?": she shows
+                                                                               the old maintenance record (maintenance_note.py),
+                                                                               which points to the claw machine's prize lock
 
 The first story is recorded ONCE, in the shared story (a flag saved in every profile of the session), when it is finished;
 it can be read again as often as you like. The conversations are plain StoryDialogue boxes; Miao Meow only joins in when she
 is already standing in the Prize Plaza (she is never moved here). Mochi's shop is untouched.
 """
 import pygame
+
+import forgotten_games as fg
 
 from menu_kit import FRAME, ROW_H, MenuScene, fit_text
 from miao_meow import PLAZA
@@ -51,24 +56,33 @@ RACE_LINES = (
 )
 
 
-def chat_options(stage):
-    """The menu for a story stage: [(label, key)]. Locked (None) has none."""
+def chat_options(stage, unusual=False):
+    """The menu for a story stage: [(label, key)]. Locked (None) has none. `unusual`: Chapter 02's three clues are
+    all found, so Mochi has the maintenance record to show."""
     if stage is None:
         return []
     options = [(STORIES, "stories")]
     options.append((RACE, "race") if stage == "found" else (HINT, "hint") if stage == "heard" else None)
+    if unusual:
+        options.append((fg.UNUSUAL, "unusual"))
     return [o for o in options if o]
+
+
+def has_record(manager):
+    """Does Mochi have the maintenance record to show? Only in Chapter 02, after all three clues."""
+    return manager.chapter_two_open and manager.all_clues_found
 
 
 def chat_lines(key, miao_here):
     if key == "stories":
         return OLD_ARCADE + (OLD_ARCADE_MIAO if miao_here else ())
-    return {"hint": HINT_LINES, "race": RACE_LINES}[key]
+    return {"hint": HINT_LINES, "race": RACE_LINES, "unusual": fg.RECORD_INTRO}[key]
 
 
 def chat_available(game):
     """Is there anything to say yet? (The shop only offers the chat key when so.)"""
-    return bool(chat_options(game.hub.story.manager.mochi_story_stage))
+    manager = game.hub.story.manager
+    return bool(chat_options(manager.mochi_story_stage, has_record(manager)))
 
 
 class MochiChatScene(MenuScene):
@@ -87,7 +101,8 @@ class MochiChatScene(MenuScene):
     # ------------------------------------------------------------ what is on offer (always read from the story)
     @property
     def options(self):
-        return chat_options(self.story.manager.mochi_story_stage)
+        manager = self.story.manager
+        return chat_options(manager.mochi_story_stage, has_record(manager))
 
     def miao_here(self):
         return self.story.brain.is_in(PLAZA)
@@ -122,6 +137,9 @@ class MochiChatScene(MenuScene):
         self.heard.append(key)
         if key == "stories":
             self.story.manager.handle(MOCHI_ARCADE_STORY)       # recorded once, whatever the number of re-reads
+        elif key == "unusual" and has_record(self.story.manager):
+            from maintenance_note import MaintenanceNoteScene
+            self.game.scenes.push(MaintenanceNoteScene(self.game, self.owner))
         self.index = min(self.index, max(0, len(self.options) - 1))
 
     # ------------------------------------------------------------ frame
