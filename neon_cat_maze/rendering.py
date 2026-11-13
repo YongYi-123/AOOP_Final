@@ -6,6 +6,7 @@ import pygame
 from arcade_lobby.font import get_font
 from . import art
 from . import config as cfg
+from . import corridor as secret
 from .mazes import COLS, ROWS
 
 CYAN, PINK, GOLD, GREEN, WHITE = art.CYAN, art.PINK, art.GOLD, art.GREEN, art.WHITE
@@ -141,6 +142,8 @@ class Renderer:
         run, t = game.run, game.time
         maze = run.maze
         surface.blit(self.maze_surface(maze), (OX, OY))
+        if run.corridor is not None:
+            self._corridor(surface, run, t)
         if run.catnip_active and not game.fx.reduced:             # the maze edge glows green while the catnip lasts
             k = 0.5 + 0.5 * math.sin(t * 8)
             pygame.draw.rect(surface, tuple(int(c * (0.35 + 0.4 * k)) for c in GREEN),
@@ -175,6 +178,59 @@ class Renderer:
         for text, x, y, life, colour in game.fx.popups:
             half = self.font.size(text)[0] // 2 + 2
             self.text(surface, text, (min(max(round(x), OX + half), OX + COLS * TILE - half), max(round(y), OY + 6)), colour)
+
+    def _corridor(self, surface, run, t):
+        """THE FORGOTTEN CORRIDOR. Until the cat finds it: only a faint hairline crack in the outer wall beside the
+        top-left corner (nothing else gives it away). Once the cat pushes into it: the old wall crumbles and an unlit
+        passage shows down the left margin, with the plaque on its dead end."""
+        corridor = run.corridor
+        dust, rim, gold = (22, 14, 30), (96, 74, 46), (255, 214, 90)
+        gx, gy = OX + secret.GATE[0] * TILE, OY + secret.GATE[1] * TILE
+        if not corridor.revealed:
+            crack = tuple(min(255, int(c * 0.55 + 18)) for c in run.maze.wall_color)
+            for i, (cx, cy) in enumerate(((11, 2), (10, 4), (11, 6), (12, 8), (11, 10), (10, 12), (11, 14))):
+                surface.fill(crack, (gx + cx, gy + cy, 1, 2))                  # a thin, jagged line
+            if int(t * 1.5) % 5 == 0:                                         # now and then a speck of light gets through
+                surface.fill((150, 120, 80), (gx + 11, gy + 7, 1, 1))
+            return
+        k = corridor.opening
+        for c, r in secret.TILES:
+            x, y = OX + c * TILE, OY + r * TILE
+            if (c, r) == secret.GATE:
+                surface.fill(run.maze.wall_color, (x, y, TILE, TILE))
+                hole = round(TILE * k)
+                surface.fill(dust, (x + (TILE - hole) // 2, y, hole, TILE))
+                for i in range(0, TILE, 3):                                  # the broken edge of the old wall
+                    surface.fill(rim, (x + (TILE - hole) // 2 - (i % 2), y + i, 1, 2))
+                    surface.fill(rim, (x + (TILE + hole) // 2 + (i % 2) - 1, y + i, 1, 2))
+                continue
+            surface.fill(dust, (x, y, TILE, TILE))
+            for i in range(2, TILE, 5):                                      # cobwebs and dust on the old floor
+                surface.fill((40, 30, 44), (x + (i * 7 + r * 3) % TILE, y + i, 1, 1))
+        left = OX + secret.END[0] * TILE
+        top = OY + secret.GATE[1] * TILE
+        pygame.draw.rect(surface, rim, (left - 1, top - 1, TILE + 2, (secret.END[1] - secret.GATE[1] + 1) * TILE + 2), 1)
+        glint = 0.55 + 0.45 * math.sin(t * 3)
+        plaque = self.plaque_rect()                                          # the old plaque on the dead end's wall
+        surface.fill((34, 24, 30), plaque)
+        pygame.draw.rect(surface, rim, plaque, 1)
+        lit = corridor.found
+        colour = tuple(int(c * (0.75 + 0.25 * glint)) for c in gold) if lit else (70, 56, 50)
+        _pixels(surface, secret.STAR_PIXELS, (plaque.x + 2, plaque.y + 3), colour)
+        _pixels(surface, secret.NUMERAL_PIXELS, (plaque.x + 12, plaque.y + 4), colour)
+
+    @staticmethod
+    def plaque_rect():
+        return pygame.Rect(OX + secret.PLAQUE[0] * TILE, OY + secret.PLAQUE[1] * TILE, TILE, TILE)
+
+    def corridor_mark(self, run):
+        """Show the end wall's engraving large in the strip below the maze: while the cat is in the passage and has
+        reached its end (this run or before)."""
+        corridor = run.corridor
+        if corridor is None:
+            return False
+        inside = run.cat.nearest_tile() in corridor.tiles and run.cat.nearest_tile() != secret.GATE
+        return inside and (corridor.found or corridor.visits > 0)
 
     def _robot(self, surface, robot, run, t):
         x, y = tile_center(*robot.pos)
@@ -234,6 +290,11 @@ class Renderer:
             surface.fill(colour, (bar.x, bar.y, fill, bar.h))
             pygame.draw.rect(surface, GREEN, bar.inflate(2, 2), 1)
             self.plain(surface, f"{run.catnip_left:.1f}", (bar.right + 8, y), colour)
+        elif self.corridor_mark(run):
+            glow = 0.75 + 0.25 * math.sin(game.time * 3)
+            colour = tuple(int(c * glow) for c in (255, 214, 90))
+            _pixels(surface, secret.STAR_PIXELS, (cfg.FIELD_W // 2 - 14, y - 4), colour, 2)
+            _pixels(surface, secret.NUMERAL_PIXELS, (cfg.FIELD_W // 2 + 8, y - 3), colour, 2)
         else:
             self.plain(surface, game.hint_line(), (OX, y), MUTED)
 
@@ -366,3 +427,12 @@ class Renderer:
         else:
             self.text(surface, "THE BEST RUN OF THIS PLAY IS PAID", (cx, y + 4), MUTED)
         self.menu(surface, ("PLAY AGAIN", "RETURN TO LOBBY"), game.cursor, panel.bottom - 40, 16, game.time)
+
+
+def _pixels(surface, rows, pos, colour, scale=1):
+    """Paint a little '#'-pattern (an engraving) at `pos`."""
+    x0, y0 = pos
+    for dy, row in enumerate(rows):
+        for dx, ch in enumerate(row):
+            if ch == "#":
+                surface.fill(colour, (x0 + dx * scale, y0 + dy * scale, scale, scale))
