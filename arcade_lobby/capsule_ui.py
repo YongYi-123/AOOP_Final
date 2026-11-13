@@ -12,6 +12,7 @@ import math
 import pygame
 
 from capsule import CAPSULE_MACHINES, CapsuleService
+from forgotten_games import HintCardDraw, story_manager
 from font import LINE_H
 from gfx import scale_color
 from item_icons import item_icon
@@ -40,7 +41,8 @@ class CapsuleScene(MenuScene):
         self.look = _LOOK[kind]
         self.accent, self.glow = self.look["trim"], self.look["accent"]
         self.title = self.spec.name
-        self.service = CapsuleService(owner.profile, rng=rng)
+        manager = story_manager(game)              # Chapter 02's hint cards join the pool once it is open
+        self.service = CapsuleService(owner.profile, rng=rng, bonus=HintCardDraw(manager) if manager else None)
         self.first = 0
         self.phase = "idle"             # idle / drop / open / shown
         self.phase_time = 0.0
@@ -53,7 +55,7 @@ class CapsuleScene(MenuScene):
     @property
     def rows(self):
         """The machine's prizes, commonest first (the exact odds are not shown)."""
-        items = [ITEM_REGISTRY.get(p.item_id) for p in self.spec.prizes]
+        items = [ITEM_REGISTRY.get(p.item_id) for p in self.spec.prizes + tuple(self.service.extras(self.kind))]
         return sorted((d for d in items if d is not None), key=lambda d: RARITY_ORDER[d.rarity])
 
     @property
