@@ -14,6 +14,7 @@ from menu_kit import FRAME, GOLD, MenuScene, fit_text
 from preview_art import pedestal, scaled
 from prize_shop import entry_for
 from settings import Col
+from inventory_ui import _ellipsis
 from ui import draw_text, wrap_text
 
 COLS = 3
@@ -24,6 +25,17 @@ DETAIL = pygame.Rect(GRID.right + 14, 60, FRAME.right - GRID.right - 14 - 8, 9 *
 
 
 STAR = ("0001000", "0001000", "1111111", "0111110", "0011100", "0110110", "0100010")
+
+
+def description_lines(text, width, most):
+    """`text` wrapped to `width`, at most `most` rows; a longer text ends its last row with "..." instead of stopping
+    mid-sentence without a sign."""
+    rows = wrap_text(text, width)
+    if len(rows) <= most:
+        return rows
+    rows = rows[:most]
+    rows[-1] = _ellipsis(rows[-1], width)
+    return rows
 
 
 def silhouette(icon):
@@ -172,10 +184,13 @@ class CollectionScene(MenuScene):
         for line in wrap_text(name, box.w - 12)[:2]:
             draw_text(surf, line, (box.x + 6, y), Col.TEXT, glow=scale_color(GOLD, 0.4))
             y += LINE_H
+        count = self.profile.inventory.get_quantity(definition.id)
         draw_text(surf, definition.rarity if owned else "???", (box.x + 6, y), Col.CYAN)
+        if owned and count > 1:                                  # duplicates (capsule goods, plushies) are counted
+            draw_text(surf, f"X{count}", (box.right - 6, y), Col.YELLOW, anchor="topright")
         y += LINE_H + 3
         text = definition.description if owned else "NOT FOUND YET."
-        for line in wrap_text(text, box.w - 12)[:3]:
+        for line in description_lines(text, box.w - 12, 3):
             draw_text(surf, line, (box.x + 6, y), Col.TEXT_MUTED)
             y += LINE_H
         if owned:
