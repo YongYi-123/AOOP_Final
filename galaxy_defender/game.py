@@ -4,6 +4,7 @@ import random
 from enum import Enum
 
 from . import config as cfg
+from . import quiet_signal as secret
 from .effects import Fx, Starfield
 from .model import Run
 from .rendering import Renderer
@@ -23,7 +24,8 @@ PAUSE_MENU = ("RESUME", "RESTART", "RETURN TO LOBBY")
 OVER_MENU = ("RETRY", "RETURN TO LOBBY")
 
 SOUNDS = {"shoot": "laser", "enemy_down": "boom", "player_hit": "loss", "shield_break": "hit", "pickup": "powerup",
-          "wave_clear": "win", "combo": "point", "boss_down": "win", "game_over": "loss", "boss_arrive": "machine"}
+          "wave_clear": "win", "combo": "point", "boss_down": "win", "game_over": "loss", "boss_arrive": "machine",
+          "signal_arrive": "vend_hum", "signal_received": "point"}
 
 
 class GalaxyGame:
@@ -43,6 +45,40 @@ class GalaxyGame:
         self.wants_exit = False
         self._counted = None                 # the Run already folded into `best`
         self.time = 0.0
+        # THE QUIET SIGNAL (quiet_signal.py). The hub sets these; on its own the game never shows the ship.
+        self.secret_enabled = False          # may the ship appear at all?
+        self.secret_ready = False            # True: it is due, from the calm before wave 1 (a route was earned before)
+        self.secret_events = []              # "unlocked" (this run cleared wave ACE_WAVES_CLEARED) /
+        #                                      "found" (tuned in) / "try" (a real run ended in GAME OVER)
+        self._tried = None
+        self._ace_run = None                 # the run that earned the ACE route (reported once)
+
+    # ------------------------------------------------------------ the quiet signal
+    def pop_secret_events(self):
+        events, self.secret_events = self.secret_events, []
+        return events
+
+    def _secret_tick(self):
+        """The ship crosses in every calm while it is due and not yet tuned in: the hub's route (secret_ready), or this
+        run having cleared wave ACE_WAVES_CLEARED (reported once as "unlocked", so the hub keeps it for later games)."""
+        run = self.run
+        if not self.secret_enabled or run.over:
+            return
+        if run.waves_cleared >= secret.ACE_WAVES_CLEARED and self._ace_run is not run:
+            self._ace_run = run
+            if not self.secret_ready:
+                self.secret_events.append("unlocked")
+        if not run.banner_active or run.signal is not None or run.signal_received:
+            return
+        if self.secret_ready or self._ace_run is run:
+            run.call_signal()
+
+    def _note_try(self):
+        run = self.run
+        if run.over and run is not self._tried and run.score >= secret.TRY_MIN_SCORE and not run.signal_received:
+            self._tried = run
+            if self.secret_enabled:
+                self.secret_events.append("try")
 
     # ------------------------------------------------------------ records
     @property
@@ -136,9 +172,11 @@ class GalaxyGame:
             if self.screen is Screen.OVER:
                 self.fx.update(dt)
             return
+        self._secret_tick()
         self.run.update(dt, move, fire)
         for event in self.run.take_events():
             self._react(event)
+        self._note_try()
         self.fx.update(dt)
         if self.run.over:
             self.observe()
@@ -171,6 +209,9 @@ class GalaxyGame:
             fx.burst(event.x, event.y, "core")
             fx.ring(event.x, event.y, 16, (255, 226, 100), 0.5)
             fx.popup(cfg.POWERUPS[event.kind]["label"], event.x, event.y)
+        elif kind == "signal_received":
+            if self.secret_enabled:
+                self.secret_events.append("found")
         elif kind == "combo":
             fx.popup(f"COMBO X{event.kind}", event.x, event.y, (255, 160, 60))
         self._sound(SOUNDS.get(kind))
