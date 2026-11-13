@@ -5,6 +5,7 @@ import random
 from dataclasses import dataclass, field
 
 from . import config as cfg
+from .quiet_signal import Signal
 from .settlement import RunResult
 
 
@@ -128,6 +129,9 @@ class Run:
         self._fire_timer = 1.5
         self._last_drop = -99.0
         self.diff = cfg.difficulty_for(1)
+        self.signal = None             # THE QUIET SIGNAL crossing right now (quiet_signal.py), only ever during a calm
+        self.signal_wave = 0           # the wave whose calm it last crossed in (once per calm)
+        self.signal_received = False   # tuned in during this run
 
     # ------------------------------------------------------------ queries
     @property
@@ -179,8 +183,11 @@ class Run:
         self.x = min(cfg.FIELD_W - half, max(half, self.x + max(-1, min(1, move)) * cfg.PLAYER["speed"] * dt))
         if fire:
             self.shoot()
+        if self.signal is not None:
+            self._move_signal(dt)
         if self.banner > 0:
-            self.banner -= dt
+            if self.signal is None:                 # the next wave waits while the quiet ship crosses
+                self.banner -= dt
             if self.banner <= 0:
                 self.banner = 0.0
                 self._start_wave()
@@ -200,6 +207,24 @@ class Run:
             self._clear_wave()
         elif any(e.y + e.spec["height"] / 2 >= cfg.DEFENSE_LINE for e in self.enemies):
             self._end("breach")
+
+    # ------------------------------------------------------------ the quiet signal
+    def call_signal(self):
+        """The quiet ship crosses during this calm (the game decides when). Only in a calm, once per calm."""
+        if self.over or self.banner <= 0 or self.signal is not None or self.signal_wave == self.wave:
+            return None
+        self.signal_wave = self.wave
+        self.signal = Signal(from_left=self.x >= cfg.FIELD_W / 2)
+        self._emit("signal_arrive", self.signal.x, self.signal.y)
+        return self.signal
+
+    def _move_signal(self, dt):
+        signal = self.signal
+        if signal.update(dt, self.x) == "received":
+            self.signal_received = True
+            self._emit("signal_received", signal.x, signal.y)
+        if signal.gone:
+            self.signal = None
 
     def shoot(self):
         """Fire if the cooldown allows it. Returns whether a laser left the ship."""
