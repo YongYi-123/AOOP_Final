@@ -70,6 +70,11 @@ def _paint_plush(w, h, look):
             s.fill((255, 150, 190), (bx, cy + 2, 2, 1))
     if kind == "chonk":
         s.fill(shade(body, 0.5), (w // 2 - 3, h - 5, 6, 2))            # a pale round tummy
+    if kind == "golden":                                               # Chapter 02's Golden Cat: a shine and a bell
+        s.fill((255, 255, 240), (3, top + 3, 1, 2))
+        s.fill((255, 255, 240), (2, top + 4, 3, 1))
+        s.fill(dark, (w // 2 - 1, h - 5, 2, 2))
+        s.fill(accent, (w // 2 - 1, h - 5, 1, 1))
     return s
 
 
