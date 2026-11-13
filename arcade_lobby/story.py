@@ -37,10 +37,11 @@ import pygame
 
 from miao_meow import ARCADE, HOME, SPOTS, THRESHOLD, MiaoBrain
 from quest_ui import ObjectiveTracker, QuestBanner, QuestLogUI
-from quests import MIAO_REVERSE_ROAD, SECRET_ITEM_RETRO_RACER, QuestManager
+from quests import MIAO_CH2_HINT, MIAO_REVERSE_ROAD, SECRET_ITEM_RETRO_RACER, QuestManager
 from settings import VIEW_H, VIEW_W
 from story_dialogue import LOW_ON_SCREEN as D_LOW, Line, StoryDialogue
-from tour import TourGuide
+import forgotten_games
+from tour import ENTER_DELAY, TOURS, Tour, TourGuide
 from ui import speech_bubble_image
 
 MIAO, YOU = "MIAO MEOW", "PLAYER"
@@ -399,6 +400,7 @@ class StoryDirector:
         self.opening_enabled = False            # set by the startup flow: only a real game start plays the intro
         self._chats = 0
         self.guide = TourGuide(self)              # the one-time tour conversations (tour.py)
+        self._ch2_wait = 0.0                      # seconds back in the hub with Miao Meow's Chapter 02 talk due
 
     def close(self):
         if self.cutscene is not None:
@@ -491,6 +493,30 @@ class StoryDirector:
             if self.log.closed:
                 self.log = None
         self.guide.update(dt, room)
+        self._update_ch2_hint(dt, room)
+
+    def _update_ch2_hint(self, dt, room):
+        """CHAPTER 02: once all three clues are found, Miao Meow comes to tell the player about Mochi, ONCE, the next
+        time they are back in the hub. It waits for anything else on screen (and for a tour of this room); a talk that
+        is cut short is told again later, and the flag is only kept when it was told to the end."""
+        guide = self.guide
+        if not self.manager.miao_ch2_hint_due or guide.playing is not None or guide.leading is not None:
+            self._ch2_wait = 0.0
+            return
+        tour = TOURS.get(room.room_id)
+        free = (tour is not None and self.manager.opening_done and self.cutscene is None and self.dialogue is None
+                and self.log is None and room.modal is None and not self.banner.busy and not self.manager.notifications
+                and room.game.scenes.current is room and not room.game.scenes.transitioning
+                and room.arrival_grace <= 0 and room.active_play is None
+                and not any(p.activating for p in room.players)
+                and not (self.opening_enabled and guide.pending(room.room_id)))
+        if not free:
+            self._ch2_wait = min(self._ch2_wait, ENTER_DELAY * 0.5)
+            return
+        self._ch2_wait += dt
+        if self._ch2_wait >= ENTER_DELAY:
+            self._ch2_wait = 0.0
+            guide.start(room, Tour(room.room_id, MIAO_CH2_HINT, forgotten_games.MIAO_HINT_LINES, tour.spot, tour.side))
 
     def _can_start(self, room):
         scenes = room.game.scenes
