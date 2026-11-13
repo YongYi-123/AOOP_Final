@@ -221,6 +221,34 @@ _CLAW_ITEMS = (
                 "plush", (170, 176, 204), (255, 200, 220)),
 )
 
+# ---- CHAPTER 02, THE FORGOTTEN GAMES (forgotten_games.py). The three RETRO HINT CARDS come out of the capsule
+# machines only once Chapter 02 is open; each is a single copy (never a duplicate) and is reread in the bag. The
+# Golden Cat Plushie is won from NEON CLAW only after Mochi's maintenance record is solved. None of them is on the
+# Capsule Exchange, and none does anything: they are keepsakes.
+_HINT_USE = "A RETRO HINT CARD. READ IT ANY TIME"
+
+
+def _hint_card(item_id, name, text, color, accent):
+    return ItemDefinition(item_id, name, text, COLLECTIBLE, RARE, stackable=False,
+                          icon={"shape": "card", "color": color, "accent": accent}, use_hint=_HINT_USE)
+
+
+_CHAPTER_TWO_ITEMS = (
+    _hint_card("hint_card_maze", "CAT MAZE HINT CARD",
+               "Some walls are older than the maze. Clear level 3, or just keep coming back, then check the corners.",
+               (70, 200, 230), (255, 230, 150)),
+    _hint_card("hint_card_galaxy", "STARFALL HINT CARD",
+               "Not every ship wants a fight. Clear wave 10, or just keep coming back, then stand in its light.",
+               (150, 110, 230), (190, 230, 255)),
+    _hint_card("hint_card_volley", "VOLLEYBALL HINT CARD",
+               "Someone lost something in the stands. Beat Sandra, or just keep coming back. Look around after a match.",
+               (240, 150, 70), (255, 240, 210)),
+    ItemDefinition("claw_golden_cat", "GOLDEN CAT PLUSHIE",
+                   "A shining golden cat from the old claw machine. It waited a very long time for you.",
+                   COLLECTIBLE, EPIC, stackable=False,
+                   icon={"shape": "plush", "color": (255, 204, 70), "accent": (255, 248, 210)}, use_hint=_COLLECT_USE),
+)
+
 # ---- NEON VEND-O-MATIC novelty goods (Arcade Floor). Pure fun: using one only plays a little effect
 # (novelty.py) and never touches scores, tokens, tickets, movement or any minigame.
 NOVELTY_STACK = 9
@@ -260,4 +288,4 @@ _RACING_ITEMS = tuple(
                    if d.id.startswith("racing_decoration_") else d.icon,
                    use_hint=_DECOR_USE if d.id.startswith("racing_decoration_") else "")
     for d in _RACING_ITEMS)
-ITEM_REGISTRY = ItemRegistry(_ITEMS + _SHOP_ITEMS + _CAPSULE_ITEMS + _CLAW_ITEMS + _NOVELTY_ITEMS + _RACING_ITEMS)
+ITEM_REGISTRY = ItemRegistry(_ITEMS + _SHOP_ITEMS + _CAPSULE_ITEMS + _CLAW_ITEMS + _CHAPTER_TWO_ITEMS + _NOVELTY_ITEMS + _RACING_ITEMS)

@@ -340,7 +340,17 @@ def _fish(s, c, a):
     s.fill(shade(c, 0.5), (5, 9, 3, 1))
 
 
-PAINTERS = {"sticker": _sticker, "cap": _cap, "ticket": _ticket, "badge": _badge,
+def _card(s, c, a):
+    """A RETRO HINT CARD: an old trading card with a little screen and a line of text."""
+    s.fill(shade(c, -0.35), (2, 1, 10, 13))
+    s.fill(c, (3, 2, 8, 11))
+    s.fill(shade(c, -0.6), (4, 3, 6, 5))
+    s.fill(a, (5, 4, 2, 2))
+    s.fill(a, (4, 10, 6, 1))
+    s.fill(shade(a, -0.3), (4, 12, 4, 1))
+
+
+PAINTERS = {"sticker": _sticker, "card": _card, "cap": _cap, "ticket": _ticket, "badge": _badge,
             "lamp": _lamp, "plush": _plush, "bunny": _bunny, "plant": _plant, "clock": _clock, "frame": _frame,
             "rug": _rug, "star": _star, "ears": _ears, "glasses": _glasses, "swatch": _swatch,
             "headphones": _headphones, "crown": _crown, "visor": _visor, "medal": _medal,

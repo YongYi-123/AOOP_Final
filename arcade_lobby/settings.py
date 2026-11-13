@@ -192,6 +192,7 @@ CLAW_PLUSH_TICKETS = {
     "claw_plush_midnight": 5,       # MIDNIGHT KITTY   uncommon
     "claw_plush_bunny": 5,          # NEON BUNNY       uncommon (tall: a little harder)
     "claw_plush_chonk": 8,          # BIG CHONK        rare (wide and heavy: the hardest)
+    "claw_golden_cat": 10,          # GOLDEN CAT       Chapter 02's secret prize (forgotten_games.py), never stocked otherwise
 }
 CLAW_GRIP_FAIR = 0.55           # a grab inside the plushie but off its centre keeps this share of the centred chance
 CLAW_GRIP_EDGE = 0.18           # a prong that only catches the edge of a plushie
