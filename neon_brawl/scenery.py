@@ -1,5 +1,5 @@
 """Cached architecture and low-cost animation, separate from combat geometry."""
-from .market import paint_market,market_motion
+from .ml_lab import paint_ml,lab_motion
 from .metro import paint_metro,metro_motion
 from .facility import paint_facility,facility_motion
 
@@ -8,9 +8,9 @@ def visual_section(campaign):
     return campaign.wave
 
 def paint_section(surface,stage,section):
-    (paint_market,paint_metro,paint_facility)[stage](surface,section)
+    (paint_ml,paint_metro,paint_facility)[stage](surface,section)
 
 def animate_section(surface,stage,section,camera,time,phase=1,attack=False):
-    if stage==0:market_motion(surface,section,camera,time)
+    if stage==0:lab_motion(surface,stage,section,camera,time)
     elif stage==1:metro_motion(surface,section,camera,time)
     else:facility_motion(surface,section,camera,time,phase,attack)

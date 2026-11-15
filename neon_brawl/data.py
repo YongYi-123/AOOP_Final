@@ -52,9 +52,9 @@ ENEMIES = {
     'NULL': (620, 58, (235, 65, 180)),
 }
 STAGES = (
-    ('NEON ALLEY', (200, 60, 150), 'WARDEN'),
-    ('ABANDONED STATION', (55, 170, 210), 'RELAY'),
-    ('SIGNAL CORE', (145, 70, 240), 'NULL'),
+    ('MACHINE LEARNING LAB', (200, 60, 150), 'WARDEN'),
+    ('COMPUTER ARCHITECTURE LAB', (55, 170, 210), 'RELAY'),
+    ('AOOP DEVELOPMENT CORE', (145, 70, 240), 'NULL'),
 )
 # Difficulty changes damage and tactics; original HP and player controls are preserved.
 ENEMY_DAMAGE = (1.0, 1.25, 1.5)
@@ -109,7 +109,7 @@ WAVES = (
      ('security','assassin','sniper','elite','cyber','security','assassin','sniper'), ('NULL',)),
 )
 SECTIONS = (
-    ('NEON SHOPPING STREET','DENSE NIGHT MARKET','RESTAURANT ALLEY','KINGS CROSSING'),
+    ('DATA COLLECTION','MODEL TRAINING','NEURAL NETWORK RESEARCH','FAILED EXPERIMENTS'),
     ('STATION ENTRANCE','EMPTY PLATFORM','SERVICE TUNNEL','CONTROL ROOM'),
     ('SECURITY CHECKPOINT','SERVER RACK CORRIDOR','COOLING AND POWER','CENTRAL COMPUTING','OVERLORD ARENA'),
 )

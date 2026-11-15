@@ -94,13 +94,8 @@ def background(stage,layer,section=0):
     accents=((235,60,155),(60,185,220),(155,85,245))
     c=accents[stage]
     if layer==0:
-        s.fill((10+stage*3,9,27+stage*6))
-        for i in range(22):
-            x=i*39; height=45+(i*47)%100
-            pygame.draw.rect(s,(21,21+stage*4,47),(x,160-height,35,height))
-            for y in range(165-height,155,9):
-                for xx in range(x+4,x+30,7):
-                    if (xx+y)%4: s.fill((45,50,84),(xx,y,2,3))
+        from .research_art import far_layer
+        far_layer(s,stage)
         return s
     paint_section(s,stage,section)
     return s
@@ -140,6 +135,11 @@ class Renderer:
         for y in range(170,300,18):
             s.fill((42,39,61),(0,y,400,1))
             for x in range(-40,440,55): s.fill((42,39,61),(x-int(cam)%55+(y%36),y,1,18))
+        # Raised access-floor covers and recessed service strips remain decorative.
+        for xx in range(-70,470,95):
+            x=xx-int(cam*.85)%95
+            pygame.draw.polygon(s,(35,44,62),[(x,188),(x+41,188),(x+48,197),(x+5,197)])
+            pygame.draw.line(s,(71,91,105),(x+4,189),(x+37,189))
         c=((235,60,155),(60,185,220),(155,85,245))[stage]
         s.fill(c,(0,167,400,2))
         for x in range(0,1500,125):
@@ -149,19 +149,15 @@ class Renderer:
                 s.fill(c,(xx+7,245,24,1))
         if stage==1:
             for x in range(0,400,20): pygame.draw.polygon(s,(145,123,55),[(x,270),(x+8,270),(x-5,278),(x-13,278)])
-        if stage==0:
-            for i in range(45):
-                x=int((i*71-time*48)%420); y=int((i*43+time*190)%300)
-                pygame.draw.line(s,(75,85,130),(x,y),(x-2,y+6))
         if stage>0 and campaign.wave<3:
             phase=campaign.hazard_clock%7
             if 3.4<phase<5.15:
                 color=(255,80,110) if phase>4.7 else (175,125,55)
                 for x in range(0,400,12):
                     pygame.draw.lines(s,color,False,[(x,251),(x+4,247),(x+8,255),(x+12,251)],2)
-                self.text(s,'LIVE RAIL! MOVE UP / JUMP',122,272,color)
+                self.text(s,'LIVE CIRCUIT! MOVE UP / JUMP',122,272,color)
         animate_section(s,stage,section,cam,time,max((e.phase for e in campaign.enemies if e.boss),default=1),any(e.boss and e.swing for e in campaign.enemies))
-        campaign.street_life.draw(s,cam,time)
+        if stage!=0:campaign.street_life.draw(s,cam,time)
         actors=sorted(campaign.enemies+[campaign.player],key=lambda f:f.y)
         for f in actors:
             x,y=int(f.x-cam),int(f.y)
