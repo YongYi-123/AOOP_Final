@@ -232,7 +232,11 @@ class Renderer:
             sx,sy=ex-cx,ey-cy+bob
             color=(251,210,139) if enemy.flash>0 else {'slime':(112,190,108),'bat':(152,127,208),'guardian':(176,138,96),'blink_mage':(144,106,215),'armored_beetle':(104,168,175),'bomb_eater':(215,133,76),'golem':(154,164,179),'mirror_mask':(184,210,211),'pot_hunter':(194,116,103),'crystal_ghost':(141,211,228),'elite_guardian':(164,153,204),'crystal_warden':(100,202,221)}[enemy.kind]
             if enemy.state==EnemyState.DYING:
-                self.enemy_portraits.death(s,enemy,sx,sy);continue
+                if enemy.kind=='slime':
+                    from puzzle_maze.slime_art import slime_frame
+                    s.blit(slime_frame('defeat',int(self.time*8)%4),(sx,sy))
+                else:self.enemy_portraits.death(s,enemy,sx,sy)
+                continue
             if enemy.state==EnemyState.WINDUP:
                 reach=2 if enemy.kind in ('golem','elite_guardian','crystal_warden') else 1
                 for dx in range(-reach,reach+1):
@@ -241,7 +245,9 @@ class Renderer:
                             r.rect(s,(239,118,105),((enemy.x+dx)*16-cx+1,(enemy.y+dy)*16-cy+1,14,14),1)
                 r.rect(s,(239,93,91),(sx-1,sy-1,18,18),1)
             r.ellipse(s,(24,34,44),(sx+1,sy+12,14,4))
-            if enemy.kind=='slime':r.ellipse(s,color,(sx+2,sy+5,12,9))
+            if enemy.kind=='slime':
+                from puzzle_maze.slime_art import slime_frame
+                s.blit(slime_frame('attack' if enemy.state==EnemyState.WINDUP else 'idle',int(self.time*5)%4,enemy.flash>0),(sx,sy))
             elif enemy.kind=='bat':
                 wing=int(math.sin(self.time*18)*3)
                 r.polygon(s,color,[(sx,sy+5+wing),(sx+6,sy+8),(sx+8,sy+5),(sx+10,sy+8),(sx+16,sy+5+wing),(sx+12,sy+13),(sx+4,sy+13)])
