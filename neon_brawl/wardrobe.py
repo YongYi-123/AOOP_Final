@@ -53,7 +53,7 @@ def dress(surface,name,index,bob,reach,attack):
         box(c,24,9,17,6); box(t,25,28,3,9)
     # Equipment identifies advanced archetypes even across different clothing families.
     if name=='duelist':
-        pygame.draw.line(surface,(200,235,240),(reach,28+bob),(reach+5,13+bob),2)
+        pygame.draw.line(surface,(200,235,240),(reach,(24 if attack else 36)+bob),(reach+5,(9 if attack else 20)+bob),2)
     elif name=='shield':
         poly(INK,[(16,29),(26,26),(29,43),(22,49),(15,42)])
         poly((100,140,160),[(17,30),(24,28),(27,42),(22,46),(17,41)])
@@ -65,7 +65,7 @@ def dress(surface,name,index,bob,reach,attack):
         if name=='cyber': box((150,175,190),36,26,5,13); box(t,37,29,3,2)
         elif name=='assassin':
             poly(c,[(23,11),(17,29),(26,24)]); box(t,18,25,8,2)
-            pygame.draw.line(surface,t,(reach,28+bob),(reach+5,15+bob),1)
+            pygame.draw.line(surface,t,(reach,(24 if attack else 36)+bob),(reach+5,(11 if attack else 22)+bob),1)
         else: box(t,29,29,7,7)
     elif name=='security':
         box(INK,21,23,24,8); box((115,130,145),23,25,20,5)
