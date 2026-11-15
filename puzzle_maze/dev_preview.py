@@ -2,7 +2,6 @@
 import pygame
 from puzzle_maze.game import Game,GameScene
 from puzzle_maze.remaster import RemasteredSession
-from puzzle_maze.puzzles import ChestPhase,EntrancePhase
 from puzzle_maze.pixel_font import render
 TARGETS=('grey-pixel','developer-room','miao-entrance','developer-diaries')
 class PreviewGame(Game):
@@ -16,10 +15,11 @@ class PreviewGame(Game):
         self.renderer.particles.clear();self.renderer.lab_effect=None
         self.session.inventory.abilities.add('map')
         if self.preview_target=='grey-pixel':
-            self.session.enter('r24',(22,7))
-            seam=self.session.puzzles.objects['debug_seam'];seam.state.active=True;seam.phase=EntrancePhase.OPEN
+            self.session.enter('r24',(21,7))
+            seam=self.session.puzzles.objects['debug_seam'];seam.state.active=True
             # Let the real reveal state machine spawn the item, then collect it through E.
             for _ in range(90):self.session.tick(1/60)
+            self.session.player.x,self.session.player.y=23,8
             self.event(pygame.event.Event(pygame.KEYDOWN,key=pygame.K_e))
         else:
             self.session.grey_pixel=True;self.session.observe_secret()
