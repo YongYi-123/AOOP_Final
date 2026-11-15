@@ -20,6 +20,8 @@ class DeveloperRoomArt:
                 r.line(s,(135,95,61),(x-offset+2,y+2),(x-offset+42,y+2))
         r.rect(s,(94,56,69),(83,115,217,101));r.rect(s,(186,134,93),(86,118,211,95),2)
         for x in range(95,290,13):r.line(s,(120,76,81),(x,124),(x,207))
+        from puzzle_maze.studio_personality import shadows
+        shadows(s)
         # Large central workbench: two CRTs, a flat display and several input devices.
         self.desk(s,(139,70,170,37))
         for x,kind in ((146,'crt'),(196,'crt'),(251,'display')):s.blit(equipment(kind),(x,37))
@@ -60,6 +62,8 @@ class DeveloperRoomArt:
         # The actual western portal is visibly framed as the studio doorway.
         r.rect(s,(48,34,35),(11,103,18,35));r.rect(s,(204,161,99),(12,103,17,35),2)
         r.line(s,(231,190,118),(30,104),(30,137),2)
+        from puzzle_maze.studio_personality import paint
+        paint(s)
         self.cached=s;return s
 
     @staticmethod
