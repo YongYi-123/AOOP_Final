@@ -69,6 +69,15 @@ class EnvironmentPainter:
                     r.rect(s,tint(t.wall,-15),(2,11,12,3));r.rect(s,t.wall,(5,3,6,8))
                     r.rect(s,tint(t.wall,25),(4,2,8,3));r.line(s,tint(t.wall,35),(6,5),(6,10))
                     r.rect(s,t.shadow,(9,6,1,4))
+        if name.startswith('v45_') and kind in ('.','g'):
+            # Sparse room-colored mosaics preserve strong actor contrast.
+            if variant==2:
+                muted=tuple((a+b*2)//3 for a,b in zip(t.accent,t.floor))
+                r.lines(s,muted,False,[(3,5),(3,3),(5,3)])
+                r.lines(s,muted,False,[(10,12),(12,12),(12,10)])
+            if kind=='g' and variant==3:
+                for x,y,c in ((4,4,(207,158,155)),(12,10,(226,192,121))):
+                    r.rect(s,c,(x,y,2,2));r.rect(s,(102,162,127),(x,y+2,1,2))
         self.cache[key]=s
         return s
 
