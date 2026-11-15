@@ -889,6 +889,11 @@ def decorate_brawl(s, frame, n, neon, accent):
     if buzz % 11 in (4, 6):
         for x in (0, W_BODY - 1):
             s.fill(scale_color(BRAWL_PINK, 0.3), (x, 14 + (buzz * 7) % 20, 1, 18))
+    for i, c in enumerate((BRAWL_GOLD, BRAWL_PINK)):              # two big fight buttons: PUNCH and KICK
+        bx = 20 + i * 6
+        s.fill((30, 20, 50), (bx - 2, 35, 5, 4))
+        pygame.draw.circle(s, c, (bx, 37), 2)
+        s.set_at((bx - 1, 36), (255, 255, 255) if (frame + i * 3) % 6 < 3 else c)
 
 
 # ----------------------------------------------------------------- registry
