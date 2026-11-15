@@ -127,7 +127,7 @@ PYTHONPATH=arcade_lobby .venv/bin/python -m neon_brawl.build_audio
 
 Known verification limits: rendered screenshots have been inspected, but no
 live desktop/human playthrough or physical-speaker listening test is available
-in this session. The optimized pilot clears in roughly 5–7 minutes; the desired
+in this session. The optimized pilot clears in roughly 4–8 minutes; the desired
 10–15 minute first-human-run duration is a balance target, not measured evidence.
 Backgrounds repeat original tiles; portraits use enlarged animated character
 cels. Art is generated and cached at runtime, without external asset downloads.
