@@ -41,6 +41,14 @@ class FloorTests(unittest.TestCase):
             theme=THEMES[room['theme']]
             self.assertGreater(sum(theme.wall)-sum(theme.floor),100)
 
+    def test_dash_windows_are_fairer_without_removing_boots_requirement(self):
+        s=RemasteredSession();old=AdvancedDungeonSession()
+        for id in ('r6','r14'):
+            objects={o['id']:o for o in s.rooms.rooms[id]['objects']}
+            self.assertEqual(objects['clock']['duration'],.85)
+            self.assertTrue(objects['gate']['dash_only'])
+            self.assertEqual(next(o for o in old.rooms.rooms[id]['objects'] if o['id']=='clock')['duration'],.35)
+
     def test_save_migration_creates_immutable_backup_and_hints_progress(self):
         old=AdvancedDungeonSession()
         with tempfile.TemporaryDirectory() as folder:
