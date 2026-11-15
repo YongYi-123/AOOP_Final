@@ -14,3 +14,15 @@ class HardwareArtTests(unittest.TestCase):
         for kind,s in zip(kinds,images):
             self.assertEqual(s.get_size(),(42,38));self.assertIs(s,equipment(kind))
             self.assertGreater(pygame.mask.from_surface(s).count(),90)
+
+    def test_lobby_character_pixels_are_reused(self):
+        from puzzle_maze.miao_adapter import guide_frame
+        guide_frame()
+        from miao_meow import miao_frame,facing_frame
+        self.assertIs(guide_frame(),facing_frame(miao_frame('sit','open',tail=0,legs=0,level=3),'right'))
+
+    def test_studio_is_cached_and_opaque(self):
+        from puzzle_maze.developer_art import DeveloperRoomArt
+        art=DeveloperRoomArt();s=art.layer()
+        self.assertEqual(s.get_size(),(416,256));self.assertIs(s,art.layer())
+        self.assertEqual(s.get_at((200,120)).a,255)

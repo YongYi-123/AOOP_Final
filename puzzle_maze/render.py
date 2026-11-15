@@ -54,24 +54,26 @@ class Renderer:
         self.camera.follow(proxy,len(room['tiles'][0]),len(room['tiles']),viewport=(320,184))
         cx,cy=int(self.camera.x),int(self.camera.y)
         s.set_clip((0,0,320,184))
-        for y,row in enumerate(room['tiles']):
-            for x,kind in enumerate(row):
-                sx,sy=x*16-cx,y*16-cy
-                if -16<sx<320 and -16<sy<208:
-                    s.blit(self.environment.tile(theme_name,kind,(x*37+y*17)%13),(sx,sy))
-                    if kind == '~':
-                        offset=int(self.time*3+x+y)%8
-                        r.line(s,(83,159,174),(sx+offset,sy+6),(sx+min(15,offset+5),sy+6))
-                    elif kind == '.' and (x*17+y*31)%23==0:
-                        r.rect(s,(99,111,94),(sx+5,sy+4,2,1))
-                    elif kind == '#' and (x+3*y)%11==0:
-                        r.line(s,(60,112,82),(sx+2,sy+3),(sx+2,sy+8))
-                        r.rect(s,(78,131,88),(sx+3,sy+4,2,2))
-        self.room_art.draw(s,room,(cx,cy),self.time)
-        self.environment.decorations(s,room,(cx,cy),self.time)
-        self.environment.lighting(s,session,(cx,cy),self.time)
-        if session.rooms.current=='r27':self.vault_art.draw(s,(cx,cy),self.time)
-        if session.rooms.current=='r28':self.developer_art.draw(s,(cx,cy),self.time)
+        if session.rooms.current=='r28':
+            self.developer_art.draw(s,(cx,cy),self.time)
+        else:
+            for y,row in enumerate(room['tiles']):
+                for x,kind in enumerate(row):
+                    sx,sy=x*16-cx,y*16-cy
+                    if -16<sx<320 and -16<sy<208:
+                        s.blit(self.environment.tile(theme_name,kind,(x*37+y*17)%13),(sx,sy))
+                        if kind == '~':
+                            offset=int(self.time*3+x+y)%8
+                            r.line(s,(83,159,174),(sx+offset,sy+6),(sx+min(15,offset+5),sy+6))
+                        elif kind == '.' and (x*17+y*31)%23==0:
+                            r.rect(s,(99,111,94),(sx+5,sy+4,2,1))
+                        elif kind == '#' and (x+3*y)%11==0:
+                            r.line(s,(60,112,82),(sx+2,sy+3),(sx+2,sy+8))
+                            r.rect(s,(78,131,88),(sx+3,sy+4,2,2))
+            self.room_art.draw(s,room,(cx,cy),self.time)
+            self.environment.decorations(s,room,(cx,cy),self.time)
+            self.environment.lighting(s,session,(cx,cy),self.time)
+            if session.rooms.current=='r27':self.vault_art.draw(s,(cx,cy),self.time)
         # Inlaid entrance compass; authored art remains entirely local.
         sx,sy=2*16-cx,7*16-cy
         r.circle(s,(98,134,123),(sx+8,sy+8),7,1)
