@@ -29,6 +29,11 @@ def generate_refinement(output='/tmp/studio-refinement'):
     g.restart_preview('grey-pixel');g.draw(0);g.finish_discovery();g.update(.01)
     for t,name in ((.25,'23_maze_distortion'),(.85,'24_room_fade'),(1.5,'25_monitors_wake')):
         g.update(t-g.lab_entrance.time);shot(name)
+    g.restart_preview('developer-room')
+    for i,t in enumerate((0.,.6,4.05,7.1,8.6)):
+        g.renderer.time=t;g.draw(0)
+        crop=g.renderer.surface.subsurface((140,90,24,25))
+        pygame.image.save(pygame.transform.scale(crop,(144,150)),out/('miao_idle_'+str(i)+'.png'))
     print('Studio prompts, sitting / standing, production entry and text layout verified:',out)
 if __name__=='__main__':
     p=argparse.ArgumentParser();p.add_argument('--output',default='/tmp/studio-refinement')
