@@ -8,6 +8,10 @@ def paint_section(s,stage,section):
         from .market import paint_market
         paint_market(s,section)
         return
+    if stage==1:
+        from .metro import paint_metro
+        paint_metro(s,section)
+        return
     from font import get_font
     font=get_font()
     accents=((225,65,150),(65,175,200),(145,85,220))
@@ -23,41 +27,7 @@ def paint_section(s,stage,section):
         for yy in range(70,164,12):
             box((39,35,55),x,yy,width,1)
             for xx in range(x+(yy%24),x+width,24):box((39,35,55),xx,yy,1,12)
-    if stage==1:
-        if section==0:
-            wall(0,800,(25,32,45))
-            for x in range(0,800,190):
-                pygame.draw.rect(s,(8,15,25),(x+15,82,155,83),border_radius=28)
-                box((80,100,115),x+12,157,162,7)
-                for k in range(8):box((130,145,145),x+25+k*18,155-k%2*4,14,2)
-                sign('DISTRICT TRANSIT',x+12,60,165)
-        elif section==1:
-            for x in range(0,800,160):
-                box((6,13,24),x,65,150,102)
-                box((75,85,100),x+140,65,9,103)
-                box((100,155,165),x+4,66,124,3)
-                box((35,55,65),x+30,109,68,30)
-                sign('LAST TRAIN  --:--',x+14,78,116)
-                box((100,85,75),x+10,149,95,4)
-                box((75,75,80),x+20,153,4,13);box((75,75,80),x+92,153,4,13)
-        elif section==2:
-            wall(0,800,(20,30,38))
-            for x in range(0,800,85):
-                box((60,80,88),x,76,7,91);box((105,120,120),x+2,80,2,82)
-                box((80,90,90),x,95,80,8);box((115,110,85),x+12,91,5,17)
-                box((32,45,55),x+22,121,45,45)
-                for k in range(4):box((90,120,130),x+28,126+k*8,32,2)
-            sign('HIGH VOLTAGE / SERVICE ONLY',205,52,300,(220,165,70))
-        else:
-            wall(0,800,(25,32,46))
-            for x in range(0,800,135):
-                box((65,75,92),x+4,81,119,85)
-                box((8,20,30),x+10,88,106,52)
-                for k in range(5):
-                    pygame.draw.lines(s,c,False,[(x+15,96+k*8),(x+38,99+k*7),(x+55,92+k*9),(x+108,95+k*8)],1)
-                box((130,135,125),x+15,150,90,3)
-            sign('PHANTOM SECURITY CONTROL',235,51,285)
-    else:
+    if stage==2:
         if section==0:
             wall(0,800,(24,27,45))
             for x in range(0,800,190):
@@ -99,12 +69,9 @@ def animate_section(s,stage,section,camera,time):
     if stage==0:
         from .market import market_motion
         market_motion(s,section,camera,time)
-    if stage==1 and section==2:
-        for i in range(8):
-            x=int((i*61-camera*.55)%420); y=160-int((time*17+i*9)%30)
-            pygame.draw.line(s,(65,85,95),(x,y),(x+6,y-6),2)
-    if stage==1 and int(time*5)%17==0:
-        s.fill((22,28,38),(0,66,400,3))
+    if stage==1:
+        from .metro import metro_motion
+        metro_motion(s,section,camera,time)
     if stage==2:
         for i in range(12):
             x=int((i*67-camera*.55)%410); y=78+i%5*13
