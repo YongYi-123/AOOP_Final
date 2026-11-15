@@ -29,11 +29,13 @@ class StreetCatTests(unittest.TestCase):
             if cats.cat:directions.add(cats.cat.direction)
         self.assertEqual(directions,{-1,1});self.assertGreaterEqual(cats.spawn_count,7)
         self.assertLessEqual(cats.spawn_count,9)
-    def test_no_cats_in_metro_or_core_and_never_in_combat_targets(self):
+    def test_cats_in_every_department_never_join_combat_targets(self):
         c=Campaign();c.cats.update(.05,6,0,0,80,[]);c.spawn()
         self.assertNotIn(c.cats.cat,c.enemies)
         for stage in (1,2):
             c.cats.update(.05,10,stage,0,80,c.enemies);self.assertIsNone(c.cats.cat)
+            c.cats.update(.05,14,stage,0,80,c.enemies);self.assertIsNotNone(c.cats.cat)
+            self.assertNotIn(c.cats.cat,c.enemies)
     def test_pause_freezes_ambient_behavior(self):
         from neon_brawl.game import BrawlGame
         from font import get_font
@@ -95,7 +97,7 @@ class CuteCatTests(unittest.TestCase):
         for variant in range(5):
             for state in ('walk','sit','groom','observe','run'):
                 s=cat_sprite(variant,state,0,1)
-                for x in (14,18):self.assertEqual(tuple(s.get_at((x,6)))[:3],(246,245,216))
+                for x in (15,21):self.assertEqual(tuple(s.get_at((x,9)))[:3],(254,245,215))
                 blink=cat_sprite(variant,state,7,1)
-                self.assertNotEqual(s.get_at((14,6)),blink.get_at((14,6)))
-                self.assertEqual(s.get_size(),(22,16))
+                self.assertNotEqual(s.get_at((15,9)),blink.get_at((15,9)))
+                self.assertEqual(s.get_size(),(26,22))
