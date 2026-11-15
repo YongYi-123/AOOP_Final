@@ -80,3 +80,24 @@ class GreyPixelTests(unittest.TestCase):
             path=Path(folder)/'secret.json';s.save(path);loaded=RemasteredSession.load(path)
             self.assertEqual(loaded.rooms.current,'r28');self.assertTrue(loaded.grey_pixel)
             self.assertIn('kevin_photo',loaded.lore);self.assertIn('grey_pixel',loaded.inventory.flags)
+
+
+class WalkthroughTests(unittest.TestCase):
+    def test_documented_interactions_and_edges_match_the_production_graph(self):
+        import ast,re
+        text=(Path(__file__).parents[1]/'PLAYER_ROUTE_V45.md').read_text()
+        rooms=RemasteredSession().rooms.rooms;seen=set();count=0
+        for line in text.splitlines():
+            match=re.match(r'\| (\d+) \| (1F|B1F) (r\d+) .*? \| (.*) \|',line)
+            if not match:continue
+            _,floor,id,detail=match.groups();self.assertEqual(rooms[id]['floor'],floor);seen.add(id);count+=1
+            if detail.startswith('E'):
+                name=re.search(r'`([^`]+)`',detail)[1]
+                pos=ast.literal_eval(re.search(r'\([^)]*\)',detail)[0])
+                obj=next(o for o in rooms[id]['objects'] if o['id']==name)
+                self.assertEqual(tuple(obj['pos']),pos)
+            else:
+                pos=ast.literal_eval(re.search(r'\([^)]*\)',detail)[0])
+                target=re.search(r'→ (r\d+)',detail)[1]
+                self.assertTrue(any(e['target']==target and tuple(e['pos'])==pos for e in rooms[id]['exits']))
+        self.assertEqual(seen,set(rooms));self.assertGreater(count,100)
