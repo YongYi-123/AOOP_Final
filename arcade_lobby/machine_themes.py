@@ -896,6 +896,24 @@ def decorate_brawl(s, frame, n, neon, accent):
         s.set_at((bx - 1, 36), (255, 255, 255) if (frame + i * 3) % 6 < 3 else c)
 
 
+def headroom_brawl(s, pad, frame, neon, accent):
+    """A city rooftop on the marquee housing: towers with lit windows, a water tank and an antenna whose red light
+    blinks."""
+    for x, h, w in ((1, 2, 6), (8, 3, 5), (14, 1, 5), (20, 4, 6), (27, 3, 8)):
+        s.fill(BRAWL_BODY, (x, pad - h, w, h))
+        s.fill(BRAWL_PINK, (x, pad - h, w, 1))
+        for wx in range(x + 1, x + w - 1, 2):
+            for wy in range(pad - h + 2, pad, 2):
+                if (wx + wy + frame // 4) % 4 == 0:
+                    s.set_at((wx, wy), BRAWL_GOLD)
+                elif (wx * 3 + wy) % 5 == 0:
+                    s.set_at((wx, wy), scale_color(BRAWL_CYAN, 0.7))
+    s.fill((90, 60, 110), (16, pad - 2, 1, 1))                    # water tank on the low tower
+    s.fill((90, 60, 110), (15, pad - 4, 3, 2))
+    s.fill((150, 140, 170), (23, pad - 6, 1, 2))                  # antenna on the tallest tower
+    s.set_at((23, pad - 6), (255, 50, 60) if (frame // 3) % 2 == 0 else (90, 20, 30))
+
+
 # ----------------------------------------------------------------- registry
 SCREEN_PAINTERS = {"cat": screen_cat, "volley": screen_volley, "racer": screen_racer, "galaxy": screen_galaxy,
                    "maze": screen_maze, "dungeon": screen_dungeon, "brawl": screen_brawl}
@@ -907,4 +925,4 @@ BODY_DECORATORS = {"cat": lambda s, f, n, neon, accent: decorate_cat(s, f, neon,
 BODY_COLORS = {"racer": (CHARCOAL, CHARCOAL_SIDE), "maze": (MAZE_BODY, MAZE_SIDE),
                "dungeon": (DUN_BODY, DUN_SIDE), "brawl": (BRAWL_BODY, BRAWL_SIDE)}   # cabinet body / side colours where not the default
 HEADROOM = {"cat": (5, headroom_cat), "racer": (4, headroom_racer), "maze": (6, headroom_maze),
-            "dungeon": (5, headroom_dungeon)}              # style -> (extra rows above the cabinet, painter)
+            "dungeon": (5, headroom_dungeon), "brawl": (6, headroom_brawl)}              # style -> (extra rows above the cabinet, painter)
