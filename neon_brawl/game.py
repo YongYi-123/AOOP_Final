@@ -31,7 +31,11 @@ class BrawlGame:
     @property
     def paused(self): return self.screen in ('paused','controls')
     def sound(self,name):
-        if self.audio: self.audio.play(name)
+        if self.audio:
+            mapped={'hit':'brawl_light','boom':'brawl_heavy','laser':'brawl_special','skid':'brawl_dodge',
+                    'win':'brawl_win','loss':'brawl_loss','bounce':'brawl_hurt','impact':'brawl_impact',
+                    'defeat':'brawl_defeat','jump':'brawl_jump'}.get(name,name)
+            self.audio.play(mapped)
     def change(self,screen):
         self.pending_attack=None
         self.screen=screen; self.screen_time=0; self.held.clear()
@@ -56,7 +60,8 @@ class BrawlGame:
                 self.selection=(self.selection+(-1 if key in (pygame.K_a,pygame.K_LEFT) else 1))%3
                 self.sound('machine')
             elif confirm:
-                self.campaign=Campaign(tuple(ROSTER)[self.selection]); self.change('tutorial'); self.sound('confirm')
+                self.campaign=Campaign(tuple(ROSTER)[self.selection]); self.tutorial_player=Campaign(tuple(ROSTER)[self.selection]).player
+                self.change('tutorial'); self.sound('confirm')
             elif key==pygame.K_ESCAPE: self.change('title')
         elif self.screen in ('tutorial','controls'):
             if confirm or key==pygame.K_ESCAPE:
@@ -72,7 +77,7 @@ class BrawlGame:
             elif key in ACTIONS:
                 action=ACTIONS[key]
                 if action=='pickup': self.campaign.pickup()
-                elif self.campaign.player.act(action): self.sound({'heavy':'boom','special':'laser','dodge':'skid'}.get(action,'hit'))
+                elif self.campaign.player.act(action): self.sound({'heavy':'boom','special':'laser','dodge':'skid','jump':'jump'}.get(action,'hit'))
                 elif action in ('light','heavy','special'):
                     self.pending_attack=action; self.buffer_time=.18
         elif self.screen=='paused':
@@ -115,7 +120,7 @@ class BrawlGame:
             dy=sum(MOVEMENT[k][1] for k in self.held if k in MOVEMENT)
             self.campaign.update(dt,(max(-1,min(1,dx)),max(-1,min(1,dy))))
             for event in self.campaign.events:
-                self.sound({'hit':'hit','hurt':'bounce','defeat':'boom','clear':'win','lose':'loss','pickup':'powerup'}.get(event,'machine'))
+                self.sound({'hit':'impact','hurt':'bounce','defeat':'defeat','clear':'win','lose':'loss','pickup':'powerup'}.get(event,'machine'))
             if self.campaign.state in ('checkpoint','stage_clear'): self.change(self.campaign.state)
             elif self.campaign.state=='defeat': self.change('game_over')
         elif self.screen=='ending' and self.screen_time>=10: self.change('results')

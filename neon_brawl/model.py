@@ -182,6 +182,7 @@ class Campaign:
         self.events = []
         self.camera = 0.
         self.hazard_clock = 0.
+        self.encounter_age = 0.
 
     @property
     def bounds(self): return (self.wave*350+18, self.wave*350+382)
@@ -191,6 +192,7 @@ class Campaign:
     def spawn(self):
         self.enemies = [EnemyFighter(name,self.wave*350+240+(i%3)*36,185+(i%4)*22,i)
                         for i,name in enumerate(WAVES[self.stage][self.wave])]
+        self.encounter_age = 0.
         self.spawned = True
         self.events.append('wave')
 
@@ -204,6 +206,7 @@ class Campaign:
             self.hitstop -= dt
             return
         if not self.spawned: self.spawn()
+        self.encounter_age += dt
         p = self.player
         p.tick(dt)
         p.move(dt,direction,self.bounds)
@@ -217,6 +220,13 @@ class Campaign:
             e.think(dt,p,e in permitted and active<2 and self.camera+12 < e.x < self.camera+388)
             if e.swing: active += 1
             e.x = max(self.bounds[0],min(self.bounds[1],e.x))
+        # Grounded bodies block each other; jumps and dodges cross the crowd.
+        if p.jump<5 and p.state!='dodge':
+            for e in candidates:
+                dx=p.x-e.x
+                if abs(dx)<15 and abs(p.y-e.y)<10 and e.state!='knockdown':
+                    p.x=e.x+(15 if dx>=0 else -15)
+            p.x=max(self.bounds[0],min(self.bounds[1],p.x))
         # Soft separation leaves escape routes rather than trapping the player.
         for i,e in enumerate(candidates):
             for other in candidates[i+1:]:

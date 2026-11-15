@@ -38,6 +38,9 @@ def sprite(name, state='idle', frame=0, facing=1):
     rect(INK,(reach-3,(21 if attack else 33),7,7)); rect(skin,(reach-2,(22 if attack else 34),5,4))
     rect(INK,(25,9+bob,15,17)); rect(skin,(27,11+bob,11,13))
     rect((135,85,85),(27,20+bob,3,3)); rect(WHITE,(34,16+bob,3,2)); rect(INK,(36,16+bob,1,2))
+    if name=='BRUNO':
+        rect((40,50,75),(26,29,13,11)); rect(color,(27,25,2,14)); rect(color,(36,25,2,14))
+        rect((160,170,180),(30,33,5,3))
     if name=='NOVA':
         rect(color,(24,7+bob,15,7)); pygame.draw.polygon(s,color,[(25,10),(18,19),(23,25),(28,12)])
         rect(INK,(27,14+bob,11,3)); rect(WHITE,(33,14+bob,4,1))
@@ -58,6 +61,15 @@ def sprite(name, state='idle', frame=0, facing=1):
             a=i*math.tau/6+frame
             x,y=32+int(math.cos(a)*27),31+int(math.sin(a)*24)
             pygame.draw.line(s,WHITE,(x,y),(x+3,y-4),2)
+    if state in ('combo3','air','sweep') and frame in (1,2):
+        limb([(34,40),(43,41),(55,36)],(65,64,105),6)
+        rect(INK,(52,33,9,7)); rect(color,(53,34,7,2))
+    if state in ('heavy','smash') and frame in (1,2):
+        limb([(38,28),(43,19),(39,8)],color,6)
+        rect(skin,(37,5,6,6))
+    if state=='hurt':
+        limb([(25,28),(29,34),(36,31)],dark)
+        rect((255,180,150),(27,19+bob,10,2))
     if state=='victory':
         limb([(38,27),(43,17),(42,7)],color)
     if state in ('knockdown','defeated'):
@@ -163,15 +175,30 @@ class Renderer:
                     pygame.draw.line(s,(155,245,255),(x+f.facing*18,y-24),(x+f.facing*240,y-24),3)
                     pygame.draw.line(s,WHITE,(x+f.facing*18,y-24),(x+f.facing*240,y-24),1)
             image=sprite(f.name,'air' if f.jump>0 and not f.swing else f.state,frame,f.facing)
+            if f.state=='phase':
+                radius=25+int(math.sin(time*20)*4)
+                pygame.draw.polygon(s,(235,110,225),[(x-radius,y-28),(x,y-70),(x+radius,y-28),(x,y+2)],2)
+                self.center(s,'SIGNAL OVERLOAD',65,(255,140,220))
             if f.flash:
                 image=image.copy(); image.fill((130,100,100,0),special_flags=pygame.BLEND_RGBA_ADD)
-            s.blit(image,(x-32,y-59-int(f.jump)))
+            if f.name in ('WARDEN','RELAY','NULL'):
+                image=pygame.transform.scale(image,(80,80))
+                s.blit(image,(x-40,y-74-int(f.jump)))
+            else: s.blit(image,(x-32,y-59-int(f.jump)))
             if f.alive and f.name not in ROSTER:
                 s.fill((20,12,30),(x-15,y-66,30,3)); s.fill(c,(x-15,y-66,int(30*f.health/f.max_health),2))
         for x,y,t in campaign.effects:
             xx=int(x-cam); yy=int(y); r=int(5+(1-t/.2)*15)
             for dx,dy in ((1,0),(-1,0),(0,1),(0,-1),(1,1),(-1,-1)):
                 pygame.draw.line(s,(255,235,145),(xx+dx*3,yy+dy*3),(xx+dx*r,yy+dy*r),2)
+        gate=int(campaign.bounds[1]-cam)
+        if 0<gate<400:
+            for yy in range(177,265,12):
+                pygame.draw.lines(s,(155,60,105),False,[(gate-3,yy),(gate+2,yy+5),(gate-3,yy+10)],1)
+        if campaign.encounter_age<2 and not any(e.boss for e in campaign.enemies):
+            from .data import STAGES
+            self.center(s,STAGES[stage][0],64,c)
+            self.center(s,f'BLOCK {campaign.wave+1} / 4',77)
         for x,y in campaign.pickups:
             xx=int(x-cam); pygame.draw.polygon(s,(255,210,130),[(xx-6,y-7),(xx+7,y-7),(xx+5,y),(xx-5,y)])
             s.fill((255,95,125),(xx-3,y-5,5,2))

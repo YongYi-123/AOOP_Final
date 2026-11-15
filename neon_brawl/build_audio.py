@@ -21,4 +21,15 @@ def build():
                 melody=(12,15,19,22,19,15,14,7,12,19,24,22,19,15,14,10)[step//8]
                 m.note(t,beat*.8,hz(root+24+melody),'p25',.075,vibrato=5)
         write_wav(str(output/f'neon_brawl_{stage}.wav'),m.finish(rms=-18,lowpass=.18))
+    effects={'light':(210,90,.10),'heavy':(125,45,.22),'impact':(330,65,.12),
+             'hurt':(180,85,.19),'special':(720,120,.35),'dodge':(460,160,.14),
+             'jump':(260,650,.17),'defeat':(130,35,.28),'win':(520,1040,.6),'loss':(320,80,.6)}
+    for name,(start,end,duration) in effects.items():
+        m=Mix(duration,clean=True)
+        m.note(0,duration*.8,start,'tri',.3,slide=(end-start)/duration)
+        m.noise(0,duration,.16,decay=24,seed=int(start))
+        if name in ('win','loss'):
+            for i,note in enumerate((0,4,7,12) if name=='win' else (0,-3,-7,-12)):
+                m.note(i*.13,.1,hz(72+note),'p25',.1)
+        write_wav(str(output.parent/'sfx'/f'brawl_{name}.wav'),m.finish(peak=.55,fade=.02))
 if __name__=='__main__': build()
