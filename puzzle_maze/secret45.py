@@ -2,9 +2,9 @@
 SECRET_ID='dungeon_grey_pixel'
 DISCOVERY='DEBUG LAYER DISCOVERED. ORIGINAL MAP RESTORED.'
 LORE={
- 'kevin_photo':('OLD PHOTOGRAPH',('An arcade before opening.','Kevin stands by two empty','cabinets. A face has been','scratched from the photo.')),
- 'kevin_note':('KEVIN / HANDWRITTEN NOTE',('If a room disappears,','look beyond the map edge.','I kept the original here.','Please remember us. - Kevin')),
- 'miao_memory':('MIAO MEOW',("This room... I've been","here before. So why can't","I remember anything?", "That photo feels familiar.")),
+ 'kevin_photo':('OLD PHOTOGRAPH',('Kevin grins at a crooked','stack of arcade sketches.','A tiny chair sits beside','his enormous workbench.')),
+ 'kevin_note':('KEVIN / HANDWRITTEN NOTE',('If a visitor finds this,','please use the good chair.','The other one squeaks in','three different keys.')),
+ 'miao_memory':('MIAO MEOW',('Twelve keyboards. Two paws.','This may take a while.','I call the quiet one.','If there is a quiet one.')),
  'lab_gpu':('VINTAGE GRAPHICS CARD',('Twin fans. Worn contacts.','Kevin kept this card alive','through countless nights.')),
  'lab_keyboard':('CLICK. CLACK.',('MIAO MEOW: This is louder','than the Arcade machines.','Does it have a quiet key?')),
  'lab_terminal':('BUILD FAILED',('BUILD FAILED: TOO MANY CATS.','Retry with fewer cats?','The terminal votes NO.')),

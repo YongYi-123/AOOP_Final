@@ -342,6 +342,12 @@ class Renderer:
         if not orb_prompt and (near or getattr(session.inventory,'carried',None)):
             carrying=getattr(session.inventory,'carried',None)
             label=f"{controls['interact']} Drop / G Throw" if carrying else f"[{controls['interact']}] Read" if isinstance(near,MysteryScroll) else '[P] Light' if isinstance(near,Brazier) else f"[{controls['attack']}] Crystal" if isinstance(near,CrystalSwitch) else f"[{controls['interact']}] Lift" if isinstance(near,LiftablePot) else '[B] Bomb' if isinstance(near,CrackedWall) else f"[{controls['ability']}] Pulse" if isinstance(near,SecretPassage) else f"[{controls['interact']}] Interact"
+            if session.rooms.current=='r28' and isinstance(near,MysteryScroll):
+                target=(p.x+p.facing[0],p.y+p.facing[1])
+                near=next((o for o in session.puzzles.objects.values() if isinstance(o,MysteryScroll) and o.pos==target),near)
+                key=near.data.get('content_id','')
+                names={'kevin_photo':'Photo','kevin_note':'Note','miao_memory':'Miao Meow','lab_gpu':'GPU','lab_keyboard':'Keyboard','lab_terminal':'Terminal','lab_coffee':'Coffee','lab_duck':'Duck','lab_button':'Red button'}
+                label=f"[{controls['interact']}] "+('Log '+key[-3:] if key.startswith('dev_') else names.get(key,'Read'))
             px=int(visual[0]*16)-cx;py=int(visual[1]*16)-cy
             hint_y=max(2,min(168,py+18 if carrying or py<18 else py-15))
             hint_x=max(2,min(146,px-30))

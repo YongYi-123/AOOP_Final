@@ -7,7 +7,7 @@ TARGETS=('grey-pixel','developer-room','miao-entrance','developer-diaries')
 class PreviewGame(Game):
     def __init__(self,target='grey-pixel',headless=False):
         super().__init__(headless=headless,campaign='4.5',persistent=False)
-        self.preview_target=target;self.restart_preview(target)
+        self.note_index=0;self.preview_target=target;self.restart_preview(target)
     def restart_preview(self,target=None):
         if target is not None:self.preview_target=target
         self.session=RemasteredSession();self.scene=GameScene.PLAY;self.running=True
@@ -31,20 +31,30 @@ class PreviewGame(Game):
     def finish_discovery(self):
         super().finish_discovery()
         self.session.enter('r28',(2,7));self.visual=[2.,7.];self.fade=0
+    def next_note(self):
+        from puzzle_maze.developer_diaries import DIARIES
+        if self.session.rooms.current!='r28':self.restart_preview('developer-diaries')
+        key=tuple(DIARIES)[self.note_index%len(DIARIES)];self.note_index+=1
+        self.session.lab_memory_seen=True;self.scene=GameScene.PLAY
+        obj=self.session.puzzles.objects[key]
+        self.session.player.x,self.session.player.y=obj.x,obj.y+1
+        self.session.player.facing=(0,-1);self.visual=[float(obj.x),float(obj.y+1)]
+        super().event(pygame.event.Event(pygame.KEYDOWN,key=pygame.K_e))
     def event(self,event):
         if event.type==pygame.KEYDOWN:
-            if getattr(event,'repeat',False) and event.key in (pygame.K_r,pygame.K_F5,pygame.K_F6,pygame.K_F7):return
+            if getattr(event,'repeat',False) and event.key in (pygame.K_r,pygame.K_F5,pygame.K_F6,pygame.K_F7,pygame.K_F8):return
             if event.key==pygame.K_ESCAPE:self.running=False;return
             if event.key==pygame.K_r:self.restart_preview();return
             if event.key==pygame.K_F5:self.restart_preview('grey-pixel');return
             if event.key==pygame.K_F6:self.restart_preview('developer-room');return
+            if event.key==pygame.K_F8:self.next_note();return
             if event.key==pygame.K_F7:self.restart_preview('miao-entrance');return
         super().event(event)
     def draw(self,dt,target=None):
         super().draw(dt,target)
         output=target if target is not None else self.screen
         guide=pygame.Surface((320,16));guide.fill((22,30,43))
-        for i,line in enumerate(('PREVIEW / R REPLAY / F5 ALL / F6 ROOM','F7 MIAO / E READ / SPACE SKIP / ESC EXIT')):
+        for i,line in enumerate(('PREVIEW / R REPLAY / F5 ALL / F6 ROOM','F7 MIAO / F8 NOTES / E READ / ESC EXIT')):
             guide.blit(render(line,8,(222,205,161)),(4,i*8))
         scale=min(output.get_width()/320,output.get_height()/240)
         scale=max(1,int(scale))
