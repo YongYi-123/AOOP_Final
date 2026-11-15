@@ -73,3 +73,44 @@ class CozyStudioTests(unittest.TestCase):
             self.assertEqual(loaded.orb.pos,(loaded.player.x,loaded.player.y))
             loaded.save(path);backup=path.with_name(path.name+'.pre-studio-v2')
             self.assertEqual(backup.read_bytes(),before);loaded.save(path);self.assertEqual(backup.read_bytes(),before)
+
+    def test_depth_sort_and_transparency_preserve_front_and_back_positions(self):
+        from puzzle_maze.render import Renderer
+        s=RemasteredSession();s.enter('r28');r=Renderer()
+        for position,behind in (((8,3),True),((8,6),False)):
+            sequence=[]
+            player=r.player;sprite=r.developer_art.sprite
+            def record_player(*args):sequence.append('player');return player(*args)
+            def record_sprite(item,ghost=False):
+                sequence.append(item.name)
+                if item.name=='desk':self.assertEqual(ghost,behind)
+                return sprite(item,ghost)
+            with patch.object(r,'player',record_player),patch.object(r.developer_art,'sprite',record_sprite):
+                r.world(s,list(position),0)
+            self.assertEqual(sequence.index('player')<sequence.index('desk'),behind)
+
+    def test_todo_pages_are_real_optional_interactions_and_hold_keys_do_not_skip(self):
+        from puzzle_maze.dev_preview import PreviewGame
+        from puzzle_maze.game import GameScene
+        g=PreviewGame('kevin-notes',True)
+        self.assertEqual(g.scene,GameScene.SCROLL);self.assertEqual(g.reading,'studio_todo')
+        self.assertIn('studio_todo',g.session.lore)
+        for page in range(1,4):
+            g.event(pygame.event.Event(pygame.KEYDOWN,key=pygame.K_RIGHT));self.assertEqual(g.reading_page,page)
+            g.event(pygame.event.Event(pygame.KEYDOWN,key=pygame.K_RIGHT,repeat=True));self.assertEqual(g.reading_page,page)
+            g.draw(0)
+            rects=g.renderer.ui.rects
+            self.assertTrue(all(g.screen.get_rect().contains(r) for r in rects))
+            self.assertTrue(all(not a.colliderect(b) for i,a in enumerate(rects) for b in rects[i+1:]))
+        self.assertFalse(g.persistent)
+
+    def test_cinematic_has_a_collision_free_continuous_walk_before_dialogue(self):
+        from puzzle_maze.lab_scene import LabEntrance
+        scene=LabEntrance();previous=scene.position;boxes=[f.footprint for f in FURNITURE]
+        for _ in range(580):
+            scene.update(1/60);x,y=scene.position
+            self.assertLessEqual(abs(x-previous[0])+abs(y-previous[1]),.65)
+            self.assertFalse(contact_blocked(x,y,boxes));self.assertFalse(scene.ready)
+            scene.advance();self.assertEqual(scene.line,0);previous=(x,y)
+        scene.update(.5);self.assertTrue(scene.ready);scene.advance();self.assertEqual(scene.line,1)
+        self.assertEqual(scene.position,MIAO_ROUTE[-1]);self.assertIs(scene.memory(),scene.memory())

@@ -157,6 +157,7 @@ class Game:
             return
         if self.scene==GameScene.SCROLL:
             if self.session.rooms.current=='r28' and key in (pygame.K_LEFT,pygame.K_RIGHT):
+                if getattr(event,'repeat',False):return
                 from puzzle_maze.studio_notes import pages_for
                 self.reading_page=max(0,min(len(pages_for(self.reading))-1,self.reading_page+(1 if key==pygame.K_RIGHT else -1)))
                 return
@@ -296,7 +297,10 @@ class Game:
             if self.treasury_reveal.update(dt):self.scene=GameScene.PLAY;self.cooldown=.25
             return
         if self.scene==GameScene.MEMORY:
-            self.lab_entrance.update(dt);return
+            before=self.lab_entrance.time;self.lab_entrance.update(dt)
+            for when,cue in ((1.2,'step'),(6.2,'use'),(7.6,'key')):
+                if before<when<=self.lab_entrance.time:self.audio.play(cue)
+            return
         if self.scene!=GameScene.PLAY:return
         if self.session.rooms.current=='r27' and not self.treasury_seen:
             from puzzle_maze.treasury_scene import TreasuryReveal
@@ -409,7 +413,7 @@ class Game:
 def main():
     parser=argparse.ArgumentParser(description='Independent Puzzle Maze')
     parser.add_argument('--campaign',choices=('4.5','4','3','2'),default='4.5',help='Campaign edition; the remaster preserves older progress during migration')
-    parser.add_argument('--dev-preview',choices=('grey-pixel','developer-room','miao-entrance','developer-diaries'),help='Disposable production-scene preview; no saves or rewards')
+    parser.add_argument('--dev-preview',choices=('grey-pixel','developer-room','miao-entrance','developer-diaries','kevin-notes'),help='Disposable production-scene preview; no saves or rewards')
     parser.add_argument('--legacy',action='store_true',help='Play the original 2.1 campaign and save')
     parser.add_argument('--headless',action='store_true');parser.add_argument('--frames',type=int)
     parser.add_argument('--screenshot',help='Write a screenshot after a bounded run')

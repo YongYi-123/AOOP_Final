@@ -4,7 +4,7 @@ DISCOVERY='DEBUG LAYER DISCOVERED. ORIGINAL MAP RESTORED.'
 LORE={
  'kevin_photo':('OLD PHOTOGRAPH',('Kevin and a much smaller','Miao, beside the workbench.','His hand steadies her paw.','The corners are worn soft.')),
  'kevin_note':('KEVIN / HANDWRITTEN NOTE',('Prototype 07 failed again.','Miao stayed until sunrise.','She seems to think I am','doing something important.')),
- 'miao_memory':('MIAO MEOW',('Twelve keyboards. Two paws.','This may take a while.','I call the quiet one.','If there is a quiet one.')),
+ 'miao_memory':('MIAO MEOW',('I know that blanket.','He always folded it twice.','I never asked him to.','He just noticed.')),
  'lab_gpu':('VINTAGE GRAPHICS CARD',('Twin fans. Worn contacts.','Kevin kept this card alive','through countless nights.')),
  'lab_keyboard':('CLICK. CLACK.',('A handwritten label:','DO NOT LET MIAO WALK','ON THIS KEYBOARD.','The label has paw prints.')),
  'lab_terminal':('BUILD FAILED',('ERROR: CAT DETECTED','ON KEYBOARD.','The error looks pleased','with itself.')),

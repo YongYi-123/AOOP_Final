@@ -30,5 +30,5 @@ def draw_note(renderer,key,page,room,preview=False):
     r.line(s,(218,181,126),(21,y+17),(298,y+17));r.rect(s,(225,186,137),(21,y+3,3,3))
     renderer.text(title,28,y+5,(113,76,57),max_width=264)
     for i,line in enumerate(pages[page]):renderer.text(line,28,y+24+i*12,(109,86,65),max_width=264)
-    footer=f'LEFT / RIGHT: {page+1}/{len(pages)}   ENTER: Close' if len(pages)>1 else 'ENTER: Close / ESC: Exit' if preview else 'ENTER / ESC: Close'
+    footer=f'ARROWS: {page+1}/{len(pages)} / ENTER: Close' if len(pages)>1 else 'ENTER: Close / ESC: Exit' if preview else 'ENTER / ESC: Close'
     renderer.text(footer,28,y+84,(151,103,69),max_width=264)

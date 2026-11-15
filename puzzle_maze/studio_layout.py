@@ -13,7 +13,7 @@ FURNITURE=(
  Furniture('desk',(80,33,144,75),(88,76,128,27)),
  Furniture('tower',(225,52,25,51),(226,83,23,20)),
  Furniture('bookshelf',(32,43,34,55),(32,78,34,20)),
- Furniture('sofa',(30,142,67,46),(32,164,63,24)),
+ Furniture('sofa',(30,142,67,46),(32,164,63,20)),
  Furniture('table',(108,149,28,33),(109,166,27,16)),
  Furniture('archive',(258,47,45,73),(260,90,43,29)),
  Furniture('food',(272,122,31,32),(272,137,31,17)),
@@ -81,6 +81,8 @@ def migrate_save(data,room):
     if current:
         data['player']=safe_position(data['player'],room)
         data['checkpoint']['pos']=safe_position(data['checkpoint']['pos'],room)
+        if not extra.get('lab_memory_seen',False):
+            data['player']=list(ENTRY);data['checkpoint']['pos']=list(ENTRY)
     points=data.get('explored',{}).get('r28')
     if points is not None:
         if not isinstance(points,list) or any(not isinstance(p,list) or len(p)!=2 or any(type(v) is not int for v in p) or not (0<=p[0]<26 and 0<=p[1]<16) for p in points):raise ValueError('Invalid old studio exploration')
