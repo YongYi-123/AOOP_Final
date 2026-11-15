@@ -134,3 +134,38 @@ class SceneryTests(unittest.TestCase):
                 for stage in range(3) for section in range(4)]
         self.assertEqual(len(set(images)),12)
         self.assertEqual(background.cache_info().maxsize,24)
+
+class CinematicTests(unittest.TestCase):
+    def setUp(self):
+        pygame.init()
+        from font import get_font
+        from neon_brawl.game import BrawlGame
+        self.game=BrawlGame(get_font())
+    def test_all_intro_beats_keep_text_and_characters_in_separate_zones(self):
+        surface=pygame.Surface((400,300)); bounds=surface.get_rect()
+        for step in range(110):
+            self.game.screen_time=step/10; self.game.draw(surface)
+            items=self.game.cinematic.last_layout
+            for kind,label,rect in items:
+                self.assertTrue(bounds.contains(rect),(step,label,rect))
+                for other_kind,other_label,other in items:
+                    if kind=='text' and (other_kind=='actor' or other_label!=label):
+                        self.assertFalse(rect.colliderect(other),(step,label,other_label))
+    def test_real_display_sizes_scale_without_clipping_or_errors(self):
+        for size in ((320,240),(800,600),(1280,720),(1200,900)):
+            for time in (.4,3.5,5.5,6.8,8.5,10.5):
+                self.game.screen_time=time; self.game.draw(pygame.Surface(size))
+    def test_skip_requires_a_fresh_press_before_next_screen(self):
+        event=pygame.event.Event(pygame.KEYDOWN,key=pygame.K_RETURN)
+        self.game.handle_event(event); self.assertEqual(self.game.screen,'title')
+        self.game.handle_event(event); self.assertEqual(self.game.screen,'title')
+        self.game.handle_event(pygame.event.Event(pygame.KEYUP,key=pygame.K_RETURN))
+        self.game.handle_event(event); self.assertEqual(self.game.screen,'select')
+    def test_skip_keys_and_timeout_do_not_start_a_paid_campaign(self):
+        for key in (pygame.K_RETURN,pygame.K_SPACE,pygame.K_ESCAPE):
+            self.game.change('intro'); self.game._pressed.clear()
+            self.game.handle_event(pygame.event.Event(pygame.KEYDOWN,key=key))
+            self.assertEqual(self.game.screen,'title'); self.assertIsNone(self.game.campaign)
+        self.game.change('intro')
+        for _ in range(670): self.game.update(1/60)
+        self.assertEqual(self.game.screen,'title'); self.assertFalse(self.game.started)

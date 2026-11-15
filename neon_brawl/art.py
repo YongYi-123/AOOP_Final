@@ -153,7 +153,19 @@ class Renderer:
                 from .data import ATTACKS
                 a=ATTACKS[f.swing.name]
                 frame=min(3,int(f.swing.age/(a.windup+a.active+a.recovery)*4))
+            if not f.alive: frame=min(3,int(f.defeat_age/.34))
             image=sprite(f.name,'air' if f.jump>0 and not f.swing else f.state,frame,f.facing,getattr(f,"outfit",0))
+            if not f.alive:
+                image=image.copy()
+                image.set_alpha(max(0,int(255*(1-max(0,f.defeat_age-.55)/.9))))
+                if f.name=='RELAY':
+                    for k in range(6):
+                        dx=int(math.sin(k*2.3)*f.defeat_age*24)
+                        dy=int(math.cos(k*2.3)*f.defeat_age*20)
+                        s.fill((100,220,225),(x+dx,y-28+dy,2,2))
+                elif f.name=='NULL':
+                    for row in range(int(f.defeat_age*30)):
+                        image.fill((0,0,0,0),(0,(row*17)%64,64,2))
             if f.state=='phase':
                 radius=25+int(math.sin(time*20)*4)
                 pygame.draw.polygon(s,(235,110,225),[(x-radius,y-28),(x,y-70),(x+radius,y-28),(x,y+2)],2)
@@ -176,6 +188,7 @@ class Renderer:
                 pygame.draw.lines(s,(155,60,105),False,[(gate-3,yy),(gate+2,yy+5),(gate-3,yy+10)],1)
         if campaign.encounter_age<2 and not any(e.boss for e in campaign.enemies):
             from .data import STAGES
+            s.fill((13,13,30),(94,59,212,28))
             self.center(s,STAGES[stage][0],64,c)
             self.center(s,f'BLOCK {campaign.wave+1} / 4',77)
         for x,y in campaign.pickups:

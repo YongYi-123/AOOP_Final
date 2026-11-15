@@ -128,6 +128,7 @@ class EnemyFighter(Fighter):
         self.index, self.phase, self.outfit, self.stage = index, 1, index+stage, stage
         self.timer = 1.3 if self.boss else .9+index*.12
         self.state = 'intro' if self.boss else 'idle'
+        if self.boss: self.invulnerable=self.timer
         self.pattern = 0
         self.brain=BossBrain() if self.boss else None
         self.destination=None
