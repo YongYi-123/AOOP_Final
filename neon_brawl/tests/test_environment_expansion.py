@@ -20,7 +20,7 @@ class StreetCatTests(unittest.TestCase):
             self.assertIsNotNone(cats.cat)
             self.assertTrue(720<=cats.cat.x<=1080)
             self.assertNotIn(cats.cat,[e])
-        self.assertIn(cats.cat.state,('walk','sit','groom','observe'))
+        self.assertIn(cats.cat.state,('walk','run','sit','groom','observe'))
 
     def test_noticeable_twenty_two_second_cadence_and_both_directions(self):
         cats=AmbientCats();directions=set()
@@ -87,3 +87,15 @@ class EngineeringDisplayTests(unittest.TestCase):
         for i,title in enumerate(DISPLAY_TITLES):
             self.assertLessEqual(f.render(title,(255,255,255)).get_width(),138)
             self.assertIs(images[i],schematic(i))
+
+class CuteCatTests(unittest.TestCase):
+    def test_five_faces_have_two_lit_eyes_and_blink_together(self):
+        from neon_brawl.ambient import CAT_COLORS
+        self.assertEqual(len(CAT_COLORS),5)
+        for variant in range(5):
+            for state in ('walk','sit','groom','observe','run'):
+                s=cat_sprite(variant,state,0,1)
+                for x in (14,18):self.assertEqual(tuple(s.get_at((x,6)))[:3],(246,245,216))
+                blink=cat_sprite(variant,state,7,1)
+                self.assertNotEqual(s.get_at((14,6)),blink.get_at((14,6)))
+                self.assertEqual(s.get_size(),(22,16))
