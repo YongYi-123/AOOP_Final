@@ -4,6 +4,10 @@ import pygame
 from .data import SECTIONS
 
 def paint_section(s,stage,section):
+    if stage==0:
+        from .market import paint_market
+        paint_market(s,section)
+        return
     from font import get_font
     font=get_font()
     accents=((225,65,150),(65,175,200),(145,85,220))
@@ -19,53 +23,7 @@ def paint_section(s,stage,section):
         for yy in range(70,164,12):
             box((39,35,55),x,yy,width,1)
             for xx in range(x+(yy%24),x+width,24):box((39,35,55),xx,yy,1,12)
-    if stage==0:
-        if section==0:
-            for i,x in enumerate((0,160,335,520,685)):
-                wall(x,145)
-                sign(('LANTERN','NOODLES','PIXEL BAR','NIGHT OWL','REPAIR')[i],x+12,81,120)
-                box((12,15,27),x+30,111,75,54)
-                for yy in range(113,166,6):box((55,40,62),x+31,yy,73,1)
-                for k in range(3):
-                    pygame.draw.line(s,(65,55,75),(x+120,62),(x+120,84))
-                    pygame.draw.ellipse(s,(215,100,85),(x+115,76,10,14))
-                box((65,80,75),x+112,139,15,27);box((105,120,100),x+111,139,17,3)
-        elif section==1:
-            for i,x in enumerate(range(0,800,125)):
-                wall(x,120,(30,25,45))
-                color=((150,55,85),(55,100,115),(145,105,45))[i%3]
-                pygame.draw.polygon(s,color,[(x,100),(x+113,100),(x+124,119),(x-8,119)])
-                for k in range(0,110,17):box((210,175,135),x+k,101,7,17)
-                box((85,55,55),x+5,145,106,20)
-                for k in range(6):
-                    box((180,115+k*12,65),x+10+k*15,139,10,7)
-                sign(('FOOD','TAPES','PARTS')[i%3],x+14,75,90)
-            for x in range(0,800,35):
-                pygame.draw.line(s,(85,70,85),(x,55),(x+35,60))
-                box((225,170,95),x+16,58,3,4)
-        elif section==2:
-            for i,x in enumerate((0,180,370,560,735)):
-                wall(x,165,(24,28,47))
-                sign(('ARCADE','MIDNIGHT FM','NEON VEND','HOTEL','24 HOUR')[i],x+8,72,148,(80,170,195))
-                for k in range(4):
-                    box((35,65,85),x+12+k*37,108,28,41)
-                    box((85,120,135),x+15+k*37,112,20,2)
-                box((50,55,85),x+130,122,22,44);box(c,x+133,126,16,15)
-                box((190,180,90),x+140,148,4,7)
-        else:
-            wall(0,800,(30,24,42))
-            for x in range(20,800,150):
-                box((10,12,23),x,80,120,85)
-                pygame.draw.lines(s,(65,45,70),False,[(x,160),(x+120,85),(x+120,160),(x,85)],2)
-                pygame.draw.polygon(s,(145,65,85),[(x+45,78),(x+75,78),(x+80,118),(x+60,130),(x+40,118)])
-                pygame.draw.lines(s,(235,165,75),False,[(x+49,91),(x+60,104),(x+71,91)],2)
-                box((90,65,60),x+5,145,27,20)
-            sign('WARDEN TERRITORY',260,47,250,(225,155,75))
-        for x in range(145,800,230):
-            box((70,65,90),x,84,3,82);box((185,165,115),x-7,82,18,4)
-        for x in (80,460,700):
-            box((155,120,130),x,122,16,24);box((60,45,70),x+3,126,10,3)
-    elif stage==1:
+    if stage==1:
         if section==0:
             wall(0,800,(25,32,45))
             for x in range(0,800,190):
@@ -138,6 +96,9 @@ def paint_section(s,stage,section):
     sign(SECTIONS[stage][section],12,145,190,tuple(int(v*.8) for v in c))
 
 def animate_section(s,stage,section,camera,time):
+    if stage==0:
+        from .market import market_motion
+        market_motion(s,section,camera,time)
     if stage==1 and section==2:
         for i in range(8):
             x=int((i*61-camera*.55)%420); y=160-int((time*17+i*9)%30)
