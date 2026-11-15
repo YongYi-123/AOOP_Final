@@ -1,3 +1,29 @@
+# Puzzle Maze v4.5 重製版
+
+目前街機預設啟動 v4.5。正常樓層僅 **1F／B1F**，保留原 27 房並加入 Developer Room，共 28 房；皇家寶庫仍是 B1F 結局區。
+
+- 新增暖石城堡、翠綠庭園、酒紅圖書館與藍紫地下區配色，維持像素清晰度與既有碰撞。
+- `N` 提供逐房漸進提示；兩個衝刺機關在 v4.5 放寬至 0.85 秒，仍需要 Boots。
+- Grey Pixel 沿用 **Secret Item 03 / `dungeon_grey_pixel`**。Map → Whisper Archive 炸牆 → 收集像素 → Developer Room，英文照片／Kevin 手稿／Miao Miao 對話可閱讀並保存。
+- 透過既有玩家事件記錄主線與 Kevin Easter Egg；Golden Cat 仍是 Item 02。提前發現會留在 Maze，第三章開啟後再同步。
+- 舊存檔在記憶體移轉，首次覆存舊格式前保留 `.pre-v45` 備份；無效舊房號安全落地，保留可辨識物品與旗標。
+- 全部新增遊戲文字為英文。此文件及攻略使用繁體中文。
+
+**完整新攻略：[PLAYER_ROUTE_V45.md](PLAYER_ROUTE_V45.md)**。舊攻略與下列歷史說明不代表目前 v4.5 路線。
+
+```sh
+.venv/bin/python arcade_lobby/main.py
+.venv/bin/python -m puzzle_maze --campaign 4.5
+SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy PYTHONPATH=.:puzzle_maze/tests .venv/bin/python -m unittest discover -s puzzle_maze/tests -p 'test_*.py' -q
+SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy .venv/bin/python -m puzzle_maze.review45 --output /tmp/maze45-review
+```
+
+存檔、驗證與本次整合紀錄見 [DEVELOPMENT.md](DEVELOPMENT.md)。尚未進行真人桌面通關及實體音訊試聽；自動路線與渲染檢視不等同真人手感驗收。
+
+---
+
+## 下列為保留的 v4.4 與更舊版本歷史資料
+
 # Puzzle Maze 4.4 — Emberglass Hollow
 
 An original Python / Pygame dungeon adventure upgraded in place. Twenty-seven

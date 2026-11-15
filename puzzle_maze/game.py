@@ -334,7 +334,7 @@ class Game:
 
 def main():
     parser=argparse.ArgumentParser(description='Independent Puzzle Maze')
-    parser.add_argument('--campaign',choices=('4.5','4','3','2'),default='4.5',help='Campaign version, each with its own save')
+    parser.add_argument('--campaign',choices=('4.5','4','3','2'),default='4.5',help='Campaign edition; the remaster preserves older progress during migration')
     parser.add_argument('--legacy',action='store_true',help='Play the original 2.1 campaign and save')
     parser.add_argument('--headless',action='store_true');parser.add_argument('--frames',type=int)
     parser.add_argument('--screenshot',help='Write a screenshot after a bounded run')

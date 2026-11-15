@@ -1,3 +1,24 @@
+# NEON BRAWL 環境擴充更新
+
+目前版本保留既有控制、戰鬥、敵群、頭目、機台與票券結算，新增：
+
+- 四區香港風格霓虹夜街：直式英文招牌、密集公寓／冷氣機、電纜、餐館、夜市攤棚、蒸氣、雨影與燈光閃爍。依英文限定要求，遊戲招牌不使用中文。
+- 三色背景街貓：走動、坐下、伸展、理毛、觀望與逃離；最多一隻，完全不進入戰鬥目標／碰撞，也不會受傷。
+- 四區廢棄地鐵：閘門、路線圖、空月台、破損售賣機、維修管道、漏水、火花、列車光影與控制室。
+- 五種運算設施視覺：保全入口、機櫃走廊、冷卻供電、中央處理室、頭目競技場；保留四個戰鬥區，後兩種外觀隨最終戰階段銜接。
+- 0.45 秒背景漸變；風扇、資料流、狀態燈與核心階段燈色。背景快取有上限，裝飾不影響戰鬥。
+
+```sh
+.venv/bin/python arcade_lobby/main.py
+SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy PYTHONPATH=arcade_lobby:. .venv/bin/python -m unittest neon_brawl.tests.test_combat neon_brawl.tests.test_evolution neon_brawl.tests.test_environment_expansion test_neon_brawl -q
+SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy PYTHONPATH=arcade_lobby:. .venv/bin/python -m neon_brawl.review --output /tmp/neon-brawl-review
+```
+
+由 Arcade Floor 左島台 NEON BRAWL 進入。檢視工具輸出包括十二區、額外競技場及背景貓。
+本次整合與驗證紀錄見 [Maze 開發紀錄](../puzzle_maze/DEVELOPMENT.md) 最後一節。以下為保留的遊戲與 Phase 2 說明；其中舊場景名稱以此更新為準。
+
+---
+
 # NEON BRAWL
 
 Original Python/Pygame beat 'em up integrated with Neon Corner Arcade.
