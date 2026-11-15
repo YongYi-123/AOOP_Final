@@ -642,3 +642,182 @@ Files changed in 4.4 (all scoped to puzzle_maze):
 - puzzle_maze/tests/test_v4_campaign.py
 - puzzle_maze/themes.py
 - puzzle_maze/vault.py
+
+---
+
+# Puzzle Maze v4.5 ＋ NEON BRAWL 環境擴充交付紀錄
+
+本次從 `feature/neon-brawl` 的 `290aa97` 建立
+`feature/maze45-brawl-environments`。初始工作目錄乾淨；沒有額外 AGENTS.md。
+另一 Maze 分支未有此分支缺少的 Maze 提交，僅有較舊雙人介面的檔案差異，因此
+保留兩邊原始歷史，直接在已有新版單人整合的基底開新分支，沒有重設、rebase、
+squash、amend、推送或合併 main。作者仍為 `nora950817 <nora.ee13@nycu.edu.tw>`。
+
+## Maze：實際樓層、路線與美術
+
+查核 v4.4 的 27 房，原本就只有 1F／B1F；看似第三層的 Royal Treasure Vault
+是 B1F 結局區。v4.5 保留全部有意義的舊房與穩定 ID，新增 1F 的隱藏
+Developer Room，合計 28 房；沒有盲目刪除寶庫或必要能力。
+
+新增獨立 remaster 配色：庭園、暖石城堡、酒紅圖書館、藍紫晶室、銅色工坊、
+地下水池、機械工坊、奧術遺跡、皇家區及除錯房。既有碰撞幾何與舊版配色不改。
+特殊皇家寶庫美術保留，地圖仍只切換兩層；秘密房先發現才顯示。
+
+`N` 為逐房漸進提示，依請求次數與停留時間提高明確程度。逐房檢查能力、
+金屬、火盆、殺敵順序、兩柱、Iron Orb、晶體與 Boss Key 等依賴。修正壺與 Orb
+易混淆的提示；v4.5 的 r6／r14 時計窗口從 0.35 秒改為 0.85 秒，但仍須 Boots
+及實際衝刺才能通過，舊版不變。
+
+完整合法操作路線通過：Map／Gloves／Powder／Mirror／Compass → Boots → B1F
+Warden → Magnet、兩柱、Royal Resonance → Prism → Boss Key → Portal／Circuit
+→ 三階段 Ancient Golem → r18 → Royal Vault 三箱 → 結局。可選礦坑、圖書館、
+月夜鑄幣室、Starling Shrine 與全部寶物亦由完整路線走訪。
+
+## Grey Pixel、Developer Room 與主線
+
+穩定 ID `dungeon_grey_pixel` 保持 **Secret Item 03**；Golden Cat 仍是 Item 02。
+
+1. 取 Map、取得炸彈後，從 r5 東裂牆進 r24 Whisper Archive。
+2. Map 才能辨認 `(22,7)` 的灰色接縫；用 B 炸開，等待展開／生成。
+3. E 收集 `(23,7)` 的真實 Grey Pixel，顯示英文訊息
+   `DEBUG LAYER DISCOVERED. ORIGINAL MAP RESTORED.`。
+4. 從 `(23,8)` 進 r28 Developer Room；可帶 Orb，E 會優先調查秘密／故事物件，
+   不會因放下 Orb 而打斷收集與閱讀。
+5. 房內有除錯網格、破損座標、桌子、舊照片、Kevin 手稿與 Miao Miao。
+   英文對話分行顯示，例：`This room... I've been here before. So why can't I remember anything?`
+6. 從西門安全返回。收集與閱讀保存在遠征擴充資料，重設不重複取得。
+7. 第三章開啟後，透過現有 owner-scoped `secret_item_found` 事件一次記錄主線。
+   提前找到先保存 Maze 進度，章節符合時再同步；照片使用既有 `easter_egg_found`
+   記 Kevin 線索，不新增額外貨幣服務。
+
+既有檔在記憶體移轉，不在載入時寫回。首次覆存舊格式前，建立不覆寫的
+`.pre-v45` 備份。舊樓層／失效房號移至合法安全落點，保留可辨識物品、能力與旗標。
+舊 AdvancedDungeonSession 載入介面會依存檔版本分派，避免新版資料被誤判成新局。
+Royal Clear History、個人遠征收據與大廳免費試玩／零帳戶支付政策保留。
+
+## 攻略與實際驗證
+
+[PLAYER_ROUTE_V45.md](PLAYER_ROUTE_V45.md) 為繁體中文完整新攻略，引用遊戲內英文。
+包含啟動、控制、地圖、戰鬥、完整主線、每個主要謎題、物品、Boss Key、Grey Pixel、
+最終 Boss、支線、卡關與存檔。附 126 筆通過實際移動／互動／轉移 API 的紀錄，
+逐筆驗證出口、物件與座標；全 28 房、37 實體寶箱及 Grey Pixel 的收集狀態有覆蓋。
+這是合法操作 API 的自動化路線，不等同真人視窗操作。
+
+## Brawl：環境擴充
+
+戰鬥、傷害、敵群、三頭目與結算不重寫。
+
+- **Stage 1**：Neon Shopping Street → Dense Night Market → Restaurant Alley →
+  Kings Crossing。密集紅色直式霓虹、舊公寓、冷氣機、電纜、餐館、攤棚、海報、
+  垃圾桶、蒸氣、反光與閃燈。依最後的英文限定規則，招牌均為英文。
+- **街貓**：三個色系，走動、坐下、伸展、理毛、觀望；附近攻擊時逃離、隱去。
+  最多一隻、間隔出現，只在第一關；不在 Fighter、敵人或碰撞清單，沒有生命或
+  傷害介面，不會受傷，暫停時模擬凍結。
+- **Stage 2**：Metro Entrance → Abandoned Platform → Maintenance Tunnels →
+  Control Room。閘門、站圖、破損電子牌、空月台、長椅、損壞售賣機、管道、
+  維修電箱、警示、火花、漏水、偶爾的列車光影，使用冷藍／綠工業配色。
+- **Stage 3**：Security Checkpoint → Server Rack Corridor → Cooling and Power →
+  Central Computing → Overlord Arena。四個戰鬥區保留，後兩個外觀在最終戰階段
+  平順銜接；大型機櫃、狀態燈、電纜、冷卻風扇、配電、監控畫面、高架地板、
+  中央處理器、能源導管及資料流。頭目階段改變核心燈色，攻擊時導管亮起，沒有
+  新增影響頭目行為的地形。
+- 背景 0.45 秒漸變，舊畫面只在換景時複製；靜態圖塊／風扇／蒸氣快取有上限。
+  動畫與繪圖不更動戰鬥、分數、敵人或碰撞。
+
+## 新增與修改檔案
+
+Maze 新增：`layout45.py`、`remaster.py`、`palettes45.py`、`hints45.py`、`secret45.py`、
+`developer_art.py`、`review45.py`、`PLAYER_ROUTE_V45.md`、
+`tests/test_v45_remaster.py`、`tests/test_v45_route.py`。
+
+Maze 修改：`session.py`、`advanced_dungeon.py`、`advanced_puzzles.py`、`game.py`、
+`lobby_scene.py`、`render.py`、`onboarding.py`、`tests/test_bridge.py`、`.gitignore`、
+`README.md`、本紀錄。
+
+Brawl 新增：`market.py`、`ambient.py`、`metro.py`、`facility.py`、
+`tests/test_environment_expansion.py`。
+
+Brawl 修改：`scenery.py`、`art.py`、`model.py`（僅裝飾更新入口）、`data.py`（場景名稱）、
+`review.py`、`tests/test_evolution.py`（配合新增競技場的快取容量）、`README.md`。
+
+街機修改：`settings.py` 僅更新 Maze 描述；新增 `test_maze45_secret.py`。
+未修改其他小遊戲的實作，未提交玩家存檔、備份、快取、日誌或截圖。
+
+## 精確測試結果
+
+環境：Python 3.12.3／pygame-ce 2.5.8，既有 `.venv`，SDL video/audio dummy。
+
+| 測試組 | 最後結果 |
+|---|---|
+| Puzzle Maze 全量探索測試 | 220 tests / 43.187s / OK |
+| NEON BRAWL 模型、環境、畫面、街機流程 | 64 tests / 6.645s / OK |
+| 街機房間、經濟、其他遊戲、章節、Golden Cat、音訊管理 | 473 tests / 99.704s / OK |
+
+三組合計 **757 項，零失敗、零錯誤**。Maze 在最後互動修正後完整重跑。
+共用街機回歸後的新版標籤／秘密流程另以 6 項街機煙霧測試及 Maze 完整測試確認。
+CLI `--help` 的 4.5 選項亦實際執行確認。
+
+測試包括兩層、房間連線、必需物品、所有小鑰匙消耗順序、完整通關、存檔移轉、
+備份不覆寫、Grey Pixel 的炸牆／Map 前置／收集／重設／存檔、Developer Room
+進出、E 鍵攜帶 Orb 互動、Kevin 主線事件、Golden Cat 保留及防重複獎勵。
+Brawl 涵蓋三人普通操作通關、頭目所有階段、背景唯一性、動畫不更改戰鬥、貓的
+非敵對隔離、快取與轉場、暫停、再次進入、勝敗退出、扣幣、退款及一次性領獎。
+
+實際檢視：Maze 六種房間配色、Developer Room、英文故事視窗；Brawl 十二區、
+額外最終競技場、街貓與開場。曾由實際截圖發現英文截字，已修正並加真正字型
+行寬測試。`review.py` 的跨區原生渲染樣本約 1.17 ms/frame（240 幀），只代表
+此環境的繪圖樣本，不是完整遊戲 FPS 或硬體效能保證。
+
+## 啟動、測試與手動驗收
+
+```sh
+cd /home/nora/AOOP_Final
+.venv/bin/python arcade_lobby/main.py
+.venv/bin/python -m puzzle_maze --campaign 4.5
+
+SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy PYTHONPATH=.:puzzle_maze/tests .venv/bin/python -m unittest discover -s puzzle_maze/tests -p 'test_*.py' -q
+SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy PYTHONPATH=arcade_lobby:. .venv/bin/python -m unittest neon_brawl.tests.test_combat neon_brawl.tests.test_evolution neon_brawl.tests.test_environment_expansion test_neon_brawl -q
+SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy PYTHONPATH=arcade_lobby:.:puzzle_maze/tests .venv/bin/python -m unittest test_rooms test_economy test_rewards test_cat_maze test_galaxy_defender test_pixel_volleyball test_racer_launch test_puzzle_maze test_maze45_secret test_chapters test_forgotten_games test_audio_manager -q
+
+SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy .venv/bin/python -m puzzle_maze.review45 --output /tmp/maze45-review
+SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy PYTHONPATH=arcade_lobby:. .venv/bin/python -m neon_brawl.review --output /tmp/neon-brawl-review
+```
+
+從 HOME 向左進 Arcade Floor：Puzzle Maze 在中島，免費；NEON BRAWL 在左島，
+每局一代幣。Maze 按新攻略完成流程，另測舊檔 Continue、N、R、E 與 Orb、故事
+關閉／重開及回大廳的主線記錄。Brawl 測四區街景、站立等待背景貓、附近交戰的
+逃離、地鐵列車光、核心不同階段燈色、暫停、勝敗與退回街機的一次性結算。
+
+## 已知限制與 Git 交付
+
+沒有真人桌面通關或實體音訊試聽；已做的是自動通關、實際渲染截圖及英文字寬
+檢查。場景仍以原創限色程序像素美術構成；沒有外部／付費素材。沒有宣稱整個
+儲存庫所有測試均跑過。皇家捲軸仍是既有 COMING SOON，與 Grey Pixel 無關。
+
+本次所有新遊戲文字均英文，開發與攻略文件繁體中文。保留每筆真實提交，不創造
+空提交、不變更作者。唯讀遠端查詢時，`origin/feature/neon-brawl` 為 `c1dbd89`，
+新整合分支尚不存在遠端。本任務提交都未推送，另保留前次 Brawl 的八筆既有本機
+提交；不自行 push／merge。最終提交數與文件本身的提交 ID 以交付時 `git log`
+為準（文件不能包含自身尚未產生的雜湊）。
+
+### 本次開發提交
+- `035cb07` feat(maze): establish two-floor remaster preserving the royal vault
+- `19c6f33` fix(maze): recover obsolete floor references without overwriting saves
+- `952b3d5` feat(maze): add colorful castle garden and arcane ruin palettes
+- `af4ec21` feat(maze): add reviewed progressive hints and safe remaster launch
+- `81f9ec7` feat(maze): make Grey Pixel and the developer room obtainable in normal play
+- `6ecd26a` feat(maze): connect Grey Pixel story events and developer room artwork
+- `3b4f6aa` test(maze): verify the complete remaster route and carried-orb secret access
+- `99d113b` fix(maze): dispatch remaster saves safely and clarify Iron Orb clues
+- `fe84536` docs(maze): publish a validated complete v4.5 player walkthrough
+- `8d3f7c2` fix(maze): prevent English lore clipping and ignore remaster save artifacts
+- `9615266` feat(brawl): build dense rain-soaked neon market streets
+- `612e71f` feat(brawl): add non-colliding ambient street cats with idle and flee animations
+- `0d374f0` feat(brawl): expand abandoned metro gates platforms and maintenance scenery
+- `80bfedb` feat(brawl): build supercomputer racks cooling plant and central processor
+- `3e69a1f` feat(brawl): blend district scenery and evolve the final boss arena visually
+- `b977451` fix(maze): update remaster cabinet version and expose progressive hint controls
+- `b7add9c` test(arcade): add reproducible remaster screenshots and verify current version labels
+- `80653c0` feat(maze): widen remaster dash timing while preserving ability gates
+- `f77e4a0` fix(maze): prioritize secret interactions while carrying the Iron Orb
+- `b617aff` docs(arcade): document remaster gameplay environments and verification commands
