@@ -10,7 +10,7 @@ def nearby(session):
     p=session.player;facing=p.x+p.facing[0],p.y+p.facing[1]
     candidates=[(o.id,o.pos,o.data.get('content_id','')) for o in session.puzzles.objects.values()
                 if abs(o.x-p.x)+abs(o.y-p.y)<=1]
-    if abs(p.x-SOFA_TILE[0])+abs(p.y-SOFA_TILE[1])<=1:candidates.append(('sofa',SOFA_TILE,''))
+    if p.y>=11 and abs(p.x-SOFA_TILE[0])+abs(p.y-SOFA_TILE[1])<=1:candidates.append(('sofa',SOFA_TILE,''))
     candidates.sort(key=lambda o:(o[1]!=facing,abs(o[1][0]-p.x)+abs(o[1][1]-p.y)))
     if not candidates:return None
     key,pos,content=candidates[0]
@@ -26,7 +26,7 @@ class SofaSeat:
     @property
     def position(self):
         q=self.time/.4;q=q*q*(3-2*q)
-        return tuple(a+(b-a)*q for a,b in zip(self.start,(64,170)))
+        return tuple(a+(b-a)*q for a,b in zip(self.start,(64,179)))
 
 def physical_objects(surface,session):
     """Each readable item has a small real paper, framed photo or hardware prop."""

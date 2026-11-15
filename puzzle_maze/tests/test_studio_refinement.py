@@ -43,8 +43,8 @@ class StudioRefinementTests(TestCase):
         key(app,pygame.K_e);seat=app.studio_seat
         self.assertEqual(seat.position,(72.,192.))
         app.update(.2,defaultdict(bool,{pygame.K_RIGHT:True}));mid=seat.position
-        self.assertGreater(mid[1],170);self.assertLess(mid[1],192)
-        app.update(.2);self.assertEqual(seat.position,(64.,170.));self.assertEqual((p.x,p.y),(4,11))
+        self.assertGreater(mid[1],179);self.assertLess(mid[1],192)
+        app.update(.2);self.assertEqual(seat.position,(64.,179.));self.assertEqual((p.x,p.y),(4,11))
         app.draw(0);key(app,pygame.K_e,True);self.assertFalse(seat.leaving)
         key(app,pygame.K_e);self.assertTrue(seat.leaving);app.update(.4)
         self.assertIsNone(app.studio_seat);self.assertTrue(app.session.can_enter(p.x,p.y))
@@ -68,3 +68,10 @@ class StudioRefinementTests(TestCase):
             art=DeveloperRoomArt();base=art.floor()
         self.assertLess(sum(base.get_at((150,20))[:3]),600)
         self.assertNotEqual(base.get_at((150,20)),base.get_at((150,125)))
+
+    def test_new_expedition_drops_transient_pose_and_old_maze_capture(self):
+        app=PreviewGame('developer-room',True);app.session.player.x,app.session.player.y=4,11
+        app.session.player.facing=(0,-1);app.visual=[4.,11.];key(app,pygame.K_e)
+        self.assertIsNotNone(app.studio_seat);app.last_maze_frame=pygame.Surface((320,240))
+        app.start(onboarding=False)
+        self.assertIsNone(app.studio_seat);self.assertIsNone(app.last_maze_frame)

@@ -41,6 +41,12 @@ def draw_studio(renderer,session,visual,controls):
             s.blit(art.sprite(obj,ghost),obj.bounds[:2])
     if orb and orb.carried:pygame.draw.circle(s,(150,166,153),(round(feet[0]+6),round(feet[1]-11)),4)
     art.effects(s,renderer.time,getattr(renderer,'lab_effect',None))
+    if scene and scene.time<2.5:
+        # Individual screens wake at different times during the doorway reveal.
+        for i,(x,y,w,h) in enumerate(((116,61,14,9),(150,62,14,9),(272,77,13,9))):
+            if scene.time<1.1+i*.3 or int(scene.time*13+i)%5==0:
+                r.rect(s,(31,40,38),(x,y,w,h))
+            else:r.line(s,(127,158,127),(x+2,y+4),(x+w-3,y+4))
     s.set_clip(None)
     r.rect(s,(53,43,38),(0,208,320,32));r.line(s,(116,87,60),(0,208),(320,208))
     if getattr(renderer,'studio_interactive',True):

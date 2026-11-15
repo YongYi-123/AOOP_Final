@@ -91,6 +91,7 @@ class Game:
         except (OSError,ValueError):self.notify('Save unavailable: progress stays in memory')
 
     def start(self,continuing=False,onboarding=True,legacy=False,archived=False):
+        self.studio_seat=None;self.last_maze_frame=None
         factory=GameSession if legacy else DungeonSession if archived else self.session_factory
         if not self.persistent:continuing=False
         previous_history=getattr(self.session,'history',None)
