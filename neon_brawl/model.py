@@ -3,6 +3,7 @@ import math
 from dataclasses import dataclass, field
 from .data import ROSTER, ENEMIES, ATTACKS, WAVES, ENEMY_DAMAGE, BOSS_DAMAGE
 from .ai import BossBrain
+from .ambient import AmbientCats
 
 def approach(value, target, amount):
     return min(value + amount, target) if value < target else max(value - amount, target)
@@ -230,6 +231,7 @@ class Campaign:
         self.camera = 0.
         self.hazard_clock = 0.
         self.encounter_age = 0.
+        self.cats = AmbientCats()
 
     @property
     def bounds(self): return (self.wave*350+18, self.wave*350+382)
@@ -260,6 +262,7 @@ class Campaign:
         dt = max(0,min(dt,.05))
         self.elapsed += dt
         self.events.clear()
+        self.cats.update(dt,self.elapsed,self.stage,self.wave,self.player.x,self.enemies)
         self.effects = [(x,y,t-dt) for x,y,t in self.effects if t>dt]
         if self.hitstop>0:
             self.hitstop -= dt

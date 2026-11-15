@@ -6,6 +6,7 @@ from .data import ROSTER, ENEMIES, ATTACKS
 from .outfits import outfit_for, BOSS_NAMES
 from .wardrobe import dress, boss_sprite
 from .effects import attack_effects
+from .ambient import draw_cats
 from .scenery import paint_section, animate_section
 
 INK=(12,10,28)
@@ -142,6 +143,7 @@ class Renderer:
                     pygame.draw.lines(s,color,False,[(x,251),(x+4,247),(x+8,255),(x+12,251)],2)
                 self.text(s,'LIVE RAIL! MOVE UP / JUMP',122,272,color)
         animate_section(s,stage,campaign.wave,cam,time)
+        draw_cats(s,campaign.cats,cam,time)
         actors=sorted(campaign.enemies+[campaign.player],key=lambda f:f.y)
         for f in actors:
             x,y=int(f.x-cam),int(f.y)
