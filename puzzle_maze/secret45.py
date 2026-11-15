@@ -4,7 +4,7 @@ DISCOVERY='DEBUG LAYER DISCOVERED. ORIGINAL MAP RESTORED.'
 LORE={
  'kevin_photo':('OLD PHOTOGRAPH',('An arcade before opening.','Kevin stands by two empty','cabinets. A face has been','scratched from the photo.')),
  'kevin_note':('KEVIN / HANDWRITTEN NOTE',('If a room disappears,','look beyond the map edge.','I kept the original here.','Please remember us. - Kevin')),
- 'miao_memory':('MIAO MIAO',("This room... I've been","here before. So why can't","I remember anything?", "That photo feels familiar.")),
+ 'miao_memory':('MIAO MEOW',("This room... I've been","here before. So why can't","I remember anything?", "That photo feels familiar.")),
  'lab_gpu':('VINTAGE GRAPHICS CARD',('Twin fans. Worn contacts.','Kevin kept this card alive','through countless nights.')),
  'lab_keyboard':('ENGINEERING KEYBOARD',('The keys are worn smooth.','Someone used this machine','for years.')),
  'lab_terminal':('ORIGINAL SYSTEM TERMINAL',('An unfinished program is','still running. Its network','leads back to the Arcade.')),

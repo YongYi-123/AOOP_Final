@@ -347,10 +347,10 @@ class Game:
             if self.toast_time and not boss_room:
                 for i,line in enumerate(textwrap.wrap(self.toast,26)):
                     pygame.draw.rect(r.surface,(18,26,39),(6,6+i*16,226,16));r.text(line,10,8+i*16,GOLD,max_width=220)
-            elif self.session.player.x<5 and not boss_room:
+            elif self.session.player.x<5 and not boss_room and self.session.rooms.current not in ('r27','r28'):
                 for i,line in enumerate(textwrap.wrap(self.session.rooms.data['hint'],26)):
                     pygame.draw.rect(r.surface,(18,26,39),(6,6+i*16,226,16));r.text(line,10,8+i*16,max_width=220)
-        if self.scene==GameScene.PLAY and self.session.rooms.current!='r28':r.minimap(self.session)
+        if self.scene==GameScene.PLAY and self.session.rooms.current not in ('r27','r28'):r.minimap(self.session)
         if self.fade>0:
             shade=pygame.Surface((320,240));shade.fill((11,20,30));shade.set_alpha(int(255*min(1,self.fade/.45)));r.surface.blit(shade,(0,0))
         screen=target if target is not None else self.screen

@@ -79,6 +79,7 @@ class Renderer:
         r.circle(s,(98,134,123),(sx+8,sy+8),7,1)
         r.lines(s,(142,170,140),False,[(sx+8,sy+2),(sx+8,sy+14)])
         for e in room['exits']:
+            if session.rooms.current=='r28':continue # Dedicated wooden doorway already matches the actual portal.
             x,y=e['pos'];sx,sy=x*16-cx,y*16-cy
             draw_entrance(s,session,e,sx,sy,self.tiles['#'])
         for start,end in session.puzzles.beams:
