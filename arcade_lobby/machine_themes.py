@@ -710,7 +710,52 @@ def headroom_dungeon(s, pad, frame, neon, accent):
 # ----------------------------------------------------------------- Neon Brawl
 BRAWL_PINK = (255, 75, 155)
 BRAWL_CYAN = (75, 235, 245)
+BRAWL_GOLD = (255, 214, 80)
 BRAWL_BODY, BRAWL_SIDE = (56, 18, 64), (34, 10, 42)
+_BRAWL_SKIN = (232, 168, 124)
+
+
+def _brawler(s, x, base, facing, shirt, hair, glove, pose="guard", step=0, flash=False):
+    """A 7px-tall street fighter with its feet on row `base`; `x` is the left edge of its 3px body.
+    pose: guard / punch / upper / win / down."""
+    if flash:
+        shirt = hair = glove = (255, 255, 255)
+    skin = (255, 255, 255) if flash else _BRAWL_SKIN
+    if pose == "down":                                           # flat on the street
+        s.fill(shirt, (x, base - 1, 4, 1))
+        s.fill(skin, (x + (4 if facing < 0 else -2), base - 1, 2, 1))
+        s.fill(hair, (x - 1 if facing > 0 else x + 6, base - 1, 1, 1))
+        s.fill(scale_color(shirt, 0.6), (x - 3 if facing > 0 else x + 4, base - 1, 3, 1))
+        return
+    front = x + 3 if facing > 0 else x - 1
+    s.fill(hair, (x, base - 7, 3, 1))
+    s.fill(skin, (x, base - 6, 3, 2))
+    s.set_at((x + 2 if facing > 0 else x, base - 6), (20, 10, 30))         # eye
+    s.fill(shirt, (x, base - 4, 3, 2))
+    legs = ((x, x + 2), (x + 1, x + 2), (x, x + 1))[step % 3]
+    for lx in legs:
+        s.fill(scale_color(shirt, 0.55), (lx, base - 2, 1, 2))
+    if pose == "punch":                                          # straight jab: the arm shoots forward
+        reach = (front, front + 1, front + 2) if facing > 0 else (front - 2, front - 1, front)
+        for ax in reach[:-1]:
+            s.set_at((ax, base - 4), skin)
+        s.set_at((reach[-1] if facing > 0 else reach[0], base - 4), glove)
+    elif pose in ("upper", "win"):                              # fist thrown up over the head
+        s.set_at((front, base - 6), skin)
+        s.fill(glove, (front, base - 8, 1, 2))
+        if pose == "win":
+            back = x - 1 if facing > 0 else x + 3
+            s.set_at((back, base - 6), skin)
+            s.fill(glove, (back, base - 8, 1, 2))
+    else:
+        s.set_at((front, base - 5), glove)
+        s.set_at((front, base - 4), skin)
+
+
+def _spark(s, x, y, r, color):
+    for dx, dy in ((-r, 0), (r, 0), (0, -r), (0, r), (-r + 1, -r + 1), (r - 1, r - 1), (r - 1, -r + 1), (-r + 1, r - 1)):
+        s.set_at((x + dx, y + dy), color)
+    s.set_at((x, y), (255, 255, 255))
 
 
 def marquee_brawl(s, r, label, frame, neon, accent):
