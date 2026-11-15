@@ -60,7 +60,7 @@ Grey Pixel 是 **Secret Item 03**，穩定 ID 為 `dungeon_grey_pixel`。Item 02
 4. 帶 Map 調查 `(22,7)` 的異色接縫。站 `(21,7)` 朝東按 B，再退到 `(18,7)`，等爆炸及展開動畫。
 5. 接縫後方 `(23,7)` 會生成小灰色像素。等它生成完成，旁邊按 E 拾取。
 6. 出現 `DEBUG LAYER DISCOVERED. ORIGINAL MAP RESTORED.`；右側 `(23,8)` 開通 **r28 Developer Room／1F**。攜帶 Iron Orb 也可通行。
-7. E 讀 Photo `(12,5)`、Note `(14,5)`，再與 Miao Miao `(8,8)` 互動。她會說：`This room... I feel like I've been here before. But why can't I remember anything?`
+7. E 讀 Photo `(12,5)`、Note `(14,5)`，再與 Miao Miao `(8,8)` 互動。她會說：`This room... I've been here before. So why can't I remember anything?`
 8. 從西側 `(1,7)` 安全返回 r24，再回圖書館。收集與閱讀進度會存檔，R 不會重複發獎。
 9. Arcade 主線第三章開啟時，既有事件系統登錄 Item 03；若提前找到，先保留 Maze 進度，第三章開啟後再進機台／繼續存檔即可同步。照片另記 Kevin Easter Egg，沒有額外貨幣。
 

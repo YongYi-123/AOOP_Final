@@ -2,9 +2,9 @@
 SECRET_ID='dungeon_grey_pixel'
 DISCOVERY='DEBUG LAYER DISCOVERED. ORIGINAL MAP RESTORED.'
 LORE={
- 'kevin_photo':('OLD PHOTOGRAPH',('An arcade before opening day.','Kevin stands beside two empty','cabinets. Someone has scratched','a face out of the photograph.')),
- 'kevin_note':('KEVIN / HANDWRITTEN NOTE',('If the signal erases a room,','look beyond the map boundary.','I kept the original here.','Please do not forget us. - Kevin')),
- 'miao_memory':('MIAO MIAO',("This room... I feel like I've","been here before. But why","can't I remember anything?", "The photograph feels familiar.")),
+ 'kevin_photo':('OLD PHOTOGRAPH',('An arcade before opening.','Kevin stands by two empty','cabinets. A face has been','scratched from the photo.')),
+ 'kevin_note':('KEVIN / HANDWRITTEN NOTE',('If a room disappears,','look beyond the map edge.','I kept the original here.','Please remember us. - Kevin')),
+ 'miao_memory':('MIAO MIAO',("This room... I've been","here before. So why can't","I remember anything?", "That photo feels familiar.")),
  'debug_layer':('GREY PIXEL',('DEBUG LAYER DISCOVERED.','ORIGINAL MAP RESTORED.','The western arch still leads','back to the archive.')),
 }
 

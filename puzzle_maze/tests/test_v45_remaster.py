@@ -101,3 +101,16 @@ class WalkthroughTests(unittest.TestCase):
                 target=re.search(r'→ (r\d+)',detail)[1]
                 self.assertTrue(any(e['target']==target and tuple(e['pos'])==pos for e in rooms[id]['exits']))
         self.assertEqual(seen,set(rooms));self.assertGreater(count,100)
+
+
+class EnglishTextTests(unittest.TestCase):
+    def test_lore_fits_the_actual_bitmap_line_budget(self):
+        from puzzle_maze.secret45 import LORE
+        from puzzle_maze.pixel_font import render
+        import pygame
+        for title,lines in LORE.values():
+            self.assertTrue(title.isascii());self.assertLessEqual(len(lines),4)
+            for line in lines:
+                self.assertTrue(line.isascii())
+                # panel adds two spaces; 3x presentation uses 4x bitmap glyphs.
+                self.assertLessEqual(render('  '+line,33,(255,255,255)).get_width(),244*3)
