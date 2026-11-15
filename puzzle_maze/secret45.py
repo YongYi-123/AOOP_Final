@@ -5,6 +5,9 @@ LORE={
  'kevin_photo':('OLD PHOTOGRAPH',('An arcade before opening.','Kevin stands by two empty','cabinets. A face has been','scratched from the photo.')),
  'kevin_note':('KEVIN / HANDWRITTEN NOTE',('If a room disappears,','look beyond the map edge.','I kept the original here.','Please remember us. - Kevin')),
  'miao_memory':('MIAO MIAO',("This room... I've been","here before. So why can't","I remember anything?", "That photo feels familiar.")),
+ 'lab_gpu':('VINTAGE GRAPHICS CARD',('Twin fans. Worn contacts.','Kevin kept this card alive','through countless nights.')),
+ 'lab_keyboard':('ENGINEERING KEYBOARD',('The keys are worn smooth.','Someone used this machine','for years.')),
+ 'lab_terminal':('ORIGINAL SYSTEM TERMINAL',('An unfinished program is','still running. Its network','leads back to the Arcade.')),
  'debug_layer':('GREY PIXEL',('DEBUG LAYER DISCOVERED.','ORIGINAL MAP RESTORED.','The western arch still leads','back to the archive.')),
 }
 
@@ -26,4 +29,7 @@ def add_secret(rooms):
                decorations=[dict(kind='sigil',pos=[6,0])],
                exits=[dict(id='r28:r24',return_id='r24:r28',target='r24',pos=[1,7],arrival=[23,9],
                            entrance='cave',direction='WEST',requires=[],abilities=[],orb_allowed=True)])
+    dev['objects'].extend([obj('mystery_scroll','gpu',(18,6),optional=True,content_id='lab_gpu'),
+                           obj('mystery_scroll','keyboard',(10,6),optional=True,content_id='lab_keyboard'),
+                           obj('mystery_scroll','terminal',(21,9),optional=True,content_id='lab_terminal')])
     rooms['r28']=dev
