@@ -2,12 +2,11 @@
 import pygame
 from puzzle_maze.studio_layout import FURNITURE,MIAO_TILE
 from puzzle_maze.miao_adapter import guide_frame
-from puzzle_maze.studio_notes import NAMES
 
 def draw_studio(renderer,session,visual,controls):
     s=renderer.surface;art=renderer.developer_art;r=pygame.draw
     renderer.camera.x=renderer.camera.y=0
-    s.set_clip((0,0,320,208));s.blit(art.floor(),(0,0))
+    s.set_clip((0,0,320,240));s.blit(art.floor(),(0,0))
     from puzzle_maze.studio_interactions import nearby,physical_objects
     physical_objects(s,session)
     seat=getattr(renderer,'studio_seat',None)
@@ -37,8 +36,7 @@ def draw_studio(renderer,session,visual,controls):
             image=guide_frame(walking,scene.time if scene else renderer.time,reaction=bool(scene and scene.reaction))
             s.blit(image,image.get_rect(midbottom=(round(miao[0]),round(miao[1]))))
         else:
-            ghost=not seat and feet[1]<depth and art.occludes(obj,actor_rect)
-            s.blit(art.sprite(obj,ghost),obj.bounds[:2])
+            s.blit(art.sprite(obj),obj.bounds[:2])
     if orb and orb.carried:pygame.draw.circle(s,(150,166,153),(round(feet[0]+6),round(feet[1]-11)),4)
     art.effects(s,renderer.time,getattr(renderer,'lab_effect',None))
     if scene and scene.time<2.5:
@@ -48,9 +46,7 @@ def draw_studio(renderer,session,visual,controls):
                 r.rect(s,(31,40,38),(x,y,w,h))
             else:r.line(s,(127,158,127),(x+2,y+4),(x+w-3,y+4))
     s.set_clip(None)
-    r.rect(s,(53,43,38),(0,208,320,32));r.line(s,(116,87,60),(0,208),(320,208))
+    # Quiet foreground floor: no automatic information panel or object names.
     if getattr(renderer,'studio_interactive',True):
-        target=nearby(session)
-        prompt='[E] Stand Up' if seat else '[E] '+target[1] if target else 'A quiet place. Take your time.'
-        renderer.text(prompt,10,212,(225,195,145),max_width=300)
-        renderer.text('WASD: Walk / E: Interact',10,227,(164,145,119),max_width=300)
+        from puzzle_maze.studio_interactions import draw_prompt
+        draw_prompt(renderer,session,seat)

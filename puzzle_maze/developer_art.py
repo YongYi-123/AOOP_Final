@@ -12,13 +12,13 @@ class DeveloperRoomArt:
         s=pygame.Surface(SIZE);r=pygame.draw;s.fill((225,205,166))
         r.rect(s,(242,225,190),(9,7,302,38));r.rect(s,(213,183,139),(9,38,302,9))
         r.line(s,(254,239,204),(10,38),(309,38),2)
-        for y in range(48,201,12):
+        for y in range(48,237,12):
             for x in range(-24 if y%24 else 0,320,48):
                 r.rect(s,(184+(x//48)%2*4,139+(y//12)%2*4,91),(x+1,y,47,11))
                 r.line(s,(204,160,107),(x+4,y+2),(x+42,y+2));r.line(s,(166,121,80),(x+12,y+8),(x+26,y+8))
-        r.rect(s,(235,214,175),(0,42,13,163));r.rect(s,(201,168,122),(12,45,4,159))
-        r.rect(s,(224,200,155),(304,43,16,162));r.line(s,(248,225,184),(304,44),(304,202))
-        r.rect(s,(155,107,71),(12,200,296,8));r.line(s,(221,179,118),(13,200),(307,200),2)
+        r.rect(s,(235,214,175),(0,42,13,198));r.rect(s,(201,168,122),(12,45,4,195))
+        r.rect(s,(224,200,155),(304,43,16,197));r.line(s,(248,225,184),(304,44),(304,238))
+        r.rect(s,(155,107,71),(12,232,296,8));r.line(s,(221,179,118),(13,232),(307,232),2)
         # Two restful textiles with a broad unoccupied central aisle.
         r.rect(s,(151,160,124),(24,134,121,61),border_radius=4);r.rect(s,(221,209,164),(27,137,115,55),2)
         r.rect(s,(225,186,165),(223,138,80,56),border_radius=4);r.rect(s,(246,220,183),(226,141,74,50),1)
@@ -51,8 +51,6 @@ class DeveloperRoomArt:
             r.ellipse(s,(135,107,83),(x,185,15,7));r.ellipse(s,c,(x+1,184,13,5))
             r.ellipse(s,(107,163,170) if x==245 else (153,110,78),(x+3,185,9,2))
         r.circle(s,(200,139,151),(272,190),3);r.line(s,(224,201,145),(268,192),(264,193))
-        r.line(s,(121,107,75),(101,163),(101,137),2);r.ellipse(s,(132,109,76),(95,161,13,5))
-        r.polygon(s,(249,216,153),[(95,133),(107,133),(112,144),(90,144)]);r.line(s,(255,236,188),(92,144),(110,144))
         # Fade pigments, then light just the work areas, not the entire room.
         tint=pygame.Surface(SIZE);tint.fill((172,164,153));s.blit(tint,(0,0),special_flags=pygame.BLEND_RGB_MULT)
         for cx,cy,radius in ((166,81,45),(101,145,34)):
@@ -66,17 +64,21 @@ class DeveloperRoomArt:
             self.parts[item.name]=furniture_sprite(item)
             tint=pygame.Surface(item.bounds[2:],pygame.SRCALPHA);tint.fill((202,188,166,255))
             self.parts[item.name].blit(tint,(0,0),special_flags=pygame.BLEND_RGBA_MULT)
-            self.masks[item.name]=pygame.mask.from_surface(self.parts[item.name])
+            # One-pixel warm contour, like the hub's outlined prop pipeline.
+            image=self.parts[item.name];mask=pygame.mask.from_surface(image)
+            edge=mask.to_surface(setcolor=(63,49,40,255),unsetcolor=(0,0,0,0))
+            outlined=pygame.Surface(image.get_size(),pygame.SRCALPHA)
+            for offset in ((-1,0),(1,0),(0,-1),(0,1)):outlined.blit(edge,offset)
+            outlined.blit(image,(0,0));self.parts[item.name]=outlined
+            self.masks[item.name]=pygame.mask.from_surface(outlined)
     def occludes(self,item,actor):
         if not pygame.Rect(item.bounds).colliderect(actor):return False
         self.ensure(item)
         return self.masks[item.name].overlap(self.actor_mask,(actor.x-item.bounds[0],actor.y-item.bounds[1])) is not None
     def sprite(self,item,ghost=False):
         self.ensure(item)
-        if not ghost:return self.parts[item.name]
-        if item.name not in self.translucent:
-            s=self.parts[item.name].copy();s.set_alpha(180);self.translucent[item.name]=s
-        return self.translucent[item.name]
+        # Furniture never fades when the player moves behind it.
+        return self.parts[item.name]
     def layer(self):
         if self.cached is None:
             self.cached=self.floor().copy()

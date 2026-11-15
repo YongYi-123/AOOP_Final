@@ -24,7 +24,7 @@ class HardwareArtTests(unittest.TestCase):
     def test_studio_is_cached_and_opaque(self):
         from puzzle_maze.developer_art import DeveloperRoomArt
         art=DeveloperRoomArt();s=art.layer()
-        self.assertEqual(s.get_size(),(320,208));self.assertIs(s,art.layer())
+        self.assertEqual(s.get_size(),(320,240));self.assertIs(s,art.layer())
         self.assertEqual(s.get_at((200,120)).a,255)
 
 class MemoryTimingTests(unittest.TestCase):

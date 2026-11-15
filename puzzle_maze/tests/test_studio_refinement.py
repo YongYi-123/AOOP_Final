@@ -15,7 +15,7 @@ class StudioRefinementTests(TestCase):
     def test_furniture_is_smaller_with_real_depth_and_unchanged_safe_entry(self):
         app=PreviewGame('developer-room',True)
         for old,new in zip(SOURCE_FURNITURE,FURNITURE):
-            if old.name!='plant':self.assertLess(new.bounds[2]*new.bounds[3],old.bounds[2]*old.bounds[3])
+            if old.name not in ('plant','lamp'):self.assertLess(new.bounds[2]*new.bounds[3],old.bounds[2]*old.bounds[3])
             self.assertGreater(new.footprint[2],0)
         self.assertTrue(app.session.can_enter(1,7));self.assertTrue(app.session.can_enter(3,8))
     def test_every_note_prompt_selects_exactly_the_same_object_as_e(self):

@@ -11,7 +11,7 @@ def nearby(session):
     candidates=[(o.id,o.pos,o.data.get('content_id','')) for o in session.puzzles.objects.values()
                 if abs(o.x-p.x)+abs(o.y-p.y)<=1]
     if p.y>=11 and abs(p.x-SOFA_TILE[0])+abs(p.y-SOFA_TILE[1])<=1:candidates.append(('sofa',SOFA_TILE,''))
-    candidates.sort(key=lambda o:(o[1]!=facing,abs(o[1][0]-p.x)+abs(o[1][1]-p.y)))
+    candidates.sort(key=lambda o:(abs(o[1][0]-p.x)+abs(o[1][1]-p.y),o[1]!=facing))
     if not candidates:return None
     key,pos,content=candidates[0]
     label='Sit' if key=='sofa' else 'Read Developer Log '+content[-3:] if content.startswith('dev_') else LABELS.get(content,'Inspect')
@@ -28,11 +28,37 @@ class SofaSeat:
         q=self.time/.4;q=q*q*(3-2*q)
         return tuple(a+(b-a)*q for a,b in zip(self.start,(64,179)))
 
+WALL_NOTES={'dev_004':(242,26),'studio_todo':(280,28)}
+
+def object_anchor(session,key):
+    if key=='sofa':return (64,160)
+    if key in WALL_NOTES:
+        x,y=WALL_NOTES[key];return x+5,y
+    obj=session.puzzles.objects[key]
+    return (obj.x*16+8,obj.y*16+4)
+
+def draw_prompt(renderer,session,seat=None):
+    target=('sofa','') if seat else nearby(session)
+    if not target:return
+    x,y=object_anchor(session,target[0]);y=max(3,y-14)
+    box=pygame.Rect(max(2,min(296,x-10)),y,22,13)
+    pygame.draw.rect(renderer.surface,(62,48,40),box)
+    pygame.draw.rect(renderer.surface,(196,164,115),box,1)
+    pygame.draw.polygon(renderer.surface,(196,164,115),[(box.centerx-2,box.bottom),(box.centerx+2,box.bottom),(box.centerx,box.bottom+2)])
+    renderer.text('[E]',box.x+3,box.y+3,(239,213,169),max_width=18)
+
 def physical_objects(surface,session):
     """Each readable item has a small real paper, framed photo or hardware prop."""
     r=pygame.draw
     for obj in session.puzzles.objects.values():
         key=obj.data.get('content_id','');x,y=obj.x*16+4,obj.y*16+5
+        if obj.id in WALL_NOTES:
+            x,y=WALL_NOTES[obj.id];slant=-1 if obj.id=='dev_004' else 1
+            r.polygon(surface,(87,68,50),[(x+1,y+2),(x+11,y+1+slant),(x+12,y+12),(x+2,y+13)])
+            r.polygon(surface,(186,166,122),[(x,y),(x+10,y+slant),(x+11,y+10),(x+1,y+11)])
+            r.line(surface,(212,191,148),(x+2,y+1),(x+8,y+slant+1),2)
+            for yy in (4,7):r.line(surface,(118,104,79),(x+3,y+yy),(x+8,y+yy+slant))
+            continue
         if key=='miao_memory':continue
         if key=='kevin_photo':
             r.rect(surface,(101,69,49),(x,y,10,11));r.rect(surface,(196,173,130),(x+1,y+1,8,9))

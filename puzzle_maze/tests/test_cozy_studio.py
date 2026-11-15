@@ -53,7 +53,7 @@ class CozyStudioTests(unittest.TestCase):
             with patch.object(app.renderer.environment,'tiles',side_effect=AssertionError('dungeon tiles in studio')),patch.object(app.renderer.hud,'draw',side_effect=AssertionError('dungeon HUD in studio')):
                 app.renderer.world(app.session,app.visual,0)
         self.assertEqual(pygame.image.tobytes(g.renderer.surface,'RGB'),pygame.image.tobytes(preview.renderer.surface,'RGB'))
-        self.assertEqual(g.renderer.developer_art.layer().get_size(),(320,208))
+        self.assertEqual(g.renderer.developer_art.layer().get_size(),(320,240))
     def test_legacy_studio_snapshot_relocates_safely_and_keeps_an_immutable_backup(self):
         s=RemasteredSession();s.enter('r28');s.grey_pixel=True;s.lore={'kevin_photo','dev_001'};s.inventory.coins=17
         with TemporaryDirectory() as tmp:
@@ -74,7 +74,7 @@ class CozyStudioTests(unittest.TestCase):
             loaded.save(path);backup=path.with_name(path.name+'.pre-studio-v2')
             self.assertEqual(backup.read_bytes(),before);loaded.save(path);self.assertEqual(backup.read_bytes(),before)
 
-    def test_depth_sort_and_transparency_preserve_front_and_back_positions(self):
+    def test_depth_sort_preserves_front_and_back_without_fading(self):
         from puzzle_maze.render import Renderer
         s=RemasteredSession();s.enter('r28');r=Renderer()
         for position,behind in (((8,3),True),((8,6),False)):
@@ -83,7 +83,7 @@ class CozyStudioTests(unittest.TestCase):
             def record_player(*args):sequence.append('player');return player(*args)
             def record_sprite(item,ghost=False):
                 sequence.append(item.name)
-                if item.name=='desk':self.assertEqual(ghost,behind)
+                if item.name=='desk':self.assertFalse(ghost)
                 return sprite(item,ghost)
             with patch.object(r,'player',record_player),patch.object(r.developer_art,'sprite',record_sprite):
                 r.world(s,list(position),0)

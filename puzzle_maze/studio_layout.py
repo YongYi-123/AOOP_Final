@@ -1,6 +1,6 @@
 """One source for the production studio's placement, contact footprints and story route."""
 from dataclasses import dataclass
-SIZE=(320,208)
+SIZE=(320,240)
 ENTRY=(3,8)
 MIAO_TILE=(9,6)
 MIAO_ROUTE=((24.,128.),(72.,128.),(72.,112.),(152.,112.))
@@ -19,18 +19,22 @@ SOURCE_FURNITURE=(
  Furniture('food',(272,122,31,32),(272,137,31,17)),
  Furniture('cushion',(234,151,50,33),(237,165,47,18)),
  Furniture('post',(286,127,18,41),(286,156,18,12)),
+ Furniture('lamp',(90,130,23,38),(95,157,13,10)),
  Furniture('plant',(20,164,18,31),(23,184,14,9)),
 )
 # Thin, human-scaled furniture: keep each floor contact anchored while reducing volume.
 def refined(item):
     x,y,w,h=item.bounds
-    scale=1 if item.name=='plant' else .67 if item.name in ('desk','tower','archive','bookshelf') else .8
+    scale=1 if item.name in ('plant','lamp') else .67 if item.name in ('desk','tower','archive','bookshelf') else .8
     nw,nh=round(w*scale),round(h*scale)
     nx,ny=x+(w-nw)//2,y+h-nh
     fx,fy,fw,fh=item.footprint
     return Furniture(item.name,(nx,ny,nw,nh),
         (nx+round((fx-x)*scale),ny+round((fy-y)*scale),max(8,round(fw*scale)),max(6,round(fh*scale))))
 FURNITURE=tuple(refined(item) for item in SOURCE_FURNITURE)
+# The desk is a solid work surface, including the lamp's floor projection.
+FURNITURE=tuple(Furniture(f.name,f.bounds,(f.footprint[0],76,f.footprint[2],f.footprint[1]+f.footprint[3]-76)) if f.name=='desk' else f for f in FURNITURE)
+MIAO_FOOTPRINT=(146,106,12,6)
 
 POSITIONS={'photo':(11,5),'note':(13,5),'miao':MIAO_TILE,'gpu':(14,5),'keyboard':(8,5),'terminal':(17,6),
  'dev_001':(3,4),'dev_002':(3,5),'dev_003':(7,4),'dev_004':(15,3),'dev_005':(7,10),'dev_006':(17,4),'dev_007':(3,10),
@@ -46,7 +50,7 @@ def tile_blocked(x,y,footprints=None):
 
 def configure(room):
     from puzzle_maze.build_dungeon import obj
-    room.update(name="Kevin's Cozy Studio",spawn=list(ENTRY),studio_revision=2,decorations=[],
+    room.update(name="Kevin's Cozy Studio",spawn=list(ENTRY),studio_revision=3,decorations=[],
                 architecture='studio',hint='The western door leads back. There is no hurry here.',
                 tiles=['#'*20]*3+['#'+'.'*18+'#' for _ in range(9)]+['#'*20],
                 solid_footprints=[list(f.footprint) for f in FURNITURE])
@@ -58,10 +62,11 @@ def configure(room):
 def approach(room,position):
     """Return a reachable inspection neighbor and facing using the production footprints."""
     x,y=position
+    occupied={tuple(o['pos']) for o in room['objects']}
     for dx,dy in ((0,1),(-1,0),(1,0),(0,-1)):
         px,py=x+dx,y+dy
         rows=room['tiles']
-        if 0<=py<len(rows) and 0<=px<len(rows[0]) and rows[py][px]!='#' and not tile_blocked(px,py,room['solid_footprints']):
+        if 0<=py<len(rows) and 0<=px<len(rows[0]) and rows[py][px]!='#' and (px,py) not in occupied and not tile_blocked(px,py,room['solid_footprints']):
             return (px,py),(-dx,-dy)
     raise ValueError('No studio inspection approach: '+str(position))
 
@@ -81,7 +86,9 @@ def safe_position(pos,room):
 
 def migrate_save(data,room):
     extra=data.get('extension',{}).get('remaster',{})
-    if extra.get('studio_revision',0)==2:return
+    if extra.get('studio_revision',0)==3:return
+    if extra.get('lab_memory_seen',False):
+        room=dict(room,solid_footprints=room['solid_footprints']+[list(MIAO_FOOTPRINT)])
     snapshots=[]
     if 'r28' in data.get('snapshots',{}):snapshots.append(data['snapshots']['r28'])
     current=data.get('room')=='r28'
