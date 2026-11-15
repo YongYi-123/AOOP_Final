@@ -75,3 +75,15 @@ class ExpandedEnvironmentTests(unittest.TestCase):
         self.assertIs(frame,r.background_frame);self.assertIsNone(r.previous_background)
         c.wave=1;r.world(s,c,1);old=r.previous_background;r.world(s,c,1.1)
         self.assertIs(old,r.previous_background)
+
+
+class EngineeringDisplayTests(unittest.TestCase):
+    def test_diagrams_are_distinct_cached_and_fit_their_panels(self):
+        import pygame
+        from neon_brawl.hardware_posters import schematic,DISPLAY_TITLES
+        from font import get_font
+        f=get_font();images=[schematic(i) for i in range(4)]
+        self.assertEqual(len({pygame.image.tobytes(s,'RGB') for s in images}),4)
+        for i,title in enumerate(DISPLAY_TITLES):
+            self.assertLessEqual(f.render(title,(255,255,255)).get_width(),138)
+            self.assertIs(images[i],schematic(i))

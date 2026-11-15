@@ -53,6 +53,8 @@ def paint_metro(s,section):
             pygame.draw.polygon(s,(60,77,95),[(x+7,139),(x+148,139),(x+157,164),(x,164)])
             for k in range(10):box(green if k%3 else warning,x+11+k*13,147,7,3)
             sign('CONTROL // SIGNAL LOST',x+2,48,156)
+    from .hardware_posters import paint_hardware_displays
+    paint_hardware_displays(s,section)
     for x in range(4,800,82):
         pygame.draw.lines(s,(45,65,75),False,[(x,40),(x+36,48),(x+81,40)],2)
     for x in range(0,800,20):
