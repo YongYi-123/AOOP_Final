@@ -42,3 +42,24 @@ class PreviewTests(unittest.TestCase):
                 self.key(g,pygame.K_SPACE);g.update(.01);self.key(g,pygame.K_SPACE)
                 g.start(continuing=True,onboarding=False);g.save();g.event(pygame.event.Event(pygame.QUIT))
             self.assertEqual(sentinel.read_bytes(),before);self.assertEqual(list(Path(folder).iterdir()),[sentinel])
+
+    def test_all_ten_notes_use_real_interactions_and_repeat_keys_do_not_skip(self):
+        from puzzle_maze.developer_diaries import DIARIES
+        g=PreviewGame('developer-diaries',True)
+        for key in DIARIES:
+            self.key(g,pygame.K_F8);self.assertEqual(g.reading,key);self.assertEqual(g.scene,GameScene.SCROLL)
+            self.assertIn(key,g.session.lore)
+            before=g.note_index;self.key(g,pygame.K_F8,repeat=True);self.assertEqual(g.note_index,before)
+        self.assertTrue(DIARIES.keys()<=g.session.lore)
+
+    def test_windowed_constructor_never_binds_a_real_profile(self):
+        from puzzle_maze.game import Game
+        with patch.object(Game,'bind_profile',side_effect=AssertionError('real profile binding')):
+            g=PreviewGame('developer-room',False)
+            self.assertFalse(g.persistent);self.key(g,pygame.K_ESCAPE)
+
+    def test_documented_module_entrypoint_accepts_every_target(self):
+        import subprocess,sys
+        for target in TARGETS:
+            result=subprocess.run([sys.executable,'-m','puzzle_maze','--dev-preview',target,'--headless','--frames','1'],capture_output=True,text=True,timeout=20)
+            self.assertEqual(result.returncode,0,result.stderr)
