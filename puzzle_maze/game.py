@@ -25,6 +25,7 @@ class GameScene(Enum):
     TUTORIAL=auto()
     ARCHIVE=auto()
     SCROLL=auto()
+    MEMORY=auto()
 
 class Game:
     def __init__(self,headless=False,embedded=False,audio=None,legacy=False,campaign=None):
@@ -40,6 +41,7 @@ class Game:
         self.session=self.session_factory();self.scene=GameScene.MENU;self.previous=GameScene.MENU
         self.selection=0;self.running=True;self.cooldown=0
         self.visual=[float(self.session.player.x),float(self.session.player.y)]
+        self.lab_entrance=None
         self.reading='coming_soon'
         self.toast='';self.toast_time=0;self.fade=0;self.autosave=0
         self.last_solved=False
@@ -104,6 +106,12 @@ class Game:
             self.running=False;return
         if event.type!=pygame.KEYDOWN:return
         key=event.key
+        if self.scene==GameScene.MEMORY:
+            if not getattr(event,'repeat',False):
+                if key in (pygame.K_SPACE,pygame.K_ESCAPE):self.lab_entrance.advance(skip=True)
+                elif key in (pygame.K_RETURN,pygame.K_e):self.lab_entrance.advance()
+                if self.lab_entrance.done:self.finish_memory()
+            return
         if self.scene==GameScene.PLAY and self.session.player.hp<=0:
             self.scene=GameScene.GAMEOVER;self.selection=0;return
         if key==pygame.K_m:self.audio.toggle()
@@ -234,12 +242,22 @@ class Game:
             if self.scene!=GameScene.MENU:self.save()
             self.running=False
 
+    def finish_memory(self):
+        self.session.lab_memory_seen=True
+        self.session.read_lore('kevin_photo');self.session.read_lore('miao_memory')
+        self.scene=GameScene.PLAY;self.cooldown=.25;self.save()
+
     def update(self,dt,keys=None):
         self.toast_time=max(0,self.toast_time-dt);self.fade=max(0,self.fade-dt)
         if self.scene==GameScene.INTRO:
             if self.intro.update(dt):self.scene=GameScene.TUTORIAL;self.fade=0
             return
+        if self.scene==GameScene.MEMORY:
+            self.lab_entrance.update(dt);return
         if self.scene!=GameScene.PLAY:return
+        if isinstance(self.session,RemasteredSession) and self.session.rooms.current=='r28' and not self.session.lab_memory_seen:
+            from puzzle_maze.lab_scene import LabEntrance
+            self.lab_entrance=LabEntrance();self.scene=GameScene.MEMORY;self.fade=0;return
         self.cooldown=max(0,self.cooldown-dt)
         p=self.session.player
         self.session.tick(dt)
@@ -277,8 +295,10 @@ class Game:
         if self.autosave>=15:self.save();self.autosave=0
 
     def draw(self,dt,target=None):
-        r=self.renderer;r.world(self.session,self.visual,dt,self.tool,self.tutorial.controls)
-        if self.scene==GameScene.INTRO:self.intro.draw(r,self.tutorial.controls["confirm"])
+        r=self.renderer;r.hide_miao=self.scene==GameScene.MEMORY
+        r.world(self.session,self.visual,dt,self.tool,self.tutorial.controls)
+        if self.scene==GameScene.MEMORY:self.lab_entrance.draw(r)
+        elif self.scene==GameScene.INTRO:self.intro.draw(r,self.tutorial.controls["confirm"])
         elif self.scene==GameScene.TUTORIAL:self.tutorial.draw(r)
         elif self.scene in (GameScene.MENU,GameScene.PAUSE,GameScene.VICTORY,GameScene.GAMEOVER,GameScene.ARCHIVE):
             title={GameScene.MENU:'PUZZLE MAZE',GameScene.PAUSE:'EXPEDITION PAUSED',GameScene.VICTORY:'HOLLOW AWAKENED',GameScene.GAMEOVER:'GAME OVER',GameScene.ARCHIVE:'OLD EXPEDITIONS'}[self.scene]
