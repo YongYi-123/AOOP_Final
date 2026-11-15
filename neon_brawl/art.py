@@ -225,6 +225,8 @@ class Renderer:
         self.text(s,'J COMBO K HEAVY L JUMP U SPECIAL I DODGE',12,288,(150,150,185))
         bosses=[e for e in c.enemies if e.boss and e.alive]
         if bosses:
+            s.fill((16,17,35),(0,38,400,23))
+            if bosses[0].state in ('intro','guard','teleport','summon') or bosses[0].swing:s.fill((16,17,35),(0,72,400,14))
             b=bosses[0]; self.center(s,f'{BOSS_NAMES[b.name]} / P{b.phase}',42,(255,180,100))
             if b.state=='intro': self.center(s,'INCOMING // WATCH THE WINDUP',76,(245,200,120))
             elif b.swing: self.center(s,b.swing.name.upper()+' // CHANGE LANES OR DODGE',76,(245,200,120))
