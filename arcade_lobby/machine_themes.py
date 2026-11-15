@@ -710,6 +710,7 @@ def headroom_dungeon(s, pad, frame, neon, accent):
 # ----------------------------------------------------------------- Neon Brawl
 BRAWL_PINK = (255, 75, 155)
 BRAWL_CYAN = (75, 235, 245)
+BRAWL_BODY, BRAWL_SIDE = (56, 18, 64), (34, 10, 42)
 
 
 def marquee_brawl(s, r, label, frame, neon, accent):
@@ -726,6 +727,6 @@ BODY_DECORATORS = {"cat": lambda s, f, n, neon, accent: decorate_cat(s, f, neon,
                    "volley": decorate_volley, "racer": decorate_racer, "galaxy": decorate_galaxy,
                    "maze": decorate_maze, "dungeon": decorate_dungeon}
 BODY_COLORS = {"racer": (CHARCOAL, CHARCOAL_SIDE), "maze": (MAZE_BODY, MAZE_SIDE),
-               "dungeon": (DUN_BODY, DUN_SIDE)}   # cabinet body / side colours where not the default
+               "dungeon": (DUN_BODY, DUN_SIDE), "brawl": (BRAWL_BODY, BRAWL_SIDE)}   # cabinet body / side colours where not the default
 HEADROOM = {"cat": (5, headroom_cat), "racer": (4, headroom_racer), "maze": (6, headroom_maze),
             "dungeon": (5, headroom_dungeon)}              # style -> (extra rows above the cabinet, painter)
