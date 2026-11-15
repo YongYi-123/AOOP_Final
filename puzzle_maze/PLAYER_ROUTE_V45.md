@@ -60,9 +60,10 @@ Grey Pixel 是 **Secret Item 03**，穩定 ID 為 `dungeon_grey_pixel`。Item 02
 4. 帶 Map 調查 `(22,7)` 的異色接縫。站 `(21,7)` 朝東按 B，再退到 `(18,7)`，等爆炸及展開動畫。
 5. 接縫後方 `(23,7)` 會生成小灰色像素。等它生成完成，旁邊按 E 拾取。
 6. 出現 `DEBUG LAYER DISCOVERED. ORIGINAL MAP RESTORED.`；右側 `(23,8)` 開通 **r28 Developer Room／1F**。攜帶 Iron Orb 也可通行。
-7. E 讀 Photo `(12,5)`、Note `(14,5)`，再與 Miao Miao `(8,8)` 互動。她會說：`This room... I've been here before. So why can't I remember anything?`
-8. 從西側 `(1,7)` 安全返回 r24，再回圖書館。收集與閱讀進度會存檔，R 不會重複發獎。
-9. Arcade 主線第三章開啟時，既有事件系統登錄 Item 03；若提前找到，先保留 Maze 進度，第三章開啟後再進機台／繼續存檔即可同步。照片另記 Kevin Easter Egg，沒有額外貨幣。
+7. 首次進 r28 會看到 **Kevin's Hidden Engineering Lab**：Miao Meow 從西門走入，停頓後說 `Twelve spare keyboards. One very optimistic owner.`。ENTER 逐句閱讀，SPACE／ESC 安全跳過；完成後不會重演。照片的 Kevin 記錄也會登錄。
+8. 可再按 E 讀 Photo `(12,5)`、Note `(14,5)`、Miao Meow `(8,8)`；GPU `(18,6)`、Keyboard `(10,6)`、Terminal `(21,9)` 是額外可選閱讀點，不影響解謎。另有七篇 `DEV LOG`，以及 Duck／Coffee／Red Button 的無害彩蛋。開發者可依 [Grey Pixel 預覽指南](GREY_PIXEL_PREVIEW.md) 直接測試，用 F8 輪覽日記。
+9. 從西側 `(1,7)` 安全返回 r24，再回圖書館。收集與閱讀進度會存檔，R 不會重複發獎。
+10. Arcade 主線第三章開啟時，既有事件系統登錄 Item 03；若提前找到，先保留 Maze 進度，第三章開啟後再進機台／繼續存檔即可同步。照片另記 Kevin Easter Egg，沒有額外貨幣。
 
 ## Ancient Golem 實戰
 

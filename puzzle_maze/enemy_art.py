@@ -17,7 +17,7 @@ class EnemyPortraits:
     def face(self,surface,enemy,x,y,time):
         r=pygame.draw;hurt=enemy.flash>0
         # White catchlights, tiny cheeks and a mouth are visible at native scale.
-        if enemy.kind=='crystal_ghost':return  # Its translucent body must remain translucent.
+        if enemy.kind in ('slime','crystal_ghost'):return  # Its translucent body must remain translucent.
         ey=7 if enemy.kind in ('golem','crystal_warden') else 8
         if hurt:
             for ox in (5,10):r.lines(surface,(34,39,56),False,[(x+ox-1,y+ey),(x+ox+1,y+ey+1),(x+ox-1,y+ey+2)])

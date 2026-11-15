@@ -26,39 +26,61 @@ def paint_market(s,section):
                 for dy in (14,16):box((40,50,65),xx+14,yy+dy,8,1)
         pygame.draw.lines(s,(65,60,78),False,[(x,45),(x+35,54),(x+108,42)],1)
         vertical(('TEA','ROOMS','DIMSUM','NOODLE')[i%4],x+84,35,red if i%2 else gold)
-    for i,x in enumerate(range(0,800,120)):
-        box((22,22,39),x,104,116,64)
-        name=(('GOLDEN TEA','NIGHT RECORDS','JADE NOODLES','MOON HOTEL')[i%4] if section==0 else
-              ('DIM SUM','FISH BALLS','HOT SKEWERS','TEA HOUSE')[i%4] if section in (1,2) else
-              ('CLOSED','WARDEN CREW','NO ENTRY','KEEP OUT')[i%4])
-        sign(name,x+3,88,111,red if i%3 else cyan)
-        if section==0:
-            for k in range(3):
-                box((35,65,75),x+8+k*34,112,27,42);box((125,100,95),x+11+k*34,116,21,2)
-            box((55,50,70),x+8,157,99,6)
-        elif section==1:
-            pygame.draw.polygon(s,(145,45,65) if i%2 else (45,90,105),[(x,111),(x+110,111),(x+120,128),(x-8,128)])
-            for xx in range(x+4,x+110,14):box((205,175,120),xx,112,5,15)
-            box((100,60,55),x+5,145,106,21)
-            for k in range(6):
-                pygame.draw.ellipse(s,(220,165-k*8,85),(x+11+k*15,141,10,5))
-                box((125,85,75),x+12+k*15,148,8,2)
-        elif section==2:
-            box((35,53,65),x+8,112,47,41);box((155,95,65),x+60,111,47,46)
-            for yy in (120,130,140):box((220,165,105),x+66,yy,35,2)
-            box((65,65,80),x+13,139,34,24);box((225,155,95),x+17,143,26,6)
-            for k in range(3):pygame.draw.ellipse(s,(160,145,135),(x+15+k*9,136,7,3))
+    # Varied open businesses: luminous interiors, visible counters and real displays.
+    x=0
+    for i,w in enumerate((104,126,92,118,108,128,124)):
+        kind=(i+section*2)%9
+        name=('JADE NOODLES','BUBBLE TEA','LUCKY MART','PIXEL ARCADE','CIRCUIT REPAIR','GOLDEN BAKERY','FRESH FRUIT','DIM SUM','HOT SKEWERS')[kind]
+        color=(red,gold,cyan,(220,100,170))[i%4]
+        box((28,20,33),x,105,w-3,63)
+        # Open doorway and warm interior floor establish depth instead of shutter stripes.
+        box((108,73,58),x+5,110,w-14,55)
+        box((229,179,99),x+8,112,w-20,4)
+        box((38,30,39),x+w-29,118,19,45)
+        box((159,105,64),x+w-27,156,15,7)
+        for xx in range(x+12,x+w-35,22):
+            box((246,208,134),xx,120,14,13)
+            box((106,73,57),xx+2,123,10,1)
+            box((106,73,57),xx+2,127,8,1)
+        box((84,50,42),x+7,150,w-42,16)
+        box((219,158,92),x+6,148,w-40,4)
+        if kind in (0,7,8):
+            # Cooking pots, hanging menu and bowls at the street counter.
+            for k in range(max(1,(w-45)//22)):
+                xx=x+13+k*22
+                pygame.draw.ellipse(s,(212,199,165),(xx,141,15,7))
+                box((230,168,87),xx+2,141,11,2)
+                pygame.draw.arc(s,(65,54,51),(xx+3,133,9,11),0,3.14,2)
+            box((180,64,62),x+8,127,12,12)
+        elif kind==1:
+            for k in range(4):
+                xx=x+12+k*13;box((203,166,126),xx,135,8,12)
+                box((235,208,170),xx-1,134,10,2);box((80,49,53),xx+3,129,1,7)
+                for dx in (2,5):box((57,35,43),xx+dx,143,2,2)
+        elif kind in (2,5,6):
+            for row in range(2):
+                for k in range(5):
+                    xx=x+10+k*12;yy=135+row*7
+                    pygame.draw.ellipse(s,((231,153,64),(132,177,83),(220,105,91))[(k+kind)%3],(xx,yy,9,6))
+            box((202,182,144),x+7,133,3,15)
         else:
-            for yy in range(112,167,5):box((60,45,66),x+6,yy,104,2)
-            pygame.draw.polygon(s,(130,45,75),[(x+44,105),(x+76,105),(x+76,145),(x+60,157),(x+44,145)])
-            pygame.draw.lines(s,gold,False,[(x+50,119),(x+60,130),(x+70,119)],2)
-        # Paper posters, refuse bins, steam vents and projecting lamps.
-        box((155,130,120),x+111,118,9,24);box((55,50,75),x+113,121,5,3)
+            for k in range(2):
+                xx=x+12+k*27
+                box((39,42,61),xx,129,20,18);box((71,178,193),xx+3,131,14,9)
+                box((204,119,169),xx+4,143,12,2)
+                if kind==3:
+                    box((97,64,102),xx,144,21,18);box(gold,xx+4,147,3,2)
+        sign(name,x+2,89,w-6,color)
+        # Projecting awnings, lamps, small stools and open entrances remain below signs.
         if i%2:
-            box((50,75,75),x+98,147,15,20);box((95,110,105),x+97,146,17,3)
-        else:
-            box((35,35,50),x+3,161,24,6)
-            for xx in range(x+5,x+25,4):box((95,90,110),xx,162,1,4)
+            pygame.draw.polygon(s,(161,53,69),[(x+1,106),(x+w-4,106),(x+w+1,115),(x-4,115)])
+            for dx in range(5,w-4,13):box((229,184,118),x+dx,107,4,8)
+        for xx in (x+5,x+w-13):
+            pygame.draw.ellipse(s,(195,62,69),(xx,72,7,11));box(gold,xx+2,75,2,5)
+        if kind in (0,1,7,8):
+            box((173,107,68),x+w-18,158,12,3)
+            box((91,59,52),x+w-16,161,2,6);box((91,59,52),x+w-9,161,2,6)
+        x+=w
     for x in range(20,800,170):
         pygame.draw.lines(s,(95,70,90),False,[(x,61),(x+85,72),(x+168,59)],1)
         for dx in (30,75,120):

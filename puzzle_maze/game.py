@@ -25,12 +25,16 @@ class GameScene(Enum):
     TUTORIAL=auto()
     ARCHIVE=auto()
     SCROLL=auto()
+    MEMORY=auto()
+    TREASURY=auto()
+    DISCOVERY=auto()
 
 class Game:
-    def __init__(self,headless=False,embedded=False,audio=None,legacy=False,campaign=None):
+    def __init__(self,headless=False,embedded=False,audio=None,legacy=False,campaign=None,persistent=True):
         if headless:
             os.environ['SDL_VIDEODRIVER']='dummy';os.environ['SDL_AUDIODRIVER']='dummy'
         pygame.display.init();pygame.font.init()
+        self.persistent=persistent
         self.profile_store=None;self.reward_history=None
         self.embedded=embedded
         self.screen=pygame.display.get_surface() if embedded else pygame.display.set_mode((960,720),pygame.RESIZABLE)
@@ -40,6 +44,12 @@ class Game:
         self.session=self.session_factory();self.scene=GameScene.MENU;self.previous=GameScene.MENU
         self.selection=0;self.running=True;self.cooldown=0
         self.visual=[float(self.session.player.x),float(self.session.player.y)]
+        from puzzle_maze.lab_scene import LabEntrance
+        self.lab_entrance=LabEntrance()
+        from puzzle_maze.grey_pixel_scene import GreyPixelReveal
+        self.grey_reveal=GreyPixelReveal()
+        from puzzle_maze.treasury_scene import TreasuryReveal
+        self.treasury_reveal=TreasuryReveal();self.treasury_seen=False
         self.reading='coming_soon'
         self.toast='';self.toast_time=0;self.fade=0;self.autosave=0
         self.last_solved=False
@@ -48,11 +58,12 @@ class Game:
         self.tutorial.bombs=isinstance(self.session,DungeonSession)
         self.tutorial.remastered=isinstance(self.session,RemasteredSession)
         self.tutorial.advanced=isinstance(self.session,AdvancedDungeonSession);self.tutorial.page=0
-        if isinstance(self.session,AdvancedDungeonSession) and not embedded and not headless:
+        if isinstance(self.session,AdvancedDungeonSession) and not embedded and not headless and persistent:
             from puzzle_maze.advanced_dungeon import V4_SAVE
             self.bind_profile('standalone',legacy_save=V4_SAVE)
 
     def bind_profile(self,player_id,root=None,legacy_save=None):
+        if not self.persistent:return
         from puzzle_maze.royal_rewards import CampaignProfile,RoyalClearHistory
         self.profile_store=CampaignProfile(player_id,root,legacy_save)
         try:self.reward_history=self.profile_store.load_history()
@@ -65,6 +76,7 @@ class Game:
         self.toast=message;self.toast_time=seconds
 
     def save(self):
+        if not self.persistent:return
         if self.scene in (GameScene.INTRO,GameScene.TUTORIAL,GameScene.MENU,GameScene.ARCHIVE):return
         try:
             if self.profile_store and isinstance(self.session,AdvancedDungeonSession):
@@ -79,6 +91,7 @@ class Game:
 
     def start(self,continuing=False,onboarding=True,legacy=False,archived=False):
         factory=GameSession if legacy else DungeonSession if archived else self.session_factory
+        if not self.persistent:continuing=False
         previous_history=getattr(self.session,'history',None)
         self.session=(factory.load(self.profile_store.save_path) if self.profile_store and issubclass(factory,AdvancedDungeonSession) else factory.load()) if continuing else factory()
         if isinstance(self.session,AdvancedDungeonSession):
@@ -90,6 +103,7 @@ class Game:
         self.tutorial.bombs=isinstance(self.session,DungeonSession)
         self.tutorial.remastered=isinstance(self.session,RemasteredSession)
         self.tutorial.advanced=isinstance(self.session,AdvancedDungeonSession);self.tutorial.page=0
+        self.treasury_seen=False
         self.tool="pulse"
         self.scene=GameScene.GAMEOVER if self.session.player.hp<=0 else GameScene.VICTORY if self.session.finished else GameScene.PLAY
         if not continuing and onboarding:
@@ -104,6 +118,18 @@ class Game:
             self.running=False;return
         if event.type!=pygame.KEYDOWN:return
         key=event.key
+        if self.scene==GameScene.DISCOVERY:
+            if key in (pygame.K_RETURN,pygame.K_SPACE,pygame.K_ESCAPE) and not getattr(event,'repeat',False):self.finish_discovery()
+            return
+        if self.scene==GameScene.TREASURY:
+            if key in (pygame.K_RETURN,pygame.K_SPACE,pygame.K_ESCAPE) and not getattr(event,'repeat',False):self.scene=GameScene.PLAY;self.cooldown=.25
+            return
+        if self.scene==GameScene.MEMORY:
+            if not getattr(event,'repeat',False):
+                if key in (pygame.K_SPACE,pygame.K_ESCAPE):self.lab_entrance.advance(skip=True)
+                elif key in (pygame.K_RETURN,pygame.K_e):self.lab_entrance.advance()
+                if self.lab_entrance.done:self.finish_memory()
+            return
         if self.scene==GameScene.PLAY and self.session.player.hp<=0:
             self.scene=GameScene.GAMEOVER;self.selection=0;return
         if key==pygame.K_m:self.audio.toggle()
@@ -196,9 +222,10 @@ class Game:
                 obj_data=self.session.puzzles.objects[obj].data
                 if hasattr(self.session,'observe_secret'):self.session.observe_secret()
                 if obj_data.get('grey_pixel'):
-                    self.reading='debug_layer';self.scene=GameScene.SCROLL;self.save()
+                    self.begin_discovery();self.save()
                 if obj_data['type']=='mystery_scroll':
                     self.reading=obj_data.get('content_id','coming_soon')
+                    self.renderer.lab_effect=(self.reading,self.renderer.time)
                     if hasattr(self.session,'read_lore'):self.session.read_lore(self.reading)
                     self.scene=GameScene.SCROLL
                 if obj_data.get('ability'):self.notify('Acquired: '+obj_data['ability'])
@@ -234,12 +261,44 @@ class Game:
             if self.scene!=GameScene.MENU:self.save()
             self.running=False
 
+    def begin_discovery(self):
+        from puzzle_maze.grey_pixel_scene import GreyPixelReveal
+        self.grey_reveal=GreyPixelReveal();self.scene=GameScene.DISCOVERY;self.fade=0
+        self.audio.play('pulse')
+
+    def finish_discovery(self):
+        self.scene=GameScene.PLAY;self.cooldown=.25;self.toast_time=0;self.save()
+
+    def finish_memory(self):
+        self.session.lab_memory_seen=True
+        self.session.read_lore('kevin_photo');self.session.read_lore('miao_memory')
+        self.scene=GameScene.PLAY;self.cooldown=.25;self.save()
+
     def update(self,dt,keys=None):
         self.toast_time=max(0,self.toast_time-dt);self.fade=max(0,self.fade-dt)
         if self.scene==GameScene.INTRO:
             if self.intro.update(dt):self.scene=GameScene.TUTORIAL;self.fade=0
             return
+        if self.scene==GameScene.DISCOVERY:
+            before=self.grey_reveal.time;done=self.grey_reveal.update(dt)
+            if before<2.2<=self.grey_reveal.time:self.audio.play('solve')
+            if done:self.finish_discovery()
+            return
+        if self.scene==GameScene.TREASURY:
+            if self.treasury_reveal.update(dt):self.scene=GameScene.PLAY;self.cooldown=.25
+            return
+        if self.scene==GameScene.MEMORY:
+            self.lab_entrance.update(dt)
+            if self.lab_entrance.time>1.:
+                for i,target in enumerate((12.,7.)):self.visual[i]+=(target-self.visual[i])*min(1,dt*2)
+            return
         if self.scene!=GameScene.PLAY:return
+        if self.session.rooms.current=='r27' and not self.treasury_seen:
+            from puzzle_maze.treasury_scene import TreasuryReveal
+            self.treasury_reveal=TreasuryReveal();self.treasury_seen=True;self.scene=GameScene.TREASURY;self.fade=0;return
+        if isinstance(self.session,RemasteredSession) and self.session.rooms.current=='r28' and not self.session.lab_memory_seen:
+            from puzzle_maze.lab_scene import LabEntrance
+            self.lab_entrance=LabEntrance();self.scene=GameScene.MEMORY;self.fade=0;return
         self.cooldown=max(0,self.cooldown-dt)
         p=self.session.player
         self.session.tick(dt)
@@ -277,8 +336,12 @@ class Game:
         if self.autosave>=15:self.save();self.autosave=0
 
     def draw(self,dt,target=None):
-        r=self.renderer;r.world(self.session,self.visual,dt,self.tool,self.tutorial.controls)
-        if self.scene==GameScene.INTRO:self.intro.draw(r,self.tutorial.controls["confirm"])
+        r=self.renderer;r.hide_miao=self.scene==GameScene.MEMORY
+        r.world(self.session,self.visual,dt,self.tool,self.tutorial.controls)
+        if self.scene==GameScene.DISCOVERY:self.grey_reveal.draw(r)
+        elif self.scene==GameScene.TREASURY:self.treasury_reveal.draw(r)
+        elif self.scene==GameScene.MEMORY:self.lab_entrance.draw(r)
+        elif self.scene==GameScene.INTRO:self.intro.draw(r,self.tutorial.controls["confirm"])
         elif self.scene==GameScene.TUTORIAL:self.tutorial.draw(r)
         elif self.scene in (GameScene.MENU,GameScene.PAUSE,GameScene.VICTORY,GameScene.GAMEOVER,GameScene.ARCHIVE):
             title={GameScene.MENU:'PUZZLE MAZE',GameScene.PAUSE:'EXPEDITION PAUSED',GameScene.VICTORY:'HOLLOW AWAKENED',GameScene.GAMEOVER:'GAME OVER',GameScene.ARCHIVE:'OLD EXPEDITIONS'}[self.scene]
@@ -296,11 +359,17 @@ class Game:
         elif self.scene==GameScene.SCROLL:
             from puzzle_maze.secret45 import LORE
             if self.reading in LORE:
-                title,lines=LORE[self.reading];r.panel(title,lines)
+                title,lines=LORE[self.reading]
+                if self.session.rooms.current=='r28':
+                    r.ui.clear();pygame.draw.rect(r.surface,(27,25,31),(0,156,320,84))
+                    r.text(title,12,160,GOLD,max_width=296)
+                    for i,line in enumerate(lines):r.text(line,12,178+i*11,(235,226,205),max_width=296)
+                else:r.panel(title,lines)
             else:
                 r.panel('COMING SOON',[])
                 r.surface.blit(pygame.transform.scale(r.hud.atlas.get('mystery_scroll'),(36,36)),(142,119))
-            r.text('ENTER / ESC: Close',83,173,GOLD,max_width=160)
+            preview=hasattr(self,'preview_target')
+            r.text('ENTER: Close / ESC: Exit' if preview else 'ENTER / ESC: Close',38 if preview else 83,229 if self.session.rooms.current=='r28' else 173,GOLD,max_width=244 if preview else 160)
         elif self.scene==GameScene.HELP:
             r.panel('FIELD GUIDE',self.tutorial.lines(False))
         elif self.scene==GameScene.MAP:r.map_panel(self.session)
@@ -309,10 +378,10 @@ class Game:
             if self.toast_time and not boss_room:
                 for i,line in enumerate(textwrap.wrap(self.toast,26)):
                     pygame.draw.rect(r.surface,(18,26,39),(6,6+i*16,226,16));r.text(line,10,8+i*16,GOLD,max_width=220)
-            elif self.session.player.x<5 and not boss_room:
+            elif self.session.player.x<5 and not boss_room and self.session.rooms.current not in ('r27','r28'):
                 for i,line in enumerate(textwrap.wrap(self.session.rooms.data['hint'],26)):
                     pygame.draw.rect(r.surface,(18,26,39),(6,6+i*16,226,16));r.text(line,10,8+i*16,max_width=220)
-        if self.scene==GameScene.PLAY:r.minimap(self.session)
+        if self.scene==GameScene.PLAY and self.session.rooms.current not in ('r27','r28'):r.minimap(self.session)
         if self.fade>0:
             shade=pygame.Surface((320,240));shade.fill((11,20,30));shade.set_alpha(int(255*min(1,self.fade/.45)));r.surface.blit(shade,(0,0))
         screen=target if target is not None else self.screen
@@ -335,13 +404,20 @@ class Game:
 def main():
     parser=argparse.ArgumentParser(description='Independent Puzzle Maze')
     parser.add_argument('--campaign',choices=('4.5','4','3','2'),default='4.5',help='Campaign edition; the remaster preserves older progress during migration')
+    parser.add_argument('--dev-preview',choices=('grey-pixel','developer-room','miao-entrance','developer-diaries'),help='Disposable production-scene preview; no saves or rewards')
     parser.add_argument('--legacy',action='store_true',help='Play the original 2.1 campaign and save')
     parser.add_argument('--headless',action='store_true');parser.add_argument('--frames',type=int)
     parser.add_argument('--screenshot',help='Write a screenshot after a bounded run')
     args=parser.parse_args()
-    game=Game(args.headless,legacy=args.legacy,campaign=args.campaign)
+    if args.dev_preview:
+        from puzzle_maze.dev_preview import PreviewGame
+        game=PreviewGame(args.dev_preview,args.headless)
+    else:game=Game(args.headless,legacy=args.legacy,campaign=args.campaign)
     if args.screenshot:
-        game.start(onboarding=False);game.fade=0
-        for _ in range(args.frames or 1):game.draw(1/60)
+        if not args.dev_preview:game.start(onboarding=False)
+        game.fade=0
+        for _ in range(args.frames or 1):
+            if args.dev_preview:game.update(1/60)
+            game.draw(1/60)
         pygame.image.save(game.screen,args.screenshot);pygame.quit()
     else:game.run(args.frames)

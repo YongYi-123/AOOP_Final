@@ -232,6 +232,8 @@ class Campaign:
         self.hazard_clock = 0.
         self.encounter_age = 0.
         self.cats = AmbientCats()
+        from .lab_staff import LabStaff
+        self.staff=LabStaff()
 
     @property
     def bounds(self): return (self.wave*350+18, self.wave*350+382)
@@ -262,7 +264,8 @@ class Campaign:
         dt = max(0,min(dt,.05))
         self.elapsed += dt
         self.events.clear()
-        self.cats.update(dt,self.elapsed,self.stage,self.wave,self.player.x,self.enemies)
+        self.cats.update(dt,self.elapsed,self.stage,self.wave,self.player.x,self.enemies,self.camera)
+        self.staff.update(dt,self.elapsed,self.stage,self.wave,self.player,self.enemies,self.camera)
         self.effects = [(x,y,t-dt) for x,y,t in self.effects if t>dt]
         if self.hitstop>0:
             self.hitstop -= dt

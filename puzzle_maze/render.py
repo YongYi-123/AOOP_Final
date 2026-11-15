@@ -54,29 +54,32 @@ class Renderer:
         self.camera.follow(proxy,len(room['tiles'][0]),len(room['tiles']),viewport=(320,184))
         cx,cy=int(self.camera.x),int(self.camera.y)
         s.set_clip((0,0,320,184))
-        for y,row in enumerate(room['tiles']):
-            for x,kind in enumerate(row):
-                sx,sy=x*16-cx,y*16-cy
-                if -16<sx<320 and -16<sy<208:
-                    s.blit(self.environment.tile(theme_name,kind,(x*37+y*17)%13),(sx,sy))
-                    if kind == '~':
-                        offset=int(self.time*3+x+y)%8
-                        r.line(s,(83,159,174),(sx+offset,sy+6),(sx+min(15,offset+5),sy+6))
-                    elif kind == '.' and (x*17+y*31)%23==0:
-                        r.rect(s,(99,111,94),(sx+5,sy+4,2,1))
-                    elif kind == '#' and (x+3*y)%11==0:
-                        r.line(s,(60,112,82),(sx+2,sy+3),(sx+2,sy+8))
-                        r.rect(s,(78,131,88),(sx+3,sy+4,2,2))
-        self.room_art.draw(s,room,(cx,cy),self.time)
-        self.environment.decorations(s,room,(cx,cy),self.time)
-        self.environment.lighting(s,session,(cx,cy),self.time)
-        if session.rooms.current=='r27':self.vault_art.draw(s,(cx,cy),self.time)
-        if session.rooms.current=='r28':self.developer_art.draw(s,(cx,cy),self.time)
+        if session.rooms.current=='r28':
+            self.developer_art.draw(s,(cx,cy),self.time,getattr(self,"lab_effect",None))
+        else:
+            for y,row in enumerate(room['tiles']):
+                for x,kind in enumerate(row):
+                    sx,sy=x*16-cx,y*16-cy
+                    if -16<sx<320 and -16<sy<208:
+                        s.blit(self.environment.tile(theme_name,kind,(x*37+y*17)%13),(sx,sy))
+                        if kind == '~':
+                            offset=int(self.time*3+x+y)%8
+                            r.line(s,(83,159,174),(sx+offset,sy+6),(sx+min(15,offset+5),sy+6))
+                        elif kind == '.' and (x*17+y*31)%23==0:
+                            r.rect(s,(99,111,94),(sx+5,sy+4,2,1))
+                        elif kind == '#' and (x+3*y)%11==0:
+                            r.line(s,(60,112,82),(sx+2,sy+3),(sx+2,sy+8))
+                            r.rect(s,(78,131,88),(sx+3,sy+4,2,2))
+            self.room_art.draw(s,room,(cx,cy),self.time)
+            self.environment.decorations(s,room,(cx,cy),self.time)
+            self.environment.lighting(s,session,(cx,cy),self.time)
+            if session.rooms.current=='r27':self.vault_art.draw(s,(cx,cy),self.time)
         # Inlaid entrance compass; authored art remains entirely local.
         sx,sy=2*16-cx,7*16-cy
         r.circle(s,(98,134,123),(sx+8,sy+8),7,1)
         r.lines(s,(142,170,140),False,[(sx+8,sy+2),(sx+8,sy+14)])
         for e in room['exits']:
+            if session.rooms.current=='r28':continue # Dedicated wooden doorway already matches the actual portal.
             x,y=e['pos'];sx,sy=x*16-cx,y*16-cy
             draw_entrance(s,session,e,sx,sy,self.tiles['#'])
         for start,end in session.puzzles.beams:
@@ -86,7 +89,8 @@ class Renderer:
             sx,sy=o.x*16-cx,o.y*16-cy
             if not (-16<sx<320 and -16<sy<208):continue
             if isinstance(o,MysteryScroll):
-                if o.data.get('content_id') in ('kevin_photo','kevin_note','miao_memory'):
+                if o.data.get('content_id')=='miao_memory' and getattr(self,'hide_miao',False):continue
+                if session.rooms.current=='r28':
                     self.developer_art.prop(s,o.data['content_id'],sx,sy)
                 else:self.vault_art.scroll(s,sx,sy,self.time,self.environment.glow(theme_name))
             elif isinstance(o,OrbSocket):
@@ -136,9 +140,12 @@ class Renderer:
             elif isinstance(o,CrackedWall):
                 if o.phase!=EntrancePhase.OPEN:
                     s.blit(self.tiles['#'],(sx,sy))
-                    shade=tuple(max(0,c-22) for c in theme.wall)
-                    offset=(o.x*7+o.y*11)%4
-                    r.lines(s,shade,False,[(sx+6+offset,sy+2),(sx+8,sy+6),(sx+5+offset,sy+10),(sx+9,sy+13)])
+                    shade=(34,27,39)
+                    r.lines(s,shade,False,[(sx+5,sy+1),(sx+9,sy+5),(sx+6,sy+9),(sx+10,sy+15)],2)
+                    r.lines(s,shade,False,[(sx+9,sy+5),(sx+13,sy+3),(sx+15,sy+6)],2)
+                    r.lines(s,shade,False,[(sx+6,sy+9),(sx+2,sy+11),(sx+1,sy+14)],2)
+                    r.line(s,(178,137,98),(sx+10,sy+6),(sx+8,sy+9))
+                    for dx,dy in ((3,14),(12,13),(6,15)):r.rect(s,(131,111,95),(sx+dx,sy+dy,2,1))
                     if o.id=='debug_seam' and 'map' in session.inventory.abilities:r.rect(s,(145,149,154),(sx+11,sy+6,2,1))
                     if o.phase==EntrancePhase.REVEALING:
                         progress=1-min(1,o.state.remaining/o.data['duration'])
@@ -225,7 +232,11 @@ class Renderer:
             sx,sy=ex-cx,ey-cy+bob
             color=(251,210,139) if enemy.flash>0 else {'slime':(112,190,108),'bat':(152,127,208),'guardian':(176,138,96),'blink_mage':(144,106,215),'armored_beetle':(104,168,175),'bomb_eater':(215,133,76),'golem':(154,164,179),'mirror_mask':(184,210,211),'pot_hunter':(194,116,103),'crystal_ghost':(141,211,228),'elite_guardian':(164,153,204),'crystal_warden':(100,202,221)}[enemy.kind]
             if enemy.state==EnemyState.DYING:
-                self.enemy_portraits.death(s,enemy,sx,sy);continue
+                if enemy.kind=='slime':
+                    from puzzle_maze.slime_art import slime_frame
+                    s.blit(slime_frame('defeat',int(self.time*8)%4),(sx,sy))
+                else:self.enemy_portraits.death(s,enemy,sx,sy)
+                continue
             if enemy.state==EnemyState.WINDUP:
                 reach=2 if enemy.kind in ('golem','elite_guardian','crystal_warden') else 1
                 for dx in range(-reach,reach+1):
@@ -234,7 +245,9 @@ class Renderer:
                             r.rect(s,(239,118,105),((enemy.x+dx)*16-cx+1,(enemy.y+dy)*16-cy+1,14,14),1)
                 r.rect(s,(239,93,91),(sx-1,sy-1,18,18),1)
             r.ellipse(s,(24,34,44),(sx+1,sy+12,14,4))
-            if enemy.kind=='slime':r.ellipse(s,color,(sx+2,sy+5,12,9))
+            if enemy.kind=='slime':
+                from puzzle_maze.slime_art import slime_frame
+                s.blit(slime_frame('attack' if enemy.state==EnemyState.WINDUP else 'idle',int(self.time*5)%4,enemy.flash>0),(sx,sy))
             elif enemy.kind=='bat':
                 wing=int(math.sin(self.time*18)*3)
                 r.polygon(s,color,[(sx,sy+5+wing),(sx+6,sy+8),(sx+8,sy+5),(sx+10,sy+8),(sx+16,sy+5+wing),(sx+12,sy+13),(sx+4,sy+13)])
@@ -329,6 +342,12 @@ class Renderer:
         if not orb_prompt and (near or getattr(session.inventory,'carried',None)):
             carrying=getattr(session.inventory,'carried',None)
             label=f"{controls['interact']} Drop / G Throw" if carrying else f"[{controls['interact']}] Read" if isinstance(near,MysteryScroll) else '[P] Light' if isinstance(near,Brazier) else f"[{controls['attack']}] Crystal" if isinstance(near,CrystalSwitch) else f"[{controls['interact']}] Lift" if isinstance(near,LiftablePot) else '[B] Bomb' if isinstance(near,CrackedWall) else f"[{controls['ability']}] Pulse" if isinstance(near,SecretPassage) else f"[{controls['interact']}] Interact"
+            if session.rooms.current=='r28' and isinstance(near,MysteryScroll):
+                target=(p.x+p.facing[0],p.y+p.facing[1])
+                near=next((o for o in session.puzzles.objects.values() if isinstance(o,MysteryScroll) and o.pos==target),near)
+                key=near.data.get('content_id','')
+                names={'kevin_photo':'Photo','kevin_note':'Note','miao_memory':'Miao Meow','lab_gpu':'GPU','lab_keyboard':'Keyboard','lab_terminal':'Terminal','lab_coffee':'Coffee','lab_duck':'Duck','lab_button':'Red button'}
+                label=f"[{controls['interact']}] "+('Log '+key[-3:] if key.startswith('dev_') else names.get(key,'Read'))
             px=int(visual[0]*16)-cx;py=int(visual[1]*16)-cy
             hint_y=max(2,min(168,py+18 if carrying or py<18 else py-15))
             hint_x=max(2,min(146,px-30))

@@ -10,7 +10,7 @@ V45_SAVE=Path(__file__).parent/"save_v45.json"
 
 class RemasteredSession(AdvancedDungeonSession):
     def __init__(self,rooms=None):
-        self.grey_pixel=False;self.lore=set()
+        self.grey_pixel=False;self.lore=set();self.lab_memory_seen=False
         self.hint_requests={};self.room_elapsed=0.
         super().__init__(upgrade(rooms or load_rooms(MAP_PATH.with_name('dungeon_v4.json'))))
 
@@ -53,7 +53,7 @@ class RemasteredSession(AdvancedDungeonSession):
 
     def save_extension(self):
         result=super().save_extension()
-        result['remaster']=dict(grey_pixel=self.grey_pixel,lore=sorted(self.lore))
+        result['remaster']=dict(grey_pixel=self.grey_pixel,lore=sorted(self.lore),lab_memory_seen=self.lab_memory_seen)
         return result
 
     def load_extension(self,data):
@@ -62,6 +62,8 @@ class RemasteredSession(AdvancedDungeonSession):
         extra=data.get('remaster',{})
         if type(extra.get('grey_pixel',False)) is not bool or not isinstance(extra.get('lore',[]),list) or not set(extra.get('lore',[]))<=LORE.keys():raise ValueError('Invalid remaster secrets')
         self.grey_pixel=extra.get('grey_pixel',False);self.lore=set(extra.get('lore',[]))
+        if type(extra.get('lab_memory_seen',False)) is not bool:raise ValueError('Invalid lab memory')
+        self.lab_memory_seen=extra.get('lab_memory_seen',False)
         self.observe_secret()
 
     def next_hint(self):
@@ -112,8 +114,7 @@ class RemasteredSession(AdvancedDungeonSession):
         return result
 
     def prepare_loaded_save(self,data):
-        if data.get('content_revision')=='4.5': return data
-        result=super().prepare_loaded_save(data)
+        result=copy.deepcopy(data) if data.get('content_revision')=='4.5' else super().prepare_loaded_save(data)
         from puzzle_maze.puzzles import Chest
         entries=list(result['snapshots'].items())+[(result['room'],result['checkpoint']['objects'])]
         for room,snapshot in entries:

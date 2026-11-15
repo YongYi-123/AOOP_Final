@@ -35,7 +35,7 @@ class Cinematic:
         if time<.9:
             extent=math.sin(min(1,time/.9)*math.pi/2)*w*.43
             pygame.draw.line(s,(180,250,250),(int(w/2-extent),h//2),(int(w/2+extent),h//2),1+int(time*3))
-            text('LINKING TO DISTRICT 09',zones['subtitle'])
+            text('LINKING TO RESEARCH COMPLEX',zones['subtitle'])
         else:
             old=s.get_clip(); s.set_clip(visual)
             pan=int(time*13)%400
@@ -43,9 +43,9 @@ class Cinematic:
             s.blit(background(0,1),(int(-time*9)%200-200,0))
             s.fill((21,23,40),(visual.x,visual.bottom-30,visual.w,30))
             pygame.draw.line(s,(90,55,105),(visual.left,visual.bottom-29),(visual.right,visual.bottom-29))
-            for i in range(42):
+            for i in range(8):
                 x=int((i*71-time*40)%w); y=int((i*43+time*120)%max(1,visual.h))+visual.top
-                pygame.draw.line(s,(65,80,115),(x,y),(x-2,y+5))
+                pygame.draw.line(s,(65,80,115),(x,y),(x,y+3))
             if 2.8<=time<6.5:
                 for i,name in enumerate(('grunt','runner','bruiser')):
                     actor(name,w*(.57+i*.13),visual.bottom-4-i%2*8,dark=True)
@@ -64,15 +64,15 @@ class Cinematic:
                 s.blit(veil,visual)
             s.set_clip(old)
             if time<2.8:
-                header='DISTRICT 09 // NIGHTFALL'; lines=('A CITY LIT BY A THOUSAND SIGNS.','ONE SIGNAL HAS TAKEN CONTROL.')
+                header='RESEARCH COMPLEX // OFFLINE'; lines=('THREE DEPARTMENTS. ONE BROKEN SYSTEM.','ONE SIGNAL HAS TAKEN CONTROL.')
             elif time<4.4:
-                header='STREETS UNDER LOCKDOWN'; lines=('THE WARDEN OWNS THE ALLEY.','THE PHANTOM GUARDS THE WAY BELOW.')
+                header='LABORATORIES UNDER LOCKDOWN'; lines=('THE WARDEN HAS LOCKED THE ML LAB.','THE PHANTOM GUARDS THE HARDWARE WING.')
             elif time<6.3:
-                header='ONE LAST TRANSMISSION'; lines=('REX: WE TAKE OUR STREETS BACK.','NOVA AND BRUNO ARE ALREADY ON THE WAY.')
+                header='ONE LAST TRANSMISSION'; lines=('REX: TIME TO REBOOT THIS PLACE.','NOVA AND BRUNO ARE ALREADY ON THE WAY.')
             elif time<7.3:
                 header='SIGNAL // INTERCEPTED'; lines=('UNKNOWN: YOU CANNOT SILENCE THE CORE.','REX: WATCH US.')
             else:
-                header='BREAK THE SIGNAL'; lines=('THREE FIGHTERS. THREE DISTRICTS.','THE CITY IS WAITING FOR YOU.')
+                header='BREAK THE SIGNAL'; lines=('THREE FIGHTERS. THREE DEPARTMENTS.','THE COMPLEX IS WAITING FOR YOU.')
                 # Logo stays inside its own box; no incoming text flies over dialogue.
                 progress=min(1,(time-7.3)/.6)
                 color=(int(100+155*progress),int(65+35*progress),int(130+55*progress))

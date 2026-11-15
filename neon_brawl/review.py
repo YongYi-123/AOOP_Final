@@ -25,6 +25,8 @@ def generate(output):
         for section in range(4):
             c=Campaign('NOVA'); c.stage=stage; c.wave=section
             c.player.x=section*350+80; c.camera=section*350; c.spawn()
+            c.staff.update(6,6,stage,section,c.player,c.enemies,c.camera)
+            c.cats.update(.05,6,stage,section,c.player.x,c.enemies,c.camera)
             game.campaign=c; game.screen='playing'; game.time=4.5
             game.draw(image);game.time+=.5;game.draw(image)
             sheet.blit(image,(section*400,stage*300))
@@ -35,7 +37,7 @@ def generate(output):
         if e.boss:e.phase=3;e.state='phase'
     game.campaign=final;game.time+=1;game.draw(image);game.time+=.5;game.draw(image)
     pygame.image.save(pygame.transform.scale(image,(1200,900)),output/'computing_arena.png')
-    street=frames[1];street.cats.update(.05,6,0,1,street.player.x,[])
+    street=frames[1];street.cats.update(.05,6,0,1,street.player.x,street.enemies,camera=street.camera)
     game.campaign=street;game.time+=1;game.draw(image);game.time+=.5;game.draw(image)
     pygame.image.save(pygame.transform.scale(image,(1200,900)),output/'street_cat.png')
     sheet=pygame.Surface((500,400)); sheet.fill((15,15,30))
