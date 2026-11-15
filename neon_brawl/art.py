@@ -157,7 +157,7 @@ class Renderer:
                     pygame.draw.lines(s,color,False,[(x,251),(x+4,247),(x+8,255),(x+12,251)],2)
                 self.text(s,'LIVE CIRCUIT! MOVE UP / JUMP',122,272,color)
         animate_section(s,stage,section,cam,time,max((e.phase for e in campaign.enemies if e.boss),default=1),any(e.boss and e.swing for e in campaign.enemies))
-        if stage!=0:campaign.street_life.draw(s,cam,time)
+        campaign.staff.draw(s,cam,time)
         actors=sorted(campaign.enemies+[campaign.player],key=lambda f:f.y)
         for f in actors:
             x,y=int(f.x-cam),int(f.y)

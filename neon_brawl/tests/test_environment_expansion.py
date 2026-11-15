@@ -82,8 +82,8 @@ class EngineeringDisplayTests(unittest.TestCase):
         import pygame
         from neon_brawl.hardware_posters import schematic,DISPLAY_TITLES
         from font import get_font
-        f=get_font();images=[schematic(i) for i in range(4)]
-        self.assertEqual(len({pygame.image.tobytes(s,'RGB') for s in images}),4)
+        f=get_font();images=[schematic(i) for i in range(len(DISPLAY_TITLES))]
+        self.assertEqual(len({pygame.image.tobytes(s,'RGB') for s in images}),6)
         for i,title in enumerate(DISPLAY_TITLES):
             self.assertLessEqual(f.render(title,(255,255,255)).get_width(),138)
             self.assertIs(images[i],schematic(i))

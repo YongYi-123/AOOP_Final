@@ -1,43 +1,54 @@
-"""Original transit engineering displays; plain names, no external logos."""
+"""Readable original CPU schematics, cached once rather than redrawn as text walls."""
 from functools import lru_cache
 import pygame
-
-DISPLAY_TITLES=('CPU / DECODE','GPU / PARALLEL COMPUTE','CLOCK / PIPELINE','MEMORY / DATA BUS')
-@lru_cache(maxsize=4)
+from .research_art import text
+DISPLAY_TITLES=('MIPS / FIVE STAGES','CPU / DATAPATH','REGISTER FILE','CACHE HIERARCHY','ALU / CONTROL UNIT','LOGIC GATES')
+@lru_cache(maxsize=6)
 def schematic(index):
-    from font import get_font
-    index%=4;f=get_font();s=pygame.Surface((148,56));s.fill((13,28,39));r=pygame.draw
-    cyan=(112,202,201);amber=(215,181,103)
-    r.rect(s,(71,115,128),s.get_rect(),1)
-    def text(label,x,y,color=cyan):s.blit(f.render(label,color),(x,y))
-    def node(label,x,y,w=42):
-        r.rect(s,(41,74,85),(x,y,w,12),1);text(label,x+3,y+3)
-    text(DISPLAY_TITLES[index],5,4)
+    index%=6;s=pygame.Surface((174,67));s.fill((20,35,54));r=pygame.draw
+    cyan=(132,204,210);amber=(222,179,126);r.rect(s,(111,148,171),s.get_rect(),2)
+    def node(label,x,y,w=40):
+        r.rect(s,(65,105,128),(x,y,w,13),1);text(s,label,x+3,y+3,cyan)
+    text(s,DISPLAY_TITLES[index],6,5,(209,226,218))
     if index==0:
-        node('REGISTER',5,19,57);node('ALU',89,19,48);node('CACHE',44,36,53)
-        r.lines(s,amber,False,[(62,25),(76,25),(76,42),(97,42)],1)
-        r.line(s,cyan,(76,25),(89,25));r.line(s,cyan,(30,31),(44,42))
-        text('INSTRUCTION DECODER',5,48,amber)
-    elif index==1:
-        text('NVIDIA / AMD',5,44,amber)
-        for k in range(8):
-            x=8+(k%4)*32;y=18+(k//4)*12
-            r.rect(s,(72,137,130),(x,y,20,8),1)
-            r.line(s,cyan,(x+4,y+3),(x+16,y+3))
-    elif index==2:
         for i,label in enumerate(('IF','ID','EX','MEM','WB')):
-            x=5+i*28;node(label,x,22,24)
-            if i<4:r.line(s,amber,(x+24,28),(x+28,28))
-        text('INTEL / TIMING LAB',5,43,amber)
+            x=8+i*32;node(label,x,25,25)
+            if i<4:r.line(s,amber,(x+25,31),(x+32,31),2)
+        text(s,'FETCH DECODE EXECUTE',6,47,amber)
+        text(s,'MEMORY ACCESS WRITE BACK',6,57,cyan)
+    elif index==1:
+        node('REGS',8,22,43);node('ALU',75,22,35);node('RAM',131,22,35)
+        r.lines(s,amber,False,[(51,28),(75,28)],2);r.line(s,amber,(110,28),(131,28),2)
+        r.lines(s,cyan,False,[(149,35),(149,44),(30,44),(30,35)])
+        node('PC',8,48,24);node('CONTROL UNIT',79,48,87)
+        r.lines(s,cyan,False,[(32,54),(62,54),(62,20),(128,20),(128,28)])
+    elif index==2:
+        for i in range(3):node('R'+str(i)+' 000'+str(i%2),10,18+i*12,66)
+        r.lines(s,amber,False,[(76,24),(97,24),(97,34),(110,34)],2)
+        r.lines(s,cyan,False,[(76,48),(94,48),(94,42),(110,42)],2)
+        text(s,'READ A',113,27);text(s,'READ B',113,41)
+        text(s,'WRITE -> REGISTER',9,57,amber)
+    elif index==3:
+        for x,label,h in ((9,'L1',8),(65,'L2',14),(122,'RAM',22)):
+            node(label,x,21,42);r.rect(s,(70,123,145),(x+4,39,34,h))
+        for x in (51,107):r.line(s,amber,(x,27),(x+14,27),2)
+        text(s,'CPU -> L1 -> L2 -> RAM',6,58,amber)
+    elif index==4:
+        r.polygon(s,(81,130,151),[(63,20),(106,20),(99,45),(71,45),(66,35),(71,29)])
+        text(s,'ALU',77,29);r.line(s,amber,(17,24),(63,24),2);r.line(s,cyan,(17,41),(68,41),2)
+        text(s,'A',9,21);text(s,'B',9,38);r.line(s,amber,(104,31),(144,31),2)
+        text(s,'ZERO',133,41);r.line(s,cyan,(122,31),(122,45))
+        text(s,'ADD / AND / OR',7,55,amber)
     else:
-        node('RAM',6,20,42);node('CACHE',94,20,47)
-        r.lines(s,amber,False,[(27,32),(27,40),(115,40),(115,32)],2)
-        text('CONTROL UNIT',5,46,amber)
+        r.lines(s,cyan,False,[(27,23),(44,23),(55,29),(58,36),(55,44),(44,49),(27,49),(27,23)],2)
+        r.circle(s,amber,(62,36),3,1)
+        for y in (29,43):r.line(s,amber,(10,y),(27,y))
+        r.line(s,cyan,(65,36),(87,36));text(s,'NAND',27,55,amber)
+        r.lines(s,cyan,False,[(111,24),(127,24),(144,36),(128,48),(111,48),(118,36),(111,24)],2)
+        r.lines(s,cyan,False,[(105,24),(112,36),(105,48)],1)
+        for y in (28,44):r.line(s,amber,(93,y),(113,y))
+        r.line(s,amber,(145,36),(164,36));text(s,'XOR',124,55,amber)
     return s
 
 def paint_hardware_displays(surface,section):
-    # Fixed wall-mounted information panels above the walkable platform.
-    for i,x in enumerate((10,370,550)):
-        index=(section+i)%4
-        surface.blit(schematic(index),(x,83 if section!=3 else 77))
-        pygame.draw.rect(surface,(76,90,101),(x-2,81 if section!=3 else 75,152,60),1)
+    for i,x in enumerate(range(12,800,200)):surface.blit(schematic((section+i)%6),(x,59))

@@ -47,6 +47,6 @@ class StreetLifeTests(unittest.TestCase):
                 sprite=civilian_sprite(role,state,1,1,1)
                 self.assertEqual(sprite.get_size(),(18,31));self.assertGreater(pygame.mask.from_surface(sprite).count(),80)
     def test_pause_freezes_environment(self):
-        c=Campaign();c.update(.05);before=[(p.x,p.timer,p.state) for p in c.street_life.people]
+        c=Campaign();c.update(.05);before=[(p.x,p.timer,p.state) for p in c.staff.people]
         c.state='paused';c.update(1)
-        self.assertEqual(before,[(p.x,p.timer,p.state) for p in c.street_life.people])
+        self.assertEqual(before,[(p.x,p.timer,p.state) for p in c.staff.people])
