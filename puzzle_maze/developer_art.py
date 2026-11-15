@@ -6,7 +6,7 @@ from puzzle_maze.studio_furniture import furniture_sprite,picture
 
 class DeveloperRoomArt:
     revision='cozy-studio-2'
-    def __init__(self):self.cached=None;self.base=None;self.parts={};self.translucent={}
+    def __init__(self):self.cached=None;self.base=None;self.parts={};self.translucent={};self.masks={};self.actor_mask=pygame.mask.Mask((16,18),fill=True)
     def floor(self):
         if self.base is not None:return self.base
         s=pygame.Surface(SIZE);r=pygame.draw;s.fill((225,205,166))
@@ -44,8 +44,16 @@ class DeveloperRoomArt:
         r.line(s,(121,107,75),(101,163),(101,137),2);r.ellipse(s,(132,109,76),(95,161,13,5))
         r.polygon(s,(249,216,153),[(95,133),(107,133),(112,144),(90,144)]);r.line(s,(255,236,188),(92,144),(110,144))
         self.base=s;return s
+    def ensure(self,item):
+        if item.name not in self.parts:
+            self.parts[item.name]=furniture_sprite(item)
+            self.masks[item.name]=pygame.mask.from_surface(self.parts[item.name])
+    def occludes(self,item,actor):
+        if not pygame.Rect(item.bounds).colliderect(actor):return False
+        self.ensure(item)
+        return self.masks[item.name].overlap(self.actor_mask,(actor.x-item.bounds[0],actor.y-item.bounds[1])) is not None
     def sprite(self,item,ghost=False):
-        if item.name not in self.parts:self.parts[item.name]=furniture_sprite(item)
+        self.ensure(item)
         if not ghost:return self.parts[item.name]
         if item.name not in self.translucent:
             s=self.parts[item.name].copy();s.set_alpha(180);self.translucent[item.name]=s

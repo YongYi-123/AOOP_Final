@@ -27,8 +27,7 @@ def draw_studio(renderer,session,visual,controls):
             image=guide_frame(walking,scene.time if scene else renderer.time,reaction=bool(scene and scene.reaction))
             s.blit(image,image.get_rect(midbottom=(round(miao[0]),round(miao[1]))))
         else:
-            bounds=pygame.Rect(obj.bounds)
-            ghost=feet[1]<depth and bounds.colliderect(actor_rect)
+            ghost=feet[1]<depth and art.occludes(obj,actor_rect)
             s.blit(art.sprite(obj,ghost),obj.bounds[:2])
     if orb and orb.carried:pygame.draw.circle(s,(150,166,153),(round(feet[0]+6),round(feet[1]-11)),4)
     art.effects(s,renderer.time,getattr(renderer,'lab_effect',None))

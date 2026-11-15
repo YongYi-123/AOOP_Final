@@ -17,7 +17,7 @@ def generate(output='/tmp/maze-personality'):
     g.event(pygame.event.Event(pygame.KEYDOWN,key=pygame.K_SPACE));g.update(.01);shot('doorway')
     for _ in range(120):g.update(1/60)
     shot('miao_walk')
-    for _ in range(220):g.update(1/60)
+    for _ in range(520):g.update(1/60)
     shot('miao_dialogue')
     g.event(pygame.event.Event(pygame.KEYDOWN,key=pygame.K_SPACE))
     pygame.image.save(pygame.transform.scale(g.renderer.developer_art.layer(),(1248,768)),output/'studio_overview.png')

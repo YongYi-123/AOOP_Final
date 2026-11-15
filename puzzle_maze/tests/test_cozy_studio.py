@@ -114,3 +114,12 @@ class CozyStudioTests(unittest.TestCase):
             scene.advance();self.assertEqual(scene.line,0);previous=(x,y)
         scene.update(.5);self.assertTrue(scene.ready);scene.advance();self.assertEqual(scene.line,1)
         self.assertEqual(scene.position,MIAO_ROUTE[-1]);self.assertIs(scene.memory(),scene.memory())
+
+
+    def test_transparent_sprite_padding_does_not_fade_unoccluding_furniture(self):
+        from puzzle_maze.developer_art import DeveloperRoomArt
+        art=DeveloperRoomArt();sofa=next(f for f in FURNITURE if f.name=='sofa')
+        self.assertFalse(art.occludes(sofa,pygame.Rect(48,126,16,18)))
+        desk=next(f for f in FURNITURE if f.name=='desk')
+        self.assertTrue(art.occludes(desk,pygame.Rect(128,46,16,18)))
+        first=art.sprite(desk,True);self.assertIs(first,art.sprite(desk,True))
