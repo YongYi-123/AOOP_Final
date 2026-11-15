@@ -28,7 +28,7 @@ class StreetLife:
         if section!=self.section:self.populate(section)
         self.age+=dt
         if (section in (1,3) or time%40>25) and not any(p.role=='police' for p in self.people):
-            x=camera+335;self.people.append(Civilian('police',x,169,0,x))
+            x=camera+365;self.people.append(Civilian('police',x,169,0,x))
         for p in self.people:
             p.timer+=dt
             nearby=[e for e in enemies if e.alive and abs(e.x-p.x)<150]
@@ -64,7 +64,7 @@ class StreetLife:
             s.blit(image,(x-9,y-30))
             if p.role=='police':
                 # A compact patrol scooter at a safe background curb; never a collider.
-                xx=int(p.home-camera)+14
+                xx=int(p.home-camera)+8
                 for dx in (0,19):pygame.draw.circle(s,(22,25,40),(xx+dx,170),4)
                 pygame.draw.lines(s,(89,123,157),False,[(xx,168),(xx+7,160),(xx+19,168),(xx+22,152)],3)
                 s.fill((171,112,132) if int(time)%2 else (109,155,187),(xx+17,151,4,2))
