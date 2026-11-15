@@ -13,7 +13,7 @@ log = logging.getLogger("arcade.audio")
 ASSET_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets")
 # theme -> music file (assets/music/<file>.wav, composed by audio_synth.py). The hub's own
 # theme keeps its old name "lobby". Minigame themes below are short synthesized loops.
-MUSIC_FILES = {**{f"neon_brawl_{i}": f"neon_brawl_{i}" for i in range(4)}, "neon_brawl": "neon_brawl_0", "lobby": "arcade_floor", "prize_plaza": "prize_plaza", "lucky_corner": "lucky_corner",
+MUSIC_FILES = {**{f"neon_brawl_{i}": f"neon_brawl_{i}" for i in range(4)}, "lobby": "arcade_floor", "prize_plaza": "prize_plaza", "lucky_corner": "lucky_corner",
                "home": "home", "golden_age": "golden_age",
                # one theme per minigame (the key is the machine / game id the scene reports)
                "retro_racer": "retro_racer", "pixel_volleyball": "pixel_volleyball", "cat_minesweeper": "cat_minesweeper",

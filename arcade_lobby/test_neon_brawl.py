@@ -105,9 +105,16 @@ class LobbyTests(unittest.TestCase):
         restored=PlayerProfile.from_dict(self.p.to_dict())
         self.assertEqual(restored.tickets,expected); self.assertEqual(restored.high_score('neon_brawl'),c.score)
     def test_defeat_and_repeat_entry_no_stale_state(self):
-        scene=self.launch(); scene.brawl.campaign=Campaign(); scene.brawl.started=True; scene.brawl.change('playing')
-        scene.brawl.campaign.player.health=0; self.frames(1)
-        self.assertEqual(scene.brawl.screen,'game_over'); self.close()
+        scene=self.launch()
+        for _ in range(4):
+            scene.handle_event(pygame.event.Event(pygame.KEYDOWN,key=pygame.K_RETURN))
+            scene.handle_event(pygame.event.Event(pygame.KEYUP,key=pygame.K_RETURN))
+        for _ in range(60*180):
+            self.game.scenes.update(DT)
+            if scene.brawl.screen=='game_over': break
+        self.assertEqual(scene.brawl.screen,'game_over')
+        self.assertEqual(scene.brawl.campaign.player.health,0)
+        self.close()
         scene=self.launch(); self.assertIsNone(scene.brawl.campaign); self.assertEqual(scene.brawl.screen,'intro')
         self.assertEqual(self.p.tokens,18)
     def test_music_stage_boss_and_settings(self):
@@ -158,3 +165,21 @@ class LobbyTests(unittest.TestCase):
         self.assertIs(self.game.scenes.current,self.room)
         self.assertEqual(self.p.tokens,19); self.assertEqual(self.p.tickets,expected)
         self.room._end_play(True); self.assertEqual(self.p.tickets,expected)
+
+    def test_pause_menu_quit_uses_existing_no_refund_policy(self):
+        scene=self.launch()
+        for k in (pygame.K_RETURN,)*4+(pygame.K_ESCAPE,pygame.K_s,pygame.K_s,pygame.K_RETURN):
+            scene.handle_event(pygame.event.Event(pygame.KEYDOWN,key=k))
+            scene.handle_event(pygame.event.Event(pygame.KEYUP,key=k))
+        self.frames()
+        self.assertIs(self.game.scenes.current,self.room)
+        self.assertEqual(self.p.tokens,19); self.assertEqual(self.p.tickets,0)
+
+    def test_coupon_refunded_if_launch_never_opens(self):
+        from item_registry import FREE_PLAY_COUPON
+        self.p.inventory.add_item(FREE_PLAY_COUPON)
+        self.room._start_game(self.machine,use_coupon=True,player=self.room.players[0])
+        self.assertFalse(self.p.inventory.has_item(FREE_PLAY_COUPON))
+        self.game.quit()
+        self.assertTrue(self.p.inventory.has_item(FREE_PLAY_COUPON))
+        self.assertEqual(self.p.tokens,20)

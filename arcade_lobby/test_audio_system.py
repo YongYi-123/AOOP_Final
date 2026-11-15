@@ -49,7 +49,7 @@ class AssetTests(unittest.TestCase):
     def test_every_theme_is_different_music(self):
         starts = {read_wav(os.path.join(am.ASSET_DIR, "music", f"{n}.wav"))[1][:4000] for n in am.MUSIC_FILES.values()}
         self.assertEqual(len(starts), len(am.MUSIC_FILES))
-        self.assertEqual(len(am.MUSIC_FILES), 13)           # 5 rooms (the four of the hub and Trial 01's golden_age) + 8 minigames
+        self.assertEqual(len(am.MUSIC_FILES), 17)           # 13 original themes + 4 NEON BRAWL stage/boss themes
 
     STINGERS = {"power_on": 1.7, "crt_boot": 1.5, "trial_complete": 2.3}     # TRIAL 01's story moments are allowed to breathe
 

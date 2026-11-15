@@ -65,6 +65,7 @@ class Fighter:
             self.swing.age += dt
             a = ATTACKS[self.swing.name]
             recovery = ROSTER[self.name].recovery if self.name in ROSTER else 1
+            if self.swing.age > a.windup+a.active: self.state = 'recovery'
             if self.swing.age >= a.windup + a.active + a.recovery * recovery:
                 self.swing = None
         if self.ready: self.state = 'walk' if abs(self.vx)+abs(self.vy)>5 else 'idle'

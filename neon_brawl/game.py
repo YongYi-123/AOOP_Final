@@ -106,6 +106,8 @@ class BrawlGame:
         dt=max(0,min(dt,.05)); self.time+=dt; self.screen_time+=dt
         if self.screen=='intro':
             if int((self.screen_time-dt)*2)!=int(self.screen_time*2) and self.screen_time<2: self.sound('machine')
+            if self.screen_time-dt<3<=self.screen_time: self.sound('glitch')
+            if self.screen_time-dt<8<=self.screen_time: self.sound('win')
             if self.screen_time>=11: self.change('title')
         elif self.screen in ('tutorial','controls'):
             self.tutorial_player.tick(dt)
