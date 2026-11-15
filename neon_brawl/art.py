@@ -7,7 +7,7 @@ from .outfits import outfit_for, BOSS_NAMES
 from .wardrobe import dress, boss_sprite
 from .effects import attack_effects
 from .ambient import draw_cats
-from .scenery import paint_section, animate_section
+from .scenery import paint_section, animate_section, visual_section
 
 INK=(12,10,28)
 WHITE=(225,240,245)
@@ -88,7 +88,7 @@ def sprite(name, state='idle', frame=0, facing=1, outfit=0):
     if state=='dodge': s.set_alpha(150)
     return pygame.transform.flip(s,True,False) if facing<0 else s
 
-@lru_cache(maxsize=24)
+@lru_cache(maxsize=28)
 def background(stage,layer,section=0):
     s=pygame.Surface((800,300),pygame.SRCALPHA)
     accents=((235,60,155),(60,185,220),(155,85,245))
@@ -106,7 +106,26 @@ def background(stage,layer,section=0):
     return s
 
 class Renderer:
-    def __init__(self,font): self.font=font
+    def __init__(self,font):
+        self.font=font
+        self.background_key=None
+        self.background_frame=pygame.Surface((400,166))
+        self.previous_background=None
+        self.background_changed=0.
+    def backdrop(self,s,stage,section,camera,time):
+        key=(stage,section)
+        if key!=self.background_key:
+            self.previous_background=self.background_frame.copy() if self.background_key is not None else None
+            self.background_key=key;self.background_changed=time
+        for layer,factor in ((0,.18),(1,.55)):
+            bg=background(stage,layer,section);offset=int(camera*factor)%800
+            self.background_frame.blit(bg,(-offset,0));self.background_frame.blit(bg,(800-offset,0))
+        s.blit(self.background_frame,(0,0))
+        age=time-self.background_changed
+        if self.previous_background is not None and 0<=age<.45:
+            self.previous_background.set_alpha(int(255*(1-age/.45)))
+            s.blit(self.previous_background,(0,0))
+        elif age>=.45:self.previous_background=None
     def text(self,s,text,x,y,color=WHITE,scale=1):
         image=self.font.render(str(text),color,scale=scale)
         s.blit(image,(int(x),int(y)))
@@ -115,9 +134,8 @@ class Renderer:
         s.blit(image,((400-image.get_width())//2,y))
     def world(self,s,campaign,time):
         stage=campaign.stage; cam=campaign.camera
-        for layer,factor in ((0,.18),(1,.55)):
-            bg=background(stage,layer,campaign.wave); offset=int(cam*factor)%800
-            s.blit(bg,(-offset,0)); s.blit(bg,(800-offset,0))
+        section=visual_section(campaign)
+        self.backdrop(s,stage,section,cam,time)
         s.fill((25,24,43),(0,166,400,134))
         for y in range(170,300,18):
             s.fill((42,39,61),(0,y,400,1))
@@ -142,7 +160,7 @@ class Renderer:
                 for x in range(0,400,12):
                     pygame.draw.lines(s,color,False,[(x,251),(x+4,247),(x+8,255),(x+12,251)],2)
                 self.text(s,'LIVE RAIL! MOVE UP / JUMP',122,272,color)
-        animate_section(s,stage,campaign.wave,cam,time)
+        animate_section(s,stage,section,cam,time,max((e.phase for e in campaign.enemies if e.boss),default=1),any(e.boss and e.swing for e in campaign.enemies))
         draw_cats(s,campaign.cats,cam,time)
         actors=sorted(campaign.enemies+[campaign.player],key=lambda f:f.y)
         for f in actors:

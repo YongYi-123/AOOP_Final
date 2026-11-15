@@ -163,7 +163,7 @@ class SceneryTests(unittest.TestCase):
         images=[pygame.image.tobytes(background(stage,1,section),'RGBA')
                 for stage in range(3) for section in range(4)]
         self.assertEqual(len(set(images)),12)
-        self.assertEqual(background.cache_info().maxsize,24)
+        self.assertEqual(background.cache_info().maxsize,28)
 
 class CinematicTests(unittest.TestCase):
     def setUp(self):
