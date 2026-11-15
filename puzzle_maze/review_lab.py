@@ -16,6 +16,7 @@ def generate(output):
     for room in ('r1','r12','r24'):
         g.session.enter(room);g.scene=GameScene.PLAY
         g.visual=[22.,7.] if room=='r24' else [12.,7.];g.toast_time=0
+        if room=='r24':g.session.player.x=20;g.session.player.y=9;g.visual=[20.,9.]
         capture(room)
     g.session.enter('r28',(2,7));g.visual=[2.,7.];g.scene=GameScene.PLAY
     g.update(.01,defaultdict(bool));capture('lab_doorway')
