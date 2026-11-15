@@ -713,6 +713,9 @@ BRAWL_CYAN = (75, 235, 245)
 BRAWL_GOLD = (255, 214, 80)
 BRAWL_BODY, BRAWL_SIDE = (56, 18, 64), (34, 10, 42)
 _BRAWL_SKIN = (232, 168, 124)
+_BRAWL_TOWERS = ((0, 4, 5), (5, 2, 4), (10, 6, 6), (17, 3, 3), (21, 5, 3))     # attract-screen skyline: x, top, width
+_BRAWL_HITS = (0.34, 0.42, 0.50)                                               # jabs that land, then the uppercut
+_BRAWL_UPPER = 0.58
 
 
 def _brawler(s, x, base, facing, shirt, hair, glove, pose="guard", step=0, flash=False):
@@ -758,6 +761,83 @@ def _spark(s, x, y, r, color):
     s.set_at((x, y), (255, 255, 255))
 
 
+def screen_brawl(s, p, accent, neon):
+    """A neon street at night: REX and a grunt square up, trade jabs, an uppercut sends the grunt flying, K.O.,
+    REX celebrates - with both health bars along the top."""
+    s.fill((12, 6, 28))
+    for y in range(2, 9):                                         # pink haze over the rooftops
+        s.fill(mix_color((12, 6, 28), (70, 18, 70), (y - 2) / 7), (0, y, 24, 1))
+    for tx, top, w in _BRAWL_TOWERS:                              # skyline with lit windows
+        s.fill((30, 16, 54), (tx, top, w, 13 - top))
+        for wy in range(top + 1, 12, 2):
+            for wx in range(tx + 1, tx + w - 1, 2):
+                if (wx * 7 + wy * 3) % 5 < 2:
+                    s.set_at((wx, wy), BRAWL_GOLD if (wx + wy) % 3 else BRAWL_CYAN)
+    on = int(p * 40) % 13 not in (3, 5)                           # a vertical neon sign that buzzes
+    s.fill(BRAWL_PINK if on else scale_color(BRAWL_PINK, 0.35), (12, 2, 1, 4))
+    s.fill(scale_color(BRAWL_PINK, 0.5 if on else 0.2), (11, 3, 1, 2))
+    s.fill((26, 12, 40), (0, 13, 24, 3))                          # the street, wet: reflections
+    s.fill(BRAWL_CYAN, (0, 13, 24, 1))
+    for rx in (3, 9, 15, 20):
+        s.set_at((rx, 15), scale_color(BRAWL_PINK if rx % 2 else BRAWL_GOLD, 0.6))
+
+    hits = sum(p >= h for h in _BRAWL_HITS) + (p >= _BRAWL_UPPER)
+    rex_x = 2 + int(min(p, 0.28) / 0.28 * 5)                       # both walk in, then the fight
+    grunt_x = 18 - int(min(p, 0.28) / 0.28 * 5)
+    step = int(p * 40) if p < 0.28 else 0
+    rex_pose = "guard"
+    for h in _BRAWL_HITS:
+        if h - 0.03 <= p < h + 0.03:
+            rex_pose = "punch"
+    grunt_pose, grunt_flash, gy = "guard", False, 13
+    if any(h <= p < h + 0.03 for h in _BRAWL_HITS):
+        grunt_flash = True
+        grunt_x += 1
+    if _BRAWL_UPPER - 0.03 <= p < 0.72:
+        rex_pose = "upper"
+    if p >= _BRAWL_UPPER:                                         # the uppercut: knocked up and away, then down
+        k = min((p - _BRAWL_UPPER) / 0.12, 1.0)
+        grunt_x += 1 + int(k * 4)
+        gy = 13 - int(math.sin(k * math.pi) * 4)
+        grunt_flash = k < 0.2
+        grunt_pose = "down" if k >= 1.0 else "guard"
+    if p >= 0.76:
+        rex_pose = "win"
+    rex_y = 13 - (1 if rex_pose == "win" and int(p * 40) % 4 < 2 else 0)
+    if not (p >= 0.93 and int(p * 40) % 2):                       # the knocked-out grunt blinks away
+        _brawler(s, grunt_x, gy, -1, (130, 96, 180), (60, 230, 160), (120, 255, 180), grunt_pose, step, grunt_flash)
+    _brawler(s, rex_x, rex_y, 1, BRAWL_PINK, (40, 20, 50), BRAWL_GOLD, rex_pose, step)
+    for h in _BRAWL_HITS:                                         # impact sparks
+        if h <= p < h + 0.04:
+            _spark(s, grunt_x - 1, 9, 1 + int((p - h) * 50) % 2, BRAWL_GOLD)
+    if _BRAWL_UPPER <= p < _BRAWL_UPPER + 0.05:
+        _spark(s, rex_x + 5, 6, 2, BRAWL_GOLD)
+
+    s.fill((50, 20, 50), (1, 0, 9, 2))                            # health bars: REX pink, the grunt cyan
+    s.fill(BRAWL_PINK, (1, 0, 8, 1))
+    s.fill((50, 20, 50), (14, 0, 9, 2))
+    left = 9 - min(hits * 2 + (hits == 4) * 3, 9)
+    if left:
+        s.fill(BRAWL_CYAN, (23 - left, 0, left, 1))
+    s.set_at((11, 0), BRAWL_GOLD)
+    s.set_at((12, 0), BRAWL_GOLD)
+    if 0.66 <= p < 0.93 and int(p * 40) % 4 < 3:                  # tiny K.O. stamp
+        _ko(s, 15, 3)
+    if p >= 0.97:                                                 # a white flash before the loop restarts
+        s.fill((60, 40, 70), special_flags=pygame.BLEND_RGB_ADD)
+
+
+def _ko(s, x, y):
+    """A 3x5 pixel 'KO' in gold with a dark outline."""
+    glyphs = (("#.#", "##.", "#..", "##.", "#.#"), ("###", "#.#", "#.#", "#.#", "###"))
+    s.fill((20, 6, 24), (x - 1, y - 1, 9, 7))
+    for gi, rows in enumerate(glyphs):
+        for ry, row in enumerate(rows):
+            for rx, ch in enumerate(row):
+                if ch == "#":
+                    s.set_at((x + gi * 4 + rx, y + ry), BRAWL_GOLD)
+
+
 def marquee_brawl(s, r, label, frame, neon, accent):
     """NEON BRAWL in hot pink, scrolling, with cyan chase lights above and below."""
     _ticker(s, r, label, frame, "brawl", (255, 110, 175), BRAWL_CYAN, scale_color(BRAWL_PINK, 0.45))
@@ -765,7 +845,7 @@ def marquee_brawl(s, r, label, frame, neon, accent):
 
 # ----------------------------------------------------------------- registry
 SCREEN_PAINTERS = {"cat": screen_cat, "volley": screen_volley, "racer": screen_racer, "galaxy": screen_galaxy,
-                   "maze": screen_maze, "dungeon": screen_dungeon}
+                   "maze": screen_maze, "dungeon": screen_dungeon, "brawl": screen_brawl}
 MARQUEES = {"cat": marquee_cat, "volley": marquee_volley, "racer": marquee_racer, "galaxy": marquee_galaxy,
             "maze": marquee_maze, "dungeon": marquee_dungeon, "brawl": marquee_brawl}
 BODY_DECORATORS = {"cat": lambda s, f, n, neon, accent: decorate_cat(s, f, neon, accent),
