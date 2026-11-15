@@ -30,10 +30,11 @@ class GameScene(Enum):
     DISCOVERY=auto()
 
 class Game:
-    def __init__(self,headless=False,embedded=False,audio=None,legacy=False,campaign=None):
+    def __init__(self,headless=False,embedded=False,audio=None,legacy=False,campaign=None,persistent=True):
         if headless:
             os.environ['SDL_VIDEODRIVER']='dummy';os.environ['SDL_AUDIODRIVER']='dummy'
         pygame.display.init();pygame.font.init()
+        self.persistent=persistent
         self.profile_store=None;self.reward_history=None
         self.embedded=embedded
         self.screen=pygame.display.get_surface() if embedded else pygame.display.set_mode((960,720),pygame.RESIZABLE)
@@ -57,11 +58,12 @@ class Game:
         self.tutorial.bombs=isinstance(self.session,DungeonSession)
         self.tutorial.remastered=isinstance(self.session,RemasteredSession)
         self.tutorial.advanced=isinstance(self.session,AdvancedDungeonSession);self.tutorial.page=0
-        if isinstance(self.session,AdvancedDungeonSession) and not embedded and not headless:
+        if isinstance(self.session,AdvancedDungeonSession) and not embedded and not headless and persistent:
             from puzzle_maze.advanced_dungeon import V4_SAVE
             self.bind_profile('standalone',legacy_save=V4_SAVE)
 
     def bind_profile(self,player_id,root=None,legacy_save=None):
+        if not self.persistent:return
         from puzzle_maze.royal_rewards import CampaignProfile,RoyalClearHistory
         self.profile_store=CampaignProfile(player_id,root,legacy_save)
         try:self.reward_history=self.profile_store.load_history()
@@ -74,6 +76,7 @@ class Game:
         self.toast=message;self.toast_time=seconds
 
     def save(self):
+        if not self.persistent:return
         if self.scene in (GameScene.INTRO,GameScene.TUTORIAL,GameScene.MENU,GameScene.ARCHIVE):return
         try:
             if self.profile_store and isinstance(self.session,AdvancedDungeonSession):
@@ -88,6 +91,7 @@ class Game:
 
     def start(self,continuing=False,onboarding=True,legacy=False,archived=False):
         factory=GameSession if legacy else DungeonSession if archived else self.session_factory
+        if not self.persistent:continuing=False
         previous_history=getattr(self.session,'history',None)
         self.session=(factory.load(self.profile_store.save_path) if self.profile_store and issubclass(factory,AdvancedDungeonSession) else factory.load()) if continuing else factory()
         if isinstance(self.session,AdvancedDungeonSession):
@@ -399,13 +403,20 @@ class Game:
 def main():
     parser=argparse.ArgumentParser(description='Independent Puzzle Maze')
     parser.add_argument('--campaign',choices=('4.5','4','3','2'),default='4.5',help='Campaign edition; the remaster preserves older progress during migration')
+    parser.add_argument('--dev-preview',choices=('grey-pixel','developer-room','miao-entrance','developer-diaries'),help='Disposable production-scene preview; no saves or rewards')
     parser.add_argument('--legacy',action='store_true',help='Play the original 2.1 campaign and save')
     parser.add_argument('--headless',action='store_true');parser.add_argument('--frames',type=int)
     parser.add_argument('--screenshot',help='Write a screenshot after a bounded run')
     args=parser.parse_args()
-    game=Game(args.headless,legacy=args.legacy,campaign=args.campaign)
+    if args.dev_preview:
+        from puzzle_maze.dev_preview import PreviewGame
+        game=PreviewGame(args.dev_preview,args.headless)
+    else:game=Game(args.headless,legacy=args.legacy,campaign=args.campaign)
     if args.screenshot:
-        game.start(onboarding=False);game.fade=0
-        for _ in range(args.frames or 1):game.draw(1/60)
+        if not args.dev_preview:game.start(onboarding=False)
+        game.fade=0
+        for _ in range(args.frames or 1):
+            if args.dev_preview:game.update(1/60)
+            game.draw(1/60)
         pygame.image.save(game.screen,args.screenshot);pygame.quit()
     else:game.run(args.frames)
