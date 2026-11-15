@@ -4,11 +4,11 @@ import pygame
 from puzzle_maze.miao_adapter import guide_frame
 
 LINES=(
- ('MIAO MEOW',('All these computers...','Why does this place feel','so familiar?')),
- ('MIAO MEOW',('Someone used to work here','every night.')),
- ('MIAO MEOW',('Kevin...','Was this your room?')),
- ('SYSTEM',('ARCHIVED DEVELOPMENT','RECORD DETECTED.')),
- ('MIAO MEOW',("I think... there's something","we're supposed to remember.")),
+ ('MIAO MEOW',('Twelve spare keyboards.','One very optimistic owner.')),
+ ('MIAO MEOW',('The duck has a nameplate.','I hope it pays rent.')),
+ ('MIAO MEOW',('He even kept a little','chair beside his desk.')),
+ ('MIAO MEOW',('Not for a machine.','For someone to sit with him.')),
+ ('MIAO MEOW',("Let's leave the lamp on.","Just for a little while.")),
 )
 class LabEntrance:
     def __init__(self):self.time=0.;self.line=0;self.dwell=0.;self.done=False
