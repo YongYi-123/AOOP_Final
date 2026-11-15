@@ -70,6 +70,20 @@ def equipment(kind):
         r.circle(s,ink,(21,24),6);r.line(s,cream,(21,24),(24,21),2)
         pygame.draw.lines(s,(195,81,65),False,[(15,34),(7,35),(5,18)],1)
         pygame.draw.lines(s,ink,False,[(27,34),(37,35),(38,16)],1)
+    elif kind=='drive':
+        box(ink,5,4,32,29);box(metal,6,5,30,27)
+        r.circle(s,(189,194,183),(20,18),11);r.circle(s,ink,(20,18),3)
+        r.lines(s,gold,False,[(32,27),(29,20),(17,16)],2)
+        for x,y in ((8,7),(33,7),(8,30),(33,30)):box(ink,x,y,2,2)
+        for x in range(10,30,3):box(gold,x,33,2,2)
+    elif kind=='psu':
+        r.polygon(s,ink,[(3,8),(31,8),(39,14),(39,33),(3,33)])
+        box(metal,4,9,27,23);r.polygon(s,(73,84,89),[(31,10),(37,14),(37,31),(31,31)])
+        r.circle(s,ink,(17,20),10)
+        for radius in (4,7,9):r.circle(s,(146,154,150),(17,20),radius,1)
+        r.line(s,metal,(7,20),(27,20));r.line(s,metal,(17,10),(17,30))
+        for offset,c in ((0,gold),(2,(184,80,71)),(4,(57,55,62))):
+            r.lines(s,c,False,[(35,24),(40,25+offset),(40,35)],1)
     elif kind=='disk':
         box(ink,9,4,25,28);box((73,88,103),10,5,23,26)
         box(metal,15,5,14,9);box((221,209,165),13,18,17,10);box(ink,24,6,3,6)

@@ -36,10 +36,18 @@ class DeveloperRoomArt:
         s.blit(pygame.transform.scale(equipment('cpu'),(23,22)),(326,78))
         # Personal memory corner and a quiet network terminal.
         for x in (38,332):self.bookshelf(s,x,159)
-        self.plant(s,52,145);self.plant(s,374,151)
+        self.plant(s,65,218);self.plant(s,374,151)
         self.chair(s,103,174);self.chair(s,264,145)
         self.desk(s,(318,138,64,24));s.blit(equipment('crt'),(329,106))
         s.blit(pygame.transform.scale(equipment('disk'),(16,16)),(355,145))
+        s.blit(pygame.transform.scale(equipment('drive'),(24,22)),(323,143))
+        self.desk(s,(35,114,42,21))
+        s.blit(pygame.transform.scale(equipment('psu'),(28,25)),(39,96))
+        # Coiled connectors and a folded circuit drawing on the repair trolley.
+        r.lines(s,(205,163,92),False,[(65,117),(71,118),(71,126),(63,127),(63,121)],1)
+        r.rect(s,(222,208,167),(79,109,22,14))
+        r.lines(s,(71,115,100),False,[(82,112),(88,112),(88,119),(97,119),(97,113)],1)
+        r.rect(s,(84,96,88),(86,114,5,4),1)
         for x in (199,219):
             r.rect(s,(86,55,42),(x,23,16,18));r.rect(s,(207,173,110),(x+1,24,14,16),1)
             r.polygon(s,(112,141,123),[(x+3,37),(x+7,29),(x+12,37)])

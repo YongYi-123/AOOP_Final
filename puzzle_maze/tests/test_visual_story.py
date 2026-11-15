@@ -8,7 +8,7 @@ from puzzle_maze.lab_hardware import equipment
 
 class HardwareArtTests(unittest.TestCase):
     def test_equipment_is_distinct_cached_and_within_native_canvas(self):
-        kinds=('crt','display','keyboard','gpu','cpu','ram','motherboard','case','scope','solder','meter','disk')
+        kinds=('crt','display','keyboard','gpu','cpu','ram','motherboard','case','scope','solder','meter','disk','drive','psu')
         images=[equipment(k) for k in kinds]
         self.assertEqual(len({pygame.image.tobytes(s,'RGBA') for s in images}),len(kinds))
         for kind,s in zip(kinds,images):
