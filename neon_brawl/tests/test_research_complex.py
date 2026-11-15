@@ -31,6 +31,15 @@ class DepartmentTests(unittest.TestCase):
                 for i in range(count):function(i)
         self.assertIn('MEMORY ACCESS WRITE BACK',recorded);self.assertIn('POLYMORPHISM: UPDATE',recorded)
         self.assertGreaterEqual(len(recorded),45)
+    def test_percentage_is_visible_without_changing_the_lobby_font(self):
+        from font import get_font
+        from neon_brawl.research_art import text
+        font=get_font();before=dict(font.glyphs)
+        s=pygame.Surface((80,10),pygame.SRCALPHA);text(s,'12%',0,0)
+        offset=font.size('12')[0]+1
+        self.assertGreater(pygame.mask.from_surface(s.subsurface((offset,0,3,7))).count(),0)
+        self.assertEqual(font.glyphs,before)
+
     def test_decorations_and_phase_lighting_do_not_modify_combat(self):
         from font import get_font
         from neon_brawl.art import Renderer

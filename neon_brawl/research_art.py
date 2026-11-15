@@ -7,11 +7,18 @@ PALETTES=(((64,91,91),(119,156,144),(218,197,146)),
           ((64,58,99),(134,120,182),(115,209,195)))
 def text(s,label,x,y,color=(207,226,212)):
     from font import get_font
-    s.blit(get_font().render(label,color),(x,y))
+    font=get_font();s.blit(font.render(label,color),(x,y))
+    # The shared Lobby font leaves unsupported punctuation blank. Supply only the
+    # percentage sign inside its existing 3px cell; do not mutate global glyphs.
+    for i,char in enumerate(label):
+        if char=='%':
+            offset=font.size(label[:i])[0]+(1 if i else 0)
+            for dx,dy in ((0,0),(2,1),(2,2),(1,3),(0,4),(0,5),(2,6)):
+                s.fill(color,(x+offset+dx,y+dy,1,1))
 def sign(s,label,rect,color=(147,217,200)):
     x,y,w,h=rect;r=pygame.draw;r.rect(s,INK,rect);r.rect(s,color,rect,1)
     from font import get_font
-    image=get_font().render(label,color);s.blit(image,(x+(w-image.get_width())//2,y+(h-image.get_height())//2))
+    image=get_font().render(label,color);text(s,label,x+(w-image.get_width())//2,y+(h-image.get_height())//2,color)
 def shell(s,stage,section):
     r=pygame.draw;wall,trim,accent=PALETTES[stage]
     s.fill((18,29,42));r.rect(s,wall,(0,37,800,130))
