@@ -1,5 +1,6 @@
 """Deterministic normal-input pilot. No health, damage, or campaign shortcuts."""
 from neon_brawl.model import Campaign
+from neon_brawl.data import ATTACKS
 
 def decide(c):
     p=c.player
@@ -13,16 +14,27 @@ def decide(c):
         return (facing,dy),None
     action=None
     if p.ready:
-        danger=any(en.swing and abs(en.x-p.x)<105 and abs(en.y-p.y)<18 for en in targets)
+        danger=any(en.swing and -.1<ATTACKS[en.swing.name].windup-en.swing.age<.19
+                   and abs((en.swing.target[0] if ATTACKS[en.swing.name].shape=='target' else en.x)-p.x)<ATTACKS[en.swing.name].reach+25
+                   and abs((en.swing.target[1] if ATTACKS[en.swing.name].shape=='target' else en.y)-p.y)<30 for en in targets)
         if danger and p.dodge_cooldown<=0: action='dodge'
-        elif abs(e.x-p.x)<80 and p.energy>=40: action='special'
+        elif e.state=='guard' and abs(e.x-p.x)<48: action='heavy'
+        elif abs(e.x-p.x)<80 and abs(e.y-p.y)<15 and p.energy>=40: action='special'
         elif abs(e.x-p.x)<42 and abs(e.y-p.y)<15: action='light'
+    for enemy in targets:
+        if enemy.swing and ATTACKS[enemy.swing.name].shape=='target':
+            tx,ty=enemy.swing.target
+            if abs(p.x-tx)<55 and abs(p.y-ty)<30:
+                dy=-1 if ty>215 else 1
+                if action!='dodge': action=None
     return (dx,dy),action
 
 def play(name):
     c=Campaign(name)
     for frame in range(60*1200):
-        if c.state in ('checkpoint','stage_clear'): c.advance()
+        if c.state in ('checkpoint','stage_clear'):
+            c.pickup()
+            c.advance()
         if c.state in ('victory','defeat'): return c,frame
         direction,action=decide(c)
         if action: c.player.act(action)
