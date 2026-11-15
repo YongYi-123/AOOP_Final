@@ -30,7 +30,7 @@ DOOR = pygame.Rect(5, 43, 26, 14)
 W_BODY, H_BODY_END = 36, 59      # cabinet width; row below which the kick plate (checkered flag for the racer) starts
 
 
-TICKER_STYLES = ("volley", "racer", "galaxy", "maze", "dungeon")      # marquees too long for 32px: they scroll the whole name
+TICKER_STYLES = ("volley", "racer", "galaxy", "maze", "dungeon", "brawl")      # marquees too long for 32px: they scroll the whole name
 
 
 def marquee_frames(style, label):
@@ -707,11 +707,21 @@ def headroom_dungeon(s, pad, frame, neon, accent):
     s.set_at((17, pad - 3), (255, 255, 255) if frame % 6 == 0 else DUN_GOLD)
 
 
+# ----------------------------------------------------------------- Neon Brawl
+BRAWL_PINK = (255, 75, 155)
+BRAWL_CYAN = (75, 235, 245)
+
+
+def marquee_brawl(s, r, label, frame, neon, accent):
+    """NEON BRAWL in hot pink, scrolling, with cyan chase lights above and below."""
+    _ticker(s, r, label, frame, "brawl", (255, 110, 175), BRAWL_CYAN, scale_color(BRAWL_PINK, 0.45))
+
+
 # ----------------------------------------------------------------- registry
 SCREEN_PAINTERS = {"cat": screen_cat, "volley": screen_volley, "racer": screen_racer, "galaxy": screen_galaxy,
                    "maze": screen_maze, "dungeon": screen_dungeon}
 MARQUEES = {"cat": marquee_cat, "volley": marquee_volley, "racer": marquee_racer, "galaxy": marquee_galaxy,
-            "maze": marquee_maze, "dungeon": marquee_dungeon}
+            "maze": marquee_maze, "dungeon": marquee_dungeon, "brawl": marquee_brawl}
 BODY_DECORATORS = {"cat": lambda s, f, n, neon, accent: decorate_cat(s, f, neon, accent),
                    "volley": decorate_volley, "racer": decorate_racer, "galaxy": decorate_galaxy,
                    "maze": decorate_maze, "dungeon": decorate_dungeon}
