@@ -78,18 +78,7 @@ def _screen_space(s, p, accent, neon):
     s.fill(Col.YELLOW, (sx, 10 - int(t * 32) % 16, 1, 2))
 
 
-def _screen_brawl(s, p, accent, neon):
-    s.fill((12, 9, 28))
-    for x in range(0, 24, 5):
-        s.fill((40, 35, 70), (x, 3 + x % 4, 4, 10))
-        s.fill(neon, (x + 1, 5 + x % 4, 1, 2))
-    s.fill(accent, (0, 13, 24, 1))
-    from neon_brawl.art import sprite
-    for name, x, facing in (("REX", 1, 1), ("grunt", 12, -1)):
-        image = pygame.transform.scale(sprite(name, "light", int(p * 8) % 4, facing), (14, 14))
-        s.blit(image, (x, 2))
-
-_SCREEN_PAINTERS = {"brawl": _screen_brawl,"racer": _screen_racer, "space": _screen_space,
+_SCREEN_PAINTERS = {"racer": _screen_racer, "space": _screen_space,
                     **themes.SCREEN_PAINTERS}
 
 
