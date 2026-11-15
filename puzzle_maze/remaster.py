@@ -10,15 +10,50 @@ V45_SAVE=Path(__file__).parent/"save_v45.json"
 
 class RemasteredSession(AdvancedDungeonSession):
     def __init__(self,rooms=None):
+        self.grey_pixel=False;self.lore=set()
         self.hint_requests={};self.room_elapsed=0.
         super().__init__(upgrade(rooms or load_rooms(MAP_PATH.with_name('dungeon_v4.json'))))
 
     def enter(self,name,arrival=None):
         super().enter(name,arrival);self.room_elapsed=0.
+        self.observe_secret()
 
     def tick(self,dt):
         super().tick(dt)
         if self.player.hp>0:self.room_elapsed+=max(0,dt)
+        self.observe_secret()
+
+    def observe_secret(self):
+        from puzzle_maze.puzzles import ChestPhase
+        from puzzle_maze.secret45 import DISCOVERY
+        obj=self.puzzles.objects.get('grey_pixel')
+        if obj and obj.state.active and not self.grey_pixel:
+            self.grey_pixel=True
+            self.inventory.notifications.append(('map',DISCOVERY))
+            self.combat.events.append('solve')
+        if self.grey_pixel:
+            self.inventory.flags.add('grey_pixel')
+            if obj:obj.state.active=True;obj.phase=ChestPhase.OPENED
+
+    def reset(self):
+        super().reset();self.observe_secret()
+
+    def read_lore(self,key):
+        from puzzle_maze.secret45 import LORE
+        if self.rooms.current=='r28' and key in LORE:self.lore.add(key)
+
+    def save_extension(self):
+        result=super().save_extension()
+        result['remaster']=dict(grey_pixel=self.grey_pixel,lore=sorted(self.lore))
+        return result
+
+    def load_extension(self,data):
+        super().load_extension(data)
+        from puzzle_maze.secret45 import LORE
+        extra=data.get('remaster',{})
+        if type(extra.get('grey_pixel',False)) is not bool or not isinstance(extra.get('lore',[]),list) or not set(extra.get('lore',[]))<=LORE.keys():raise ValueError('Invalid remaster secrets')
+        self.grey_pixel=extra.get('grey_pixel',False);self.lore=set(extra.get('lore',[]))
+        self.observe_secret()
 
     def next_hint(self):
         from puzzle_maze.hints45 import HINTS
@@ -70,6 +105,13 @@ class RemasteredSession(AdvancedDungeonSession):
     def prepare_loaded_save(self,data):
         if data.get('content_revision')=='4.5': return data
         result=super().prepare_loaded_save(data)
+        from puzzle_maze.puzzles import Chest
+        entries=list(result['snapshots'].items())+[(result['room'],result['checkpoint']['objects'])]
+        for room,snapshot in entries:
+            for id,obj in self.make_puzzles(self.rooms.rooms[room]).objects.items():
+                if id not in snapshot and obj.data.get('optional'):
+                    snapshot[id]=dict(pos=list(obj.pos),active=False,remaining=0,unlocked=False,latched=False)
+                    if isinstance(obj,Chest):snapshot[id].update(chest_phase=obj.phase.value,spawn_time=0.,triggered=False)
         result['content_revision']='4.5'
         self.migration_notice='Progress restored in the two-floor 4.5 remaster.'
         return result

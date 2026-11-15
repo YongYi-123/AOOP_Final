@@ -14,7 +14,8 @@ class OrbSocket(PuzzleObject):pass
 
 class MysteryScroll(PuzzleObject):
     def interact(self,manager,player,pulse=False):
-        return not pulse and self.data.get('content_id')=='coming_soon'
+        from puzzle_maze.secret45 import LORE
+        return not pulse and self.data.get('content_id') in {'coming_soon',*LORE}
 
 class LiftablePot(PuzzleObject):
     blocking=True

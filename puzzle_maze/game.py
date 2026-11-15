@@ -40,6 +40,7 @@ class Game:
         self.session=self.session_factory();self.scene=GameScene.MENU;self.previous=GameScene.MENU
         self.selection=0;self.running=True;self.cooldown=0
         self.visual=[float(self.session.player.x),float(self.session.player.y)]
+        self.reading='coming_soon'
         self.toast='';self.toast_time=0;self.fade=0;self.autosave=0
         self.last_solved=False
         self.tool='pulse'
@@ -191,7 +192,11 @@ class Game:
                 self.audio.play('pulse' if key==pygame.K_SPACE else 'use')
                 self.renderer.burst(self.session.player.x,self.session.player.y,TEAL)
                 obj_data=self.session.puzzles.objects[obj].data
-                if obj_data['type']=='mystery_scroll':self.scene=GameScene.SCROLL
+                if hasattr(self.session,'observe_secret'):self.session.observe_secret()
+                if obj_data['type']=='mystery_scroll':
+                    self.reading=obj_data.get('content_id','coming_soon')
+                    if hasattr(self.session,'read_lore'):self.session.read_lore(self.reading)
+                    self.scene=GameScene.SCROLL
                 if obj_data.get('ability'):self.notify('Acquired: '+obj_data['ability'])
             else:self.notify('E: chest / mechanism. Q: tool. SPACE: pulse.',2)
 
@@ -285,8 +290,12 @@ class Game:
             label='4.5 / Restored Hollow' if isinstance(self.session,RemasteredSession) else '4.4 / Emberglass Hollow' if isinstance(self.session,AdvancedDungeonSession) else '3.0 / Clockwork Hollow' if isinstance(self.session,DungeonSession) else '2.1 / The Prism Chambers'
             r.text(label,36,193,(133,163,156),max_width=244)
         elif self.scene==GameScene.SCROLL:
-            r.panel('COMING SOON',[])
-            r.surface.blit(pygame.transform.scale(r.hud.atlas.get('mystery_scroll'),(36,36)),(142,119))
+            from puzzle_maze.secret45 import LORE
+            if self.reading in LORE:
+                title,lines=LORE[self.reading];r.panel(title,lines)
+            else:
+                r.panel('COMING SOON',[])
+                r.surface.blit(pygame.transform.scale(r.hud.atlas.get('mystery_scroll'),(36,36)),(142,119))
             r.text('ENTER / ESC: Close',83,173,GOLD,max_width=160)
         elif self.scene==GameScene.HELP:
             r.panel('FIELD GUIDE',self.tutorial.lines(False))
