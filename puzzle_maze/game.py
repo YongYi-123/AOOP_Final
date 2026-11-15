@@ -193,6 +193,8 @@ class Game:
                 self.renderer.burst(self.session.player.x,self.session.player.y,TEAL)
                 obj_data=self.session.puzzles.objects[obj].data
                 if hasattr(self.session,'observe_secret'):self.session.observe_secret()
+                if obj_data.get('grey_pixel'):
+                    self.reading='debug_layer';self.scene=GameScene.SCROLL;self.save()
                 if obj_data['type']=='mystery_scroll':
                     self.reading=obj_data.get('content_id','coming_soon')
                     if hasattr(self.session,'read_lore'):self.session.read_lore(self.reading)

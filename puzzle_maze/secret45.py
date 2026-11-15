@@ -4,7 +4,7 @@ DISCOVERY='DEBUG LAYER DISCOVERED. ORIGINAL MAP RESTORED.'
 LORE={
  'kevin_photo':('OLD PHOTOGRAPH',('An arcade before opening day.','Kevin stands beside two empty','cabinets. Someone has scratched','a face out of the photograph.')),
  'kevin_note':('KEVIN / HANDWRITTEN NOTE',('If the signal erases a room,','look beyond the map boundary.','I kept the original here.','Please do not forget us. - Kevin')),
- 'miao_memory':('MIAO MIAO',('This room... I feel like I have','been here before. But why can','I not remember anything?', 'The photograph feels familiar.')),
+ 'miao_memory':('MIAO MIAO',("This room... I feel like I've","been here before. But why","can't I remember anything?", "The photograph feels familiar.")),
  'debug_layer':('GREY PIXEL',('DEBUG LAYER DISCOVERED.','ORIGINAL MAP RESTORED.','The western arch still leads','back to the archive.')),
 }
 

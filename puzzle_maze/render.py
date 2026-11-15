@@ -12,6 +12,7 @@ from puzzle_maze.combat import EnemyState
 from puzzle_maze.exploration import DungeonAtlas
 from puzzle_maze.environment import EnvironmentPainter
 from puzzle_maze.vault import RoyalVaultArt
+from puzzle_maze.developer_art import DeveloperRoomArt
 from puzzle_maze.enemy_art import EnemyPortraits
 from puzzle_maze.themes import THEMES
 from puzzle_maze.puzzles import PushableBox, PressurePlate, Door, Key, SecretPassage, TimedSwitch, Switch, Chest, LightSource, Receiver, Reflector,CrackedWall,BombSupply,DashSwitch,BlastSwitch,RemoteRelay,ChestPhase,GateControl,EntrancePhase
@@ -27,7 +28,7 @@ class Renderer:
         self.particles=[]
         self.time=0
         self.ui=NativeText()
-        self.vault_art=RoyalVaultArt();self.environment=EnvironmentPainter();self.enemy_portraits=EnemyPortraits()
+        self.developer_art=DeveloperRoomArt();self.vault_art=RoyalVaultArt();self.environment=EnvironmentPainter();self.enemy_portraits=EnemyPortraits()
         self.hud=IconHUD()
         self.room_art=RoomArt();self.object_seen={};self.opening={}
         self.tiles=self.environment.tiles('entrance')
@@ -69,7 +70,8 @@ class Renderer:
         self.room_art.draw(s,room,(cx,cy),self.time)
         self.environment.decorations(s,room,(cx,cy),self.time)
         self.environment.lighting(s,session,(cx,cy),self.time)
-        if theme_name=='royal_vault':self.vault_art.draw(s,(cx,cy),self.time)
+        if session.rooms.current=='r27':self.vault_art.draw(s,(cx,cy),self.time)
+        if session.rooms.current=='r28':self.developer_art.draw(s,(cx,cy),self.time)
         # Inlaid entrance compass; authored art remains entirely local.
         sx,sy=2*16-cx,7*16-cy
         r.circle(s,(98,134,123),(sx+8,sy+8),7,1)
@@ -84,7 +86,9 @@ class Renderer:
             sx,sy=o.x*16-cx,o.y*16-cy
             if not (-16<sx<320 and -16<sy<208):continue
             if isinstance(o,MysteryScroll):
-                self.vault_art.scroll(s,sx,sy,self.time,self.environment.glow(theme_name))
+                if o.data.get('content_id') in ('kevin_photo','kevin_note','miao_memory'):
+                    self.developer_art.prop(s,o.data['content_id'],sx,sy)
+                else:self.vault_art.scroll(s,sx,sy,self.time,self.environment.glow(theme_name))
             elif isinstance(o,OrbSocket):
                 color=GOLD if o.state.active else (116,132,160)
                 r.circle(s,(32,38,54),(sx+8,sy+8),7);r.circle(s,color,(sx+8,sy+8),6,2)
@@ -135,6 +139,7 @@ class Renderer:
                     shade=tuple(max(0,c-22) for c in theme.wall)
                     offset=(o.x*7+o.y*11)%4
                     r.lines(s,shade,False,[(sx+6+offset,sy+2),(sx+8,sy+6),(sx+5+offset,sy+10),(sx+9,sy+13)])
+                    if o.id=='debug_seam' and 'map' in session.inventory.abilities:r.rect(s,(145,149,154),(sx+11,sy+6,2,1))
                     if o.phase==EntrancePhase.REVEALING:
                         progress=1-min(1,o.state.remaining/o.data['duration'])
                         r.circle(s,INK,(sx+8,sy+8),max(1,int(progress*8)))
@@ -153,6 +158,11 @@ class Renderer:
                     s.blit(self.tiles['#'],(sx,sy));r.lines(s,(102,108,104),False,[(sx+8,sy+2),(sx+5,sy+7),(sx+10,sy+9),(sx+7,sy+14)])
             elif isinstance(o,Chest):
                 if not o.visible:continue
+                if o.data.get('grey_pixel'):
+                    if not o.state.active:
+                        r.rect(s,(180,185,190),(sx+6,sy+6,5,5))
+                        r.rect(s,(235,235,235),(sx+6,sy+6,2,2))
+                    continue
                 if o.phase == ChestPhase.SPAWNING:
                     sy += int(o.spawn_time / o.spawn_duration * 10)
                     r.line(s,GOLD,(sx+2,sy-2),(sx+13,sy-2))
@@ -390,7 +400,7 @@ class Renderer:
                 r.rect(s,(236,98,116),(center[0]-2,center[1]-2,4,4))
 
     def minimap(self,session):
-        x=122 if session.rooms.data.get("theme")=="royal_vault" else 239
+        x=122 if session.rooms.current=="r27" else 239
         pygame.draw.rect(self.surface,INK,(x,5,77,52))
         pygame.draw.rect(self.surface,(77,108,112),(x,5,77,52),1)
         self.text(session.rooms.data.get("floor","1F"),x+4,7,TEAL,max_width=30)
