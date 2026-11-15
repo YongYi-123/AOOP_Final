@@ -1,74 +1,70 @@
-# Grey Pixel 開發預覽
+# Grey Pixel／Forgotten Arcade Workshop 開發預覽
 
-## 直接啟動
-
-在專案根目錄執行；使用已安裝 Pygame 的專案虛擬環境：
+## 直接啟動正式工坊
 
 ```bash
 cd /home/nora/AOOP_Final
-.venv/bin/python -m puzzle_maze --dev-preview grey-pixel
-```
-
-不必先過 Maze，也不必建立／選擇 Lobby 玩家。視窗會從正式 Grey Pixel 發現與取得動畫開始，自動接入 r28，播放原版 Miao Meow 的門口步行與對話，再開放探索。所有可選日記與正式房間出口都可操作。
-
-相依套件與主遊戲相同（專案環境目前使用 pygame-ce 2.5.8、Python 3.12）。預覽不需要網路或新素材套件。
-
-## 其他入口
-
-```bash
 .venv/bin/python -m puzzle_maze --dev-preview developer-room
-.venv/bin/python -m puzzle_maze --dev-preview miao-entrance
-.venv/bin/python -m puzzle_maze --dev-preview developer-diaries
 ```
 
-| 入口 | 行為 |
-|---|---|
-| `grey-pixel` | 正式道具揭示 → 工程室 → Miao 入場 → 探索 |
-| `developer-room` | 已完成入場的工程室，直接探索 |
-| `miao-entrance` | 從西門重新觀看 Miao 步行與對話 |
-| `developer-diaries` | 出現在第一篇日記附近，按 E 閱讀 |
+依賴與主遊戲相同：專案虛擬環境、Python、pygame-ce，不需額外素材或網路。這個入口直接進入正式 r28 **The Forgotten Arcade Workshop**，不是另一個預覽假房間。
 
-## 操作
+## 入口與控制
+
+| 入口 | 內容 |
+|---|---|
+| `--dev-preview grey-pixel` | 正式發現與道具揭示 → 工坊 → Miao 演出 → 探索 |
+| `--dev-preview developer-room` | 直接探索已完成演出的工坊 |
+| `--dev-preview miao-entrance` | 從門口重播 Miao 與原型機記錄 |
+| `--dev-preview developer-diaries` | 第一篇維修日記附近 |
+| `--dev-preview kevin-notes` | 開啟 Kevin 的四頁待辦清單 |
 
 | 鍵 | 功能 |
 |---|---|
-| WASD／方向鍵 | 使用正式 Maze 移動 |
-| E | 閱讀面向／附近物件；也可推進 Miao 對話 |
-| Enter | 推進對話、關閉閱讀、跳過道具揭示 |
-| Space | 跳過目前發現動畫／Miao 入場；探索時保留正式 Pulse 功能 |
-| R | 重建目前選定的預覽入口 |
-| F5 | 從完整 Grey Pixel 序列重來 |
-| F6 | 直接回已完成入場的工程室 |
-| F7 | 重播 Miao 入場 |
-| F8 | 依序定位並開啟七篇日記、鴨子、咖啡、紅按鈕互動 |
-| Esc | 退出整個預覽（閱讀時也退出；用 Enter 關閉閱讀） |
+| WASD／方向鍵 | 正式移動與碰撞 |
+| E／Enter | 靠近物件出現 `[E/ENTER] INSPECT` 後檢視；推進對話 |
+| Enter／E | 關閉目前閱讀視窗 |
+| 左右鍵 | 待辦清單翻頁 |
+| Space | 跳過發現或入場動畫 |
+| R | 重建目前預覽 |
+| F5 | 從 Grey Pixel 全序列重來 |
+| F6 | 直接回工坊 |
+| F7 | 重播 Miao 入場與原型機回憶 |
+| F8 | 依次開啟既有可選日記及生活筆記 |
+| F9 | 四頁待辦清單 |
+| Esc | 安全退出預覽；閱讀也可用 Enter 關閉 |
 
-從 r28 西門 `(1,7)` 可回正式 r24；預覽仍保持記憶體隔離。想回房間按 F6。F8 是便利測試定位，會走正式 E 互動，不使用另一套閱讀內容。
+提示只顯示完整的 `[E/ENTER] INSPECT`，不預告物件名稱或內容；沒有底部資訊面板。最近物件優先，相同距離才參考朝向。提示使用原生 5×7 小像素字，具有輕微浮動，會避開角色與大型設備。物件內容只在按 E／Enter 後出現。
 
-## 存檔保護
+## 這次房間已根本改造
 
-`PreviewGame` 共用正式 `Game`、`RemasteredSession`、`GreyPixelReveal`、`LabEntrance` 和房間資料。僅初始化一次性的記憶體前置條件，沒有複製假房間。
+舊沙發、書櫃、茶几與大片地毯已移除。左上是三台故障街機，右上是 Kevin 的工程桌與工具板，左下是接上測試線的第 07 號原型機，中央是可移動維修車，右下只留很小的 Miao 用品角。
 
-預覽固定 `persistent=False`：不綁定 CampaignProfile、不讀 Continue 存檔、`save()` 直接返回；離開與關閉視窗也不能寫檔。沒有 Arcade Lobby session／story manager，不會發出真人玩家秘密事件，不會授予真實 Tokens／Tickets，也不改存檔格式。R／F5 會捨棄本次預覽狀態，正式存檔不受影響。
+四台街機共用 Arcade Floor 真正的 cabinet 繪圖方式，分別有裂掉的 CRT、拆開後面板的配線、凍結錯誤畫面與測試原型。每台都可用 E／Enter 檢視。工具、GPU、鍵盤、照片、筆記與原型記錄也走相同正式互動。
 
-只有明確使用 `--screenshot` 時，才會寫入你指定的圖片路徑。診斷工具預設把圖放 `/tmp`，不建立玩家檔案。
+家具與機台實心、不淡化，腳底深度排序；Miao 保留原 Lobby 外觀、待機動作與身體碰撞。工坊西門 `(1,7)` 可返回 r24；新入口落點為 `(6,8)`。沙發坐下功能隨沙發一併移除，沒有隱藏的舊座位互動。
 
-## 無視窗驗證及截圖
+## 存檔隔離
+
+PreviewGame 使用正式 Game、RemasteredSession、LabEntrance、GreyPixelReveal、DeveloperRoomArt／WorkshopArt。僅建立一次性前置狀態，固定 `persistent=False`：不讀寫實際玩家存檔、不綁 Lobby 帳戶、不派發真實秘密或 Tokens／Tickets。重播就丟棄本次記憶體狀態。
+
+正式舊工作室存檔由 studio_revision 4 安全遷位，保留物品、故事與獎勵；從第 3 版更新前保留 `.pre-studio-v4`，舊有備份不覆寫。
+
+## 截圖與完整正常路線驗證
 
 ```bash
-SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy .venv/bin/python -m puzzle_maze --dev-preview grey-pixel --headless --frames 2
-SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy .venv/bin/python -m puzzle_maze --dev-preview grey-pixel --headless --frames 180 --screenshot /tmp/grey-pixel.png
-SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy .venv/bin/python -m puzzle_maze.review_personality
-SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy PYTHONPATH=.:puzzle_maze/tests .venv/bin/python -m unittest puzzle_maze.tests.test_dev_preview puzzle_maze.tests.test_personality_art -v
+SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy .venv/bin/python -m puzzle_maze --dev-preview developer-room --headless --frames 1 --screenshot /tmp/workshop.png
+SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy .venv/bin/python -m puzzle_maze.review_workshop --output /tmp/forgotten-workshop
+SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy PYTHONPATH=.:puzzle_maze/tests .venv/bin/python -m unittest puzzle_maze.tests.test_workshop puzzle_maze.tests.test_dev_preview -q
 ```
 
-`--screenshot` 用固定 1/60 秒推進指定幀數，適合重現道具揭示。`review_personality` 會輸出工程室全景、入場、日記、史萊姆及房間畫面到 `/tmp/maze-personality`，並檢查文字框邊界。
+review_workshop 實際放炸彈、步行取得 Grey Pixel、正常進入 r28、完成對話、以 E／Enter 交替檢視全部 24 項物件、驗證碰撞，再由西門退出。PNG 只存在指定輸出目錄，不加入玩家存檔。舊 review_cozy_studio／review_studio_refinement 指令亦轉接到目前正式工坊。
 
 ## 常見問題
 
-- **No module named pygame**：使用 `.venv/bin/python`，不要換成尚未安裝專案依賴的系統 Python。
-- **No module named puzzle_maze**：先 `cd /home/nora/AOOP_Final`，再用 `-m puzzle_maze`。
-- **聲音裝置不可用**：沿用正式遊戲的無音訊降級；無視窗測試使用上述 dummy 設定。
-- **Esc 為什麼沒有關閉日記而是離開？** 預覽明確保留 Esc 安全退出，用 Enter 關閉閱讀；正式遊戲仍可用 Esc 關閉日記。
-- **想保留預覽進度？** 此功能刻意不保存；正式遊戲請從一般入口啟動。
-- **想重新看動畫？** F5 全序列、F7 Miao；按住按鍵不會連續重設。
+- 找不到 pygame：使用 `.venv/bin/python`。
+- 找不到 puzzle_maze：先進入 `/home/nora/AOOP_Final`，以 `-m puzzle_maze` 執行。
+- 無顯示環境：使用上方 SDL dummy 指令產生真實渲染畫面。
+- 想重看故事：F7，或 F5 連 Grey Pixel 一起重播。
+- 閱讀按住 Enter：不會連續開關，請放開後再按一次。
+- 預覽沒有保存：這是刻意隔離；正式進度請從一般 Arcade 入口測試。

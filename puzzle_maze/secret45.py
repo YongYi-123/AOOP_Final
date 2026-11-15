@@ -2,17 +2,25 @@
 SECRET_ID='dungeon_grey_pixel'
 DISCOVERY='DEBUG LAYER DISCOVERED. ORIGINAL MAP RESTORED.'
 LORE={
- 'kevin_photo':('OLD PHOTOGRAPH',('Kevin grins at a crooked','stack of arcade sketches.','A tiny chair sits beside','his enormous workbench.')),
- 'kevin_note':('KEVIN / HANDWRITTEN NOTE',('If a visitor finds this,','please use the good chair.','The other one squeaks in','three different keys.')),
- 'miao_memory':('MIAO MEOW',('Twelve keyboards. Two paws.','This may take a while.','I call the quiet one.','If there is a quiet one.')),
+ 'kevin_photo':('OLD PHOTOGRAPH',('Kevin and a much smaller','Miao, beside the workbench.','His hand steadies her paw.','The corners are worn soft.')),
+ 'kevin_note':('KEVIN / HANDWRITTEN NOTE',('Prototype 07 failed again.','Miao stayed until sunrise.','She seems to think I am','doing something important.')),
+ 'miao_memory':('MIAO MEOW',('I know that blanket.','He always folded it twice.','I never asked him to.','He just noticed.')),
  'lab_gpu':('VINTAGE GRAPHICS CARD',('Twin fans. Worn contacts.','Kevin kept this card alive','through countless nights.')),
- 'lab_keyboard':('CLICK. CLACK.',('MIAO MEOW: This is louder','than the Arcade machines.','Does it have a quiet key?')),
- 'lab_terminal':('BUILD FAILED',('BUILD FAILED: TOO MANY CATS.','Retry with fewer cats?','The terminal votes NO.')),
+ 'lab_keyboard':('CLICK. CLACK.',('A handwritten label:','DO NOT LET MIAO WALK','ON THIS KEYBOARD.','The label has paw prints.')),
+ 'lab_terminal':('BUILD FAILED',('ERROR: CAT DETECTED','ON KEYBOARD.','The error looks pleased','with itself.')),
  'debug_layer':('GREY PIXEL',('DEBUG LAYER DISCOVERED.','ORIGINAL MAP RESTORED.','The western arch still leads','back to the archive.')),
 }
 
 from puzzle_maze.developer_diaries import DIARIES
 LORE.update(DIARIES)
+from puzzle_maze.studio_notes import NOTES
+LORE.update(NOTES)
+LORE.update({
+ 'work_crt':('THE CRACKED CRT',('A tiny screen fracture.','Kevin marked the fault:','DO NOT FIX WITH A HAMMER.','The hammer is missing.')),
+ 'work_back':('OPEN SERVICE PANEL',('Each wire has a label.','One says: DOOR CHIME.','Another: NOT DOOR CHIME.','Both lead to the same bell.')),
+ 'work_frozen':('PAUSED FOREVER',('The score is still zero.','The machine reports:','PLAYER TWO IS A CAT.','WAITING FOR THUMBS.')),
+ 'work_prototype':('PROTOTYPE / RETURN PATH',('A grey test pixel travels','through an unfinished game.','An old service recording:','Leave a way back. Always.')),
+})
 
 def add_secret(rooms):
     from puzzle_maze.build_dungeon import obj,base
@@ -38,4 +46,7 @@ def add_secret(rooms):
                            obj('mystery_scroll','terminal',(21,9),optional=True,content_id='lab_terminal')])
     from puzzle_maze.developer_diaries import add_interactions
     add_interactions(dev)
+    from puzzle_maze.studio_layout import configure,ENTRY
+    configure(dev)
+    archive['exits'][-1]['arrival']=list(ENTRY)
     rooms['r28']=dev

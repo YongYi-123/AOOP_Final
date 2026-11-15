@@ -15,3 +15,9 @@ save_v4.json.tmp
 save_v45.json
 save_v45.json.tmp
 *.pre-v45
+
+*.pre-studio-v2
+
+*.pre-studio-v3
+
+*.pre-studio-v4
