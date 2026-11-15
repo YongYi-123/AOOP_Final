@@ -31,3 +31,12 @@ class FloorTests(unittest.TestCase):
             new=RemasteredSession.load(path)
             self.assertEqual(new.rooms.current,'r27');self.assertIn('gloves',new.inventory.abilities)
             self.assertIn('west',new.inventory.flags);self.assertEqual(before,path.read_bytes())
+
+    def test_palettes_are_distinct_and_archived_art_is_unchanged(self):
+        from puzzle_maze.themes import THEMES
+        s=RemasteredSession();old=AdvancedDungeonSession()
+        self.assertGreaterEqual(len({r['theme'] for r in s.rooms.rooms.values()}),9)
+        self.assertFalse(old.rooms.data['theme'].startswith('v45_'))
+        for room in s.rooms.rooms.values():
+            theme=THEMES[room['theme']]
+            self.assertGreater(sum(theme.wall)-sum(theme.floor),100)

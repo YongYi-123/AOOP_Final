@@ -9,4 +9,6 @@ def upgrade(source):
         room['floor']=FLOOR_ALIASES.get(room['floor'],room['floor'])
         if room['floor'] not in FLOORS: raise ValueError(f'Unsupported remaster floor: {name}')
         room['content_revision']='4.5'
+    from puzzle_maze.palettes45 import assign
+    assign(rooms)
     return rooms
