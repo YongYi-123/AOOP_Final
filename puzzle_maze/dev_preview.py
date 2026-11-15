@@ -57,6 +57,8 @@ class PreviewGame(Game):
         for i,line in enumerate(('PREVIEW / R REPLAY / F5 ALL / F6 ROOM','F7 MIAO / F8 NOTES / E READ / ESC EXIT')):
             guide.blit(render(line,8,(222,205,161)),(4,i*8))
         scale=min(output.get_width()/320,output.get_height()/240)
-        scale=max(1,int(scale))
-        output.blit(pygame.transform.scale(guide,(320*scale,16*scale)),((output.get_width()-320*scale)//2,0))
+        scale=int(scale) if scale>=1 else scale
+        width=max(1,int(320*scale));height=max(1,int(16*scale))
+        origin=((output.get_width()-width)//2,(output.get_height()-int(240*scale))//2)
+        output.blit(pygame.transform.scale(guide,(width,height)),origin)
         if target is None:pygame.display.flip()
