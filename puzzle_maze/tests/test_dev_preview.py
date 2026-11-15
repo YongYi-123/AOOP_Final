@@ -63,3 +63,10 @@ class PreviewTests(unittest.TestCase):
         for target in TARGETS:
             result=subprocess.run([sys.executable,'-m','puzzle_maze','--dev-preview',target,'--headless','--frames','1'],capture_output=True,text=True,timeout=20)
             self.assertEqual(result.returncode,0,result.stderr)
+
+    def test_exit_uses_the_actual_game_movement_and_transition(self):
+        from collections import defaultdict
+        g=PreviewGame('developer-room',True);g.session.player.x=2;g.session.player.y=7;g.visual=[2.,7.]
+        g.update(.14,defaultdict(bool,{pygame.K_LEFT:True}))
+        self.assertEqual(g.session.rooms.current,'r24');self.assertTrue(g.session.grey_pixel)
+        self.assertFalse(g.persistent);g.draw(.016)

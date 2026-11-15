@@ -34,7 +34,13 @@ def generate(output='/tmp/maze-personality'):
     from puzzle_maze.combat import EnemyState
     g.session.enter('r1');g.scene=GameScene.PLAY
     slime=next(e for e in g.session.combat.enemies if e.kind=='slime')
-    g.visual=[float(slime.x),float(slime.y)]
+    g.session.player.x=slime.x+3;g.session.player.y=slime.y
+    g.visual=[float(g.session.player.x),float(g.session.player.y)]
     shot('slime_idle_world');slime.state=EnemyState.WINDUP;shot('slime_attack_world')
+    from collections import defaultdict
+    g.restart_preview('developer-room');g.session.player.x=2;g.session.player.y=7;g.visual=[2.,7.]
+    g.update(.14,defaultdict(bool,{pygame.K_LEFT:True}));g.update(.5,defaultdict(bool))
+    assert g.session.rooms.current=='r24'
+    shot('studio_exit')
     print('Preview and text bounds captures:',output)
 if __name__=='__main__':generate()
