@@ -56,6 +56,26 @@ class ProgressionTests(unittest.TestCase):
                         self.assertGreaterEqual(e.timer,.9)
                         for other in c.enemies[i+1:]:
                             self.assertGreaterEqual(((e.x-other.x)**2+(e.y-other.y)**2)**.5,24)
+    def test_scaled_attacks_deliver_actual_progressive_damage(self):
+        for name,attack in (('grunt','enemy'),('WARDEN','charge')):
+            damages=[]
+            for stage in range(3):
+                p=PlayerFighter(); e=EnemyFighter(name,110,220,stage=stage)
+                e.tick(2); e.facing=-1; e.begin(attack,p)
+                e.tick(ATTACKS[attack].windup+.01)
+                hits=CombatSystem.resolve(e,[p])
+                self.assertEqual(len(hits),1)
+                damages.append(hits[0][1])
+                self.assertEqual(p.damage(100,0),0)
+            self.assertLess(damages[0],damages[1]); self.assertLess(damages[1],damages[2])
+    def test_boss_peak_damage_leaves_a_recovery_margin_for_every_character(self):
+        from neon_brawl.data import ROSTER
+        attacks={n for phases in BOSS_PATTERNS.values() for phase in phases for n in phase if n in ATTACKS}
+        for character in ROSTER:
+            p=PlayerFighter(character)
+            worst=max(round(ATTACKS[n].damage*BOSS_DAMAGE[2]/p.defense) for n in attacks)
+            self.assertLess(worst,p.max_health*.35)
+
     def test_advanced_archetypes_have_different_attacks(self):
         expected={'duelist':'double','cyber':'pulse','sniper':'snipe','assassin':'lunge','elite':'double'}
         for name,attack in expected.items():
@@ -103,6 +123,16 @@ class BossEvolutionTests(unittest.TestCase):
         self.assertFalse(CombatSystem.resolve(e,[p])); self.assertEqual(e.swing.target,target)
         p.y=220; self.assertEqual(len(CombatSystem.resolve(e,[p])),1)
         self.assertFalse(CombatSystem.resolve(e,[p]))
+    def test_dash_motion_integrates_only_the_active_interval(self):
+        first=EnemyFighter('WARDEN',200,220); second=EnemyFighter('WARDEN',200,220)
+        for e in (first,second): e.tick(2); e.facing=-1; e.attack('charge')
+        first.tick(.95)
+        for _ in range(95): second.tick(.01)
+        self.assertAlmostEqual(first.x,second.x,places=6)
+        self.assertAlmostEqual(first.x,181,places=6)
+        first.tick(2)
+        self.assertAlmostEqual(first.x,200-190*.24,places=6)
+
     def test_teleport_is_marked_bounded_and_never_hits_on_arrival(self):
         e=EnemyFighter('NULL',120,220); p=PlayerFighter(); e.tick(3)
         e.arena_bounds=(18,382); e.pattern=3

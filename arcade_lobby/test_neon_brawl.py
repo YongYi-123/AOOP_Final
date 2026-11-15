@@ -160,6 +160,7 @@ class LobbyTests(unittest.TestCase):
             if frame%120==0: self.game.step([],0)
         self.assertEqual(scene.brawl.screen,'results')
         self.assertEqual(visited,{0,1,2}); self.assertIn(('NULL',2),phases)
+        self.assertIn(('NULL',3),phases)
         self.assertEqual(scene.brawl.campaign.state,'victory')
         expected=scene.brawl.result()['tickets']; key(pygame.K_RETURN); self.frames()
         self.assertIs(self.game.scenes.current,self.room)

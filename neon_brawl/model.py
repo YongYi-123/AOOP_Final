@@ -69,11 +69,13 @@ class Fighter:
             self.jump = max(0, 115*self.jump_age - 180*self.jump_age**2)
             if self.jump_age > .65: self.jump_age = self.jump = 0
         if self.swing:
+            previous_age=self.swing.age
             self.swing.age += dt
             a = ATTACKS[self.swing.name]
             recovery = ROSTER[self.name].recovery if self.name in ROSTER else self.attack_recovery
-            if a.windup<=self.swing.age<a.windup+a.active and a.mobility:
-                self.x += self.swing.direction*a.mobility*dt
+            motion_time=max(0.,min(self.swing.age,a.windup+a.active)-max(previous_age,a.windup))
+            if a.mobility:
+                self.x += self.swing.direction*a.mobility*motion_time
             if self.swing.age > a.windup+a.active: self.state = 'recovery'
             if self.swing.age >= a.windup + a.active + a.recovery * recovery:
                 self.swing = None
