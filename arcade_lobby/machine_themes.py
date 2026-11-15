@@ -884,6 +884,7 @@ def decorate_brawl(s, frame, n, neon, accent):
             s.set_at((sx + dx, d.y + 5 + dy), (255, 255, 255))
     s.fill((6, 4, 14), (cx - 1, d.bottom - 1, 3, 1))              # coin slot
     s.fill(BRAWL_PINK, (cx - 2, d.bottom - 2, 5, 1))
+    _bezel_leds(s, frame, n, BRAWL_PINK, BRAWL_CYAN, scale_color(BRAWL_PINK, 0.4))
 
 
 # ----------------------------------------------------------------- registry
