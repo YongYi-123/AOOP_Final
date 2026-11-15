@@ -167,7 +167,12 @@ class BrawlGame:
                         dark=image.copy(); dark.fill((35,35,55,255),special_flags=pygame.BLEND_RGBA_MULT)
                         s.blit(dark,(65+i*70,130))
                 if t>6: s.blit(sprite('REX','walk',int(t*8)%4),(min(165,int((t-6)*70)),191))
-                if t>8: r.center(s,'NEON BRAWL',91,(255,95,175),3)
+                if t>8:
+                    settle=max(0,1-(t-8)*2)
+                    r.center(s,'NEON BRAWL',int(91-110*settle*settle),(255,95,175),3)
+                if t<2.2:
+                    veil=pygame.Surface((400,300)); veil.fill((0,0,0))
+                    veil.set_alpha(int(255*max(0,1-(t-1)/1.2))); s.blit(veil,(0,0))
             r.center(s,'ENTER / SPACE / ESC : SKIP',282,(160,170,200))
         elif screen=='title':
             r.center(s,'NEON',45,(75,235,245),4); r.center(s,'BRAWL',88,(255,85,170),4)
