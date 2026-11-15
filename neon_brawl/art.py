@@ -3,14 +3,19 @@ import math
 from functools import lru_cache
 import pygame
 from .data import ROSTER, ENEMIES
+from .outfits import outfit_for, BOSS_NAMES
+from .wardrobe import dress, boss_sprite
 
 INK=(12,10,28)
 WHITE=(225,240,245)
 
-@lru_cache(maxsize=512)
-def sprite(name, state='idle', frame=0, facing=1):
+@lru_cache(maxsize=2048)
+def sprite(name, state='idle', frame=0, facing=1, outfit=0):
+    if name in BOSS_NAMES:
+        image=boss_sprite(name,state,frame)
+        return pygame.transform.flip(image,True,False) if facing<0 else image
     s=pygame.Surface((64,64),pygame.SRCALPHA)
-    color=ROSTER[name].color if name in ROSTER else ENEMIES[name][2]
+    color=ROSTER[name].color if name in ROSTER else outfit_for(name,outfit).color
     heavy=name in ('BRUNO','bruiser','WARDEN','NULL')
     w=9 if heavy else 7
     skin=(220,155,115) if name not in ('NULL','RELAY','ranged') else (150,175,195)
@@ -72,6 +77,8 @@ def sprite(name, state='idle', frame=0, facing=1):
         rect((255,180,150),(27,19+bob,10,2))
     if state=='victory':
         limb([(38,27),(43,17),(42,7)],color)
+    if name not in ROSTER:
+        dress(s,name,outfit,bob,reach,attack)
     if state in ('knockdown','defeated'):
         s=pygame.transform.rotate(s,90)
         shifted=pygame.Surface((64,64),pygame.SRCALPHA)
@@ -174,7 +181,7 @@ class Renderer:
                 if a.windup<=f.swing.age<=a.windup+a.active:
                     pygame.draw.line(s,(155,245,255),(x+f.facing*18,y-24),(x+f.facing*240,y-24),3)
                     pygame.draw.line(s,WHITE,(x+f.facing*18,y-24),(x+f.facing*240,y-24),1)
-            image=sprite(f.name,'air' if f.jump>0 and not f.swing else f.state,frame,f.facing)
+            image=sprite(f.name,'air' if f.jump>0 and not f.swing else f.state,frame,f.facing,getattr(f,"outfit",0))
             if f.state=='phase':
                 radius=25+int(math.sin(time*20)*4)
                 pygame.draw.polygon(s,(235,110,225),[(x-radius,y-28),(x,y-70),(x+radius,y-28),(x,y+2)],2)

@@ -116,6 +116,7 @@ class EnemyFighter(Fighter):
         health = round(health * (1.5 if name.islower() else 1.35))
         super().__init__(name,x,y,health,speed)
         self.index, self.phase = index, 1
+        self.outfit = index
         self.timer = .9 + index*.15
         self.state = 'idle'
         self.pattern = 0
