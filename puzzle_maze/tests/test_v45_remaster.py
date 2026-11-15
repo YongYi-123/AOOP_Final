@@ -40,3 +40,13 @@ class FloorTests(unittest.TestCase):
         for room in s.rooms.rooms.values():
             theme=THEMES[room['theme']]
             self.assertGreater(sum(theme.wall)-sum(theme.floor),100)
+
+    def test_save_migration_creates_immutable_backup_and_hints_progress(self):
+        old=AdvancedDungeonSession()
+        with tempfile.TemporaryDirectory() as folder:
+            path=Path(folder)/'old.json';old.save(path);original=path.read_bytes()
+            new=RemasteredSession.load(path);new.save(path)
+            self.assertEqual(path.with_name('old.json.pre-v45').read_bytes(),original)
+            new.save(path);self.assertEqual(path.with_name('old.json.pre-v45').read_bytes(),original)
+        clues=[new.next_hint() for _ in range(3)]
+        self.assertEqual(len(set(clues)),3)

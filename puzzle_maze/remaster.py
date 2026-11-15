@@ -3,10 +3,46 @@ from puzzle_maze.advanced_dungeon import AdvancedDungeonSession
 from puzzle_maze.rooms import load_rooms,MAP_PATH
 from puzzle_maze.layout45 import upgrade
 import copy
+import json
+import shutil
+from pathlib import Path
+V45_SAVE=Path(__file__).parent/"save_v45.json"
 
 class RemasteredSession(AdvancedDungeonSession):
     def __init__(self,rooms=None):
+        self.hint_requests={};self.room_elapsed=0.
         super().__init__(upgrade(rooms or load_rooms(MAP_PATH.with_name('dungeon_v4.json'))))
+
+    def enter(self,name,arrival=None):
+        super().enter(name,arrival);self.room_elapsed=0.
+
+    def tick(self,dt):
+        super().tick(dt)
+        if self.player.hp>0:self.room_elapsed+=max(0,dt)
+
+    def next_hint(self):
+        from puzzle_maze.hints45 import HINTS
+        room=self.rooms.current
+        self.hint_requests[room]=self.hint_requests.get(room,0)+1
+        clues=(self.rooms.data['hint'],)+HINTS.get(room,())
+        tier=min(len(clues)-1,self.hint_requests[room]-1+(self.room_elapsed>=75))
+        return clues[tier]
+
+    def save(self,path=V45_SAVE):
+        path=Path(path)
+        if path.exists():
+            try:old=json.loads(path.read_text())
+            except (OSError,ValueError):old={}
+            backup=path.with_name(path.name+'.pre-v45')
+            if old.get('content_revision')!='4.5' and not backup.exists():shutil.copy2(path,backup)
+        return super().save(path)
+
+    @classmethod
+    def load(cls,path=V45_SAVE):
+        from puzzle_maze.advanced_dungeon import V4_SAVE
+        path=Path(path)
+        if path==V45_SAVE and not path.exists() and V4_SAVE.exists():path=V4_SAVE
+        return super().load(path)
 
     def normalize_save_header(self,data):
         result=copy.deepcopy(data)

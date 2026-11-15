@@ -18,7 +18,7 @@ class PuzzleMazeScene(MinigameScene):
     full_resolution=True  # Native UI is drawn directly on the host output surface.
     def __init__(self,game,machine):
         super().__init__(game,machine)
-        self.maze=Game(embedded=True,audio=LobbyAudio(game.audio),campaign="4")
+        self.maze=Game(embedded=True,audio=LobbyAudio(game.audio),campaign="4.5")
         self.leaving=False
         self.dt=0
 
@@ -43,7 +43,7 @@ class PuzzleMazeScene(MinigameScene):
                    'pause':pygame.K_ESCAPE,'item':pygame.K_SPACE,'confirm':pygame.K_RETURN}
         # Combat is a Maze action absent from the lobby's generic schemes.
         if event.key==pygame.K_j:key=pygame.K_j
-        elif event.key in (pygame.K_q,pygame.K_f,pygame.K_h,pygame.K_TAB,pygame.K_r,pygame.K_b,pygame.K_p,pygame.K_g,pygame.K_t):key=event.key
+        elif event.key in (pygame.K_n,pygame.K_q,pygame.K_f,pygame.K_h,pygame.K_TAB,pygame.K_r,pygame.K_b,pygame.K_p,pygame.K_g,pygame.K_t):key=event.key
         elif event.key in (pygame.K_LSHIFT,pygame.K_RSHIFT) and self.input.scheme.owns(event.key):key=pygame.K_LSHIFT
         elif action=='interact':
             key=pygame.K_e if self.maze.scene==GameScene.PLAY else pygame.K_RETURN
