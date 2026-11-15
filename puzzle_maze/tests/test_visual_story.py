@@ -74,3 +74,19 @@ class MemoryTimingTests(unittest.TestCase):
         g.update(2);self.assertEqual(g.scene,GameScene.PLAY)
         g.update(.01);self.assertEqual(g.scene,GameScene.PLAY)
         self.assertEqual(before,(g.session.rewards.tokens,g.session.rewards.tickets))
+
+    def test_previous_v45_snapshot_gains_only_optional_lab_interactions(self):
+        import json
+        from tempfile import TemporaryDirectory
+        from pathlib import Path
+        from puzzle_maze.remaster import RemasteredSession
+        s=RemasteredSession();s.enter('r28');s.grey_pixel=True;s.lore={'kevin_photo'}
+        with TemporaryDirectory() as tmp:
+            p=Path(tmp)/'save.json';s.save(p);data=json.loads(p.read_text())
+            for snapshot in [*data['snapshots'].values(),data['checkpoint']['objects']]:
+                for key in ('gpu','keyboard','terminal'):snapshot.pop(key,None)
+            data['extension']['remaster'].pop('lab_memory_seen',None)
+            p.write_text(json.dumps(data));loaded=RemasteredSession.load(p)
+        self.assertEqual(loaded.rooms.current,'r28');self.assertTrue(loaded.grey_pixel)
+        self.assertIn('kevin_photo',loaded.lore);self.assertFalse(loaded.lab_memory_seen)
+        self.assertTrue({'gpu','keyboard','terminal'}<=loaded.puzzles.objects.keys())
