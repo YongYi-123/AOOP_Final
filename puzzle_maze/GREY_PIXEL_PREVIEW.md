@@ -90,3 +90,19 @@ SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy .venv/bin/python -m puzzle_maze.revi
 ```
 
 工具會實際炸開裂牆、取得 Grey Pixel、走入 r28、播放五句對話、閱讀四頁清單、繞行家具並由西門返回 r24。圖片僅寫入指定輸出資料夾，不改玩家存檔。
+
+## 昏暖工作室與沙發（本次更新）
+
+家具已縮為原尺寸約 67%（工程桌／櫃體）或 80%（沙發等），保留精靈側面、桌腳與碰撞。牆上不再顯示房名；暗木、褪色紙張、局部燈光與浮塵營造遺留工作室的氣氛。
+
+靠近可讀物件時，底部固定位置顯示 `[E] Read Notebook`、`[E] Check To-Do List` 等，走遠即消失。預覽不再用快捷鍵說明蓋住正式提示；快捷鍵仍如上表。閱讀／故事時不顯示世界互動提示。
+
+沙發操作：走到左下沙發正前方（格子 `(4,11)`），朝上，出現 `[E] Sit` 後按 E。角色短暫移動並坐在坐墊上；再按 E 起身。起身結束後可正常走路；按住 E 不會反覆切換。坐姿僅在記憶體，不加入存檔。
+
+完整視覺與操作截圖：
+
+```bash
+SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy .venv/bin/python -m puzzle_maze.review_studio_refinement --output /tmp/studio-refinement
+```
+
+除了正式取得與入室流程，亦驗證提示、坐下／起身、筆記與入口淡入。檢視 `16_sofa_prompt.png`、`18_seated.png`、`20_notebook_prompt.png`、`23_maze_distortion.png`、`24_room_fade.png`。
