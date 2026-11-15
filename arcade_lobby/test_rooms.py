@@ -771,7 +771,9 @@ class ArcadeLayoutTests(unittest.TestCase):
         d = tempfile.mkdtemp()
         try:
             game = Game(save_path=os.path.join(d, "s.json"))
-            extra = dict(MACHINES[0], id="new_game", name="New Game", slot="island_0")
+            # Select an unregistered slot: island_0 is now NEON BRAWL's cabinet.
+            slot = next(iter(ArcadeLayout.from_settings().free_slots()))
+            extra = dict(MACHINES[0], id="new_game", name="New Game", slot=slot)
             del extra["x"]
             with mock.patch("arcade_layout.MACHINES", list(MACHINES) + [extra]):
                 room = ArcadeFloorScene(game, game.hub)

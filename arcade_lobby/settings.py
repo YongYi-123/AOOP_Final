@@ -326,6 +326,12 @@ MACHINES = [
         "slot": "island_1", "neon": (206, 64, 196), "accent": (90, 235, 255),
         "screen": "dungeon", "play_cost": 0,
     },
+    {
+        "id": "neon_brawl", "name": "Neon Brawl", "marquee": "NEON BRAWL",
+        "description": "Reclaim the neon city! Three fighters, three districts and one signal to break. WASD move, J/K fight.",
+        "slot": "island_0", "neon": (255, 75, 155), "accent": (75, 235, 245),
+        "screen": "brawl", "play_cost": 1,
+    },
 ]
 
 

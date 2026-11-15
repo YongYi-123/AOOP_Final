@@ -13,7 +13,7 @@ log = logging.getLogger("arcade.audio")
 ASSET_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets")
 # theme -> music file (assets/music/<file>.wav, composed by audio_synth.py). The hub's own
 # theme keeps its old name "lobby". Minigame themes below are short synthesized loops.
-MUSIC_FILES = {"lobby": "arcade_floor", "prize_plaza": "prize_plaza", "lucky_corner": "lucky_corner",
+MUSIC_FILES = {**{f"neon_brawl_{i}": f"neon_brawl_{i}" for i in range(4)}, "lobby": "arcade_floor", "prize_plaza": "prize_plaza", "lucky_corner": "lucky_corner",
                "home": "home", "golden_age": "golden_age",
                # one theme per minigame (the key is the machine / game id the scene reports)
                "retro_racer": "retro_racer", "pixel_volleyball": "pixel_volleyball", "cat_minesweeper": "cat_minesweeper",
@@ -30,7 +30,7 @@ SCENE_SFX = (4, 5, 6, 7)   # one dedicated effect channel per scene on the stack
 ORPHAN_GRACE = 0.6      # a scene that left may let its last effect finish this long (then the channel is stopped and freed)
 SFX_STUCK_GRACE = 1.0   # an effect still "playing" this long after it should have ended means the device is not consuming
 # Effect priority inside a scene's one channel: a new effect replaces the playing one unless the playing one matters more.
-PRIORITY = {"footstep": 0, "meow": 1, "card": 1, "sit": 1, "pet": 1, "pet_b": 1, "pet_c": 1, "purr": 2, "emote": 1, "bounce": 1, "hit": 1, "laser": 1,
+PRIORITY = {"brawl_win": 4, "brawl_loss": 4, "brawl_special": 3, "brawl_hurt": 2, "brawl_defeat": 2, "footstep": 0, "meow": 1, "card": 1, "sit": 1, "pet": 1, "pet_b": 1, "pet_c": 1, "purr": 2, "emote": 1, "bounce": 1, "hit": 1, "laser": 1,
             "skid": 1, "reveal": 1, "flag": 1, "confirm": 2, "cancel": 2, "machine": 2, "token": 2, "ticket": 2,
             "point": 2, "boom": 2, "vend_select": 1, "vend_hum": 1, "vend_drop": 3, "burp": 3, "munch": 3,
             "rainbow": 3, "squeak": 3, "zap": 3, "mystery": 3, "glitch": 4, "purchase": 3, "equip": 3, "spike": 3, "powerup": 3, "win": 4, "loss": 4,
@@ -49,7 +49,7 @@ PRIORITY = {"footstep": 0, "meow": 1, "card": 1, "sit": 1, "pet": 1, "pet_b": 1,
             "breakout_wall": 0, "breakout_paddle": 1, "breakout_brick": 2, "breakout_lose": 3, "breakout_clear": 4,
             # NEON CLAW: the motor never cuts off anything; the grab, the slip and the chute outrank the drop; the reward tops it
             "claw_move": 0, "claw_drop": 1, "claw_grab": 2, "claw_slip": 3, "claw_lose": 3, "claw_chute": 3, "claw_win": 4}
-SFX_FILES = ("footstep", "confirm", "cancel", "machine", "token", "ticket", "purchase", "card", "equip",
+SFX_FILES = tuple(f"brawl_{name}" for name in ("light","heavy","impact","hurt","special","dodge","jump","defeat","win","loss")) + ("footstep", "confirm", "cancel", "machine", "token", "ticket", "purchase", "card", "equip",
              "pet", "pet_b", "pet_c", "purr", "emote", "sit", "meow", "vend_hum", "vend_select", "vend_drop", "burp", "munch", "rainbow",
              "squeak", "zap", "mystery", "glitch",
              "maze_fish", "maze_fish_b", "maze_golden", "maze_golden_spawn", "maze_catnip", "maze_catnip_end",
@@ -93,7 +93,7 @@ DUCK_PAUSED = .4        # music level while a game is paused
 _SOUND_CACHE = {}       # (path, mixer format) -> Sound: a theme is read from disk once per run
 
 
-THEME_TITLES = {"lobby": "ARCADE FLOOR", "prize_plaza": "PRIZE PLAZA", "lucky_corner": "LUCKY CORNER", "home": "HOME", "golden_age": "THE GOLDEN AGE",
+THEME_TITLES = {**{f"neon_brawl_{i}": title for i, title in enumerate(("NEON ALLEY", "ABANDONED STATION", "SIGNAL CORE", "SIGNAL OVERLOAD"))}, "lobby": "ARCADE FLOOR", "prize_plaza": "PRIZE PLAZA", "lucky_corner": "LUCKY CORNER", "home": "HOME", "golden_age": "THE GOLDEN AGE",
                 "retro_racer": "RETRO RACER", "pixel_volleyball": "CAT VOLLEYBALL", "cat_minesweeper": "CAT TERRITORY",
                 "galaxy_defender": "STARFALL ASSAULT", "puzzle_drop": "NEON CAT MAZE", "neon21": "NEON 21", "lucky_wheel": "SPIN", "high_low": "HI-LO"}
 
