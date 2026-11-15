@@ -18,7 +18,7 @@ class PuzzleMazeScene(MinigameScene):
     full_resolution=True  # Native UI is drawn directly on the host output surface.
     def __init__(self,game,machine):
         super().__init__(game,machine)
-        self.maze=Game(embedded=True,audio=LobbyAudio(game.audio),campaign="4")
+        self.maze=Game(embedded=True,audio=LobbyAudio(game.audio),campaign="4.5")
         self.leaving=False
         self.dt=0
 
@@ -43,7 +43,7 @@ class PuzzleMazeScene(MinigameScene):
                    'pause':pygame.K_ESCAPE,'item':pygame.K_SPACE,'confirm':pygame.K_RETURN}
         # Combat is a Maze action absent from the lobby's generic schemes.
         if event.key==pygame.K_j:key=pygame.K_j
-        elif event.key in (pygame.K_q,pygame.K_f,pygame.K_h,pygame.K_TAB,pygame.K_r,pygame.K_b,pygame.K_p,pygame.K_g,pygame.K_t):key=event.key
+        elif event.key in (pygame.K_n,pygame.K_q,pygame.K_f,pygame.K_h,pygame.K_TAB,pygame.K_r,pygame.K_b,pygame.K_p,pygame.K_g,pygame.K_t):key=event.key
         elif event.key in (pygame.K_LSHIFT,pygame.K_RSHIFT) and self.input.scheme.owns(event.key):key=pygame.K_LSHIFT
         elif action=='interact':
             key=pygame.K_e if self.maze.scene==GameScene.PLAY else pygame.K_RETURN
@@ -53,6 +53,18 @@ class PuzzleMazeScene(MinigameScene):
         self.maze.event(pygame.event.Event(pygame.KEYDOWN,key=key,repeat=getattr(event,"repeat",False)))
         if not self.maze.running:self.leave()
 
+    def sync_story(self):
+        from quests import SECRET_ITEM_DUNGEON
+        from local_session import GameEvent
+        session=self.maze.session
+        manager=getattr(getattr(getattr(self.game,'hub',None),'story',None),'manager',None)
+        if manager is None or not self.players:return
+        owner=self.players[0].player_id
+        if getattr(session,'grey_pixel',False) and manager.can_collect(SECRET_ITEM_DUNGEON) and not manager.has_secret_item(SECRET_ITEM_DUNGEON):
+            self.game.session.dispatch(GameEvent('secret_item_found',owner,key=SECRET_ITEM_DUNGEON,game_id='puzzle_maze'))
+        if 'kevin_photo' in getattr(session,'lore',set()) and not manager.state.get('flags',{}).get('egg_kevin_developer_room'):
+            self.game.session.dispatch(GameEvent('easter_egg_found',owner,key='kevin_developer_room',game_id='puzzle_maze'))
+
     def update(self,dt):
         if self.leaving:return
         self.dt=dt
@@ -60,6 +72,7 @@ class PuzzleMazeScene(MinigameScene):
         for action,key in [('left',pygame.K_LEFT),('right',pygame.K_RIGHT),('up',pygame.K_UP),('down',pygame.K_DOWN)]:
             keys[key]=self.input.held(action)
         self.maze.update(dt,keys)
+        self.sync_story()
 
     def draw(self,surface):
         self.maze.draw(self.dt,target=surface)
@@ -79,6 +92,7 @@ class PuzzleMazeScene(MinigameScene):
         return MiniGameResult()  # Trial cabinet never adds tickets or scores.
 
     def on_exit(self):
+        self.sync_story()
         if self.maze.scene!=GameScene.MENU:self.maze.save()
 
     def on_quit(self):

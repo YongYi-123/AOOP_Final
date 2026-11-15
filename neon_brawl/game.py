@@ -4,6 +4,7 @@ import pygame
 from .model import Campaign
 from .data import ROSTER, STAGES
 from .art import Renderer, sprite, background
+from .cinematic import Cinematic
 
 MOVEMENT={pygame.K_a:(-1,0),pygame.K_d:(1,0),pygame.K_w:(0,-1),pygame.K_s:(0,1),
           pygame.K_LEFT:(-1,0),pygame.K_RIGHT:(1,0),pygame.K_UP:(0,-1),pygame.K_DOWN:(0,1)}
@@ -13,6 +14,9 @@ CONFIRM=(pygame.K_RETURN,pygame.K_KP_ENTER,pygame.K_SPACE)
 class BrawlGame:
     def __init__(self,font,audio=None):
         self.renderer=Renderer(font)
+        self.cinematic=Cinematic(font)
+        self._pressed=set()
+        self._logical_surface=None
         self.audio=audio
         self.screen='intro'
         self.time=self.screen_time=0.
@@ -38,16 +42,19 @@ class BrawlGame:
             self.audio.play(mapped)
     def change(self,screen):
         self.pending_attack=None
+        self._pressed.intersection_update((*CONFIRM,pygame.K_ESCAPE))
         self.screen=screen; self.screen_time=0; self.held.clear()
     def pause(self):
         self.held.clear()
         if self.screen=='playing': self.change('paused')
     def handle_event(self,event):
-        if event.type==pygame.WINDOWFOCUSLOST: self.pause(); return
-        if event.type==pygame.KEYUP: self.held.discard(event.key); return
+        if event.type==pygame.WINDOWFOCUSLOST: self._pressed.clear(); self.pause(); return
+        if event.type==pygame.KEYUP:
+            self.held.discard(event.key); self._pressed.discard(event.key); return
         if event.type!=pygame.KEYDOWN or getattr(event,'repeat',False): return
         key=event.key
-        if key in self.held: return
+        if key in self._pressed: return
+        self._pressed.add(key)
         self.held.add(key)
         confirm=key in CONFIRM
         if self.screen=='intro' and (confirm or key==pygame.K_ESCAPE):
@@ -106,8 +113,8 @@ class BrawlGame:
         dt=max(0,min(dt,.05)); self.time+=dt; self.screen_time+=dt
         if self.screen=='intro':
             if int((self.screen_time-dt)*2)!=int(self.screen_time*2) and self.screen_time<2: self.sound('machine')
-            if self.screen_time-dt<3<=self.screen_time: self.sound('glitch')
-            if self.screen_time-dt<8<=self.screen_time: self.sound('win')
+            if self.screen_time-dt<6.3<=self.screen_time: self.sound('glitch')
+            if self.screen_time-dt<7.3<=self.screen_time: self.sound('win')
             if self.screen_time>=11: self.change('title')
         elif self.screen in ('tutorial','controls'):
             self.tutorial_player.tick(dt)
@@ -122,7 +129,7 @@ class BrawlGame:
             dy=sum(MOVEMENT[k][1] for k in self.held if k in MOVEMENT)
             self.campaign.update(dt,(max(-1,min(1,dx)),max(-1,min(1,dy))))
             for event in self.campaign.events:
-                self.sound({'hit':'impact','hurt':'bounce','defeat':'defeat','clear':'win','lose':'loss','pickup':'powerup'}.get(event,'machine'))
+                self.sound({'hit':'impact','hurt':'bounce','defeat':'defeat','boss_warden':'brawl_warden','boss_relay':'brawl_relay','boss_null':'brawl_overlord','summon':'brawl_special','clear':'win','lose':'loss','pickup':'powerup'}.get(event,'machine'))
             if self.campaign.state in ('checkpoint','stage_clear'): self.change(self.campaign.state)
             elif self.campaign.state=='defeat': self.change('game_over')
         elif self.screen=='ending' and self.screen_time>=10: self.change('results')
@@ -141,6 +148,17 @@ class BrawlGame:
         for i,line in enumerate(lines): self.renderer.center(s,line,108+i*18)
 
     def draw(self,s):
+        if s.get_size()!=(400,300):
+            if self._logical_surface is None: self._logical_surface=pygame.Surface((400,300))
+            self.draw(self._logical_surface)
+            scale=min(s.get_width()/400,s.get_height()/300)
+            size=(max(1,int(400*scale)),max(1,int(300*scale)))
+            s.fill((5,6,16))
+            s.blit(pygame.transform.scale(self._logical_surface,size),((s.get_width()-size[0])//2,(s.get_height()-size[1])//2))
+            return
+        if self.screen=='intro':
+            self.cinematic.draw(s,self.screen_time)
+            return
         r=self.renderer
         if self.campaign and self.screen not in ('title','intro','select','tutorial','controls'):
             r.world(s,self.campaign,self.time)
@@ -150,31 +168,7 @@ class BrawlGame:
             s.blit(background(0,0),(0,0)); s.blit(background(0,1),(-int(self.time*12)%400-200,0))
             s.fill((18,17,34),(0,168,400,132))
         screen=self.screen
-        if screen=='intro':
-            t=self.screen_time
-            if t<1:
-                s.fill((0,0,0)); pygame.draw.line(s,(175,255,255),(int(200-t*190),150),(int(200+t*190),150),max(1,int(t*5)))
-            else:
-                for i in range(65):
-                    x=int((i*73-t*45)%400); y=int((i*47+t*145)%300)
-                    pygame.draw.line(s,(75,95,140),(x,y),(x-2,y+5))
-                if t>3:
-                    r.center(s,'TRANSMISSION // DISTRICT 09',35,(80,230,240))
-                    r.center(s,'THE SIGNAL HAS TAKEN THE CITY.',55)
-                if t>5:
-                    for i,name in enumerate(('grunt','runner','bruiser','ranged')):
-                        image=sprite(name,'walk',int(t*7)%4)
-                        dark=image.copy(); dark.fill((35,35,55,255),special_flags=pygame.BLEND_RGBA_MULT)
-                        s.blit(dark,(65+i*70,130))
-                if t>6: s.blit(sprite('REX','walk',int(t*8)%4),(min(165,int((t-6)*70)),191))
-                if t>8:
-                    settle=max(0,1-(t-8)*2)
-                    r.center(s,'NEON BRAWL',int(91-110*settle*settle),(255,95,175),3)
-                if t<2.2:
-                    veil=pygame.Surface((400,300)); veil.fill((0,0,0))
-                    veil.set_alpha(int(255*max(0,1-(t-1)/1.2))); s.blit(veil,(0,0))
-            r.center(s,'ENTER / SPACE / ESC : SKIP',282,(160,170,200))
-        elif screen=='title':
+        if screen=='title':
             r.center(s,'NEON',45,(75,235,245),4); r.center(s,'BRAWL',88,(255,85,170),4)
             for i,name in enumerate(ROSTER):
                 image=pygame.transform.scale(sprite(name,'idle',int(self.time*5)%4),(96,96)); s.blit(image,(54+i*100,153))

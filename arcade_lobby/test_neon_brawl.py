@@ -155,11 +155,12 @@ class LobbyTests(unittest.TestCase):
                 for k in movement-desired: scene.handle_event(pygame.event.Event(pygame.KEYUP,key=k,mod=0))
                 for k in desired-movement: scene.handle_event(pygame.event.Event(pygame.KEYDOWN,key=k,mod=0))
                 movement=desired
-                if action: key({'light':pygame.K_j,'special':pygame.K_u,'dodge':pygame.K_i}[action])
+                if action: key({'light':pygame.K_j,'special':pygame.K_u,'dodge':pygame.K_i,'heavy':pygame.K_k}[action])
             self.game.scenes.update(DT)
             if frame%120==0: self.game.step([],0)
         self.assertEqual(scene.brawl.screen,'results')
         self.assertEqual(visited,{0,1,2}); self.assertIn(('NULL',2),phases)
+        self.assertIn(('NULL',3),phases)
         self.assertEqual(scene.brawl.campaign.state,'victory')
         expected=scene.brawl.result()['tickets']; key(pygame.K_RETURN); self.frames()
         self.assertIs(self.game.scenes.current,self.room)

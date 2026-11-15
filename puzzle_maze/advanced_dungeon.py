@@ -160,4 +160,12 @@ class AdvancedDungeonSession(DungeonSession):
         if self.checkpoint.get('carried') is not None:raise ValueError('Cannot enter with a carried pot')
     def save(self,path=V4_SAVE):super().save(path)
     @classmethod
-    def load(cls,path=V4_SAVE):return super().load(path)
+    def load(cls,path=V4_SAVE):
+        if cls is AdvancedDungeonSession:
+            import json
+            try:revision=json.loads(Path(path).read_text()).get('content_revision')
+            except (OSError,ValueError,TypeError,AttributeError):revision=None
+            if revision=='4.5':
+                from puzzle_maze.remaster import RemasteredSession
+                return RemasteredSession.load(path)
+        return super().load(path)

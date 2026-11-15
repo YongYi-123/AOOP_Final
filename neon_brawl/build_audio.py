@@ -21,7 +21,7 @@ def build():
                 melody=(12,15,19,22,19,15,14,7,12,19,24,22,19,15,14,10)[(step//8)%16]
                 m.note(t,beat*.8,hz(root+24+melody),'p25',.075,vibrato=5)
         write_wav(str(output/f'neon_brawl_{stage}.wav'),m.finish(rms=-14.8,lowpass=.18))
-    effects={'light':(210,90,.10),'heavy':(125,45,.22),'impact':(330,65,.12),
+    effects={'warden':(110,55,.45),'relay':(880,220,.45),'overlord':(130,1040,.55),'light':(210,90,.10),'heavy':(125,45,.22),'impact':(330,65,.12),
              'hurt':(180,85,.19),'special':(720,120,.35),'dodge':(460,160,.14),
              'jump':(260,650,.17),'defeat':(130,35,.28),'win':(520,1040,.6),'loss':(320,80,.6)}
     for name,(start,end,duration) in effects.items():

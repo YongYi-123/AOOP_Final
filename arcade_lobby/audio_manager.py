@@ -49,7 +49,7 @@ PRIORITY = {"brawl_win": 4, "brawl_loss": 4, "brawl_special": 3, "brawl_hurt": 2
             "breakout_wall": 0, "breakout_paddle": 1, "breakout_brick": 2, "breakout_lose": 3, "breakout_clear": 4,
             # NEON CLAW: the motor never cuts off anything; the grab, the slip and the chute outrank the drop; the reward tops it
             "claw_move": 0, "claw_drop": 1, "claw_grab": 2, "claw_slip": 3, "claw_lose": 3, "claw_chute": 3, "claw_win": 4}
-SFX_FILES = tuple(f"brawl_{name}" for name in ("light","heavy","impact","hurt","special","dodge","jump","defeat","win","loss")) + ("footstep", "confirm", "cancel", "machine", "token", "ticket", "purchase", "card", "equip",
+SFX_FILES = tuple(f"brawl_{name}" for name in ("light","heavy","impact","hurt","special","dodge","jump","defeat","win","loss","warden","relay","overlord")) + ("footstep", "confirm", "cancel", "machine", "token", "ticket", "purchase", "card", "equip",
              "pet", "pet_b", "pet_c", "purr", "emote", "sit", "meow", "vend_hum", "vend_select", "vend_drop", "burp", "munch", "rainbow",
              "squeak", "zap", "mystery", "glitch",
              "maze_fish", "maze_fish_b", "maze_golden", "maze_golden_spawn", "maze_catnip", "maze_catnip_end",

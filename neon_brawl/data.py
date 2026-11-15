@@ -26,6 +26,9 @@ class Attack:
     knockback: float
     knockdown: bool = False
     cost: int = 0
+    shape: str = "forward"
+    lane: int = 17
+    mobility: float = 0
 
 ATTACKS = {
     'light': Attack(12, 39, .07, .10, .14, 45),
@@ -53,13 +56,60 @@ STAGES = (
     ('ABANDONED STATION', (55, 170, 210), 'RELAY'),
     ('SIGNAL CORE', (145, 70, 240), 'NULL'),
 )
-# Four locked encounters per scrolling stage; the last is a boss arena.
-WAVES = (
-    (('grunt',)*3, ('grunt','runner','grunt','runner'), ('bruiser','grunt','ranged'), ('WARDEN',)),
-    (('runner','grunt','ranged','grunt'), ('bruiser','runner','ranged','runner'), ('bruiser','bruiser','ranged'), ('RELAY','runner')),
-    (('bruiser','runner','ranged','grunt'), ('bruiser','ranged','runner','runner'), ('bruiser','bruiser','ranged','ranged'), ('NULL',)),
+# Difficulty changes damage and tactics; original HP and player controls are preserved.
+ENEMY_DAMAGE = (1.0, 1.25, 1.5)
+BOSS_DAMAGE = (1.0, 1.4, 1.7)
+BOSS_PATTERNS = {
+    'WARDEN': (('charge','slam','barrage'), ('slam','charge','wave','barrage')),
+    'RELAY': (('dash','pulse','guard','orb'), ('dash','strike','guard','summon','pulse')),
+    'NULL': (('orb','barrage','wave','teleport'),
+             ('laser','strike','teleport','summon','barrage'),
+             ('strike','laser','wave','teleport','orb')),
+}
+ENEMIES.update({
+    'duelist': (37, 82, (190,90,100)),
+    'shield': (88, 35, (85,135,155)),
+    'elite': (58, 63, (135,85,165)),
+    'cyber': (50, 79, (95,190,205)),
+    'security': (100, 31, (115,145,175)),
+    'sniper': (40, 48, (165,100,175)),
+    'assassin': (34, 108, (100,90,160)),
+    'echo': (16, 70, (145,145,245)),
+})
+ATTACKS.update({
+    'double': Attack(12, 40, .46, .22, .70, 65),
+    'bash': Attack(15, 44, .65, .15, .95, 100, True),
+    'lunge': Attack(12, 43, .65, .20, .85, 85, mobility=175),
+    'snipe': Attack(13, 280, .95, .10, 1.15, 70),
+    'charge': Attack(17, 45, .85, .24, 1.15, 115, True, mobility=190),
+    'slam': Attack(18, 65, .95, .16, 1.15, 110, True, shape='radial', lane=25),
+    'barrage': Attack(15, 56, .60, .32, .95, 75),
+    'wave': Attack(14, 210, .90, .16, 1.10, 90, shape='radial', lane=12),
+    'dash': Attack(13, 43, .75, .22, 1.0, 95, mobility=220),
+    'pulse': Attack(14, 77, .90, .18, 1.0, 85, shape='radial', lane=28),
+    'orb': Attack(12, 245, .85, .12, 1.0, 70),
+    'laser': Attack(14, 290, 1.0, .20, 1.05, 80, lane=13),
+    'strike': Attack(15, 38, 1.10, .18, 1.0, 100, True, shape='target', lane=23),
+})
+STAGE_POOLS = (
+    frozenset(('grunt','runner','bruiser','WARDEN')),
+    frozenset(('grunt','runner','duelist','shield','ranged','elite','RELAY')),
+    frozenset(('elite','cyber','security','sniper','assassin','NULL')),
 )
-
-# Reinforcement squads enter in fair groups, rather than surrounding the player at once.
-WAVES = tuple(tuple(wave + tuple(n for n in wave if n not in ('WARDEN','RELAY','NULL'))
-                    if index < 3 else wave for index, wave in enumerate(stage)) for stage in WAVES)
+# 70 opponents across twelve encounters. New mechanics appear before mixed squads.
+WAVES = (
+    (('grunt',)*6,
+     ('grunt','runner','grunt','runner','runner','grunt','runner','grunt'),
+     ('bruiser','grunt','runner','bruiser','grunt','runner'), ('WARDEN',)),
+    (('duelist','grunt','runner','duelist','grunt','ranged','runner','ranged'),
+     ('shield','duelist','ranged','elite','grunt','shield','duelist','ranged'),
+     ('elite','shield','ranged','duelist','elite','ranged'), ('RELAY','duelist')),
+    (('cyber','elite','assassin','cyber','elite','sniper','assassin','elite'),
+     ('security','sniper','cyber','assassin','elite','security','sniper','cyber'),
+     ('security','assassin','sniper','elite','cyber','security','assassin','sniper'), ('NULL',)),
+)
+SECTIONS = (
+    ('NEON SHOPPING STREET','DENSE NIGHT MARKET','RESTAURANT ALLEY','KINGS CROSSING'),
+    ('STATION ENTRANCE','EMPTY PLATFORM','SERVICE TUNNEL','CONTROL ROOM'),
+    ('SECURITY CHECKPOINT','SERVER RACK CORRIDOR','COOLING AND POWER','CENTRAL COMPUTING','OVERLORD ARENA'),
+)

@@ -31,6 +31,8 @@ class NeonBrawlScene(MinigameScene):
         result=self.brawl.result()
         return MiniGameResult(tuple(PlayerResult(p.profile_id,result['score'],
             RewardBundle(tickets=result['tickets'],reason='NEON BRAWL')) for p in self.participants[:1]))
-    def on_resume(self): self.brawl.held.clear()
+    def on_resume(self):
+        self.brawl.held.clear()
+        self.brawl._pressed.clear()
     def on_exit(self): self.brawl.held.clear()
     def on_quit(self): self.brawl.held.clear()

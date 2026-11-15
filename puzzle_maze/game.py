@@ -8,6 +8,7 @@ import pygame
 from puzzle_maze.session import GameSession, SAVE_PATH
 from puzzle_maze.dungeon import DungeonSession
 from puzzle_maze.advanced_dungeon import AdvancedDungeonSession
+from puzzle_maze.remaster import RemasteredSession
 from puzzle_maze.render import Renderer, GOLD, TEAL
 from puzzle_maze.audio import AudioManager
 from puzzle_maze.onboarding import IntroSequence,TutorialCard
@@ -35,15 +36,17 @@ class Game:
         self.screen=pygame.display.get_surface() if embedded else pygame.display.set_mode((960,720),pygame.RESIZABLE)
         if not embedded:pygame.display.set_caption('Puzzle Maze / Clockwork Hollow')
         self.clock=pygame.time.Clock();self.renderer=Renderer();self.audio=audio if audio is not None else AudioManager()
-        self.session_factory=GameSession if embedded and campaign is None or legacy or campaign=="2" else DungeonSession if campaign=="3" else AdvancedDungeonSession
+        self.session_factory=GameSession if embedded and campaign is None or legacy or campaign=="2" else DungeonSession if campaign=="3" else AdvancedDungeonSession if campaign=="4" else RemasteredSession
         self.session=self.session_factory();self.scene=GameScene.MENU;self.previous=GameScene.MENU
         self.selection=0;self.running=True;self.cooldown=0
         self.visual=[float(self.session.player.x),float(self.session.player.y)]
+        self.reading='coming_soon'
         self.toast='';self.toast_time=0;self.fade=0;self.autosave=0
         self.last_solved=False
         self.tool='pulse'
         self.intro=IntroSequence();self.tutorial=TutorialCard()
         self.tutorial.bombs=isinstance(self.session,DungeonSession)
+        self.tutorial.remastered=isinstance(self.session,RemasteredSession)
         self.tutorial.advanced=isinstance(self.session,AdvancedDungeonSession);self.tutorial.page=0
         if isinstance(self.session,AdvancedDungeonSession) and not embedded and not headless:
             from puzzle_maze.advanced_dungeon import V4_SAVE
@@ -77,7 +80,7 @@ class Game:
     def start(self,continuing=False,onboarding=True,legacy=False,archived=False):
         factory=GameSession if legacy else DungeonSession if archived else self.session_factory
         previous_history=getattr(self.session,'history',None)
-        self.session=(factory.load(self.profile_store.save_path) if self.profile_store and factory is AdvancedDungeonSession else factory.load()) if continuing else factory()
+        self.session=(factory.load(self.profile_store.save_path) if self.profile_store and issubclass(factory,AdvancedDungeonSession) else factory.load()) if continuing else factory()
         if isinstance(self.session,AdvancedDungeonSession):
             history=self.reward_history or previous_history
             if history is not None:
@@ -85,6 +88,7 @@ class Game:
                 except ValueError:history.blocked=True
                 self.session.history=history
         self.tutorial.bombs=isinstance(self.session,DungeonSession)
+        self.tutorial.remastered=isinstance(self.session,RemasteredSession)
         self.tutorial.advanced=isinstance(self.session,AdvancedDungeonSession);self.tutorial.page=0
         self.tool="pulse"
         self.scene=GameScene.GAMEOVER if self.session.player.hp<=0 else GameScene.VICTORY if self.session.finished else GameScene.PLAY
@@ -159,6 +163,8 @@ class Game:
         if key==pygame.K_e and getattr(self.session.inventory,'carried',None):
             if not self.session.drop_pot():self.notify('Face a clear tile to set down',2)
             return
+        if key==pygame.K_n and hasattr(self.session,'next_hint'):
+            self.notify(self.session.next_hint(),8);return
         if key==pygame.K_j:self.session.attack();return
         if key==pygame.K_h:
             if not self.session.heal():self.notify("H: use a potion when hurt",2)
@@ -188,7 +194,13 @@ class Game:
                 self.audio.play('pulse' if key==pygame.K_SPACE else 'use')
                 self.renderer.burst(self.session.player.x,self.session.player.y,TEAL)
                 obj_data=self.session.puzzles.objects[obj].data
-                if obj_data['type']=='mystery_scroll':self.scene=GameScene.SCROLL
+                if hasattr(self.session,'observe_secret'):self.session.observe_secret()
+                if obj_data.get('grey_pixel'):
+                    self.reading='debug_layer';self.scene=GameScene.SCROLL;self.save()
+                if obj_data['type']=='mystery_scroll':
+                    self.reading=obj_data.get('content_id','coming_soon')
+                    if hasattr(self.session,'read_lore'):self.session.read_lore(self.reading)
+                    self.scene=GameScene.SCROLL
                 if obj_data.get('ability'):self.notify('Acquired: '+obj_data['ability'])
             else:self.notify('E: chest / mechanism. Q: tool. SPACE: pulse.',2)
 
@@ -270,7 +282,7 @@ class Game:
         elif self.scene==GameScene.TUTORIAL:self.tutorial.draw(r)
         elif self.scene in (GameScene.MENU,GameScene.PAUSE,GameScene.VICTORY,GameScene.GAMEOVER,GameScene.ARCHIVE):
             title={GameScene.MENU:'PUZZLE MAZE',GameScene.PAUSE:'EXPEDITION PAUSED',GameScene.VICTORY:'HOLLOW AWAKENED',GameScene.GAMEOVER:'GAME OVER',GameScene.ARCHIVE:'OLD EXPEDITIONS'}[self.scene]
-            if self.scene==GameScene.MENU and isinstance(self.session,AdvancedDungeonSession):title='PUZZLE MAZE 4.4'
+            if self.scene==GameScene.MENU and isinstance(self.session,AdvancedDungeonSession):title='PUZZLE MAZE 4.5' if isinstance(self.session,RemasteredSession) else 'PUZZLE MAZE 4.4'
             r.panel(title,self.options(),self.selection)
             if self.scene==GameScene.VICTORY and hasattr(self.session,'rewards'):
                 bag=self.session.rewards
@@ -279,11 +291,15 @@ class Game:
                 r.text(f'Tokens {tokens} / Tickets {tickets}',36,143,GOLD,max_width=244)
                 r.text(('FIRST CLEAR' if receipt['tier']=='first' else 'REPLAY CLEAR') if receipt else 'EXPEDITION COMPLETE',36,160,TEAL,max_width=244)
                 r.text('Lobby trial: no account payout' if self.embedded else 'Local expedition record',36,177,TEAL,max_width=244)
-            label='4.4 / Emberglass Hollow' if isinstance(self.session,AdvancedDungeonSession) else '3.0 / Clockwork Hollow' if isinstance(self.session,DungeonSession) else '2.1 / The Prism Chambers'
+            label='4.5 / Restored Hollow' if isinstance(self.session,RemasteredSession) else '4.4 / Emberglass Hollow' if isinstance(self.session,AdvancedDungeonSession) else '3.0 / Clockwork Hollow' if isinstance(self.session,DungeonSession) else '2.1 / The Prism Chambers'
             r.text(label,36,193,(133,163,156),max_width=244)
         elif self.scene==GameScene.SCROLL:
-            r.panel('COMING SOON',[])
-            r.surface.blit(pygame.transform.scale(r.hud.atlas.get('mystery_scroll'),(36,36)),(142,119))
+            from puzzle_maze.secret45 import LORE
+            if self.reading in LORE:
+                title,lines=LORE[self.reading];r.panel(title,lines)
+            else:
+                r.panel('COMING SOON',[])
+                r.surface.blit(pygame.transform.scale(r.hud.atlas.get('mystery_scroll'),(36,36)),(142,119))
             r.text('ENTER / ESC: Close',83,173,GOLD,max_width=160)
         elif self.scene==GameScene.HELP:
             r.panel('FIELD GUIDE',self.tutorial.lines(False))
@@ -318,7 +334,7 @@ class Game:
 
 def main():
     parser=argparse.ArgumentParser(description='Independent Puzzle Maze')
-    parser.add_argument('--campaign',choices=('4','3','2'),default='4',help='Campaign version, each with its own save')
+    parser.add_argument('--campaign',choices=('4.5','4','3','2'),default='4.5',help='Campaign edition; the remaster preserves older progress during migration')
     parser.add_argument('--legacy',action='store_true',help='Play the original 2.1 campaign and save')
     parser.add_argument('--headless',action='store_true');parser.add_argument('--frames',type=int)
     parser.add_argument('--screenshot',help='Write a screenshot after a bounded run')

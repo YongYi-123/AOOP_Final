@@ -1,7 +1,9 @@
 """Combat simulation: no display, input devices, audio, or save dependencies."""
 import math
 from dataclasses import dataclass, field
-from .data import ROSTER, ENEMIES, ATTACKS, WAVES
+from .data import ROSTER, ENEMIES, ATTACKS, WAVES, ENEMY_DAMAGE, BOSS_DAMAGE
+from .ai import BossBrain
+from .ambient import AmbientCats
 
 def approach(value, target, amount):
     return min(value + amount, target) if value < target else max(value - amount, target)
@@ -11,6 +13,9 @@ class Swing:
     name: str
     age: float = 0
     victims: set = field(default_factory=set)
+    origin: tuple = (0, 0)
+    target: tuple = (0, 0)
+    direction: int = 1
 
 class Fighter:
     def __init__(self, name, x, y, health, speed, power=1, defense=1):
@@ -25,6 +30,8 @@ class Fighter:
         self.energy = 100.
         self.flash = 0.
         self.age = 0.
+        self.defeat_age = 0.
+        self.attack_recovery = 1.
 
     @property
     def alive(self): return self.health > 0
@@ -35,7 +42,7 @@ class Fighter:
         attack = ATTACKS[name]
         if not self.ready or self.energy < attack.cost: return False
         self.energy -= attack.cost
-        self.swing = Swing(name)
+        self.swing = Swing(name, origin=(self.x,self.y), target=(self.x,self.y), direction=self.facing)
         self.state = name
         return True
 
@@ -53,6 +60,7 @@ class Fighter:
 
     def tick(self, dt):
         self.age += dt
+        if not self.alive: self.defeat_age += dt
         for attr in ('timer', 'invulnerable', 'flash'):
             setattr(self, attr, max(0, getattr(self, attr)-dt))
         self.x += self.push * dt
@@ -62,9 +70,13 @@ class Fighter:
             self.jump = max(0, 115*self.jump_age - 180*self.jump_age**2)
             if self.jump_age > .65: self.jump_age = self.jump = 0
         if self.swing:
+            previous_age=self.swing.age
             self.swing.age += dt
             a = ATTACKS[self.swing.name]
-            recovery = ROSTER[self.name].recovery if self.name in ROSTER else 1
+            recovery = ROSTER[self.name].recovery if self.name in ROSTER else self.attack_recovery
+            motion_time=max(0.,min(self.swing.age,a.windup+a.active)-max(previous_age,a.windup))
+            if a.mobility:
+                self.x += self.swing.direction*a.mobility*motion_time
             if self.swing.age > a.windup+a.active: self.state = 'recovery'
             if self.swing.age >= a.windup + a.active + a.recovery * recovery:
                 self.swing = None
@@ -111,44 +123,77 @@ class PlayerFighter(Fighter):
         self.energy = min(100, self.energy+dt*3)
 
 class EnemyFighter(Fighter):
-    def __init__(self, name, x, y, index=0):
+    def __init__(self, name, x, y, index=0, stage=0):
         health, speed, _ = ENEMIES[name]
         health = round(health * (1.5 if name.islower() else 1.35))
-        super().__init__(name,x,y,health,speed)
-        self.index, self.phase = index, 1
-        self.timer = .9 + index*.15
-        self.state = 'idle'
+        power=(BOSS_DAMAGE if name in ('WARDEN','RELAY','NULL') else ENEMY_DAMAGE)[stage]
+        super().__init__(name,x,y,health,speed,power)
+        self.index, self.phase, self.outfit, self.stage = index, 1, index+stage, stage
+        self.timer = 1.3 if self.boss else .9+index*.12
+        self.state = 'intro' if self.boss else 'idle'
+        if self.boss: self.invulnerable=self.timer
         self.pattern = 0
+        self.brain=BossBrain() if self.boss else None
+        self.destination=None
+        self.teleport_pending=False
+        self.summon_request=False
+        self.support_count=0
+        self.guard_clock=0.
 
     @property
     def boss(self): return self.name in ('WARDEN','RELAY','NULL')
 
+    def tick(self,dt):
+        super().tick(dt)
+        self.guard_clock=max(0,self.guard_clock-dt)
+        if self.teleport_pending and self.timer<=0:
+            if self.alive:
+                self.x,self.y=self.destination
+                self.timer=.55
+                self.state='recovery'
+            self.teleport_pending=False
+
+    def damage(self,amount,force,knockdown=False):
+        # Heavy blows break a shield; guard otherwise reduces, never nullifies damage.
+        if self.state=='guard' and not knockdown: amount*=.35
+        return super().damage(amount,force,knockdown)
+
+    def begin(self,name,player):
+        if self.attack(name):
+            self.swing.target=(player.x,player.y)
+            if self.name=='NULL' and self.phase>=2: self.attack_recovery=.85
+            return True
+        return False
+
     def think(self, dt, player, can_attack):
         if not self.ready: return
-        if self.boss and self.health <= self.max_health*.5 and self.phase == 1:
-            self.phase = 2
-            self.invulnerable = self.timer = 1.1
-            self.state = 'phase'
+        if self.brain:
+            self.brain.think(self,dt,player,can_attack)
             return
-        dx, dy = player.x-self.x, player.y-self.y
-        self.facing = 1 if dx>0 else -1
-        distance = 175 if self.name == 'ranged' else 36 if not self.boss else 49
-        if abs(dy) < 13 and abs(dx) <= distance and can_attack:
-            name = 'shot' if self.name == 'ranged' else 'smash' if self.name == 'bruiser' or self.boss else 'enemy'
-            if self.boss:
-                self.pattern += 1
-                if self.phase == 2 and self.pattern % 2: name = 'sweep'
-                elif self.name in ('RELAY','NULL') and self.pattern % 3 == 0: name = 'shot'
-            self.attack(name)
+        dx,dy=player.x-self.x,player.y-self.y
+        self.facing=1 if dx>0 else -1
+        distance=205 if self.name=='sniper' else 175 if self.name in ('ranged','echo') else 75 if self.name=='assassin' else 36
+        if abs(dy)<13 and abs(dx)<=distance and can_attack:
+            self.pattern+=1
+            if self.name in ('shield','security') and self.guard_clock<=0:
+                self.state='guard'; self.timer=.65; self.guard_clock=3.5
+                return
+            attack={'ranged':'shot','echo':'shot','sniper':'snipe','bruiser':'smash',
+                    'shield':'bash','security':'bash','duelist':'double','cyber':'pulse',
+                    'assassin':'lunge','elite':'double'}.get(self.name,'enemy')
+            self.begin(attack,player)
             return
-        # Alternate flanks and lane offsets distribute waiting attackers.
-        flank = 1 if self.index % 2 else -1
-        target_x = player.x + flank*(distance*.8 if can_attack else 80)
-        target_y = player.y + (0 if can_attack else (self.index%3-1)*24)
-        self.x += max(-1,min(1,(target_x-self.x)/12))*self.speed*dt
-        self.y += max(-1,min(1,(target_y-self.y)/12))*self.speed*.65*dt
-        self.y = max(175,min(263,self.y))
-        self.state = 'approach' if can_attack else 'positioning'
+        self.position(dt,player,can_attack,distance)
+
+    def position(self,dt,player,can_attack,distance):
+        self.facing=1 if player.x>self.x else -1
+        flank=1 if self.index%2 else -1
+        target_x=player.x+flank*(distance*.8 if can_attack else 80)
+        target_y=player.y+(0 if can_attack else (self.index%3-1)*24)
+        self.x+=max(-1,min(1,(target_x-self.x)/12))*self.speed*dt
+        self.y+=max(-1,min(1,(target_y-self.y)/12))*self.speed*.65*dt
+        self.y=max(175,min(263,self.y))
+        self.state='approach' if can_attack else 'positioning'
 
 class CombatSystem:
     @staticmethod
@@ -161,9 +206,11 @@ class CombatSystem:
         for target in targets:
             if target in swing.victims or not target.alive: continue
             dx = target.x-attacker.x
-            radial = swing.name in ('special','sweep')
-            if abs(target.y-attacker.y)>17 or abs(dx)>a.reach+10: continue
-            if not radial and dx*attacker.facing < -8: continue
+            radial = a.shape=='radial' or swing.name in ('special','sweep')
+            cx,cy=swing.target if a.shape=='target' else (attacker.x,attacker.y)
+            dx=target.x-cx
+            if abs(target.y-cy)>a.lane or abs(dx)>a.reach+10: continue
+            if not radial and a.shape!='target' and dx*swing.direction < -8: continue
             swing.victims.add(target)
             dealt = target.damage(a.damage*attacker.power, (1 if dx>=0 else -1)*a.knockback*attacker.power, a.knockdown)
             if dealt: hits.append((target,dealt))
@@ -184,17 +231,30 @@ class Campaign:
         self.camera = 0.
         self.hazard_clock = 0.
         self.encounter_age = 0.
+        self.cats = AmbientCats()
 
     @property
     def bounds(self): return (self.wave*350+18, self.wave*350+382)
     @property
     def tickets(self): return min(150, self.score//180 + self.stage*8 + (40 if self.state=='victory' else 0))
 
+    def spawn_position(self,index,occupied=()):
+        left,right=self.bounds
+        cells=[(left+30+col*55,183+row*26) for col in range(6) for row in range(4)]
+        cells.sort(key=lambda pos: abs(pos[0]-self.player.x)+abs(pos[1]-self.player.y),reverse=True)
+        safe=[pos for pos in cells if math.hypot(pos[0]-self.player.x,pos[1]-self.player.y)>=95
+              and all(math.hypot(pos[0]-e.x,pos[1]-e.y)>=25 for e in occupied)]
+        return safe[index%len(safe)] if safe else (right-20,183 if self.player.y>220 else 255)
+
     def spawn(self):
-        self.enemies = [EnemyFighter(name,self.wave*350+240+(i%3)*36,185+(i%4)*22,i)
-                        for i,name in enumerate(WAVES[self.stage][self.wave])]
-        self.encounter_age = 0.
-        self.spawned = True
+        self.enemies=[]
+        for i,name in enumerate(WAVES[self.stage][self.wave]):
+            x,y=self.spawn_position(i,self.enemies)
+            enemy=EnemyFighter(name,x,y,i,self.stage)
+            enemy.arena_bounds=self.bounds
+            self.enemies.append(enemy)
+        self.encounter_age=0.
+        self.spawned=True
         self.events.append('wave')
 
     def update(self, dt, direction=(0,0)):
@@ -202,6 +262,7 @@ class Campaign:
         dt = max(0,min(dt,.05))
         self.elapsed += dt
         self.events.clear()
+        self.cats.update(dt,self.elapsed,self.stage,self.wave,self.player.x,self.enemies)
         self.effects = [(x,y,t-dt) for x,y,t in self.effects if t>dt]
         if self.hitstop>0:
             self.hitstop -= dt
@@ -221,6 +282,21 @@ class Campaign:
             e.think(dt,p,e in permitted and active<2 and self.camera+12 < e.x < self.camera+388)
             if e.swing: active += 1
             e.x = max(self.bounds[0],min(self.bounds[1],e.x))
+        for boss in tuple(self.enemies):
+            if boss.summon_request:
+                boss.summon_request=False
+                limit=2 if boss.name=='NULL' else 1
+                if boss.alive and boss.support_count<limit and len(candidates)<4:
+                    name='echo' if boss.name=='NULL' else 'duelist'
+                    x,y=self.spawn_position(0,candidates)
+                    support=EnemyFighter(name,x,y,8+boss.support_count,self.stage)
+                    support.arena_bounds=self.bounds
+                    self.enemies.append(support)
+                    boss.support_count+=1
+                    self.events.append('summon')
+            if boss.state in ('intro','phase','guard','teleport') and boss.boss and boss.timer>.95:
+                if not getattr(boss,'cue_played',False):
+                    self.events.append('boss_'+boss.name.lower()); boss.cue_played=True
         # Grounded bodies block each other; jumps and dodges cross the crowd.
         if p.jump<5 and p.state!='dodge':
             for e in candidates:
@@ -251,7 +327,7 @@ class Campaign:
                 self.impact(target)
                 self.events.append('hurt')
         self.hazard_clock += dt
-        if self.stage > 0 and 4.7 < self.hazard_clock % 7 < 5.15 and abs(p.y-251)<9:
+        if self.stage > 0 and self.wave < 3 and 4.7 < self.hazard_clock % 7 < 5.15 and abs(p.y-251)<9:
             damage = p.damage(12, -p.facing*65)
             if damage:
                 self.damage_received += damage
@@ -260,7 +336,7 @@ class Campaign:
         if not p.alive:
             self.state = 'defeat'
             self.events.append('lose')
-        elif self.spawned and all(not e.alive for e in self.enemies):
+        elif self.spawned and all(not e.alive for e in self.enemies) and all(not e.boss or e.defeat_age>=1.35 for e in self.enemies):
             self.pickups = [(self.player.x,self.player.y)]
             self.state = 'checkpoint' if self.wave<3 else 'stage_clear'
             self.score += 300
