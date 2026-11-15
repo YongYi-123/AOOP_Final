@@ -104,6 +104,17 @@ def oop_motion(s,section,camera,time,phase=1,attack=False):
     for i in range(6):
         x=int((i*137+54-offset)%800);y=84+int(math.sin(time*.8+i)*6)
         if x<410 and section in (1,2,4):s.blit(pixel_object(i%3,int(time*2)%4),(x,y))
+    if section<3:
+        # A small dispatch packet travels along the real diagram connection.
+        progress=(time*.55)%1
+        for i,base in enumerate(range(12,800,200)):
+            kind=(section+i%2)%4
+            if kind==0:px,py=base+74+int(progress*23),84
+            elif kind==1:px,py=base+88-int(progress*48),89+int(progress*12)
+            elif kind==2:px,py=base+89,95+int(progress*8)
+            else:px,py=base+88-int(progress*49),90+int(progress*10)
+            x=int(px-offset)%800
+            if x<400:s.fill((230,198,134),(x,py,2,2))
     if section==4:
         color=(115,191,194) if phase==1 else (186,128,203) if phase==2 else (224,155,140)
         for i in range(8):
