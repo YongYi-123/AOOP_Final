@@ -46,6 +46,7 @@ class Game:
         self.tool='pulse'
         self.intro=IntroSequence();self.tutorial=TutorialCard()
         self.tutorial.bombs=isinstance(self.session,DungeonSession)
+        self.tutorial.remastered=isinstance(self.session,RemasteredSession)
         self.tutorial.advanced=isinstance(self.session,AdvancedDungeonSession);self.tutorial.page=0
         if isinstance(self.session,AdvancedDungeonSession) and not embedded and not headless:
             from puzzle_maze.advanced_dungeon import V4_SAVE
@@ -87,6 +88,7 @@ class Game:
                 except ValueError:history.blocked=True
                 self.session.history=history
         self.tutorial.bombs=isinstance(self.session,DungeonSession)
+        self.tutorial.remastered=isinstance(self.session,RemasteredSession)
         self.tutorial.advanced=isinstance(self.session,AdvancedDungeonSession);self.tutorial.page=0
         self.tool="pulse"
         self.scene=GameScene.GAMEOVER if self.session.player.hp<=0 else GameScene.VICTORY if self.session.finished else GameScene.PLAY
@@ -280,7 +282,7 @@ class Game:
         elif self.scene==GameScene.TUTORIAL:self.tutorial.draw(r)
         elif self.scene in (GameScene.MENU,GameScene.PAUSE,GameScene.VICTORY,GameScene.GAMEOVER,GameScene.ARCHIVE):
             title={GameScene.MENU:'PUZZLE MAZE',GameScene.PAUSE:'EXPEDITION PAUSED',GameScene.VICTORY:'HOLLOW AWAKENED',GameScene.GAMEOVER:'GAME OVER',GameScene.ARCHIVE:'OLD EXPEDITIONS'}[self.scene]
-            if self.scene==GameScene.MENU and isinstance(self.session,AdvancedDungeonSession):title='PUZZLE MAZE 4.4'
+            if self.scene==GameScene.MENU and isinstance(self.session,AdvancedDungeonSession):title='PUZZLE MAZE 4.5' if isinstance(self.session,RemasteredSession) else 'PUZZLE MAZE 4.4'
             r.panel(title,self.options(),self.selection)
             if self.scene==GameScene.VICTORY and hasattr(self.session,'rewards'):
                 bag=self.session.rewards

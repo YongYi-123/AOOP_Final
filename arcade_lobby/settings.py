@@ -321,8 +321,8 @@ MACHINES = [
     },
     {
         "id": "puzzle_maze", "name": "Puzzle Maze", "marquee": "PUZZLE MAZE",
-        "description": "Explore 22 rooms across two floors in Puzzle Maze 4.2. "
-                       "Solve mechanisms, wield the Iron Orb and defeat bosses. Free playtest!",
+        "description": "Explore 28 chambers on 1F and B1F in Puzzle Maze 4.5. "
+                       "Find the Grey Pixel, wield the Iron Orb and face the Ancient Golem. Free playtest!",
         "slot": "island_1", "neon": (206, 64, 196), "accent": (90, 235, 255),
         "screen": "dungeon", "play_cost": 0,
     },
