@@ -368,7 +368,8 @@ class Game:
             else:
                 r.panel('COMING SOON',[])
                 r.surface.blit(pygame.transform.scale(r.hud.atlas.get('mystery_scroll'),(36,36)),(142,119))
-            r.text('ENTER / ESC: Close',83,229 if self.session.rooms.current=='r28' else 173,GOLD,max_width=160)
+            preview=hasattr(self,'preview_target')
+            r.text('ENTER: Close / ESC: Exit' if preview else 'ENTER / ESC: Close',38 if preview else 83,229 if self.session.rooms.current=='r28' else 173,GOLD,max_width=244 if preview else 160)
         elif self.scene==GameScene.HELP:
             r.panel('FIELD GUIDE',self.tutorial.lines(False))
         elif self.scene==GameScene.MAP:r.map_panel(self.session)

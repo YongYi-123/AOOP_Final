@@ -91,7 +91,9 @@ class GreyPixelTests(unittest.TestCase):
         g=Game(headless=True,campaign='4.5');g.session=s;g.scene=GameScene.PLAY
         with patch.object(g,'save'):
             g.event(pygame.event.Event(pygame.KEYDOWN,key=pygame.K_e))
-            self.assertTrue(s.grey_pixel);self.assertTrue(s.orb.carried);self.assertEqual(g.scene,GameScene.SCROLL)
+            self.assertTrue(s.grey_pixel);self.assertTrue(s.orb.carried);self.assertEqual(g.scene,GameScene.DISCOVERY)
+            g.event(pygame.event.Event(pygame.KEYDOWN,key=pygame.K_SPACE))
+            self.assertEqual(g.scene,GameScene.PLAY);self.assertTrue(s.grey_pixel)
             g.scene=GameScene.PLAY;d.travel('r28');d.walk((12,6));s.player.facing=(0,-1)
             g.event(pygame.event.Event(pygame.KEYDOWN,key=pygame.K_e))
             self.assertIn('kevin_photo',s.lore);self.assertTrue(s.orb.carried)
