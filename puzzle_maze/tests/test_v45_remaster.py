@@ -82,6 +82,21 @@ class GreyPixelTests(unittest.TestCase):
         s.inventory.abilities.add('map');s.tick(0);s.tick(.5);d.use('grey_pixel');s.tick(0)
         self.assertTrue(s.grey_pixel);s.reset();self.assertTrue(s.grey_pixel)
         self.assertTrue(s.puzzles.objects['grey_pixel'].state.active)
+    def test_keyboard_collection_and_reading_work_while_carrying_iron_orb(self):
+        import pygame
+        from unittest.mock import patch
+        from puzzle_maze.game import Game,GameScene
+        s,d=self.discover();d.walk((23,8))
+        s.orb.carried=True;s.orb.room='r24';s.orb.x,s.orb.y=s.player.x,s.player.y
+        g=Game(headless=True,campaign='4.5');g.session=s;g.scene=GameScene.PLAY
+        with patch.object(g,'save'):
+            g.event(pygame.event.Event(pygame.KEYDOWN,key=pygame.K_e))
+            self.assertTrue(s.grey_pixel);self.assertTrue(s.orb.carried);self.assertEqual(g.scene,GameScene.SCROLL)
+            g.scene=GameScene.PLAY;d.travel('r28');d.walk((12,6));s.player.facing=(0,-1)
+            g.event(pygame.event.Event(pygame.KEYDOWN,key=pygame.K_e))
+            self.assertIn('kevin_photo',s.lore);self.assertTrue(s.orb.carried)
+        pygame.quit()
+
     def test_secret_lore_and_room_survive_save_load(self):
         s,d=self.discover();d.use('grey_pixel');s.tick(0);d.travel('r28');s.read_lore('kevin_photo')
         with tempfile.TemporaryDirectory() as folder:

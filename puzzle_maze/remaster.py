@@ -35,6 +35,15 @@ class RemasteredSession(AdvancedDungeonSession):
             self.inventory.flags.add('grey_pixel')
             if obj:obj.state.active=True;obj.phase=ChestPhase.OPENED
 
+    def interact_orb(self):
+        from puzzle_maze.puzzles import ChestPhase
+        # Story objects take E priority, so carrying the campaign weight never traps the secret flow.
+        for obj in self.puzzles.objects.values():
+            if abs(obj.x-self.player.x)+abs(obj.y-self.player.y)>1:continue
+            if obj.data['type']=='mystery_scroll' or obj.data.get('grey_pixel') and obj.phase==ChestPhase.AVAILABLE:
+                return False
+        return super().interact_orb()
+
     def reset(self):
         super().reset();self.observe_secret()
 

@@ -87,7 +87,7 @@ Grey Pixel 是 **Secret Item 03**，穩定 ID 為 `dungeon_grey_pixel`。Item 02
 
 N 每按一次提供更明確提示；房間停留較久也會提高提示層級。TAB 可切樓層；地圖只有 1F 與 B1F。看不到箱子可能是顏色、清敵、能力或旗標未齊，或箱子尚在生成，先讀提示，不要反覆空按。
 
-E 優先處理附近 Orb／攜帶物，若想操作普通機關請先放下物件。魔法粉 P 不等於炸彈 B。R 是本房入口檢查點，會還原本房暫存消耗；跨房前先確認已解的機關。Boss Key 前必須兩柱、Royal Resonance、Prism、Warden、Boots 齊備。
+E 一般優先處理附近 Orb／攜帶物，但 Grey Pixel 與故事閱讀物件優先於 Orb，若想操作普通機關請先放下物件。魔法粉 P 不等於炸彈 B。R 是本房入口檢查點，會還原本房暫存消耗；跨房前先確認已解的機關。Boss Key 前必須兩柱、Royal Resonance、Prism、Warden、Boots 齊備。
 
 Esc 可保存退出再選 Continue。舊版載入不改寫原檔；首次以 4.5 保存到舊檔路徑時保留 `.pre-v45` 備份。失效舊房號會送到安全位置並保留能辨識的物品與旗標。請勿手動覆蓋或刪除備份。
 
