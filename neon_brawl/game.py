@@ -122,7 +122,7 @@ class BrawlGame:
             dy=sum(MOVEMENT[k][1] for k in self.held if k in MOVEMENT)
             self.campaign.update(dt,(max(-1,min(1,dx)),max(-1,min(1,dy))))
             for event in self.campaign.events:
-                self.sound({'hit':'impact','hurt':'bounce','defeat':'defeat','clear':'win','lose':'loss','pickup':'powerup'}.get(event,'machine'))
+                self.sound({'hit':'impact','hurt':'bounce','defeat':'defeat','boss_warden':'brawl_warden','boss_relay':'brawl_relay','boss_null':'brawl_overlord','summon':'brawl_special','clear':'win','lose':'loss','pickup':'powerup'}.get(event,'machine'))
             if self.campaign.state in ('checkpoint','stage_clear'): self.change(self.campaign.state)
             elif self.campaign.state=='defeat': self.change('game_over')
         elif self.screen=='ending' and self.screen_time>=10: self.change('results')

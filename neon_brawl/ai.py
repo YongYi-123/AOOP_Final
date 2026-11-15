@@ -10,6 +10,7 @@ class BossBrain:
             enemy.timer=enemy.invulnerable=1.1
             enemy.state='phase'
             enemy.pattern=0
+            if wanted==3: enemy.defense=.8
             return
         patterns=BOSS_PATTERNS[enemy.name][min(enemy.phase-1,len(BOSS_PATTERNS[enemy.name])-1)]
         action=patterns[enemy.pattern%len(patterns)]
@@ -22,7 +23,8 @@ class BossBrain:
                 enemy.timer=.8; enemy.state='guard'
             elif action=='teleport':
                 # Destination is exposed for the whole windup; no damage on arrival.
-                enemy.destination=(player.x+(100 if dx<0 else -100),max(177,min(260,player.y+25)))
+                bounds=getattr(enemy,'arena_bounds',(18,382))
+                enemy.destination=(max(bounds[0]+15,min(bounds[1]-15,player.x+(100 if dx<0 else -100))),max(177,min(260,player.y+25)))
                 enemy.timer=.8; enemy.state='teleport'; enemy.teleport_pending=True
             elif action=='summon':
                 enemy.timer=1.2; enemy.state='summon'; enemy.summon_request=True

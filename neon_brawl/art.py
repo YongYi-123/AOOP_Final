@@ -2,9 +2,11 @@
 import math
 from functools import lru_cache
 import pygame
-from .data import ROSTER, ENEMIES
+from .data import ROSTER, ENEMIES, ATTACKS
 from .outfits import outfit_for, BOSS_NAMES
 from .wardrobe import dress, boss_sprite
+from .effects import attack_effects
+from .scenery import paint_section, animate_section
 
 INK=(12,10,28)
 WHITE=(225,240,245)
@@ -20,8 +22,8 @@ def sprite(name, state='idle', frame=0, facing=1, outfit=0):
     w=9 if heavy else 7
     skin=(220,155,115) if name not in ('NULL','RELAY','ranged') else (150,175,195)
     dark=tuple(c//2 for c in color)
-    bob=(frame%2) if state in ('idle','walk','victory') else 0
-    attack=state in ('light','combo2','combo3','heavy','air','special','enemy','smash','sweep','shot')
+    bob=3 if state=='hurt' else (frame%2) if state in ('idle','walk','victory') else 0
+    attack=state in ATTACKS
     stride=(-3,0,3,0)[frame%4] if state=='walk' else 0
     def rect(c,r): pygame.draw.rect(s,c,r)
     def limb(points,c,width=5):
@@ -37,7 +39,6 @@ def sprite(name, state='idle', frame=0, facing=1, outfit=0):
     rect(dark,(25,30+bob,5,10)); rect(WHITE,(32,25+bob,2,15))
     rect(INK,(24,40,17,3)); rect((255,215,100),(31,40,4,2))
     limb([(32-w,27+bob),(20,34),(22,39)],dark)
-    if state=='hurt': bob=3
     reach=55 if attack and frame%4 in (1,2) else 43
     limb([(32+w,27+bob),(43,29+bob),(reach,24 if attack else 36)],color)
     rect(INK,(reach-3,(21 if attack else 33),7,7)); rect(skin,(reach-2,(22 if attack else 34),5,4))
@@ -86,8 +87,8 @@ def sprite(name, state='idle', frame=0, facing=1, outfit=0):
     if state=='dodge': s.set_alpha(150)
     return pygame.transform.flip(s,True,False) if facing<0 else s
 
-@lru_cache(maxsize=6)
-def background(stage,layer):
+@lru_cache(maxsize=24)
+def background(stage,layer,section=0):
     s=pygame.Surface((800,300),pygame.SRCALPHA)
     accents=((235,60,155),(60,185,220),(155,85,245))
     c=accents[stage]
@@ -100,28 +101,7 @@ def background(stage,layer):
                 for xx in range(x+4,x+30,7):
                     if (xx+y)%4: s.fill((45,50,84),(xx,y,2,3))
         return s
-    for i in range(8):
-        x=i*102
-        pygame.draw.rect(s,(28,25,48),(x,65,95,103))
-        pygame.draw.rect(s,(45,40,65),(x+3,68,89,95),1)
-        if stage==0:
-            pygame.draw.rect(s,(14,15,30),(x+12,112,60,49))
-            for y in range(115,160,5): s.fill((55,45,74),(x+13,y,58,1))
-            pygame.draw.rect(s,c,(x+18,77,55,23),2)
-            for j in range(5):
-                s.fill(c,(x+23+j*9,82,5,12)); s.fill((20,15,35),(x+25+j*9,86,3,2))
-            s.fill((145,95,110),(x+76,120,13,21)); s.fill(c,(x+78,123,8,1))
-        elif stage==1:
-            pygame.draw.rect(s,(8,12,25),(x+10,83,73,64),border_radius=20)
-            pygame.draw.rect(s,(75,75,95),(x+8,66,78,5))
-            s.fill(c,(x+16,68,62,2)); s.fill((110,105,115),(x+86,70,7,96))
-            s.fill((35,50,65),(x+26,99,38,21)); s.fill(c,(x+30,104,26,2))
-        else:
-            s.fill((13,17,35),(x+8,76,78,78))
-            for j in range(6):
-                s.fill((40,50,75),(x+12,80+j*12,69,8))
-                for k in range(9): s.fill(c if (k+j)%3 else (80,235,200),(x+16+k*7,82+j*12,2,2))
-            pygame.draw.lines(s,c,False,[(x+2,60),(x+2,40),(x+80,40),(x+80,62)],2)
+    paint_section(s,stage,section)
     return s
 
 class Renderer:
@@ -135,7 +115,7 @@ class Renderer:
     def world(self,s,campaign,time):
         stage=campaign.stage; cam=campaign.camera
         for layer,factor in ((0,.18),(1,.55)):
-            bg=background(stage,layer); offset=int(cam*factor)%800
+            bg=background(stage,layer,campaign.wave); offset=int(cam*factor)%800
             s.blit(bg,(-offset,0)); s.blit(bg,(800-offset,0))
         s.fill((25,24,43),(0,166,400,134))
         for y in range(170,300,18):
@@ -154,33 +134,25 @@ class Renderer:
             for i in range(45):
                 x=int((i*71-time*48)%420); y=int((i*43+time*190)%300)
                 pygame.draw.line(s,(75,85,130),(x,y),(x-2,y+6))
-        if stage>0:
+        if stage>0 and campaign.wave<3:
             phase=campaign.hazard_clock%7
             if 3.4<phase<5.15:
                 color=(255,80,110) if phase>4.7 else (175,125,55)
                 for x in range(0,400,12):
                     pygame.draw.lines(s,color,False,[(x,251),(x+4,247),(x+8,255),(x+12,251)],2)
                 self.text(s,'LIVE RAIL! MOVE UP / JUMP',122,272,color)
+        animate_section(s,stage,campaign.wave,cam,time)
         actors=sorted(campaign.enemies+[campaign.player],key=lambda f:f.y)
         for f in actors:
             x,y=int(f.x-cam),int(f.y)
-            if not f.alive and f.age%1<.2: continue
+            if not f.alive and f.defeat_age>1.4: continue
+            if f.name not in ROSTER: attack_effects(s,f,cam,time)
             pygame.draw.ellipse(s,(12,12,24),(x-15,y-4,30,7))
             frame=int(time*(13 if f.swing else 8))%4
             if f.swing:
                 from .data import ATTACKS
                 a=ATTACKS[f.swing.name]
                 frame=min(3,int(f.swing.age/(a.windup+a.active+a.recovery)*4))
-                if f.swing.age<a.windup and f.name not in ROSTER:
-                    width=a.reach if f.swing.name!='shot' else 170
-                    pygame.draw.line(s,(240,105,90),(x,y),(x+f.facing*width,y),2)
-                    self.text(s,'!',x-2,y-64,(255,210,85))
-            if f.swing and f.swing.name=='shot':
-                from .data import ATTACKS
-                a=ATTACKS['shot']
-                if a.windup<=f.swing.age<=a.windup+a.active:
-                    pygame.draw.line(s,(155,245,255),(x+f.facing*18,y-24),(x+f.facing*240,y-24),3)
-                    pygame.draw.line(s,WHITE,(x+f.facing*18,y-24),(x+f.facing*240,y-24),1)
             image=sprite(f.name,'air' if f.jump>0 and not f.swing else f.state,frame,f.facing,getattr(f,"outfit",0))
             if f.state=='phase':
                 radius=25+int(math.sin(time*20)*4)
@@ -223,5 +195,10 @@ class Renderer:
         self.text(s,'J COMBO K HEAVY L JUMP U SPECIAL I DODGE',12,288,(150,150,185))
         bosses=[e for e in c.enemies if e.boss and e.alive]
         if bosses:
-            b=bosses[0]; self.center(s,f'{b.name} / PHASE {b.phase}',42,(255,180,100))
+            b=bosses[0]; self.center(s,f'{BOSS_NAMES[b.name]} / P{b.phase}',42,(255,180,100))
+            if b.state=='intro': self.center(s,'INCOMING // WATCH THE WINDUP',76,(245,200,120))
+            elif b.swing: self.center(s,b.swing.name.upper()+' // CHANGE LANES OR DODGE',76,(245,200,120))
+            elif b.state=='guard': self.center(s,'GUARD // HEAVY ATTACK BREAKS ARMOR',76,(245,200,120))
+            elif b.state=='teleport': self.center(s,'SHIFT // WATCH THE LANDING MARK',76,(125,230,245))
+            elif b.state=='summon': self.center(s,'DIGITAL REINFORCEMENTS',76,(125,230,245))
             s.fill((45,25,55),(75,53,250,5)); s.fill((230,65,155),(76,54,int(248*b.health/b.max_health),3))

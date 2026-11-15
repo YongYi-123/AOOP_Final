@@ -67,3 +67,70 @@ class ProgressionTests(unittest.TestCase):
         self.assertEqual(e.damage(20,0),7)
         e.invulnerable=0; e.state='guard'
         self.assertEqual(e.damage(20,0,True),20)
+
+from neon_brawl.data import BOSS_PATTERNS
+
+class BossEvolutionTests(unittest.TestCase):
+    def test_each_boss_has_distinct_mechanics_and_telegraphs(self):
+        for name,phase_patterns in BOSS_PATTERNS.items():
+            e=EnemyFighter(name,120,220)
+            p=PlayerFighter()
+            observed=set()
+            for phase,patterns in enumerate(phase_patterns,1):
+                e.phase=phase; e.pattern=0
+                for _ in patterns:
+                    e.x,e.y=120,220; e.timer=0; e.swing=None
+                    e.think(.02,p,True)
+                    action=e.swing.name if e.swing else e.state
+                    observed.add(action)
+                    if e.swing:
+                        self.assertGreaterEqual(ATTACKS[action].windup,.6)
+                        self.assertFalse(CombatSystem.resolve(e,[p]))
+                    e.tick(3)
+            for attack in phase_patterns[0]: self.assertIn(attack,observed)
+            self.assertGreaterEqual(len(observed),4)
+    def test_overlord_three_phases_expose_the_core(self):
+        e=EnemyFighter('NULL',120,220); p=PlayerFighter()
+        for health,phase in ((.49,2),(.19,3)):
+            e.tick(3); e.health=int(e.max_health*health); e.think(.02,p,True)
+            self.assertEqual(e.phase,phase); self.assertEqual(e.state,'phase')
+            self.assertGreaterEqual(e.invulnerable,1)
+        self.assertLess(e.defense,1)
+    def test_targeted_strike_locks_its_warning_and_has_single_damage(self):
+        e=EnemyFighter('NULL',120,220,stage=2); p=PlayerFighter()
+        e.tick(3); e.begin('strike',p); target=e.swing.target
+        e.tick(1.11); p.y=175
+        self.assertFalse(CombatSystem.resolve(e,[p])); self.assertEqual(e.swing.target,target)
+        p.y=220; self.assertEqual(len(CombatSystem.resolve(e,[p])),1)
+        self.assertFalse(CombatSystem.resolve(e,[p]))
+    def test_teleport_is_marked_bounded_and_never_hits_on_arrival(self):
+        e=EnemyFighter('NULL',120,220); p=PlayerFighter(); e.tick(3)
+        e.arena_bounds=(18,382); e.pattern=3
+        e.think(.02,p,True); hp=p.health
+        self.assertEqual(e.state,'teleport'); self.assertIsNotNone(e.destination)
+        self.assertTrue(33<=e.destination[0]<=367)
+        e.tick(.81); self.assertEqual(p.health,hp); self.assertIsNone(e.swing)
+        self.assertEqual(e.state,'recovery'); self.assertFalse(e.ready)
+    def test_reinforcements_are_capped_and_do_not_spawn_on_player(self):
+        c=Campaign(); c.stage=2; c.wave=3; c.player.x=1120; c.spawn()
+        boss=c.enemies[0]
+        for _ in range(8): boss.summon_request=True; c.update(.02)
+        self.assertEqual(boss.support_count,2); self.assertEqual(len(c.enemies),3)
+        for e in c.enemies[1:]: self.assertGreater(abs(e.x-c.player.x),80)
+    def test_boss_chamber_has_no_leftover_live_rail(self):
+        c=Campaign(); c.stage=2; c.wave=3; c.player.x=1120; c.player.y=251; c.hazard_clock=4.8
+        c.update(.02); self.assertEqual(c.damage_received,0)
+    def test_defeat_cannot_complete_before_the_boss_animation(self):
+        c=Campaign(); c.wave=3; c.player.x=1120; c.spawn(); c.enemies[0].health=0
+        for _ in range(20): c.update(.05)
+        self.assertEqual(c.state,'playing')
+        for _ in range(10): c.update(.05)
+        self.assertEqual(c.state,'stage_clear')
+
+class SceneryTests(unittest.TestCase):
+    def test_all_twelve_sections_have_different_compositions(self):
+        from neon_brawl.art import background
+        images=[pygame.image.tobytes(background(stage,1,section),'RGBA')
+                for stage in range(3) for section in range(4)]
+        self.assertEqual(len(set(images)),12)
+        self.assertEqual(background.cache_info().maxsize,24)

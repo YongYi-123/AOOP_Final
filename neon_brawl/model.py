@@ -245,7 +245,9 @@ class Campaign:
         self.enemies=[]
         for i,name in enumerate(WAVES[self.stage][self.wave]):
             x,y=self.spawn_position(i,self.enemies)
-            self.enemies.append(EnemyFighter(name,x,y,i,self.stage))
+            enemy=EnemyFighter(name,x,y,i,self.stage)
+            enemy.arena_bounds=self.bounds
+            self.enemies.append(enemy)
         self.encounter_age=0.
         self.spawned=True
         self.events.append('wave')
@@ -282,6 +284,7 @@ class Campaign:
                     name='echo' if boss.name=='NULL' else 'duelist'
                     x,y=self.spawn_position(0,candidates)
                     support=EnemyFighter(name,x,y,8+boss.support_count,self.stage)
+                    support.arena_bounds=self.bounds
                     self.enemies.append(support)
                     boss.support_count+=1
                     self.events.append('summon')
@@ -318,7 +321,7 @@ class Campaign:
                 self.impact(target)
                 self.events.append('hurt')
         self.hazard_clock += dt
-        if self.stage > 0 and 4.7 < self.hazard_clock % 7 < 5.15 and abs(p.y-251)<9:
+        if self.stage > 0 and self.wave < 3 and 4.7 < self.hazard_clock % 7 < 5.15 and abs(p.y-251)<9:
             damage = p.damage(12, -p.facing*65)
             if damage:
                 self.damage_received += damage

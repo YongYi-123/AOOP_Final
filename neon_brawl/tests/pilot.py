@@ -22,11 +22,20 @@ def decide(c):
         elif abs(e.x-p.x)<80 and abs(e.y-p.y)<15 and p.energy>=40: action='special'
         elif abs(e.x-p.x)<42 and abs(e.y-p.y)<15: action='light'
     for enemy in targets:
+        if enemy.swing and (enemy.boss or enemy.name in ('sniper','cyber','security')):
+            attack=ATTACKS[enemy.swing.name]
+            cx,cy=enemy.swing.target if attack.shape=='target' else (enemy.x,enemy.y)
+            if enemy.swing.age<attack.windup+attack.active and abs(p.x-cx)<attack.reach+80 and abs(p.y-cy)<attack.lane+9:
+                dy=-1 if cy>=219 else 1
+                if action!='dodge': action=None
         if enemy.swing and ATTACKS[enemy.swing.name].shape=='target':
             tx,ty=enemy.swing.target
             if abs(p.x-tx)<55 and abs(p.y-ty)<30:
                 dy=-1 if ty>215 else 1
                 if action!='dodge': action=None
+    if c.stage>0 and c.wave<3 and 3.4<c.hazard_clock%7<5.15 and p.y>232:
+        dy=-1
+        if action!='dodge': action=None
     return (dx,dy),action
 
 def play(name):
