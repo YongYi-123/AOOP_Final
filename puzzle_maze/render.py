@@ -48,38 +48,37 @@ class Renderer:
         self.ui.clear();self.boss_panel_rect=None
         self.time+=dt;s=self.surface;r=pygame.draw;s.fill(INK)
         room=session.rooms.data;p=session.player
+        if session.rooms.current=='r28':
+            from puzzle_maze.studio_view import draw_studio
+            draw_studio(self,session,visual,controls);return
         theme_name=room.get("theme","entrance");theme=THEMES[theme_name]
         self.tiles=self.environment.tiles(theme_name)
         proxy=type('Position',(),dict(x=visual[0],y=visual[1]))()
         self.camera.follow(proxy,len(room['tiles'][0]),len(room['tiles']),viewport=(320,184))
         cx,cy=int(self.camera.x),int(self.camera.y)
         s.set_clip((0,0,320,184))
-        if session.rooms.current=='r28':
-            self.developer_art.draw(s,(cx,cy),self.time,getattr(self,"lab_effect",None))
-        else:
-            for y,row in enumerate(room['tiles']):
-                for x,kind in enumerate(row):
-                    sx,sy=x*16-cx,y*16-cy
-                    if -16<sx<320 and -16<sy<208:
-                        s.blit(self.environment.tile(theme_name,kind,(x*37+y*17)%13),(sx,sy))
-                        if kind == '~':
-                            offset=int(self.time*3+x+y)%8
-                            r.line(s,(83,159,174),(sx+offset,sy+6),(sx+min(15,offset+5),sy+6))
-                        elif kind == '.' and (x*17+y*31)%23==0:
-                            r.rect(s,(99,111,94),(sx+5,sy+4,2,1))
-                        elif kind == '#' and (x+3*y)%11==0:
-                            r.line(s,(60,112,82),(sx+2,sy+3),(sx+2,sy+8))
-                            r.rect(s,(78,131,88),(sx+3,sy+4,2,2))
-            self.room_art.draw(s,room,(cx,cy),self.time)
-            self.environment.decorations(s,room,(cx,cy),self.time)
-            self.environment.lighting(s,session,(cx,cy),self.time)
-            if session.rooms.current=='r27':self.vault_art.draw(s,(cx,cy),self.time)
+        for y,row in enumerate(room['tiles']):
+            for x,kind in enumerate(row):
+                sx,sy=x*16-cx,y*16-cy
+                if -16<sx<320 and -16<sy<208:
+                    s.blit(self.environment.tile(theme_name,kind,(x*37+y*17)%13),(sx,sy))
+                    if kind == '~':
+                        offset=int(self.time*3+x+y)%8
+                        r.line(s,(83,159,174),(sx+offset,sy+6),(sx+min(15,offset+5),sy+6))
+                    elif kind == '.' and (x*17+y*31)%23==0:
+                        r.rect(s,(99,111,94),(sx+5,sy+4,2,1))
+                    elif kind == '#' and (x+3*y)%11==0:
+                        r.line(s,(60,112,82),(sx+2,sy+3),(sx+2,sy+8))
+                        r.rect(s,(78,131,88),(sx+3,sy+4,2,2))
+        self.room_art.draw(s,room,(cx,cy),self.time)
+        self.environment.decorations(s,room,(cx,cy),self.time)
+        self.environment.lighting(s,session,(cx,cy),self.time)
+        if session.rooms.current=='r27':self.vault_art.draw(s,(cx,cy),self.time)
         # Inlaid entrance compass; authored art remains entirely local.
         sx,sy=2*16-cx,7*16-cy
         r.circle(s,(98,134,123),(sx+8,sy+8),7,1)
         r.lines(s,(142,170,140),False,[(sx+8,sy+2),(sx+8,sy+14)])
         for e in room['exits']:
-            if session.rooms.current=='r28':continue # Dedicated wooden doorway already matches the actual portal.
             x,y=e['pos'];sx,sy=x*16-cx,y*16-cy
             draw_entrance(s,session,e,sx,sy,self.tiles['#'])
         for start,end in session.puzzles.beams:
@@ -89,10 +88,7 @@ class Renderer:
             sx,sy=o.x*16-cx,o.y*16-cy
             if not (-16<sx<320 and -16<sy<208):continue
             if isinstance(o,MysteryScroll):
-                if o.data.get('content_id')=='miao_memory' and getattr(self,'hide_miao',False):continue
-                if session.rooms.current=='r28':
-                    self.developer_art.prop(s,o.data['content_id'],sx,sy)
-                else:self.vault_art.scroll(s,sx,sy,self.time,self.environment.glow(theme_name))
+                self.vault_art.scroll(s,sx,sy,self.time,self.environment.glow(theme_name))
             elif isinstance(o,OrbSocket):
                 color=GOLD if o.state.active else (116,132,160)
                 r.circle(s,(32,38,54),(sx+8,sy+8),7);r.circle(s,color,(sx+8,sy+8),6,2)

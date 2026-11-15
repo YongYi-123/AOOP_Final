@@ -61,7 +61,7 @@ Grey Pixel 是 **Secret Item 03**，穩定 ID 為 `dungeon_grey_pixel`。Item 02
 5. 接縫後方 `(23,7)` 會生成小灰色像素。等它生成完成，旁邊按 E 拾取。
 6. 出現 `DEBUG LAYER DISCOVERED. ORIGINAL MAP RESTORED.`；右側 `(23,8)` 開通 **r28 Developer Room／1F**。攜帶 Iron Orb 也可通行。
 7. 首次進 r28 會看到 **Kevin's Hidden Engineering Lab**：Miao Meow 從西門走入，停頓後說 `Twelve spare keyboards. One very optimistic owner.`。ENTER 逐句閱讀，SPACE／ESC 安全跳過；完成後不會重演。照片的 Kevin 記錄也會登錄。
-8. 可再按 E 讀 Photo `(12,5)`、Note `(14,5)`、Miao Meow `(8,8)`；GPU `(18,6)`、Keyboard `(10,6)`、Terminal `(21,9)` 是額外可選閱讀點，不影響解謎。另有七篇 `DEV LOG`，以及 Duck／Coffee／Red Button 的無害彩蛋。開發者可依 [Grey Pixel 預覽指南](GREY_PIXEL_PREVIEW.md) 直接測試，用 F8 輪覽日記。
+8. 可再按 E 讀 Photo `(11,5)`、Note `(13,5)`、Miao Meow `(9,6)`；GPU `(14,5)`、Keyboard `(8,5)`、Terminal `(17,6)` 是額外可選閱讀點，不影響解謎。另有七篇 `DEV LOG`，以及 Duck／Coffee／Red Button 的無害彩蛋。開發者可依 [Grey Pixel 預覽指南](GREY_PIXEL_PREVIEW.md) 直接測試，用 F8 輪覽日記。
 9. 從西側 `(1,7)` 安全返回 r24，再回圖書館。收集與閱讀進度會存檔，R 不會重複發獎。
 10. Arcade 主線第三章開啟時，既有事件系統登錄 Item 03；若提前找到，先保留 Maze 進度，第三章開啟後再進機台／繼續存檔即可同步。照片另記 Kevin Easter Egg，沒有額外貨幣。
 
@@ -152,10 +152,10 @@ Esc 可保存退出再選 Continue。舊版載入不改寫原檔；首次以 4.5
 | 52 | 1F r5 Ancient Library | 走出口 (24, 8) → r24 Whisper Archive；落點 (2, 8) |
 | 53 | 1F r24 Whisper Archive | E：`cache` (15, 7) |
 | 54 | 1F r24 Whisper Archive | E：`grey_pixel` (23, 7) |
-| 55 | 1F r24 Whisper Archive | 走出口 (23, 8) → r28 Developer Room；落點 (2, 7) |
-| 56 | 1F r28 Developer Room | E：`photo` (12, 5) |
-| 57 | 1F r28 Developer Room | E：`note` (14, 5) |
-| 58 | 1F r28 Developer Room | E：`miao` (8, 8) |
+| 55 | 1F r24 Whisper Archive | 走出口 (23, 8) → r28 Developer Room；落點 (3, 8) |
+| 56 | 1F r28 Developer Room | E：`photo` (11, 5) |
+| 57 | 1F r28 Developer Room | E：`note` (13, 5) |
+| 58 | 1F r28 Developer Room | E：`miao` (9, 6) |
 | 59 | 1F r28 Developer Room | 走出口 (1, 7) → r24 Whisper Archive；落點 (23, 9) |
 | 60 | 1F r24 Whisper Archive | 走出口 (1, 8) → r5 Ancient Library；落點 (23, 8) |
 | 61 | 1F r5 Ancient Library | 走出口 (12, 14) → r19 Torch Shrine；落點 (12, 2) |

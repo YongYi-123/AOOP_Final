@@ -94,7 +94,9 @@ class GreyPixelTests(unittest.TestCase):
             self.assertTrue(s.grey_pixel);self.assertTrue(s.orb.carried);self.assertEqual(g.scene,GameScene.DISCOVERY)
             g.event(pygame.event.Event(pygame.KEYDOWN,key=pygame.K_SPACE))
             self.assertEqual(g.scene,GameScene.PLAY);self.assertTrue(s.grey_pixel)
-            g.scene=GameScene.PLAY;d.travel('r28');d.walk((12,6));s.player.facing=(0,-1)
+            g.scene=GameScene.PLAY;d.travel('r28')
+            from puzzle_maze.studio_layout import approach
+            pos,facing=approach(s.rooms.data,s.puzzles.objects['photo'].pos);d.walk(pos);s.player.facing=facing
             g.event(pygame.event.Event(pygame.KEYDOWN,key=pygame.K_e))
             self.assertIn('kevin_photo',s.lore);self.assertTrue(s.orb.carried)
         pygame.quit()

@@ -115,7 +115,9 @@ class PuzzleManager(CollisionManager):
 
     def blocked(self, x, y, ignore=None):
         remote_closed=any(tuple(e['pos'])==(x,y) and e.get('entrance')=='remote' and not set(e.get('flag_requires',[])) <= self.inventory.flags for e in self.room.get('exits',[]))
-        return remote_closed or not self.tilemap.walkable(x, y) or any(o.id != ignore and o.pos == (x, y) and o.blocking and not o.state.active for o in self.objects.values())
+        from puzzle_maze.studio_layout import tile_blocked
+        furniture=bool(self.room.get('solid_footprints')) and tile_blocked(x,y,self.room['solid_footprints'])
+        return furniture or remote_closed or not self.tilemap.walkable(x, y) or any(o.id != ignore and o.pos == (x, y) and o.blocking and not o.state.active for o in self.objects.values())
 
     def can_enter(self, x, y):
         return not self.blocked(x, y)

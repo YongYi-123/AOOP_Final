@@ -50,6 +50,7 @@ class Game:
         self.grey_reveal=GreyPixelReveal()
         from puzzle_maze.treasury_scene import TreasuryReveal
         self.treasury_reveal=TreasuryReveal();self.treasury_seen=False
+        self.reading_page=0
         self.reading='coming_soon'
         self.toast='';self.toast_time=0;self.fade=0;self.autosave=0
         self.last_solved=False
@@ -155,6 +156,10 @@ class Game:
             elif key==pygame.K_ESCAPE and self.scene==GameScene.GAMEOVER:self.choose("Main menu")
             return
         if self.scene==GameScene.SCROLL:
+            if self.session.rooms.current=='r28' and key in (pygame.K_LEFT,pygame.K_RIGHT):
+                from puzzle_maze.studio_notes import pages_for
+                self.reading_page=max(0,min(len(pages_for(self.reading))-1,self.reading_page+(1 if key==pygame.K_RIGHT else -1)))
+                return
             if key in (pygame.K_ESCAPE,pygame.K_RETURN,pygame.K_e):self.scene=GameScene.PLAY
             return
         if self.scene==GameScene.HELP:
@@ -166,6 +171,7 @@ class Game:
         if self.scene==GameScene.MAP and key in (pygame.K_LEFT,pygame.K_RIGHT):
             if hasattr(self.session,'map_floor'):self.session.map_floor='B1F' if self.session.map_floor=='1F' else '1F'
             return
+        if self.session.rooms.current=='r28' and key==pygame.K_TAB:return
         if key==pygame.K_TAB:
             self.scene=GameScene.PLAY if self.scene==GameScene.MAP else GameScene.MAP;return
         if key==pygame.K_r:
@@ -173,6 +179,7 @@ class Game:
             self.last_solved=self.session.puzzles.solved;self.renderer.particles.clear()
             self.notify('Room restored to entrance checkpoint');self.save();return
         if self.scene!=GameScene.PLAY:return
+        if self.session.rooms.current=='r28' and key in (pygame.K_b,pygame.K_j,pygame.K_SPACE,pygame.K_f,pygame.K_p,pygame.K_g,pygame.K_LSHIFT,pygame.K_RSHIFT):return
         if getattr(event,'repeat',False) and key in (pygame.K_b,pygame.K_j,pygame.K_e,pygame.K_SPACE,pygame.K_p,pygame.K_g):return
         if key==pygame.K_b and hasattr(self.session,'bombs'):
             if not self.session.bombs.place():self.notify('Find powder / wait for placement cooldown',2)
@@ -224,6 +231,7 @@ class Game:
                 if obj_data.get('grey_pixel'):
                     self.begin_discovery();self.save()
                 if obj_data['type']=='mystery_scroll':
+                    self.reading_page=0
                     self.reading=obj_data.get('content_id','coming_soon')
                     self.renderer.lab_effect=(self.reading,self.renderer.time)
                     if hasattr(self.session,'read_lore'):self.session.read_lore(self.reading)
@@ -288,10 +296,7 @@ class Game:
             if self.treasury_reveal.update(dt):self.scene=GameScene.PLAY;self.cooldown=.25
             return
         if self.scene==GameScene.MEMORY:
-            self.lab_entrance.update(dt)
-            if self.lab_entrance.time>1.:
-                for i,target in enumerate((12.,7.)):self.visual[i]+=(target-self.visual[i])*min(1,dt*2)
-            return
+            self.lab_entrance.update(dt);return
         if self.scene!=GameScene.PLAY:return
         if self.session.rooms.current=='r27' and not self.treasury_seen:
             from puzzle_maze.treasury_scene import TreasuryReveal
@@ -337,6 +342,7 @@ class Game:
 
     def draw(self,dt,target=None):
         r=self.renderer;r.hide_miao=self.scene==GameScene.MEMORY
+        r.studio_scene=self.lab_entrance if self.scene==GameScene.MEMORY else None
         r.world(self.session,self.visual,dt,self.tool,self.tutorial.controls)
         if self.scene==GameScene.DISCOVERY:self.grey_reveal.draw(r)
         elif self.scene==GameScene.TREASURY:self.treasury_reveal.draw(r)
@@ -361,21 +367,20 @@ class Game:
             if self.reading in LORE:
                 title,lines=LORE[self.reading]
                 if self.session.rooms.current=='r28':
-                    r.ui.clear();pygame.draw.rect(r.surface,(27,25,31),(0,156,320,84))
-                    r.text(title,12,160,GOLD,max_width=296)
-                    for i,line in enumerate(lines):r.text(line,12,178+i*11,(235,226,205),max_width=296)
+                    from puzzle_maze.studio_notes import draw_note
+                    draw_note(r,self.reading,self.reading_page,self.session.rooms.data,hasattr(self,'preview_target'))
                 else:r.panel(title,lines)
             else:
                 r.panel('COMING SOON',[])
                 r.surface.blit(pygame.transform.scale(r.hud.atlas.get('mystery_scroll'),(36,36)),(142,119))
             preview=hasattr(self,'preview_target')
-            r.text('ENTER: Close / ESC: Exit' if preview else 'ENTER / ESC: Close',38 if preview else 83,229 if self.session.rooms.current=='r28' else 173,GOLD,max_width=244 if preview else 160)
+            if self.session.rooms.current!='r28':r.text('ENTER / ESC: Close',83,173,GOLD,max_width=160)
         elif self.scene==GameScene.HELP:
             r.panel('FIELD GUIDE',self.tutorial.lines(False))
         elif self.scene==GameScene.MAP:r.map_panel(self.session)
         else:
             boss_room=any(e.kind in ('golem','crystal_warden') for e in self.session.combat.enemies)
-            if self.toast_time and not boss_room:
+            if self.toast_time and not boss_room and self.session.rooms.current!='r28':
                 for i,line in enumerate(textwrap.wrap(self.toast,26)):
                     pygame.draw.rect(r.surface,(18,26,39),(6,6+i*16,226,16));r.text(line,10,8+i*16,GOLD,max_width=220)
             elif self.session.player.x<5 and not boss_room and self.session.rooms.current not in ('r27','r28'):

@@ -24,15 +24,15 @@ class HardwareArtTests(unittest.TestCase):
     def test_studio_is_cached_and_opaque(self):
         from puzzle_maze.developer_art import DeveloperRoomArt
         art=DeveloperRoomArt();s=art.layer()
-        self.assertEqual(s.get_size(),(416,256));self.assertIs(s,art.layer())
+        self.assertEqual(s.get_size(),(320,208));self.assertIs(s,art.layer())
         self.assertEqual(s.get_at((200,120)).a,255)
 
 class MemoryTimingTests(unittest.TestCase):
     def test_walk_pause_dialogue_and_skip(self):
         from puzzle_maze.lab_scene import LabEntrance,LINES
-        scene=LabEntrance();self.assertEqual(scene.position,(24,120));scene.advance();self.assertEqual(scene.line,0)
+        scene=LabEntrance();self.assertEqual(scene.position,(24,128));scene.advance();self.assertEqual(scene.line,0)
         scene.update(2);self.assertFalse(scene.ready);self.assertGreater(scene.position[0],24)
-        scene.update(3.3);self.assertTrue(scene.ready);self.assertEqual(scene.position,(136,136))
+        scene.update(3.3);self.assertTrue(scene.ready);self.assertEqual(scene.position,(152,112))
         for _ in LINES:scene.update(.3);scene.advance()
         self.assertTrue(scene.done)
         scene=LabEntrance();scene.advance(skip=True);self.assertTrue(scene.done)
@@ -50,7 +50,9 @@ class MemoryTimingTests(unittest.TestCase):
     def test_lab_has_no_invisible_dungeon_columns(self):
         from puzzle_maze.remaster import RemasteredSession
         tiles=RemasteredSession().rooms.rooms['r28']['tiles']
-        self.assertTrue(all(set(row[1:-1])=={'.'} for row in tiles[1:-1]))
+        self.assertTrue(all(set(row[1:-1])=={'.'} for row in tiles[3:-1]))
+        self.assertEqual(len(tiles[0]),20)
+        self.assertTrue(RemasteredSession().rooms.rooms['r28']['solid_footprints'])
 
     def test_game_sequence_freezes_world_and_records_story_once(self):
         from puzzle_maze.game import Game,GameScene

@@ -53,7 +53,7 @@ class RemasteredSession(AdvancedDungeonSession):
 
     def save_extension(self):
         result=super().save_extension()
-        result['remaster']=dict(grey_pixel=self.grey_pixel,lore=sorted(self.lore),lab_memory_seen=self.lab_memory_seen)
+        result['remaster']=dict(grey_pixel=self.grey_pixel,lore=sorted(self.lore),lab_memory_seen=self.lab_memory_seen,studio_revision=2)
         return result
 
     def load_extension(self,data):
@@ -61,6 +61,7 @@ class RemasteredSession(AdvancedDungeonSession):
         from puzzle_maze.secret45 import LORE
         extra=data.get('remaster',{})
         if type(extra.get('grey_pixel',False)) is not bool or not isinstance(extra.get('lore',[]),list) or not set(extra.get('lore',[]))<=LORE.keys():raise ValueError('Invalid remaster secrets')
+        if type(extra.get('studio_revision',0)) is not int or extra.get('studio_revision',0) not in (0,2):raise ValueError('Invalid studio revision')
         self.grey_pixel=extra.get('grey_pixel',False);self.lore=set(extra.get('lore',[]))
         if type(extra.get('lab_memory_seen',False)) is not bool:raise ValueError('Invalid lab memory')
         self.lab_memory_seen=extra.get('lab_memory_seen',False)
@@ -79,6 +80,8 @@ class RemasteredSession(AdvancedDungeonSession):
         if path.exists():
             try:old=json.loads(path.read_text())
             except (OSError,ValueError):old={}
+            studio_backup=path.with_name(path.name+'.pre-studio-v2')
+            if old.get('version')==2 and old.get('extension',{}).get('remaster',{}).get('studio_revision')!=2 and (old.get('room')=='r28' or 'r28' in old.get('snapshots',{})) and not studio_backup.exists():shutil.copy2(path,studio_backup)
             backup=path.with_name(path.name+'.pre-v45')
             if old.get('content_revision')!='4.5' and not backup.exists():shutil.copy2(path,backup)
         return super().save(path)
@@ -115,6 +118,8 @@ class RemasteredSession(AdvancedDungeonSession):
 
     def prepare_loaded_save(self,data):
         result=copy.deepcopy(data) if data.get('content_revision')=='4.5' else super().prepare_loaded_save(data)
+        from puzzle_maze.studio_layout import migrate_save
+        migrate_save(result,self.rooms.rooms['r28'])
         from puzzle_maze.puzzles import Chest
         entries=list(result['snapshots'].items())+[(result['room'],result['checkpoint']['objects'])]
         for room,snapshot in entries:
