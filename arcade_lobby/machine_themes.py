@@ -864,7 +864,7 @@ def _glove(s, x, y, color, facing):
 
 def decorate_brawl(s, frame, n, neon, accent):
     """The lower door is a fight poster: a pink glove and a cyan glove jabbing at each other across a gold lightning
-    bolt, over a brick wall."""
+    bolt, over a brick wall; neon tube edges that buzz and flicker like a street sign."""
     d = DOOR
     u = frame / n
     s.fill((20, 8, 30), d)
@@ -885,6 +885,10 @@ def decorate_brawl(s, frame, n, neon, accent):
     s.fill((6, 4, 14), (cx - 1, d.bottom - 1, 3, 1))              # coin slot
     s.fill(BRAWL_PINK, (cx - 2, d.bottom - 2, 5, 1))
     _bezel_leds(s, frame, n, BRAWL_PINK, BRAWL_CYAN, scale_color(BRAWL_PINK, 0.4))
+    buzz = int(u * 30)                                            # neon edge tubes: a short dark flicker now and then
+    if buzz % 11 in (4, 6):
+        for x in (0, W_BODY - 1):
+            s.fill(scale_color(BRAWL_PINK, 0.3), (x, 14 + (buzz * 7) % 20, 1, 18))
 
 
 # ----------------------------------------------------------------- registry
