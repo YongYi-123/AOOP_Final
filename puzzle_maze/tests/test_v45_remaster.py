@@ -21,3 +21,13 @@ class FloorTests(unittest.TestCase):
             self.assertEqual(new.rooms.current,'r10');self.assertIn('map',new.inventory.abilities)
             self.assertIn('west',new.inventory.flags);self.assertEqual(path.read_bytes(),before)
             self.assertEqual(new.rooms.data['content_revision'],'4.5')
+
+    def test_removed_room_reference_relocates_without_losing_inventory(self):
+        import json
+        old=AdvancedDungeonSession();old.inventory.abilities.update(('map','gloves'));old.inventory.flags.add('west')
+        with tempfile.TemporaryDirectory() as folder:
+            path=Path(folder)/'old.json';old.save(path);data=json.loads(path.read_text())
+            data['room']='B2F';path.write_text(json.dumps(data));before=path.read_bytes()
+            new=RemasteredSession.load(path)
+            self.assertEqual(new.rooms.current,'r27');self.assertIn('gloves',new.inventory.abilities)
+            self.assertIn('west',new.inventory.flags);self.assertEqual(before,path.read_bytes())

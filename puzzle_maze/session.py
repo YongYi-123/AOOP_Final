@@ -29,6 +29,7 @@ class GameSession:
     def make_puzzles(self,room):
         return PuzzleManager(room,self.inventory)
 
+    def normalize_save_header(self,data):return data
     def prepare_loaded_save(self,data):return data
 
     def save_extension(self):return {}
@@ -280,6 +281,7 @@ class GameSession:
         try:
             data=json.loads(Path(path).read_text())
             candidate=cls()
+            data=candidate.normalize_save_header(data)
             revision=data.get('map_revision','2.0')
             if revision!=candidate.rooms.revision:
                 if revision!='2.0' or candidate.rooms.revision!='2.1':raise ValueError('Unsupported map revision')
