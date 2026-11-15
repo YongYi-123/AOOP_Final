@@ -253,7 +253,10 @@ class Game:
             if self.intro.update(dt):self.scene=GameScene.TUTORIAL;self.fade=0
             return
         if self.scene==GameScene.MEMORY:
-            self.lab_entrance.update(dt);return
+            self.lab_entrance.update(dt)
+            if self.lab_entrance.time>1.:
+                for i,target in enumerate((12.,7.)):self.visual[i]+=(target-self.visual[i])*min(1,dt*2)
+            return
         if self.scene!=GameScene.PLAY:return
         if isinstance(self.session,RemasteredSession) and self.session.rooms.current=='r28' and not self.session.lab_memory_seen:
             from puzzle_maze.lab_scene import LabEntrance

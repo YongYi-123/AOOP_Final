@@ -25,6 +25,35 @@ class RoyalVaultArt:
     def layer(self):
         if self.base is not None:return self.base
         s=pygame.Surface((352,224),pygame.SRCALPHA);r=pygame.draw
+        # Mountain-sized banks of wealth frame, rather than cover, the real reward route.
+        for x in range(17,336,8):
+            height=27+int(13*math.sin(x*.055)**2)
+            r.rect(s,(115,76,43),(x,17,8,height))
+            for y in range(18,17+height,4):
+                silver=(x//8)%5==0
+                c=(195,209,216) if silver else (224+(y%3)*8,166+(x%7),59)
+                r.ellipse(s,(88,62,45),(x,y+1,7,4));r.ellipse(s,c,(x,y,7,3))
+                r.line(s,(255,238,171),(x+1,y),(x+3,y))
+        for side in (18,309):
+            for y in range(56,194,5):
+                width=17+int(7*math.sin(y*.13)**2)
+                for dx in range(0,width,6):
+                    r.ellipse(s,(224,175,66),(side+dx,y,7,4));r.line(s,(255,231,151),(side+dx+1,y),(side+dx+4,y))
+        for x in (80,246):
+            # Crowned gold statues on plinths, entirely outside chest approaches.
+            r.rect(s,(117,75,43),(x-8,173,22,11));r.rect(s,(225,175,73),(x-6,174,18,4))
+            r.polygon(s,(209,155,57),[(x+1,141),(x-7,170),(x+13,170),(x+7,141)])
+            r.circle(s,(245,201,106),(x+4,137),5)
+            r.lines(s,(255,224,128),False,[(x-1,133),(x-2,128),(x+3,130),(x+6,126),(x+9,132)],2)
+            r.line(s,(249,214,112),(x+17,144),(x+17,171),2);r.circle(s,(212,71,103),(x+17,141),3)
+        for x in (111,218):
+            r.polygon(s,(115,37,64),[(x,18),(x+18,18),(x+18,42),(x+9,51),(x,42)])
+            r.lines(s,(242,191,91),False,[(x+2,20),(x+16,20),(x+16,40),(x+9,47),(x+2,40),(x+2,20)])
+        for x,y in ((55,62),(293,64),(50,180),(295,185)):
+            for i,c in enumerate(((217,58,101),(75,175,233),(82,212,149),(211,221,239))):
+                xx=x+(i%2)*7;yy=y+(i//2)*7
+                r.polygon(s,c,[(xx,yy-5),(xx+5,yy),(xx,yy+4),(xx-4,yy)])
+                r.line(s,(255,242,214),(xx,yy-3),(xx-2,yy))
         # Broad clear central aisle. Treasure and empty display chests stay at its sides.
         for x in (32,288):
             for y in (50,86,126,160):
