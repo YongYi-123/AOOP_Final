@@ -29,6 +29,7 @@ def add_secret(rooms):
                decorations=[dict(kind='sigil',pos=[6,0])],
                exits=[dict(id='r28:r24',return_id='r24:r28',target='r24',pos=[1,7],arrival=[23,9],
                            entrance='cave',direction='WEST',requires=[],abilities=[],orb_allowed=True)])
+    dev['tiles']=['#'*26]+['#'+'.'*24+'#' for _ in range(14)]+['#'*26]
     dev['objects'].extend([obj('mystery_scroll','gpu',(18,6),optional=True,content_id='lab_gpu'),
                            obj('mystery_scroll','keyboard',(10,6),optional=True,content_id='lab_keyboard'),
                            obj('mystery_scroll','terminal',(21,9),optional=True,content_id='lab_terminal')])

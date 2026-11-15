@@ -41,7 +41,8 @@ class Game:
         self.session=self.session_factory();self.scene=GameScene.MENU;self.previous=GameScene.MENU
         self.selection=0;self.running=True;self.cooldown=0
         self.visual=[float(self.session.player.x),float(self.session.player.y)]
-        self.lab_entrance=None
+        from puzzle_maze.lab_scene import LabEntrance
+        self.lab_entrance=LabEntrance()
         self.reading='coming_soon'
         self.toast='';self.toast_time=0;self.fade=0;self.autosave=0
         self.last_solved=False
@@ -335,7 +336,7 @@ class Game:
             elif self.session.player.x<5 and not boss_room:
                 for i,line in enumerate(textwrap.wrap(self.session.rooms.data['hint'],26)):
                     pygame.draw.rect(r.surface,(18,26,39),(6,6+i*16,226,16));r.text(line,10,8+i*16,max_width=220)
-        if self.scene==GameScene.PLAY:r.minimap(self.session)
+        if self.scene==GameScene.PLAY and self.session.rooms.current!='r28':r.minimap(self.session)
         if self.fade>0:
             shade=pygame.Surface((320,240));shade.fill((11,20,30));shade.set_alpha(int(255*min(1,self.fade/.45)));r.surface.blit(shade,(0,0))
         screen=target if target is not None else self.screen

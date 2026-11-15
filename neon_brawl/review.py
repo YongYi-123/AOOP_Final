@@ -35,7 +35,7 @@ def generate(output):
         if e.boss:e.phase=3;e.state='phase'
     game.campaign=final;game.time+=1;game.draw(image);game.time+=.5;game.draw(image)
     pygame.image.save(pygame.transform.scale(image,(1200,900)),output/'computing_arena.png')
-    street=frames[1];street.cats.update(.05,6,0,1,street.player.x,[])
+    street=frames[1];street.cats.update(.05,6,0,1,street.player.x,street.enemies,camera=street.camera)
     game.campaign=street;game.time+=1;game.draw(image);game.time+=.5;game.draw(image)
     pygame.image.save(pygame.transform.scale(image,(1200,900)),output/'street_cat.png')
     sheet=pygame.Surface((500,400)); sheet.fill((15,15,30))

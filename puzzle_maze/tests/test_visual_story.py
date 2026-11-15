@@ -45,3 +45,22 @@ class MemoryTimingTests(unittest.TestCase):
         with TemporaryDirectory() as tmp:
             p=Path(tmp)/'save.json';s.save(p);loaded=RemasteredSession.load(p)
         self.assertTrue(loaded.lab_memory_seen);self.assertIn('gpu',loaded.puzzles.objects)
+
+
+    def test_lab_has_no_invisible_dungeon_columns(self):
+        from puzzle_maze.remaster import RemasteredSession
+        tiles=RemasteredSession().rooms.rooms['r28']['tiles']
+        self.assertTrue(all(set(row[1:-1])=={'.'} for row in tiles[1:-1]))
+
+    def test_game_sequence_freezes_world_and_records_story_once(self):
+        from puzzle_maze.game import Game,GameScene
+        g=Game(headless=True);g.save=lambda:None
+        g.session.enter('r28');g.scene=GameScene.PLAY;g.update(.01)
+        self.assertEqual(g.scene,GameScene.MEMORY)
+        before=(g.session.player.x,g.session.player.y,g.session.room_elapsed)
+        g.update(3);self.assertEqual(before,(g.session.player.x,g.session.player.y,g.session.room_elapsed))
+        g.event(pygame.event.Event(pygame.KEYDOWN,key=pygame.K_RETURN,repeat=True))
+        self.assertEqual(g.lab_entrance.line,0)
+        g.event(pygame.event.Event(pygame.KEYDOWN,key=pygame.K_SPACE))
+        self.assertTrue(g.session.lab_memory_seen);self.assertIn('kevin_photo',g.session.lore)
+        g.update(.01);self.assertEqual(g.scene,GameScene.PLAY)
