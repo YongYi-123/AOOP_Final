@@ -15,8 +15,8 @@ class NativeText:
     def clear(self):
         self.commands.clear()
 
-    def queue(self,text,x,y,color,title=False,max_width=None):
-        self.commands.append((str(text),x,y,color,24 if title else 11,max_width))
+    def queue(self,text,x,y,color,title=False,max_width=None,small=False):
+        self.commands.append((str(text),x,y,color,8 if small else 24 if title else 11,max_width))
 
     def font(self,size,bold=False):
         key=(size,bold)

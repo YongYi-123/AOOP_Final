@@ -9,7 +9,6 @@ def draw_studio(renderer,session,visual,controls):
     s.set_clip((0,0,320,240));s.blit(art.floor(),(0,0))
     from puzzle_maze.studio_interactions import nearby,physical_objects
     p=session.player;feet=(visual[0]*16+8,visual[1]*16+16)
-    actor_rect=pygame.Rect(round(feet[0]-8),round(feet[1]-18),16,18)
     scene=getattr(renderer,'studio_scene',None)
     miao=scene.position if scene and scene.time>=1.2 else None if scene or not session.lab_memory_seen else (MIAO_TILE[0]*16+8,MIAO_TILE[1]*16+16)
     layers=[(f.footprint[1]+f.footprint[3],0,f) for f in FURNITURE]

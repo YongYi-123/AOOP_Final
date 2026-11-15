@@ -54,3 +54,27 @@ class WorkshopTests(TestCase):
         g=PreviewGame('developer-room',True);g.inspect_key('work_prototype')
         self.assertIn('work_prototype',g.session.lore);self.assertFalse(g.persistent)
         self.assertTrue(g.session.grey_pixel)
+
+    def test_long_prompt_renders_without_ellipsis_at_normal_resolution(self):
+        g=PreviewGame('developer-room',True);g.inspect_key('work_crt')
+        g.event(pygame.event.Event(pygame.KEYDOWN,key=pygame.K_RETURN));g.draw(0)
+        self.assertEqual(g.renderer.ui.commands[0][0],PROMPT)
+        self.assertEqual(g.renderer.ui.commands[0][4],8)
+        scale=g.screen.get_height()/240
+        self.assertEqual(g.renderer.ui.rects[0].width,(len(PROMPT)*6-1)*int(scale))
+
+    def test_living_room_save_migrates_missing_new_machines_and_preserves_secrets(self):
+        import json
+        from pathlib import Path
+        from tempfile import TemporaryDirectory
+        g=PreviewGame('developer-room',True);s=g.session;s.lore.add('kevin_photo')
+        with TemporaryDirectory() as tmp:
+            path=Path(tmp)/'save.json';s.save(path);data=json.loads(path.read_text())
+            data['extension']['remaster']['studio_revision']=3;data['player']=[3,11]
+            for snapshot in (data['snapshots']['r28'],data['checkpoint']['objects']):
+                for key in ('work_crt','work_back','work_frozen','work_prototype'):snapshot.pop(key)
+            path.write_text(json.dumps(data));before=path.read_bytes();loaded=type(s).load(path)
+            self.assertTrue(loaded.grey_pixel);self.assertEqual(loaded.lore,s.lore)
+            self.assertTrue(loaded.can_enter(loaded.player.x,loaded.player.y))
+            self.assertIn('work_prototype',loaded.puzzles.objects)
+            loaded.save(path);self.assertEqual(path.with_name(path.name+'.pre-studio-v4').read_bytes(),before)

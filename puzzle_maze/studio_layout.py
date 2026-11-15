@@ -1,7 +1,7 @@
 """One source for the production studio's placement, contact footprints and story route."""
 from dataclasses import dataclass
 SIZE=(320,240)
-ENTRY=(3,8)
+ENTRY=(6,8)
 MIAO_TILE=(10,7)
 MIAO_ROUTE=((24.,128.),(72.,128.),(120.,128.),(168.,128.))
 @dataclass(frozen=True)
@@ -19,7 +19,6 @@ FURNITURE=(
  Furniture('food',(270,142,28,25),(272,154,25,13)),
  Furniture('cushion',(260,179,40,21),(266,186,29,12)),
 )
-SOURCE_FURNITURE=FURNITURE
 MIAO_FOOTPRINT=(162,122,12,6)
 POSITIONS={'photo':(12,5),'note':(14,5),'miao':MIAO_TILE,'gpu':(15,5),'keyboard':(11,5),'terminal':(3,10),
  'dev_001':(3,6),'dev_002':(5,6),'dev_003':(8,6),'dev_004':(16,3),'dev_005':(8,10),'dev_006':(10,3),'dev_007':(12,3),

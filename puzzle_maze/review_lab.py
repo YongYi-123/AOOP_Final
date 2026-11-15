@@ -18,7 +18,8 @@ def generate(output):
         g.visual=[22.,7.] if room=='r24' else [12.,7.];g.toast_time=0
         if room=='r24':g.session.player.x=20;g.session.player.y=9;g.visual=[20.,9.]
         capture(room)
-    g.session.enter('r28',(3,8));g.visual=[3.,8.];g.scene=GameScene.PLAY
+    from puzzle_maze.studio_layout import ENTRY
+    g.session.enter('r28',ENTRY);g.visual=list(map(float,ENTRY));g.scene=GameScene.PLAY
     g.update(.01,defaultdict(bool));capture('lab_doorway')
     for i in range(120):g.update(1/60)
     capture('lab_walk')

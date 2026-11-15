@@ -33,8 +33,8 @@ class Renderer:
         self.room_art=RoomArt();self.object_seen={};self.opening={}
         self.tiles=self.environment.tiles('entrance')
 
-    def text(self,text,x,y,color=WHITE,font=None,max_width=None):
-        self.ui.queue(text,x,y,color,font is self.title,max_width)
+    def text(self,text,x,y,color=WHITE,font=None,max_width=None,small=False):
+        self.ui.queue(text,x,y,color,font is self.title,max_width,small=small)
 
     def burst(self,x,y,color=GOLD,count=18):
         if len(self.particles)>120:self.particles=self.particles[-120:]

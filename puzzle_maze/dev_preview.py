@@ -11,7 +11,7 @@ class PreviewGame(Game):
         self.note_index=0;self.preview_target=target;self.restart_preview(target)
     def restart_preview(self,target=None):
         if target is not None:self.preview_target=target
-        self.studio_seat=None;self.last_maze_frame=None
+        self.last_maze_frame=None
         self.session=RemasteredSession();self.scene=GameScene.PLAY;self.running=True
         self.fade=0;self.cooldown=0;self.toast_time=0;self.autosave=0
         self.renderer.particles.clear();self.renderer.lab_effect=None
@@ -36,7 +36,6 @@ class PreviewGame(Game):
         self.session.enter('r28',ENTRY);self.visual=list(map(float,ENTRY));self.fade=0
     def inspect_key(self,key):
         if self.session.rooms.current!='r28':self.restart_preview('developer-room')
-        self.studio_seat=None
         self.session.lab_memory_seen=True;self.scene=GameScene.PLAY;self.reading_page=0
         obj=self.session.puzzles.objects[key]
         pos,facing=approach(self.session.rooms.data,obj.pos)
