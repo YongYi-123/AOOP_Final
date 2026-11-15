@@ -11,7 +11,7 @@ class NeonBrawlScene(MinigameScene):
         self.leaving=False
 
     @property
-    def music_id(self):
+    def music_override(self):
         c = self.brawl.campaign
         boss = c and any(e.boss and e.alive for e in c.enemies)
         return f"neon_brawl_{3 if boss else c.stage if c else 0}"
