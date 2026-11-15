@@ -115,7 +115,8 @@ class CabinetArtTests(unittest.TestCase):
 
     def test_the_ticker_marquees_scroll_the_whole_name_and_loop_seamlessly(self):
         for style, label, painter in (("volley", "CAT VOLLEYBALL", themes.marquee_volley),
-                                      ("racer", "RETRO RACER", themes.marquee_racer)):
+                                      ("racer", "RETRO RACER", themes.marquee_racer),
+                                      ("brawl", "NEON BRAWL", themes.marquee_brawl)):
             frames = themes.marquee_frames(style, label)
             self.assertGreater(frames, 20, style)
             first, again = pygame.Surface((36, 12)), pygame.Surface((36, 12))
