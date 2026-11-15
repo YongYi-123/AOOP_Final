@@ -25,14 +25,14 @@ SOFT_GLOW = 0.6         # halo scale when a room asks for soft_glow
 
 # Per-style animation timing, so every machine feels a little different.
 STYLES = {
-    "brawl": dict(frames=24, fps=10, marquee=0.12, pulse=0.16),
-    #          screen frames, screen fps, marquee frame time, pulse frame time
     "racer": dict(frames=24, fps=12, marquee=0.07, pulse=0.14),
+    #          screen frames, screen fps, marquee frame time, pulse frame time
     "space": dict(frames=24, fps=12, marquee=0.28, pulse=0.22),
     "cat": dict(frames=32, fps=8, marquee=0.4, pulse=0.2),
     "volley": dict(frames=32, fps=12, marquee=0.07, pulse=0.12),
     "galaxy": dict(frames=32, fps=12, marquee=0.07, pulse=0.12),
     "maze": dict(frames=40, fps=12, marquee=0.07, pulse=0.16),
+    "brawl": dict(frames=40, fps=12, marquee=0.07, pulse=0.14),
     "dungeon": dict(frames=48, fps=8, marquee=0.07, pulse=0.18, wake=True),   # wake: the screen brightens near a player
 }
 
