@@ -11,6 +11,7 @@ class PreviewGame(Game):
         self.note_index=0;self.preview_target=target;self.restart_preview(target)
     def restart_preview(self,target=None):
         if target is not None:self.preview_target=target
+        self.studio_seat=None;self.last_maze_frame=None
         self.session=RemasteredSession();self.scene=GameScene.PLAY;self.running=True
         self.fade=0;self.cooldown=0;self.toast_time=0;self.autosave=0
         self.renderer.particles.clear();self.renderer.lab_effect=None
@@ -35,6 +36,7 @@ class PreviewGame(Game):
         self.session.enter('r28',ENTRY);self.visual=list(map(float,ENTRY));self.fade=0
     def inspect_key(self,key):
         if self.session.rooms.current!='r28':self.restart_preview('developer-room')
+        self.studio_seat=None
         self.session.lab_memory_seen=True;self.scene=GameScene.PLAY;self.reading_page=0
         obj=self.session.puzzles.objects[key]
         pos,facing=approach(self.session.rooms.data,obj.pos)
@@ -68,6 +70,6 @@ class PreviewGame(Game):
         scale=int(scale) if scale>=1 else scale
         width=max(1,int(320*scale));height=max(1,int(16*scale))
         origin=((output.get_width()-width)//2,(output.get_height()-int(240*scale))//2)
-        if self.session.rooms.current=='r28':origin=(origin[0],origin[1]+int(208*scale))
+        if self.session.rooms.current=='r28':return # Preserve the production proximity prompt.
         output.blit(pygame.transform.scale(guide,(width,height)),origin)
         if target is None:pygame.display.flip()

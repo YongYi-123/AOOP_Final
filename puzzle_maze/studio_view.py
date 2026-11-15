@@ -8,17 +8,27 @@ def draw_studio(renderer,session,visual,controls):
     s=renderer.surface;art=renderer.developer_art;r=pygame.draw
     renderer.camera.x=renderer.camera.y=0
     s.set_clip((0,0,320,208));s.blit(art.floor(),(0,0))
+    from puzzle_maze.studio_interactions import nearby,physical_objects
+    physical_objects(s,session)
+    seat=getattr(renderer,'studio_seat',None)
     p=session.player;feet=(visual[0]*16+8,visual[1]*16+16)
+    if seat:feet=seat.position
     actor_rect=pygame.Rect(round(feet[0]-8),round(feet[1]-18),16,18)
     scene=getattr(renderer,'studio_scene',None)
     miao=scene.position if scene and scene.time>=1.2 else None if scene or not session.lab_memory_seen else (MIAO_TILE[0]*16+8,MIAO_TILE[1]*16+16)
     layers=[(f.footprint[1]+f.footprint[3],0,f) for f in FURNITURE]
-    layers.append((feet[1],1,'player'))
+    layers.append((186 if seat else feet[1],1,'player'))
     if miao:layers.append((miao[1],1,'miao'))
     orb=getattr(session,'orb',None)
     if orb and orb.room=='r28' and not orb.carried:layers.append((orb.y*16+16,1,'orb'))
     for depth,_,obj in sorted(layers,key=lambda item:(item[0],item[1])):
-        if obj=='player':renderer.player(visual,p.facing,p.moving,0,0)
+        if obj=='player':
+            if seat:
+                # Reuse the actual player sprite, then bend the boots over the seat edge.
+                renderer.player(((feet[0]-8)/16,(feet[1]-16)/16),(0,1),False,0,0)
+                r.rect(s,(33,49,59),(round(feet[0]-4),round(feet[1]-4),9,3))
+                for dx in (-4,2):r.rect(s,(48,66,73),(round(feet[0]+dx),round(feet[1]-2),4,3))
+            else:renderer.player(visual,p.facing,p.moving,0,0)
         elif obj=='orb':
             pygame.draw.circle(s,(129,145,143),(orb.x*16+8,orb.y*16+10),5)
             pygame.draw.circle(s,(219,217,178),(orb.x*16+6,orb.y*16+8),2)
@@ -27,17 +37,14 @@ def draw_studio(renderer,session,visual,controls):
             image=guide_frame(walking,scene.time if scene else renderer.time,reaction=bool(scene and scene.reaction))
             s.blit(image,image.get_rect(midbottom=(round(miao[0]),round(miao[1]))))
         else:
-            ghost=feet[1]<depth and art.occludes(obj,actor_rect)
+            ghost=not seat and feet[1]<depth and art.occludes(obj,actor_rect)
             s.blit(art.sprite(obj,ghost),obj.bounds[:2])
     if orb and orb.carried:pygame.draw.circle(s,(150,166,153),(round(feet[0]+6),round(feet[1]-11)),4)
     art.effects(s,renderer.time,getattr(renderer,'lab_effect',None))
     s.set_clip(None)
-    r.rect(s,(244,226,190),(0,208,320,32));r.line(s,(199,159,111),(0,208),(320,208))
-    renderer.text("KEVIN'S COZY STUDIO",10,212,(123,83,61),max_width=190)
-    renderer.text('WASD: Walk / E: Inspect',10,227,(147,108,78),max_width=280)
-    target=(p.x+p.facing[0],p.y+p.facing[1])
-    near=sorted((o for o in session.puzzles.objects.values() if abs(o.x-p.x)+abs(o.y-p.y)<=1),key=lambda o:o.pos!=target)
-    if near:
-        key=near[0].data.get('content_id','')
-        name='Log '+key[-3:] if key.startswith('dev_') else NAMES.get(key,'Read')
-        renderer.text('[E] '+name,202,212,(148,101,70),max_width=112)
+    r.rect(s,(53,43,38),(0,208,320,32));r.line(s,(116,87,60),(0,208),(320,208))
+    if getattr(renderer,'studio_interactive',True):
+        target=nearby(session)
+        prompt='[E] Stand Up' if seat else '[E] '+target[1] if target else 'A quiet place. Take your time.'
+        renderer.text(prompt,10,212,(225,195,145),max_width=300)
+        renderer.text('WASD: Walk / E: Interact',10,227,(164,145,119),max_width=300)

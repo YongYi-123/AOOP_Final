@@ -9,7 +9,7 @@ class Furniture:
     name:str
     bounds:tuple
     footprint:tuple
-FURNITURE=(
+SOURCE_FURNITURE=(
  Furniture('desk',(80,33,144,75),(88,76,128,27)),
  Furniture('tower',(225,52,25,51),(226,83,23,20)),
  Furniture('bookshelf',(32,43,34,55),(32,78,34,20)),
@@ -21,6 +21,17 @@ FURNITURE=(
  Furniture('post',(286,127,18,41),(286,156,18,12)),
  Furniture('plant',(20,164,18,31),(23,184,14,9)),
 )
+# Thin, human-scaled furniture: keep each floor contact anchored while reducing volume.
+def refined(item):
+    x,y,w,h=item.bounds
+    scale=1 if item.name=='plant' else .67 if item.name in ('desk','tower','archive','bookshelf') else .8
+    nw,nh=round(w*scale),round(h*scale)
+    nx,ny=x+(w-nw)//2,y+h-nh
+    fx,fy,fw,fh=item.footprint
+    return Furniture(item.name,(nx,ny,nw,nh),
+        (nx+round((fx-x)*scale),ny+round((fy-y)*scale),max(8,round(fw*scale)),max(6,round(fh*scale))))
+FURNITURE=tuple(refined(item) for item in SOURCE_FURNITURE)
+
 POSITIONS={'photo':(11,5),'note':(13,5),'miao':MIAO_TILE,'gpu':(14,5),'keyboard':(8,5),'terminal':(17,6),
  'dev_001':(3,4),'dev_002':(3,5),'dev_003':(7,4),'dev_004':(15,3),'dev_005':(7,10),'dev_006':(17,4),'dev_007':(3,10),
  'lab_duck':(12,5),'lab_coffee':(6,10),'lab_button':(15,6),

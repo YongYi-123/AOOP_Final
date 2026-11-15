@@ -13,7 +13,8 @@ class LabEntrance:
     walk_start=1.2
     walk_end=5.4
     dialogue_at=9.8
-    def __init__(self):
+    def __init__(self,maze_frame=None):
+        self.maze_frame=maze_frame.copy() if maze_frame is not None else None
         self.time=0.;self.line=0;self.dwell=0.;self.done=False
         self.veil=pygame.Surface((320,180),pygame.SRCALPHA)
         self.focus=pygame.Surface((160,90));self.zoom=pygame.Surface((320,180));self.fragment=None
@@ -59,6 +60,12 @@ class LabEntrance:
         self.fragment=s;return s
     def draw(self,renderer):
         s=renderer.surface;r=pygame.draw;t=self.time;renderer.ui.clear()
+        if t<.6 and self.maze_frame is not None:
+            s.blit(self.maze_frame,(0,0))
+            self.veil.fill((20,18,22,round(120+130*t/.6)));s.blit(self.veil,(0,0))
+            for i in range(5):
+                y=30+i*27+int(t*17)%7
+                r.line(s,(83,99,91),(25+i*17,y),(73+i*17,y),1)
         if 6.2<=t<9.2:
             q=min(1,(t-6.2)/1.4);q=q*q*(3-2*q)
             crop=pygame.Rect(round(88+16*q),round(24+8*q),160,90)
@@ -66,8 +73,8 @@ class LabEntrance:
         if 7.6<=t<9.2:
             self.veil.fill((80,56,40,100));s.blit(self.veil,(0,0));s.blit(self.memory(),(94,40))
             renderer.text('A SMALL MEMORY',24,14,(247,216,158),max_width=272)
-        elif t<1.2 or 9.2<=t<9.8:
-            progress=t/1.2 if t<1.2 else (t-9.2)/.6
+        elif (.6<=t<1.2 or t<.6 and self.maze_frame is None) or 9.2<=t<9.8:
+            progress=max(0,(t-.6)/.6) if t<1.2 else (t-9.2)/.6
             self.veil.fill((63,45,34,round(235*(1-progress))));s.blit(self.veil,(0,0))
         r.rect(s,(67,51,43),(0,180,320,60));r.line(s,(207,169,112),(0,180),(320,180))
         if self.ready and not self.done:

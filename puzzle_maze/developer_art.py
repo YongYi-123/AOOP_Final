@@ -5,7 +5,7 @@ from puzzle_maze.studio_layout import SIZE,FURNITURE
 from puzzle_maze.studio_furniture import furniture_sprite,picture
 
 class DeveloperRoomArt:
-    revision='cozy-studio-2'
+    revision='quiet-studio-3'
     def __init__(self):self.cached=None;self.base=None;self.parts={};self.translucent={};self.masks={};self.actor_mask=pygame.mask.Mask((16,18),fill=True)
     def floor(self):
         if self.base is not None:return self.base
@@ -31,7 +31,6 @@ class DeveloperRoomArt:
         r.rect(s,(164,111,73),(7,105,24,37));r.rect(s,(104,78,62),(12,110,17,27))
         r.rect(s,(241,208,152),(9,107,21,33),2);r.rect(s,(213,169,107),(12,135,18,5))
         # Wall memories, a short to-do card and a warm floor lamp.
-        s.blit(render("KEVIN'S STUDIO",8,(143,104,70)),(108,16))
         r.rect(s,(160,113,71),(253,8,51,32));r.rect(s,(209,166,106),(255,10,47,28))
         for x,y,w,h in ((259,13,16,19),(279,14,20,12),(281,29,15,7)):
             r.rect(s,(248,230,187),(x,y,w,h));r.rect(s,(192,129,105),(x+2,y+2,2,2))
@@ -43,10 +42,19 @@ class DeveloperRoomArt:
         r.circle(s,(200,139,151),(272,190),3);r.line(s,(224,201,145),(268,192),(264,193))
         r.line(s,(121,107,75),(101,163),(101,137),2);r.ellipse(s,(132,109,76),(95,161,13,5))
         r.polygon(s,(249,216,153),[(95,133),(107,133),(112,144),(90,144)]);r.line(s,(255,236,188),(92,144),(110,144))
+        # Fade pigments, then light just the work areas, not the entire room.
+        tint=pygame.Surface(SIZE);tint.fill((172,164,153));s.blit(tint,(0,0),special_flags=pygame.BLEND_RGB_MULT)
+        for cx,cy,radius in ((166,81,45),(101,145,34)):
+            glow=pygame.Surface(SIZE,pygame.SRCALPHA)
+            for rad in range(radius,0,-4):
+                pygame.draw.circle(glow,(94,57,25,round(12*(1-rad/radius))),(cx,cy),rad)
+            s.blit(glow,(0,0))
         self.base=s;return s
     def ensure(self,item):
         if item.name not in self.parts:
             self.parts[item.name]=furniture_sprite(item)
+            tint=pygame.Surface(item.bounds[2:],pygame.SRCALPHA);tint.fill((202,188,166,255))
+            self.parts[item.name].blit(tint,(0,0),special_flags=pygame.BLEND_RGBA_MULT)
             self.masks[item.name]=pygame.mask.from_surface(self.parts[item.name])
     def occludes(self,item,actor):
         if not pygame.Rect(item.bounds).colliderect(actor):return False
@@ -67,7 +75,11 @@ class DeveloperRoomArt:
         target.blit(self.layer(),(-camera[0],-camera[1]))
     def effects(self,s,time,effect):
         # Local screen activity, with no room-wide glitch or cold lighting.
-        if int(time*2)%3:s.fill((154,204,175),(273,60,8,1))
+        if int(time*2)%3:s.fill((121,163,139),(279,77,5,1))
+        # Sparse dust in warm pools; deterministic and independent of collisions.
+        for i in range(9):
+            x=95+int((i*19+time*1.5)%120);y=56+int((i*13+time*.7)%78)
+            if int(time+i)%4==0:s.fill((155,128,91),(x,y,1,1))
         if effect and time-effect[1]<3:
             if effect[0]=='lab_terminal':
                 pygame.draw.polygon(s,(223,184,133),[(271,65),(271,59),(275,62),(279,59),(279,66)])

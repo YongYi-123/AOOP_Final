@@ -176,6 +176,7 @@ class Game:
         if key==pygame.K_TAB:
             self.scene=GameScene.PLAY if self.scene==GameScene.MAP else GameScene.MAP;return
         if key==pygame.K_r:
+            self.studio_seat=None
             self.session.reset();self.visual=[float(self.session.player.x),float(self.session.player.y)]
             self.last_solved=self.session.puzzles.solved;self.renderer.particles.clear()
             self.notify('Room restored to entrance checkpoint');self.save();return
@@ -193,6 +194,23 @@ class Game:
             return
         if key==pygame.K_t and hasattr(self.session,'recall_orb'):
             self.session.recall_orb();return
+        if self.session.rooms.current=='r28':
+            from puzzle_maze.studio_interactions import nearby,SofaSeat
+            seat=getattr(self,'studio_seat',None)
+            if seat:
+                if key==pygame.K_e:seat.leaving=True
+                return
+            if key==pygame.K_e:
+                target=nearby(self.session)
+                if target and target[0]=='sofa':
+                    self.studio_seat=SofaSeat(self.visual);self.audio.play('use');return
+                if target:
+                    obj=self.session.puzzles.objects[target[0]]
+                    obj.interact(self.session.puzzles,self.session.player,False)
+                    self.reading=obj.data['content_id'];self.reading_page=0
+                    self.renderer.lab_effect=(self.reading,self.renderer.time)
+                    self.session.read_lore(self.reading);self.scene=GameScene.SCROLL
+                return
         if key==pygame.K_e and hasattr(self.session,'interact_orb') and self.session.interact_orb():return
         if key==pygame.K_e and getattr(self.session.inventory,'carried',None):
             if not self.session.drop_pot():self.notify('Face a clear tile to set down',2)
@@ -307,7 +325,13 @@ class Game:
             self.treasury_reveal=TreasuryReveal();self.treasury_seen=True;self.scene=GameScene.TREASURY;self.fade=0;return
         if isinstance(self.session,RemasteredSession) and self.session.rooms.current=='r28' and not self.session.lab_memory_seen:
             from puzzle_maze.lab_scene import LabEntrance
-            self.lab_entrance=LabEntrance();self.scene=GameScene.MEMORY;self.fade=0;return
+            self.lab_entrance=LabEntrance(getattr(self,'last_maze_frame',None));self.scene=GameScene.MEMORY;self.fade=0;return
+        seat=getattr(self,'studio_seat',None)
+        if self.session.rooms.current!='r28':self.studio_seat=None
+        elif seat:
+            if seat.update(max(0,dt)):self.studio_seat=None
+            self.session.player.moving=False
+            return
         self.cooldown=max(0,self.cooldown-dt)
         p=self.session.player
         self.session.tick(dt)
@@ -345,9 +369,12 @@ class Game:
         if self.autosave>=15:self.save();self.autosave=0
 
     def draw(self,dt,target=None):
-        r=self.renderer;r.hide_miao=self.scene==GameScene.MEMORY
+        r=self.renderer;r.studio_seat=getattr(self,'studio_seat',None) if self.session.rooms.current=='r28' else None
+        r.studio_interactive=self.scene==GameScene.PLAY
+        r.hide_miao=self.scene==GameScene.MEMORY
         r.studio_scene=self.lab_entrance if self.scene==GameScene.MEMORY else None
         r.world(self.session,self.visual,dt,self.tool,self.tutorial.controls)
+        if self.session.rooms.current=='r24':self.last_maze_frame=r.surface.copy()
         if self.scene==GameScene.DISCOVERY:self.grey_reveal.draw(r)
         elif self.scene==GameScene.TREASURY:self.treasury_reveal.draw(r)
         elif self.scene==GameScene.MEMORY:self.lab_entrance.draw(r)

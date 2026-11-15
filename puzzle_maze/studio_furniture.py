@@ -21,7 +21,7 @@ def picture(s,x,y,small=False):
     r.rect(s,(181,133,97),(x+4,y+5,3,3));r.rect(s,(114,153,128),(x+3,y+8,5,4))
     r.rect(s,(77,79,117),(x+w-7,y+h-8,4,4));r.rect(s,(227,195,112),(x+w-6,y+h-9,2,1))
 
-def furniture_sprite(item):
+def source_sprite(item):
     x,y,w,h=item.bounds;s=pygame.Surface((w,h),pygame.SRCALPHA);r=pygame.draw;k=item.name
     if k=='desk':
         r.polygon(s,DARK,[(4,27),(136,27),(143,39),(139,63),(7,63),(0,50)])
@@ -93,3 +93,9 @@ def furniture_sprite(item):
         r.polygon(s,(172,119,83),[(2,19),(16,19),(13,31),(5,31)]);r.line(s,(87,123,79),(9,21),(9,4),2)
         for xx,yy in ((2,7),(10,2),(0,13),(10,11)):r.ellipse(s,(135,166,105),(xx,yy,8,6))
     return s
+
+
+def furniture_sprite(item):
+    from puzzle_maze.studio_layout import SOURCE_FURNITURE
+    source=next(f for f in SOURCE_FURNITURE if f.name==item.name)
+    return pygame.transform.scale(source_sprite(source),item.bounds[2:])
