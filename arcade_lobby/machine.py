@@ -25,6 +25,7 @@ SOFT_GLOW = 0.6         # halo scale when a room asks for soft_glow
 
 # Per-style animation timing, so every machine feels a little different.
 STYLES = {
+    "brawl": dict(frames=24, fps=10, marquee=0.12, pulse=0.16),
     #          screen frames, screen fps, marquee frame time, pulse frame time
     "racer": dict(frames=24, fps=12, marquee=0.07, pulse=0.14),
     "space": dict(frames=24, fps=12, marquee=0.28, pulse=0.22),
@@ -77,7 +78,18 @@ def _screen_space(s, p, accent, neon):
     s.fill(Col.YELLOW, (sx, 10 - int(t * 32) % 16, 1, 2))
 
 
-_SCREEN_PAINTERS = {"racer": _screen_racer, "space": _screen_space,
+def _screen_brawl(s, p, accent, neon):
+    s.fill((12, 9, 28))
+    for x in range(0, 24, 5):
+        s.fill((40, 35, 70), (x, 3 + x % 4, 4, 10))
+        s.fill(neon, (x + 1, 5 + x % 4, 1, 2))
+    s.fill(accent, (0, 13, 24, 1))
+    from neon_brawl.art import sprite
+    for name, x, facing in (("REX", 1, 1), ("grunt", 12, -1)):
+        image = pygame.transform.scale(sprite(name, "light", int(p * 8) % 4, facing), (14, 14))
+        s.blit(image, (x, 2))
+
+_SCREEN_PAINTERS = {"brawl": _screen_brawl,"racer": _screen_racer, "space": _screen_space,
                     **themes.SCREEN_PAINTERS}
 
 
@@ -112,7 +124,7 @@ def _paint_marquee(s, style, label, frame, neon, accent):
     font = get_font()
     tw, th = font.size(label)
     tx, ty = r.centerx - tw // 2, r.y + 1
-    if style == "racer":            # chase lights under flashing text
+    if style in ("racer", "brawl"):            # chase lights under flashing text
         color = accent if frame % 2 == 0 else Col.YELLOW
         s.blit(font.render(label, color), (tx, ty))
         for i in range(8):

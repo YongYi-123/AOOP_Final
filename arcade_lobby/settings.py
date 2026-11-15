@@ -275,6 +275,12 @@ class Lofi:
 #   "play_cost"  optional, defaults to DEFAULT_PLAY_COST
 MACHINES = [
     {
+        "id": "neon_brawl", "name": "Neon Brawl", "marquee": "NEON BRAWL",
+        "description": "Reclaim the neon city! Three fighters, three districts and one signal to break. WASD move, J/K fight.",
+        "slot": "island_0", "neon": (255, 75, 155), "accent": (75, 235, 245),
+        "screen": "brawl", "play_cost": 1,
+    },
+    {
         "id": "retro_racer",
         "name": "Retro Racer",
         "marquee": "RETRO RACER",

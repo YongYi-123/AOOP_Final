@@ -27,6 +27,7 @@ from galaxy_defender_scene import GalaxyDefenderScene
 from cat_territory_scene import CatTerritoryScene
 from puzzle_maze.lobby_scene import PuzzleMazeScene
 from cat_maze_scene import CatMazeScene
+from neon_brawl_scene import NeonBrawlScene
 from settings import BACK_KEYS, Col, VIEW_H, VIEW_W
 from ui import draw_text, neon_panel, wrap_text
 
@@ -117,7 +118,8 @@ class MinigamePlaceholderScene(MinigameScene):
 
 # Game id (a machine's "game_id", by default its id) -> scene class. Anything not listed uses the placeholder, so real
 # minigames can be dropped in one at a time.
-MINIGAME_SCENES = {"retro_racer": RetroRacerScene,
+MINIGAME_SCENES = {"neon_brawl": NeonBrawlScene,
+                   "retro_racer": RetroRacerScene,
                    "pixel_volleyball": PixelVolleyballScene,
                    "cat_minesweeper": CatTerritoryScene,
                    "galaxy_defender": GalaxyDefenderScene,
@@ -127,6 +129,7 @@ MINIGAME_SCENES = {"retro_racer": RetroRacerScene,
 
 # The real minigames (anything not listed is a placeholder screen). NEON CAT MAZE keeps the id "puzzle_drop" of the machine it replaced.
 MINIGAME_DEFINITIONS = {d.game_id: d for d in (
+    MiniGameDefinition("neon_brawl"),
     MiniGameDefinition("retro_racer"),
     MiniGameDefinition("puzzle_drop"),      # NEON CAT MAZE
     MiniGameDefinition("pixel_volleyball"),
