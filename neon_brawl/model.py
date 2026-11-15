@@ -262,7 +262,7 @@ class Campaign:
         dt = max(0,min(dt,.05))
         self.elapsed += dt
         self.events.clear()
-        self.cats.update(dt,self.elapsed,self.stage,self.wave,self.player.x,self.enemies)
+        self.cats.update(dt,self.elapsed,self.stage,self.wave,self.player.x,self.enemies,self.camera)
         self.effects = [(x,y,t-dt) for x,y,t in self.effects if t>dt]
         if self.hitstop>0:
             self.hitstop -= dt

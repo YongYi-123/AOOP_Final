@@ -14,26 +14,22 @@ class StreetCat:
 
 class AmbientCats:
     def __init__(self):self.cat=None;self.next_at=5.;self.spawn_count=0
-    def update(self,dt,time,stage,section,player_x,enemies):
+    def update(self,dt,time,stage,section,player_x,enemies,camera=0.):
         if stage!=0:
             self.cat=None;self.next_at=time+6
             return
         if self.cat is None:
             if time<self.next_at:return
-            self.cat=StreetCat(section*350+25,164,self.spawn_count%3)
-            self.spawn_count+=1
-        cat=self.cat;cat.age+=dt
-        intense=any(e.alive and e.swing and abs(e.x-cat.x)<105 for e in enemies)
-        if intense and cat.state not in ('flee','hide'):
-            cat.state='flee';cat.flee_time=0.;cat.direction=-1 if player_x>cat.x else 1
-        if cat.state=='flee':
-            cat.x+=cat.direction*65*dt;cat.flee_time+=dt
-            if cat.flee_time>2:cat.state='hide'
-        elif cat.state=='hide' or cat.age>20:
-            self.cat=None;self.next_at=time+14
-        else:
-            cat.state='walk' if cat.age<3 or cat.age>11 else 'sit' if cat.age<5 else 'stretch' if cat.age<6.5 else 'groom' if cat.age<9 else 'observe'
-            if cat.state=='walk':cat.x+=cat.direction*19*dt
+            direction=1 if self.spawn_count%2==0 else -1
+            self.cat=StreetCat(camera+(50 if direction>0 else 350),247,self.spawn_count%3,direction)
+            self.spawn_count+=1;self.next_at=time+22
+        cat=self.cat;cat.age+=max(0,dt)
+        # Ambient actors remain visible during combat and never enter fighter lists.
+        if cat.age>16:
+            self.cat=None;return
+        cat.state='walk' if cat.age<5 or cat.age>11 else 'sit' if cat.age<7 else 'groom' if cat.age<9.5 else 'observe'
+        if cat.state=='walk':cat.x+=cat.direction*21*dt
+        cat.x=max(camera+20,min(camera+380,cat.x))
 
 @lru_cache(maxsize=96)
 def cat_sprite(variant,state,frame,direction):
@@ -56,4 +52,13 @@ def cat_sprite(variant,state,frame,direction):
 def draw_cats(surface,cats,camera,time):
     cat=cats.cat
     if cat is None or cat.state=='hide':return
-    surface.blit(cat_sprite(cat.variant,cat.state,int(time*8)%4,cat.direction),(int(cat.x-camera)-11,int(cat.y)-15))
+    import pygame
+    image=visible_cat_sprite(cat.variant,cat.state,int(time*8)%4,cat.direction)
+    x=int(cat.x-camera);y=int(cat.y)
+    pygame.draw.ellipse(surface,(15,18,30),(x-14,y-3,29,6))
+    surface.blit(image,(x-16,y-24))
+
+@lru_cache(maxsize=96)
+def visible_cat_sprite(variant,state,frame,direction):
+    import pygame
+    return pygame.transform.scale(cat_sprite(variant,state,frame,direction),(33,24))

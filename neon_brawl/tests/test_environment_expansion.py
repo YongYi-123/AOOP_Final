@@ -12,12 +12,23 @@ class StreetCatTests(unittest.TestCase):
         self.assertFalse(hasattr(cats.cat,'health'));self.assertFalse(hasattr(cats.cat,'damage'))
         import pygame
         self.assertEqual(len({pygame.image.tobytes(cat_sprite(i,'walk',0,1),'RGBA') for i in range(3)}),3)
-    def test_combat_scares_cats_without_hurting_them(self):
+    def test_combat_cats_stay_visible_without_joining_damage_targets(self):
         from neon_brawl.model import EnemyFighter
         cats=AmbientCats();e=EnemyFighter('grunt',80,220);e.tick(2);e.attack('enemy')
-        cats.update(.05,6,0,0,100,[e]);self.assertEqual(cats.cat.state,'flee')
-        for i in range(45):cats.update(.05,6+i*.05,0,0,100,[e])
-        self.assertIsNone(cats.cat)
+        for i in range(240):
+            cats.update(.05,6+i*.05,0,0,100,[e],camera=700)
+            self.assertIsNotNone(cats.cat)
+            self.assertTrue(720<=cats.cat.x<=1080)
+            self.assertNotIn(cats.cat,[e])
+        self.assertIn(cats.cat.state,('walk','sit','groom','observe'))
+
+    def test_noticeable_twenty_two_second_cadence_and_both_directions(self):
+        cats=AmbientCats();directions=set()
+        for i in range(1800):
+            cats.update(.1,i*.1,0,0,80,[],camera=350)
+            if cats.cat:directions.add(cats.cat.direction)
+        self.assertEqual(directions,{-1,1});self.assertGreaterEqual(cats.spawn_count,7)
+        self.assertLessEqual(cats.spawn_count,9)
     def test_no_cats_in_metro_or_core_and_never_in_combat_targets(self):
         c=Campaign();c.cats.update(.05,6,0,0,80,[]);c.spawn()
         self.assertNotIn(c.cats.cat,c.enemies)
