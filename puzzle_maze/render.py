@@ -55,7 +55,7 @@ class Renderer:
         cx,cy=int(self.camera.x),int(self.camera.y)
         s.set_clip((0,0,320,184))
         if session.rooms.current=='r28':
-            self.developer_art.draw(s,(cx,cy),self.time)
+            self.developer_art.draw(s,(cx,cy),self.time,getattr(self,"lab_effect",None))
         else:
             for y,row in enumerate(room['tiles']):
                 for x,kind in enumerate(row):
@@ -90,7 +90,7 @@ class Renderer:
             if not (-16<sx<320 and -16<sy<208):continue
             if isinstance(o,MysteryScroll):
                 if o.data.get('content_id')=='miao_memory' and getattr(self,'hide_miao',False):continue
-                if o.data.get('content_id') in ('kevin_photo','kevin_note','miao_memory','lab_gpu','lab_keyboard','lab_terminal'):
+                if session.rooms.current=='r28':
                     self.developer_art.prop(s,o.data['content_id'],sx,sy)
                 else:self.vault_art.scroll(s,sx,sy,self.time,self.environment.glow(theme_name))
             elif isinstance(o,OrbSocket):

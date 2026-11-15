@@ -215,6 +215,7 @@ class Game:
                     self.reading='debug_layer';self.scene=GameScene.SCROLL;self.save()
                 if obj_data['type']=='mystery_scroll':
                     self.reading=obj_data.get('content_id','coming_soon')
+                    self.renderer.lab_effect=(self.reading,self.renderer.time)
                     if hasattr(self.session,'read_lore'):self.session.read_lore(self.reading)
                     self.scene=GameScene.SCROLL
                 if obj_data.get('ability'):self.notify('Acquired: '+obj_data['ability'])

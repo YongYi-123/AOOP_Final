@@ -6,10 +6,13 @@ LORE={
  'kevin_note':('KEVIN / HANDWRITTEN NOTE',('If a room disappears,','look beyond the map edge.','I kept the original here.','Please remember us. - Kevin')),
  'miao_memory':('MIAO MEOW',("This room... I've been","here before. So why can't","I remember anything?", "That photo feels familiar.")),
  'lab_gpu':('VINTAGE GRAPHICS CARD',('Twin fans. Worn contacts.','Kevin kept this card alive','through countless nights.')),
- 'lab_keyboard':('ENGINEERING KEYBOARD',('The keys are worn smooth.','Someone used this machine','for years.')),
- 'lab_terminal':('ORIGINAL SYSTEM TERMINAL',('An unfinished program is','still running. Its network','leads back to the Arcade.')),
+ 'lab_keyboard':('CLICK. CLACK.',('MIAO MEOW: This is louder','than the Arcade machines.','Does it have a quiet key?')),
+ 'lab_terminal':('BUILD FAILED',('BUILD FAILED: TOO MANY CATS.','Retry with fewer cats?','The terminal votes NO.')),
  'debug_layer':('GREY PIXEL',('DEBUG LAYER DISCOVERED.','ORIGINAL MAP RESTORED.','The western arch still leads','back to the archive.')),
 }
+
+from puzzle_maze.developer_diaries import DIARIES
+LORE.update(DIARIES)
 
 def add_secret(rooms):
     from puzzle_maze.build_dungeon import obj,base
@@ -33,4 +36,6 @@ def add_secret(rooms):
     dev['objects'].extend([obj('mystery_scroll','gpu',(18,6),optional=True,content_id='lab_gpu'),
                            obj('mystery_scroll','keyboard',(10,6),optional=True,content_id='lab_keyboard'),
                            obj('mystery_scroll','terminal',(21,9),optional=True,content_id='lab_terminal')])
+    from puzzle_maze.developer_diaries import add_interactions
+    add_interactions(dev)
     rooms['r28']=dev

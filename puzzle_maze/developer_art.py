@@ -90,10 +90,18 @@ class DeveloperRoomArt:
         r=pygame.draw;r.polygon(s,(167,95,62),[(x-8,y),(x+8,y),(x+5,y+13),(x-5,y+13)])
         for dx,dy in ((-8,-15),(7,-19),(0,-25),(-10,-5),(10,-8)):
             r.line(s,(71,113,69),(x,y),(x+dx,y+dy),2);r.ellipse(s,(111,153,85),(x+dx-4,y+dy-3,8,6))
-    def draw(self,target,camera,time):
+    def draw(self,target,camera,time,effect=None):
         target.blit(self.layer(),(-camera[0],-camera[1]))
         # Small cyan activity on the hidden network terminal, rather than a room-wide glitch.
         if int(time*2)%3:target.fill((117,206,173),(342-camera[0],119-camera[1],9,1))
+
+        if effect and time-effect[1]<4:
+            key=effect[0];x,y=346-camera[0],120-camera[1]
+            if key=='lab_terminal':
+                r=pygame.draw;r.ellipse(target,(227,190,138),(x-3,y-2,9,5))
+                r.polygon(target,(227,190,138),[(x+1,y),(x,y-6),(x+4,y-4),(x+7,y-6),(x+7,y)])
+                for dx in (2,5):r.rect(target,(62,84,91),(x+dx,y-3,1,1))
+            elif key=='lab_button':pygame.draw.rect(target,(222,119,137),(x-6,y-4,15,7),1)
 
     @staticmethod
     def prop(target,key,x,y):
@@ -110,4 +118,8 @@ class DeveloperRoomArt:
             image=guide_frame();target.blit(image,image.get_rect(midbottom=(x+8,y+16)))
         elif key=='lab_gpu':target.blit(pygame.transform.scale(equipment('gpu'),(32,29)),(x-7,y-12))
         elif key=='lab_keyboard':target.blit(pygame.transform.scale(equipment('keyboard'),(30,27)),(x-7,y-12))
+        elif key.startswith('dev_'):
+            r.rect(target,(60,44,52),(x+1,y+3,13,11));r.rect(target,(208,181,123),(x+3,y+2,10,10))
+            for yy in (5,8):r.line(target,(102,92,81),(x+5,y+yy),(x+10,y+yy))
+        elif key in ('lab_coffee','lab_duck','lab_button'):pass # Drawn as dedicated studio props.
         elif key=='lab_terminal':pass # The terminal belongs to the cached furniture layer.
