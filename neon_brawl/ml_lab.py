@@ -63,7 +63,7 @@ def paint_ml(s,section):
     # Every zone has an explicit, mounted research identity.
     sign(s,LABELS[section],(215,41,235,15),(182,216,174))
     if section==3:
-        sign(s,'REAL-WORLD ACCURACY: 12%', (420,140,175,16),(231,176,141))
+        sign(s,'REAL-WORLD ACCURACY: 12%', (620,140,175,16),(231,176,141))
 
 @lru_cache(maxsize=8)
 def steam(frame):

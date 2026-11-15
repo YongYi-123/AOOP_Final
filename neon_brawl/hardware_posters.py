@@ -21,6 +21,7 @@ def schematic(index):
         r.lines(s,amber,False,[(51,28),(75,28)],2);r.line(s,amber,(110,28),(131,28),2)
         r.lines(s,cyan,False,[(149,35),(149,44),(30,44),(30,35)])
         node('PC',8,48,24);node('CONTROL UNIT',79,48,87)
+        r.line(s,cyan,(96,48),(96,35))
         r.lines(s,cyan,False,[(32,54),(62,54),(62,20),(128,20),(128,28)])
     elif index==2:
         for i in range(3):node('R'+str(i)+' 000'+str(i%2),10,18+i*12,66)
@@ -51,4 +52,4 @@ def schematic(index):
     return s
 
 def paint_hardware_displays(surface,section):
-    for i,x in enumerate(range(12,800,200)):surface.blit(schematic((section+i)%6),(x,59))
+    for i,x in enumerate(range(12,800,200)):surface.blit(schematic((section+i)%6),(x,52))

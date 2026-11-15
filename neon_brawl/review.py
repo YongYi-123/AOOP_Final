@@ -25,6 +25,8 @@ def generate(output):
         for section in range(4):
             c=Campaign('NOVA'); c.stage=stage; c.wave=section
             c.player.x=section*350+80; c.camera=section*350; c.spawn()
+            c.staff.update(6,6,stage,section,c.player,c.enemies,c.camera)
+            c.cats.update(.05,6,stage,section,c.player.x,c.enemies,c.camera)
             game.campaign=c; game.screen='playing'; game.time=4.5
             game.draw(image);game.time+=.5;game.draw(image)
             sheet.blit(image,(section*400,stage*300))

@@ -172,7 +172,7 @@ class BrawlGame:
             r.center(s,'NEON',45,(75,235,245),4); r.center(s,'BRAWL',88,(255,85,170),4)
             for i,name in enumerate(ROSTER):
                 image=pygame.transform.scale(sprite(name,'idle',int(self.time*5)%4),(96,96)); s.blit(image,(54+i*100,153))
-            r.center(s,'RECLAIM THE CITY. BREAK THE SIGNAL.',140)
+            r.center(s,'ENTER THE LAB. BREAK THE SIGNAL.',140)
             r.center(s,'ENTER : START    ESC : LEAVE',273,(255,215,100))
         elif screen=='select':
             r.center(s,'CHOOSE YOUR FIGHTER',15,(85,235,245),2)
@@ -187,7 +187,7 @@ class BrawlGame:
             r.center(s,ROSTER[tuple(ROSTER)[self.selection]].description,249)
             r.center(s,'A/D : SELECT   ENTER : CONFIRM',277,(255,215,100))
         elif screen in ('tutorial','controls'):
-            r.center(s,'STREET SURVIVAL',15,(85,235,245),2)
+            r.center(s,'LAB SURVIVAL',15,(85,235,245),2)
             lines=('WASD / ARROWS   MOVE IN TWO LANES','J   LIGHT / THREE-HIT COMBO','K   HEAVY / BREAK THEIR GUARD','L   JUMP   + J : AIR ATTACK','U   SPECIAL / 40 ENERGY','I   DODGE / BRIEF INVULNERABILITY','E   PICK UP FOOD AT CHECKPOINTS','ESC PAUSE / ENTER BEGIN')
             for i,line in enumerate(lines): r.text(s,line,15,54+i*21,(235,225,190))
             demo=self.tutorial_player
@@ -200,12 +200,12 @@ class BrawlGame:
             self.panel(s,'AREA SECURED',['CHECKPOINT / +35 HEALTH / +20 ENERGY','E : FOOD +30 HP / NEXT BLOCK OPEN','ENTER : CONTINUE'])
         elif screen=='stage_clear':
             self.panel(s,'STAGE CLEAR',[STAGES[self.campaign.stage][0],'THE SIGNAL LEADS DEEPER...','ENTER : CONTINUE'])
-        elif screen=='game_over': self.panel(s,'SIGNAL LOST',['YOU FOUGHT FOR THE CITY.','ENTER : VIEW RESULTS'])
+        elif screen=='game_over': self.panel(s,'SIGNAL LOST',['THE EXPERIMENT IS NOT OVER.','ENTER : VIEW RESULTS'])
         elif screen=='ending':
             self.campaign.player.state='victory'
-            self.panel(s,'SIGNAL BROKEN',['NULL IS SILENT. THE CITY WAKES.','THE STREETS BELONG TO EVERYONE.','THANK YOU FOR PLAYING NEON BRAWL','ENTER : RESULTS'])
+            self.panel(s,'SIGNAL BROKEN',['NULL IS SILENT. SYSTEMS RESTORED.','THE LABS BELONG TO EVERYONE.','THANK YOU FOR PLAYING NEON BRAWL','ENTER : RESULTS'])
         elif screen=='results':
             data=self.result()
-            self.panel(s,'CITY LIBERATED' if data['victory'] else 'RUN COMPLETE',[
+            self.panel(s,'COMPLEX RESTORED' if data['victory'] else 'RUN COMPLETE',[
                 f"SCORE {data['score']:07d} / KILLS {data['kills']}",f"BEST COMBO {data['combo']} / DAMAGE {data['damage']}",
                 f"STAGE {data['stage']} / TIME {data['time']//60:02}:{data['time']%60:02}",f"TICKETS EARNED {data['tickets']}",'ENTER : RETURN TO ARCADE'])

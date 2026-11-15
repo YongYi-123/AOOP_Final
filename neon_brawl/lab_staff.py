@@ -51,7 +51,7 @@ def engineer_sprite(role,state,frame,variant):
     for i in range(3 if role in ('programmer','student') else 2):
         x=2+i*15;r.rect(s,(51,65,82),(x,1,14,13));r.rect(s,(151,171,161),(x+1,1,12,10))
         r.rect(s,(19,44,55),(x+2,3,10,6));r.line(s,(125,203,168),(x+3,5),(x+9,5))
-        r.rect(s,(83,106,119),(x+6,11,3,4))
+        r.rect(s,(83,106,119),(x+6,11,3,23))
     r.rect(s,(66,72,89),(14,28,20,12));r.rect(s,(96,111,122),(16,28,16,10))
     r.rect(s,coat,(18,25,13,10));r.line(s,(205,196,164),(23,27),(23,34))
     asleep=state=='sleep';head_y=22 if asleep else 15
@@ -61,6 +61,7 @@ def engineer_sprite(role,state,frame,variant):
         if asleep:r.line(s,(86,76,82),(x,head_y+5),(x+1,head_y+5))
         else:r.rect(s,(244,233,210),(x,head_y+4,2,2));r.rect(s,(74,93,107),(x+1,head_y+5,1,1))
     r.polygon(s,(94,96,104),[(0,34),(42,34),(48,39),(3,39)]);r.line(s,(183,167,131),(2,34),(42,34))
+    for x in (5,39):r.rect(s,(70,79,96),(x,38,3,4))
     r.rect(s,(190,188,162),(16,34,16,3));r.line(s,(91,105,113),(18,35),(29,35))
     for x in (15,31):
         y=32+(frame%2 if state=='typing' else 0)

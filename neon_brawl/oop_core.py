@@ -32,7 +32,12 @@ def class_diagram(kind):
         node('ACTOR',64,18,49)
         for x,label in ((9,'ROBOT'),(103,'CAT')):
             node(label,x,41,61)
-            for yy in range(31,41,3):r.line(s,cyan,(88 if x==9 else 96,yy),(89 if x==9 else 95,yy+1))
+            start=x+30
+            for step in range(0,8,2):
+                a=(round(start+(88-start)*step/8),round(41-8*step/8))
+                b=(round(start+(88-start)*(step+1)/8),round(41-8*(step+1)/8))
+                r.line(s,cyan,a,b)
+        r.polygon(s,cyan,[(88,30),(84,35),(92,35)],1)
         text(s,'ABSTRACTION / ATTRIBUTE',6,57,(221,181,136))
     else:
         node('GAME',65,18,49);node('SCENE',9,41,61);node('OBJECT',103,41,61)
@@ -71,13 +76,15 @@ def paint_oop(s,section):
             if i%2==0:
                 r.rect(s,(33,31,57),(x+6,59,83,29));text(s,'BUILD FAILED',x+12,64,(223,157,169));text(s,'TRY SNACKS',x+12,77,(189,208,180))
     else:
-        for x in (0,400):
-            for dx in (8,310,357):server(s,x+dx,64,33,101)
-            r.rect(s,(88,83,127),(x+53,58,240,99));r.rect(s,(20,31,56),(x+58,63,230,89))
-            s.blit(class_diagram(4),(x+86,69))
-            for xx in range(x+65,x+281,12):r.rect(s,(109,184,185),(xx,143,6,2))
-            arcade(s,x+8,95,(164,125,169),1);arcade(s,x+310,95,(105,168,168),0)
-            sign(s,'RUNTIME // THE LOST SIGNAL',(x+61,39,224,16),(180,211,194))
+        for x in range(0,800,55):server(s,x,64,42,101)
+        # The boss camera rests near world x=1050. Wrap the large landmark across
+        # the 800px parallax tile so its monitor is centered in the actual arena view.
+        for center in (-23,777):
+            r.rect(s,(88,83,127),(center-126,58,252,99));r.rect(s,(20,31,56),(center-121,63,242,89))
+            s.blit(class_diagram(4),(center-87,69))
+            for xx in range(center-112,center+114,12):r.rect(s,(109,184,185),(xx,143,6,2))
+            arcade(s,center-176,95,(164,125,169),1);arcade(s,center+139,95,(105,168,168),0)
+            sign(s,'RUNTIME // THE LOST SIGNAL',(center-112,39,224,16),(180,211,194))
     if section<4:sign(s,LABELS[section],(215,41,245,15),(206,183,216))
     if section==0:sign(s,'ADVANCED OBJECT-ORIENTED PROGRAMMING',(405,146,270,17),(184,204,215))
 

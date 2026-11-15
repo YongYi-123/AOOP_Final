@@ -185,6 +185,7 @@ class Renderer:
             if f.state=='phase':
                 radius=25+int(math.sin(time*20)*4)
                 pygame.draw.polygon(s,(235,110,225),[(x-radius,y-28),(x,y-70),(x+radius,y-28),(x,y+2)],2)
+                s.fill((16,17,35),(90,61,220,13))
                 self.center(s,'SIGNAL OVERLOAD',65,(255,140,220))
             if f.flash:
                 image=image.copy(); image.fill((130,100,100,0),special_flags=pygame.BLEND_RGBA_ADD)

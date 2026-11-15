@@ -49,7 +49,7 @@ def cat_sprite(variant,state='walk',frame=0,direction=1):
         r.ellipse(raw,(190,122,79),(6,11,7,5));r.ellipse(raw,(86,84,102),(11,12,6,4))
     else:r.ellipse(raw,(246,232,189),(6,11,6,4))
     if variant==2:
-        for x,y in ((3,8),(4,11),(5,14)):r.rect(raw,d.shade,(x,y,2,1))
+        for x,y in tail[1:3]:r.rect(raw,d.shade,(x,y,1,1))
         r.line(raw,d.shade,(10,11),(11,15))
     # Broad round head, small triangular ears and connected cream cheeks.
     r.ellipse(raw,d.fur,(11,hy+2,14,10))
