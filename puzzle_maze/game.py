@@ -27,6 +27,7 @@ class GameScene(Enum):
     SCROLL=auto()
     MEMORY=auto()
     TREASURY=auto()
+    DISCOVERY=auto()
 
 class Game:
     def __init__(self,headless=False,embedded=False,audio=None,legacy=False,campaign=None):
@@ -44,6 +45,8 @@ class Game:
         self.visual=[float(self.session.player.x),float(self.session.player.y)]
         from puzzle_maze.lab_scene import LabEntrance
         self.lab_entrance=LabEntrance()
+        from puzzle_maze.grey_pixel_scene import GreyPixelReveal
+        self.grey_reveal=GreyPixelReveal()
         from puzzle_maze.treasury_scene import TreasuryReveal
         self.treasury_reveal=TreasuryReveal();self.treasury_seen=False
         self.reading='coming_soon'
@@ -111,6 +114,9 @@ class Game:
             self.running=False;return
         if event.type!=pygame.KEYDOWN:return
         key=event.key
+        if self.scene==GameScene.DISCOVERY:
+            if key in (pygame.K_RETURN,pygame.K_SPACE,pygame.K_ESCAPE) and not getattr(event,'repeat',False):self.finish_discovery()
+            return
         if self.scene==GameScene.TREASURY:
             if key in (pygame.K_RETURN,pygame.K_SPACE,pygame.K_ESCAPE) and not getattr(event,'repeat',False):self.scene=GameScene.PLAY;self.cooldown=.25
             return
@@ -212,7 +218,7 @@ class Game:
                 obj_data=self.session.puzzles.objects[obj].data
                 if hasattr(self.session,'observe_secret'):self.session.observe_secret()
                 if obj_data.get('grey_pixel'):
-                    self.reading='debug_layer';self.scene=GameScene.SCROLL;self.save()
+                    self.begin_discovery();self.save()
                 if obj_data['type']=='mystery_scroll':
                     self.reading=obj_data.get('content_id','coming_soon')
                     self.renderer.lab_effect=(self.reading,self.renderer.time)
@@ -251,6 +257,14 @@ class Game:
             if self.scene!=GameScene.MENU:self.save()
             self.running=False
 
+    def begin_discovery(self):
+        from puzzle_maze.grey_pixel_scene import GreyPixelReveal
+        self.grey_reveal=GreyPixelReveal();self.scene=GameScene.DISCOVERY;self.fade=0
+        self.audio.play('pulse')
+
+    def finish_discovery(self):
+        self.scene=GameScene.PLAY;self.cooldown=.25;self.toast_time=0;self.save()
+
     def finish_memory(self):
         self.session.lab_memory_seen=True
         self.session.read_lore('kevin_photo');self.session.read_lore('miao_memory')
@@ -260,6 +274,11 @@ class Game:
         self.toast_time=max(0,self.toast_time-dt);self.fade=max(0,self.fade-dt)
         if self.scene==GameScene.INTRO:
             if self.intro.update(dt):self.scene=GameScene.TUTORIAL;self.fade=0
+            return
+        if self.scene==GameScene.DISCOVERY:
+            before=self.grey_reveal.time;done=self.grey_reveal.update(dt)
+            if before<2.2<=self.grey_reveal.time:self.audio.play('solve')
+            if done:self.finish_discovery()
             return
         if self.scene==GameScene.TREASURY:
             if self.treasury_reveal.update(dt):self.scene=GameScene.PLAY;self.cooldown=.25
@@ -315,7 +334,8 @@ class Game:
     def draw(self,dt,target=None):
         r=self.renderer;r.hide_miao=self.scene==GameScene.MEMORY
         r.world(self.session,self.visual,dt,self.tool,self.tutorial.controls)
-        if self.scene==GameScene.TREASURY:self.treasury_reveal.draw(r)
+        if self.scene==GameScene.DISCOVERY:self.grey_reveal.draw(r)
+        elif self.scene==GameScene.TREASURY:self.treasury_reveal.draw(r)
         elif self.scene==GameScene.MEMORY:self.lab_entrance.draw(r)
         elif self.scene==GameScene.INTRO:self.intro.draw(r,self.tutorial.controls["confirm"])
         elif self.scene==GameScene.TUTORIAL:self.tutorial.draw(r)
@@ -335,11 +355,16 @@ class Game:
         elif self.scene==GameScene.SCROLL:
             from puzzle_maze.secret45 import LORE
             if self.reading in LORE:
-                title,lines=LORE[self.reading];r.panel(title,lines)
+                title,lines=LORE[self.reading]
+                if self.session.rooms.current=='r28':
+                    r.ui.clear();pygame.draw.rect(r.surface,(27,25,31),(0,156,320,84))
+                    r.text(title,12,160,GOLD,max_width=296)
+                    for i,line in enumerate(lines):r.text(line,12,178+i*11,(235,226,205),max_width=296)
+                else:r.panel(title,lines)
             else:
                 r.panel('COMING SOON',[])
                 r.surface.blit(pygame.transform.scale(r.hud.atlas.get('mystery_scroll'),(36,36)),(142,119))
-            r.text('ENTER / ESC: Close',83,173,GOLD,max_width=160)
+            r.text('ENTER / ESC: Close',83,229 if self.session.rooms.current=='r28' else 173,GOLD,max_width=160)
         elif self.scene==GameScene.HELP:
             r.panel('FIELD GUIDE',self.tutorial.lines(False))
         elif self.scene==GameScene.MAP:r.map_panel(self.session)
