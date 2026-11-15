@@ -19,6 +19,7 @@ cd /home/nora/AOOP_Final
 .venv/bin/python -m puzzle_maze --dev-preview developer-room
 .venv/bin/python -m puzzle_maze --dev-preview miao-entrance
 .venv/bin/python -m puzzle_maze --dev-preview developer-diaries
+.venv/bin/python -m puzzle_maze --dev-preview kevin-notes
 ```
 
 | 入口 | 行為 |
@@ -27,6 +28,7 @@ cd /home/nora/AOOP_Final
 | `developer-room` | 已完成入場的工程室，直接探索 |
 | `miao-entrance` | 從西門重新觀看 Miao 步行與對話 |
 | `developer-diaries` | 出現在第一篇日記附近，按 E 閱讀 |
+| `kevin-notes` | 直接開啟正式 Kevin 待辦清單，方向鍵翻閱四頁 |
 
 ## 操作
 
@@ -35,12 +37,14 @@ cd /home/nora/AOOP_Final
 | WASD／方向鍵 | 使用正式 Maze 移動 |
 | E | 閱讀面向／附近物件；也可推進 Miao 對話 |
 | Enter | 推進對話、關閉閱讀、跳過道具揭示 |
-| Space | 跳過目前發現動畫／Miao 入場；探索時保留正式 Pulse 功能 |
+| Space | 跳過目前發現動畫／Miao 入場；工作室內停用戰鬥工具 |
 | R | 重建目前選定的預覽入口 |
 | F5 | 從完整 Grey Pixel 序列重來 |
 | F6 | 直接回已完成入場的工程室 |
 | F7 | 重播 Miao 入場 |
-| F8 | 依序定位並開啟七篇日記、鴨子、咖啡、紅按鈕互動 |
+| F8 | 依序定位並開啟七篇日記、鴨子、咖啡、紅按鈕與四項溫柔生活筆記 |
+| F9 | 定位並閱讀 Kevin 的四頁待辦清單 |
+| 左右方向鍵 | 閱讀時翻頁；按 Enter 關閉 |
 | Esc | 退出整個預覽（閱讀時也退出；用 Enter 關閉閱讀） |
 
 從 r28 西門 `(1,7)` 可回正式 r24；預覽仍保持記憶體隔離。想回房間按 F6。F8 是便利測試定位，會走正式 E 互動，不使用另一套閱讀內容。
@@ -72,3 +76,17 @@ SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy PYTHONPATH=.:puzzle_maze/tests .venv
 - **Esc 為什麼沒有關閉日記而是離開？** 預覽明確保留 Esc 安全退出，用 Enter 關閉閱讀；正式遊戲仍可用 Esc 關閉日記。
 - **想保留預覽進度？** 此功能刻意不保存；正式遊戲請從一般入口啟動。
 - **想重新看動畫？** F5 全序列、F7 Miao；按住按鍵不會連續重設。
+
+## Cozy Studio 實際場景驗證
+
+正式 r28 與預覽共用 `Renderer.world → studio_view.draw_studio`。新房間是 320×208 原生像素的暖色木地板工作室，四區包含工程桌、沙發閱讀角、Miao 的床與食物、記憶終端。家具地面輪廓有碰撞，從入口可繞行桌子、沙發與貓床；人物依腳底深度排序。
+
+F7 重播約 9.8 秒的暖光、門口步行、照片焦點與小回憶，之後才能逐句對話。首次正式探索完成後保存，重訪不重播；預覽 F7 可以反覆測試。
+
+完整正式流程截圖（非另造假房間）：
+
+```bash
+SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy .venv/bin/python -m puzzle_maze.review_cozy_studio --output /tmp/cozy-studio-review
+```
+
+工具會實際炸開裂牆、取得 Grey Pixel、走入 r28、播放五句對話、閱讀四頁清單、繞行家具並由西門返回 r24。圖片僅寫入指定輸出資料夾，不改玩家存檔。
