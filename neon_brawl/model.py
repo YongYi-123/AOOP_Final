@@ -112,6 +112,7 @@ class PlayerFighter(Fighter):
 class EnemyFighter(Fighter):
     def __init__(self, name, x, y, index=0):
         health, speed, _ = ENEMIES[name]
+        health = round(health * (1.5 if name.islower() else 1.35))
         super().__init__(name,x,y,health,speed)
         self.index, self.phase = index, 1
         self.timer = .9 + index*.15
@@ -180,6 +181,7 @@ class Campaign:
         self.pickups = []
         self.events = []
         self.camera = 0.
+        self.hazard_clock = 0.
 
     @property
     def bounds(self): return (self.wave*350+18, self.wave*350+382)
@@ -212,7 +214,7 @@ class Campaign:
         permitted = set(candidates[:2])
         for e in self.enemies:
             e.tick(dt)
-            e.think(dt,p,e in permitted and active<2)
+            e.think(dt,p,e in permitted and active<2 and self.camera+12 < e.x < self.camera+388)
             if e.swing: active += 1
             e.x = max(self.bounds[0],min(self.bounds[1],e.x))
         # Soft separation leaves escape routes rather than trapping the player.
@@ -237,11 +239,18 @@ class Campaign:
                 self.damage_received += damage
                 self.impact(target)
                 self.events.append('hurt')
+        self.hazard_clock += dt
+        if self.stage > 0 and 4.7 < self.hazard_clock % 7 < 5.15 and abs(p.y-251)<9:
+            damage = p.damage(12, -p.facing*65)
+            if damage:
+                self.damage_received += damage
+                self.impact(p)
+                self.events.append('hurt')
         if not p.alive:
             self.state = 'defeat'
             self.events.append('lose')
         elif self.spawned and all(not e.alive for e in self.enemies):
-            self.pickups = [(self.wave*350+300,220)]
+            self.pickups = [(self.player.x,self.player.y)]
             self.state = 'checkpoint' if self.wave<3 else 'stage_clear'
             self.score += 300
             self.events.append('clear')
@@ -263,7 +272,7 @@ class Campaign:
     def advance(self):
         if self.state not in ('checkpoint','stage_clear'): return
         # Checkpoint aid is guaranteed, even if the player skips the food pickup.
-        self.player.health = min(self.player.max_health,self.player.health+22)
+        self.player.health = min(self.player.max_health,self.player.health+35)
         self.player.energy = min(100,self.player.energy+20)
         if self.wave == 3:
             if self.stage == 2:

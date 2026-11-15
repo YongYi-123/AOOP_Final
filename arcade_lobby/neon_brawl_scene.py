@@ -11,6 +11,12 @@ class NeonBrawlScene(MinigameScene):
         self.leaving=False
 
     @property
+    def music_id(self):
+        c = self.brawl.campaign
+        boss = c and any(e.boss and e.alive for e in c.enemies)
+        return f"neon_brawl_{3 if boss else c.stage if c else 0}"
+
+    @property
     def music_duck(self): return .45 if self.brawl.paused else 1.
     def handle_event(self,event):
         if not self.leaving:

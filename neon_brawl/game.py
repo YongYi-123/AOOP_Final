@@ -23,7 +23,8 @@ class BrawlGame:
         self.controls_return='playing'
         self.wants_exit=False
         self.started=False
-        self._result=None
+        self.pending_attack=None
+        self.buffer_time=0.
         self.tutorial_player=Campaign().player
         self.seen_actions=set()
 
@@ -32,6 +33,7 @@ class BrawlGame:
     def sound(self,name):
         if self.audio: self.audio.play(name)
     def change(self,screen):
+        self.pending_attack=None
         self.screen=screen; self.screen_time=0; self.held.clear()
     def pause(self):
         self.held.clear()
@@ -71,6 +73,8 @@ class BrawlGame:
                 action=ACTIONS[key]
                 if action=='pickup': self.campaign.pickup()
                 elif self.campaign.player.act(action): self.sound({'heavy':'boom','special':'laser','dodge':'skid'}.get(action,'hit'))
+                elif action in ('light','heavy','special'):
+                    self.pending_attack=action; self.buffer_time=.18
         elif self.screen=='paused':
             if key==pygame.K_ESCAPE: self.change('playing')
             elif key in (pygame.K_w,pygame.K_UP,pygame.K_s,pygame.K_DOWN):
@@ -81,6 +85,7 @@ class BrawlGame:
                 elif self.pause_selection==1: self.controls_return='paused'; self.change('controls')
                 else: self.wants_exit=True
         elif self.screen in ('checkpoint','stage_clear'):
+            if key==pygame.K_e: self.campaign.pickup()
             if confirm:
                 self.campaign.advance()
                 self.change('ending' if self.campaign.state=='victory' else 'playing')
@@ -101,6 +106,11 @@ class BrawlGame:
             self.tutorial_player.tick(dt)
             if self.screen=='tutorial' and self.screen_time>=9: self.started=True; self.change('playing')
         elif self.screen=='playing':
+            if self.pending_attack:
+                self.buffer_time-=dt
+                if self.buffer_time<=0: self.pending_attack=None
+                elif self.campaign.player.act(self.pending_attack):
+                    self.sound('hit'); self.pending_attack=None
             dx=sum(MOVEMENT[k][0] for k in self.held if k in MOVEMENT)
             dy=sum(MOVEMENT[k][1] for k in self.held if k in MOVEMENT)
             self.campaign.update(dt,(max(-1,min(1,dx)),max(-1,min(1,dy))))
@@ -127,6 +137,8 @@ class BrawlGame:
         r=self.renderer
         if self.campaign and self.screen not in ('title','intro','select','tutorial','controls'):
             r.world(s,self.campaign,self.time)
+            if self.campaign.hitstop>0:
+                shifted=s.copy(); s.fill((8,7,20)); s.blit(shifted,(2 if int(self.time*60)%2 else -2,1))
         else:
             s.blit(background(0,0),(0,0)); s.blit(background(0,1),(-int(self.time*12)%400-200,0))
             s.fill((18,17,34),(0,168,400,132))
@@ -179,7 +191,7 @@ class BrawlGame:
         elif screen=='paused':
             self.panel(s,'PAUSED',[('> ' if self.pause_selection==i else '  ')+v for i,v in enumerate(('RESUME','CONTROLS','END RUN / RETURN'))]+['W/S SELECT / ENTER CONFIRM'])
         elif screen=='checkpoint':
-            self.panel(s,'AREA SECURED',['CHECKPOINT / +22 HEALTH / +20 ENERGY','NEXT BLOCK IS OPEN','ENTER : CONTINUE'])
+            self.panel(s,'AREA SECURED',['CHECKPOINT / +35 HEALTH / +20 ENERGY','E : FOOD +30 HP / NEXT BLOCK OPEN','ENTER : CONTINUE'])
         elif screen=='stage_clear':
             self.panel(s,'STAGE CLEAR',[STAGES[self.campaign.stage][0],'THE SIGNAL LEADS DEEPER...','ENTER : CONTINUE'])
         elif screen=='game_over': self.panel(s,'SIGNAL LOST',['YOU FOUGHT FOR THE CITY.','ENTER : VIEW RESULTS'])

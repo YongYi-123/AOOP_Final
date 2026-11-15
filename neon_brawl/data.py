@@ -59,3 +59,7 @@ WAVES = (
     (('runner','grunt','ranged','grunt'), ('bruiser','runner','ranged','runner'), ('bruiser','bruiser','ranged'), ('RELAY','runner')),
     (('bruiser','runner','ranged','grunt'), ('bruiser','ranged','runner','runner'), ('bruiser','bruiser','ranged','ranged'), ('NULL',)),
 )
+
+# Reinforcement squads enter in fair groups, rather than surrounding the player at once.
+WAVES = tuple(tuple(wave + tuple(n for n in wave if n not in ('WARDEN','RELAY','NULL'))
+                    if index < 3 else wave for index, wave in enumerate(stage)) for stage in WAVES)

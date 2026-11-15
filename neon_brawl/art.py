@@ -32,6 +32,7 @@ def sprite(name, state='idle', frame=0, facing=1):
     rect(dark,(25,30+bob,5,10)); rect(WHITE,(32,25+bob,2,15))
     rect(INK,(24,40,17,3)); rect((255,215,100),(31,40,4,2))
     limb([(32-w,27+bob),(20,34),(22,39)],dark)
+    if state=='hurt': bob=3
     reach=55 if attack and frame%4 in (1,2) else 43
     limb([(32+w,27+bob),(43,29+bob),(reach,24 if attack else 36)],color)
     rect(INK,(reach-3,(21 if attack else 33),7,7)); rect(skin,(reach-2,(22 if attack else 34),5,4))
@@ -134,6 +135,13 @@ class Renderer:
             for i in range(45):
                 x=int((i*71-time*48)%420); y=int((i*43+time*190)%300)
                 pygame.draw.line(s,(75,85,130),(x,y),(x-2,y+6))
+        if stage>0:
+            phase=campaign.hazard_clock%7
+            if 3.4<phase<5.15:
+                color=(255,80,110) if phase>4.7 else (175,125,55)
+                for x in range(0,400,12):
+                    pygame.draw.lines(s,color,False,[(x,251),(x+4,247),(x+8,255),(x+12,251)],2)
+                self.text(s,'LIVE RAIL! MOVE UP / JUMP',122,272,color)
         actors=sorted(campaign.enemies+[campaign.player],key=lambda f:f.y)
         for f in actors:
             x,y=int(f.x-cam),int(f.y)
@@ -148,7 +156,13 @@ class Renderer:
                     width=a.reach if f.swing.name!='shot' else 170
                     pygame.draw.line(s,(240,105,90),(x,y),(x+f.facing*width,y),2)
                     self.text(s,'!',x-2,y-64,(255,210,85))
-            image=sprite(f.name,f.state,frame,f.facing)
+            if f.swing and f.swing.name=='shot':
+                from .data import ATTACKS
+                a=ATTACKS['shot']
+                if a.windup<=f.swing.age<=a.windup+a.active:
+                    pygame.draw.line(s,(155,245,255),(x+f.facing*18,y-24),(x+f.facing*240,y-24),3)
+                    pygame.draw.line(s,WHITE,(x+f.facing*18,y-24),(x+f.facing*240,y-24),1)
+            image=sprite(f.name,'air' if f.jump>0 and not f.swing else f.state,frame,f.facing)
             if f.flash:
                 image=image.copy(); image.fill((130,100,100,0),special_flags=pygame.BLEND_RGBA_ADD)
             s.blit(image,(x-32,y-59-int(f.jump)))

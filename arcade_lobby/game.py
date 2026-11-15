@@ -155,7 +155,7 @@ class Game:
         hands the music straight back to the room below it. None keeps whatever is playing (the start screens)."""
         for scene in reversed(scenes if isinstance(scenes, (list, tuple)) else [scenes]):
             machine = getattr(scene, "machine", None)
-            theme = machine.id if machine is not None else getattr(scene, "music_id", None)
+            theme = getattr(scene, "music_id", None) or (machine.id if machine is not None else None)
             if theme:
                 return theme
         return None
