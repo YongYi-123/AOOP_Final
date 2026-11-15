@@ -99,6 +99,20 @@ class CabinetArtTests(unittest.TestCase):
             return surf.get_at((m.screen_center[0], m.screen_center[1]))[:3]
         self.assertGreater(sum(glow(True)), sum(glow(False)))
 
+    def test_neon_brawl_has_its_own_street_fight_cabinet(self):
+        data = machine_data("neon_brawl")
+        self.assertEqual((data["screen"], data["marquee"], data["slot"]), ("brawl", "NEON BRAWL", "island_0"))
+        for registry in (themes.SCREEN_PAINTERS, themes.MARQUEES, themes.BODY_DECORATORS, themes.BODY_COLORS,
+                         themes.HEADROOM):
+            self.assertIn("brawl", registry)
+        m = self.machine("neon_brawl")
+        standard = self.machine("retro_racer")
+        self.assertEqual((m.rect.size, m.footprint.size, m.zone.size), (standard.rect.size, standard.footprint.size, standard.zone.size))
+        self.assertGreater(m.art["pad"], 0)                                              # rooftop skyline above the marquee
+        self.assertGreater(m.art["marquee_frames"], 20)                                  # the whole name scrolls
+        self.assertGreater(len({pygame.image.tobytes(f, "RGB") for f in m.art["screen"]}), 25)
+        self.assertEqual(m.play_cost, 1)
+
     def test_the_ticker_marquees_scroll_the_whole_name_and_loop_seamlessly(self):
         for style, label, painter in (("volley", "CAT VOLLEYBALL", themes.marquee_volley),
                                       ("racer", "RETRO RACER", themes.marquee_racer)):
