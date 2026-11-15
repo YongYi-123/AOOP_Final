@@ -843,6 +843,49 @@ def marquee_brawl(s, r, label, frame, neon, accent):
     _ticker(s, r, label, frame, "brawl", (255, 110, 175), BRAWL_CYAN, scale_color(BRAWL_PINK, 0.45))
 
 
+_GLOVE = (".####..",
+          "######.",
+          "#######",
+          "#######",
+          ".#####.",
+          ".ccc...")
+
+
+def _glove(s, x, y, color, facing):
+    for gy, row in enumerate(_GLOVE):
+        for gx, ch in enumerate(row):
+            if ch == ".":
+                continue
+            px = x + (gx if facing > 0 else 6 - gx)
+            s.set_at((px, y + gy), (235, 235, 245) if ch == "c" else color)
+    s.set_at((x + (2 if facing > 0 else 4), y + 1), (255, 255, 255))                     # shine
+    s.set_at((x + (4 if facing > 0 else 2), y + 3), scale_color(color, 0.55))             # thumb seam
+
+
+def decorate_brawl(s, frame, n, neon, accent):
+    """The lower door is a fight poster: a pink glove and a cyan glove jabbing at each other across a gold lightning
+    bolt, over a brick wall."""
+    d = DOOR
+    u = frame / n
+    s.fill((20, 8, 30), d)
+    for row in range(1, d.h, 3):                                  # dark brick wall
+        s.fill((32, 14, 46), (d.x, d.y + row, d.w, 1))
+        for jx in range(1 + (row // 3 % 2) * 3, d.w, 6):
+            s.fill((32, 14, 46), (d.x + jx, d.y + row, 1, 3))
+    jab = int(u * 12) % 4                                         # the gloves trade jabs
+    _glove(s, d.x + 2 + (1 if jab == 0 else 0), d.y + 3, BRAWL_PINK, 1)
+    _glove(s, d.right - 9 - (1 if jab == 2 else 0), d.y + 3, BRAWL_CYAN, -1)
+    bolt = BRAWL_GOLD if jab in (0, 2) else (255, 250, 200) if jab == 1 else scale_color(BRAWL_GOLD, 0.6)
+    cx = d.centerx
+    pygame.draw.lines(s, bolt, False, [(cx + 1, d.y + 1), (cx - 1, d.y + 5), (cx + 1, d.y + 6), (cx - 1, d.y + 10)])
+    if jab in (0, 2):                                             # a spark where the punch lands
+        sx = cx - 2 if jab == 0 else cx + 2
+        for dx, dy in ((-1, 0), (1, 0), (0, -1), (0, 1)):
+            s.set_at((sx + dx, d.y + 5 + dy), (255, 255, 255))
+    s.fill((6, 4, 14), (cx - 1, d.bottom - 1, 3, 1))              # coin slot
+    s.fill(BRAWL_PINK, (cx - 2, d.bottom - 2, 5, 1))
+
+
 # ----------------------------------------------------------------- registry
 SCREEN_PAINTERS = {"cat": screen_cat, "volley": screen_volley, "racer": screen_racer, "galaxy": screen_galaxy,
                    "maze": screen_maze, "dungeon": screen_dungeon, "brawl": screen_brawl}
@@ -850,7 +893,7 @@ MARQUEES = {"cat": marquee_cat, "volley": marquee_volley, "racer": marquee_racer
             "maze": marquee_maze, "dungeon": marquee_dungeon, "brawl": marquee_brawl}
 BODY_DECORATORS = {"cat": lambda s, f, n, neon, accent: decorate_cat(s, f, neon, accent),
                    "volley": decorate_volley, "racer": decorate_racer, "galaxy": decorate_galaxy,
-                   "maze": decorate_maze, "dungeon": decorate_dungeon}
+                   "maze": decorate_maze, "dungeon": decorate_dungeon, "brawl": decorate_brawl}
 BODY_COLORS = {"racer": (CHARCOAL, CHARCOAL_SIDE), "maze": (MAZE_BODY, MAZE_SIDE),
                "dungeon": (DUN_BODY, DUN_SIDE), "brawl": (BRAWL_BODY, BRAWL_SIDE)}   # cabinet body / side colours where not the default
 HEADROOM = {"cat": (5, headroom_cat), "racer": (4, headroom_racer), "maze": (6, headroom_maze),
