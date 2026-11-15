@@ -26,6 +26,7 @@ class GameScene(Enum):
     ARCHIVE=auto()
     SCROLL=auto()
     MEMORY=auto()
+    TREASURY=auto()
 
 class Game:
     def __init__(self,headless=False,embedded=False,audio=None,legacy=False,campaign=None):
@@ -43,6 +44,8 @@ class Game:
         self.visual=[float(self.session.player.x),float(self.session.player.y)]
         from puzzle_maze.lab_scene import LabEntrance
         self.lab_entrance=LabEntrance()
+        from puzzle_maze.treasury_scene import TreasuryReveal
+        self.treasury_reveal=TreasuryReveal();self.treasury_seen=False
         self.reading='coming_soon'
         self.toast='';self.toast_time=0;self.fade=0;self.autosave=0
         self.last_solved=False
@@ -93,6 +96,7 @@ class Game:
         self.tutorial.bombs=isinstance(self.session,DungeonSession)
         self.tutorial.remastered=isinstance(self.session,RemasteredSession)
         self.tutorial.advanced=isinstance(self.session,AdvancedDungeonSession);self.tutorial.page=0
+        self.treasury_seen=False
         self.tool="pulse"
         self.scene=GameScene.GAMEOVER if self.session.player.hp<=0 else GameScene.VICTORY if self.session.finished else GameScene.PLAY
         if not continuing and onboarding:
@@ -107,6 +111,9 @@ class Game:
             self.running=False;return
         if event.type!=pygame.KEYDOWN:return
         key=event.key
+        if self.scene==GameScene.TREASURY:
+            if key in (pygame.K_RETURN,pygame.K_SPACE,pygame.K_ESCAPE) and not getattr(event,'repeat',False):self.scene=GameScene.PLAY;self.cooldown=.25
+            return
         if self.scene==GameScene.MEMORY:
             if not getattr(event,'repeat',False):
                 if key in (pygame.K_SPACE,pygame.K_ESCAPE):self.lab_entrance.advance(skip=True)
@@ -253,12 +260,18 @@ class Game:
         if self.scene==GameScene.INTRO:
             if self.intro.update(dt):self.scene=GameScene.TUTORIAL;self.fade=0
             return
+        if self.scene==GameScene.TREASURY:
+            if self.treasury_reveal.update(dt):self.scene=GameScene.PLAY;self.cooldown=.25
+            return
         if self.scene==GameScene.MEMORY:
             self.lab_entrance.update(dt)
             if self.lab_entrance.time>1.:
                 for i,target in enumerate((12.,7.)):self.visual[i]+=(target-self.visual[i])*min(1,dt*2)
             return
         if self.scene!=GameScene.PLAY:return
+        if self.session.rooms.current=='r27' and not self.treasury_seen:
+            from puzzle_maze.treasury_scene import TreasuryReveal
+            self.treasury_reveal=TreasuryReveal();self.treasury_seen=True;self.scene=GameScene.TREASURY;self.fade=0;return
         if isinstance(self.session,RemasteredSession) and self.session.rooms.current=='r28' and not self.session.lab_memory_seen:
             from puzzle_maze.lab_scene import LabEntrance
             self.lab_entrance=LabEntrance();self.scene=GameScene.MEMORY;self.fade=0;return
@@ -301,7 +314,8 @@ class Game:
     def draw(self,dt,target=None):
         r=self.renderer;r.hide_miao=self.scene==GameScene.MEMORY
         r.world(self.session,self.visual,dt,self.tool,self.tutorial.controls)
-        if self.scene==GameScene.MEMORY:self.lab_entrance.draw(r)
+        if self.scene==GameScene.TREASURY:self.treasury_reveal.draw(r)
+        elif self.scene==GameScene.MEMORY:self.lab_entrance.draw(r)
         elif self.scene==GameScene.INTRO:self.intro.draw(r,self.tutorial.controls["confirm"])
         elif self.scene==GameScene.TUTORIAL:self.tutorial.draw(r)
         elif self.scene in (GameScene.MENU,GameScene.PAUSE,GameScene.VICTORY,GameScene.GAMEOVER,GameScene.ARCHIVE):

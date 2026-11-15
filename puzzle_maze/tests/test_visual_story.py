@@ -64,3 +64,13 @@ class MemoryTimingTests(unittest.TestCase):
         g.event(pygame.event.Event(pygame.KEYDOWN,key=pygame.K_SPACE))
         self.assertTrue(g.session.lab_memory_seen);self.assertIn('kevin_photo',g.session.lore)
         g.update(.01);self.assertEqual(g.scene,GameScene.PLAY)
+
+
+    def test_vault_reveal_never_grants_rewards_or_replays_during_visit(self):
+        from puzzle_maze.game import Game,GameScene
+        g=Game(headless=True);g.save=lambda:None;g.session.enter('r27');g.scene=GameScene.PLAY
+        before=(g.session.rewards.tokens,g.session.rewards.tickets)
+        g.update(.01);self.assertEqual(g.scene,GameScene.TREASURY)
+        g.update(2);self.assertEqual(g.scene,GameScene.PLAY)
+        g.update(.01);self.assertEqual(g.scene,GameScene.PLAY)
+        self.assertEqual(before,(g.session.rewards.tokens,g.session.rewards.tickets))
