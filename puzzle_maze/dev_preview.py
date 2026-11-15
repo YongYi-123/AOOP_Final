@@ -26,7 +26,7 @@ class PreviewGame(Game):
         else:
             self.session.grey_pixel=True;self.session.observe_secret()
             self.session.lab_memory_seen=self.preview_target!='miao-entrance'
-            arrival=ENTRY if self.preview_target=='miao-entrance' else approach(self.session.rooms.rooms['r28'],(3,4))[0] if self.preview_target=='developer-diaries' else (12,8)
+            arrival=ENTRY if self.preview_target=='miao-entrance' else approach(self.session.rooms.rooms['r28'],next(tuple(o['pos']) for o in self.session.rooms.rooms['r28']['objects'] if o['id']=='dev_001'))[0] if self.preview_target=='developer-diaries' else (12,8)
             self.session.enter('r28',arrival)
         self.visual=[float(self.session.player.x),float(self.session.player.y)]
         self.last_solved=self.session.puzzles.solved

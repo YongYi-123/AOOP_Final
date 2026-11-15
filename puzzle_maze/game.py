@@ -91,7 +91,7 @@ class Game:
         except (OSError,ValueError):self.notify('Save unavailable: progress stays in memory')
 
     def start(self,continuing=False,onboarding=True,legacy=False,archived=False):
-        self.studio_seat=None;self.last_maze_frame=None
+        self.last_maze_frame=None
         factory=GameSession if legacy else DungeonSession if archived else self.session_factory
         if not self.persistent:continuing=False
         previous_history=getattr(self.session,'history',None)
@@ -157,6 +157,7 @@ class Game:
             elif key==pygame.K_ESCAPE and self.scene==GameScene.GAMEOVER:self.choose("Main menu")
             return
         if self.scene==GameScene.SCROLL:
+            if getattr(event,'repeat',False) and key in (pygame.K_RETURN,pygame.K_e,pygame.K_ESCAPE):return
             if self.session.rooms.current=='r28' and key in (pygame.K_LEFT,pygame.K_RIGHT):
                 if getattr(event,'repeat',False):return
                 from puzzle_maze.studio_notes import pages_for
@@ -177,7 +178,6 @@ class Game:
         if key==pygame.K_TAB:
             self.scene=GameScene.PLAY if self.scene==GameScene.MAP else GameScene.MAP;return
         if key==pygame.K_r:
-            self.studio_seat=None
             self.session.reset();self.visual=[float(self.session.player.x),float(self.session.player.y)]
             self.last_solved=self.session.puzzles.solved;self.renderer.particles.clear()
             self.notify('Room restored to entrance checkpoint');self.save();return
@@ -196,15 +196,9 @@ class Game:
         if key==pygame.K_t and hasattr(self.session,'recall_orb'):
             self.session.recall_orb();return
         if self.session.rooms.current=='r28':
-            from puzzle_maze.studio_interactions import nearby,SofaSeat
-            seat=getattr(self,'studio_seat',None)
-            if seat:
-                if key==pygame.K_e:seat.leaving=True
-                return
-            if key==pygame.K_e:
+            from puzzle_maze.studio_interactions import nearby
+            if key in (pygame.K_e,pygame.K_RETURN) and not getattr(event,'repeat',False):
                 target=nearby(self.session)
-                if target and target[0]=='sofa':
-                    self.studio_seat=SofaSeat(self.visual);self.audio.play('use');return
                 if target:
                     obj=self.session.puzzles.objects[target[0]]
                     obj.interact(self.session.puzzles,self.session.player,False)
@@ -327,12 +321,6 @@ class Game:
         if isinstance(self.session,RemasteredSession) and self.session.rooms.current=='r28' and not self.session.lab_memory_seen:
             from puzzle_maze.lab_scene import LabEntrance
             self.lab_entrance=LabEntrance(getattr(self,'last_maze_frame',None));self.scene=GameScene.MEMORY;self.fade=0;return
-        seat=getattr(self,'studio_seat',None)
-        if self.session.rooms.current!='r28':self.studio_seat=None
-        elif seat:
-            if seat.update(max(0,dt)):self.studio_seat=None
-            self.session.player.moving=False
-            return
         self.cooldown=max(0,self.cooldown-dt)
         p=self.session.player
         self.session.tick(dt)
@@ -370,7 +358,7 @@ class Game:
         if self.autosave>=15:self.save();self.autosave=0
 
     def draw(self,dt,target=None):
-        r=self.renderer;r.studio_seat=getattr(self,'studio_seat',None) if self.session.rooms.current=='r28' else None
+        r=self.renderer
         r.studio_interactive=self.scene==GameScene.PLAY
         r.hide_miao=self.scene==GameScene.MEMORY
         r.studio_scene=self.lab_entrance if self.scene==GameScene.MEMORY else None

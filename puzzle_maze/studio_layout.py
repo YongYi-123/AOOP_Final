@@ -2,44 +2,30 @@
 from dataclasses import dataclass
 SIZE=(320,240)
 ENTRY=(3,8)
-MIAO_TILE=(9,6)
-MIAO_ROUTE=((24.,128.),(72.,128.),(72.,112.),(152.,112.))
+MIAO_TILE=(10,7)
+MIAO_ROUTE=((24.,128.),(72.,128.),(120.,128.),(168.,128.))
 @dataclass(frozen=True)
 class Furniture:
     name:str
     bounds:tuple
     footprint:tuple
-SOURCE_FURNITURE=(
- Furniture('desk',(80,33,144,75),(88,76,128,27)),
- Furniture('tower',(225,52,25,51),(226,83,23,20)),
- Furniture('bookshelf',(32,43,34,55),(32,78,34,20)),
- Furniture('sofa',(30,142,67,46),(32,164,63,20)),
- Furniture('table',(108,149,28,33),(109,166,27,16)),
- Furniture('archive',(258,47,45,73),(260,90,43,29)),
- Furniture('food',(272,122,31,32),(272,137,31,17)),
- Furniture('cushion',(234,151,50,33),(237,165,47,18)),
- Furniture('post',(286,127,18,41),(286,156,18,12)),
- Furniture('lamp',(90,130,23,38),(95,157,13,10)),
- Furniture('plant',(20,164,18,31),(23,184,14,9)),
+FURNITURE=(
+ Furniture('cab_cracked',(30,38,36,62),(32,85,32,20)),
+ Furniture('cab_open',(75,40,36,62),(77,87,32,18)),
+ Furniture('cab_frozen',(120,38,36,62),(122,85,32,20)),
+ Furniture('desk',(176,40,120,70),(179,76,114,29)),
+ Furniture('prototype',(32,136,44,62),(34,177,40,22)),
+ Furniture('cart',(120,145,44,39),(122,166,40,18)),
+ Furniture('food',(270,142,28,25),(272,154,25,13)),
+ Furniture('cushion',(260,179,40,21),(266,186,29,12)),
 )
-# Thin, human-scaled furniture: keep each floor contact anchored while reducing volume.
-def refined(item):
-    x,y,w,h=item.bounds
-    scale=1 if item.name in ('plant','lamp') else .67 if item.name in ('desk','tower','archive','bookshelf') else .8
-    nw,nh=round(w*scale),round(h*scale)
-    nx,ny=x+(w-nw)//2,y+h-nh
-    fx,fy,fw,fh=item.footprint
-    return Furniture(item.name,(nx,ny,nw,nh),
-        (nx+round((fx-x)*scale),ny+round((fy-y)*scale),max(8,round(fw*scale)),max(6,round(fh*scale))))
-FURNITURE=tuple(refined(item) for item in SOURCE_FURNITURE)
-# The desk is a solid work surface, including the lamp's floor projection.
-FURNITURE=tuple(Furniture(f.name,f.bounds,(f.footprint[0],76,f.footprint[2],f.footprint[1]+f.footprint[3]-76)) if f.name=='desk' else f for f in FURNITURE)
-MIAO_FOOTPRINT=(146,106,12,6)
-
-POSITIONS={'photo':(11,5),'note':(13,5),'miao':MIAO_TILE,'gpu':(14,5),'keyboard':(8,5),'terminal':(17,6),
- 'dev_001':(3,4),'dev_002':(3,5),'dev_003':(7,4),'dev_004':(15,3),'dev_005':(7,10),'dev_006':(17,4),'dev_007':(3,10),
- 'lab_duck':(12,5),'lab_coffee':(6,10),'lab_button':(15,6),
- 'studio_todo':(17,3),'studio_food':(17,8),'studio_cushion':(16,10),'studio_reminder':(6,4)}
+SOURCE_FURNITURE=FURNITURE
+MIAO_FOOTPRINT=(162,122,12,6)
+POSITIONS={'photo':(12,5),'note':(14,5),'miao':MIAO_TILE,'gpu':(15,5),'keyboard':(11,5),'terminal':(3,10),
+ 'dev_001':(3,6),'dev_002':(5,6),'dev_003':(8,6),'dev_004':(16,3),'dev_005':(8,10),'dev_006':(10,3),'dev_007':(12,3),
+ 'lab_duck':(13,5),'lab_coffee':(10,5),'lab_button':(4,10),
+ 'studio_todo':(18,3),'studio_food':(17,9),'studio_cushion':(17,11),'studio_reminder':(14,3),
+ 'work_crt':(3,5),'work_back':(5,5),'work_frozen':(8,5),'work_prototype':(2,10)}
 
 def contact_blocked(px,py,footprints,width=10,height=6):
     left,right=px-width/2,px+width/2;top,bottom=py-height,py
@@ -50,12 +36,12 @@ def tile_blocked(x,y,footprints=None):
 
 def configure(room):
     from puzzle_maze.build_dungeon import obj
-    room.update(name="Kevin's Cozy Studio",spawn=list(ENTRY),studio_revision=3,decorations=[],
+    room.update(name="The Forgotten Arcade Workshop",spawn=list(ENTRY),studio_revision=4,decorations=[],
                 architecture='studio',hint='The western door leads back. There is no hurry here.',
                 tiles=['#'*20]*3+['#'+'.'*18+'#' for _ in range(9)]+['#'*20],
                 solid_footprints=[list(f.footprint) for f in FURNITURE])
     for data in room['objects']:data['pos']=list(POSITIONS[data['id']])
-    for key in ('studio_todo','studio_food','studio_cushion','studio_reminder'):
+    for key in ('studio_todo','studio_food','studio_cushion','studio_reminder','work_crt','work_back','work_frozen','work_prototype'):
         room['objects'].append(obj('mystery_scroll',key,POSITIONS[key],content_id=key,optional=True))
 
 
@@ -86,7 +72,7 @@ def safe_position(pos,room):
 
 def migrate_save(data,room):
     extra=data.get('extension',{}).get('remaster',{})
-    if extra.get('studio_revision',0)==3:return
+    if extra.get('studio_revision',0)==4:return
     if extra.get('lab_memory_seen',False):
         room=dict(room,solid_footprints=room['solid_footprints']+[list(MIAO_FOOTPRINT)])
     snapshots=[]

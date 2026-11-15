@@ -15,6 +15,12 @@ from puzzle_maze.developer_diaries import DIARIES
 LORE.update(DIARIES)
 from puzzle_maze.studio_notes import NOTES
 LORE.update(NOTES)
+LORE.update({
+ 'work_crt':('THE CRACKED CRT',('A tiny screen fracture.','Kevin marked the fault:','DO NOT FIX WITH A HAMMER.','The hammer is missing.')),
+ 'work_back':('OPEN SERVICE PANEL',('Each wire has a label.','One says: DOOR CHIME.','Another: NOT DOOR CHIME.','Both lead to the same bell.')),
+ 'work_frozen':('PAUSED FOREVER',('The score is still zero.','The machine reports:','PLAYER TWO IS A CAT.','WAITING FOR THUMBS.')),
+ 'work_prototype':('PROTOTYPE / RETURN PATH',('A grey test pixel travels','through an unfinished game.','An old service recording:','Leave a way back. Always.')),
+})
 
 def add_secret(rooms):
     from puzzle_maze.build_dungeon import obj,base

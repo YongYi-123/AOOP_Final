@@ -53,7 +53,7 @@ class RemasteredSession(AdvancedDungeonSession):
 
     def save_extension(self):
         result=super().save_extension()
-        result['remaster']=dict(grey_pixel=self.grey_pixel,lore=sorted(self.lore),lab_memory_seen=self.lab_memory_seen,studio_revision=3)
+        result['remaster']=dict(grey_pixel=self.grey_pixel,lore=sorted(self.lore),lab_memory_seen=self.lab_memory_seen,studio_revision=4)
         return result
 
     def load_extension(self,data):
@@ -61,7 +61,7 @@ class RemasteredSession(AdvancedDungeonSession):
         from puzzle_maze.secret45 import LORE
         extra=data.get('remaster',{})
         if type(extra.get('grey_pixel',False)) is not bool or not isinstance(extra.get('lore',[]),list) or not set(extra.get('lore',[]))<=LORE.keys():raise ValueError('Invalid remaster secrets')
-        if type(extra.get('studio_revision',0)) is not int or extra.get('studio_revision',0) not in (0,2,3):raise ValueError('Invalid studio revision')
+        if type(extra.get('studio_revision',0)) is not int or extra.get('studio_revision',0) not in (0,2,3,4):raise ValueError('Invalid studio revision')
         self.grey_pixel=extra.get('grey_pixel',False);self.lore=set(extra.get('lore',[]))
         if type(extra.get('lab_memory_seen',False)) is not bool:raise ValueError('Invalid lab memory')
         self.lab_memory_seen=extra.get('lab_memory_seen',False)
@@ -94,8 +94,8 @@ class RemasteredSession(AdvancedDungeonSession):
             try:old=json.loads(path.read_text())
             except (OSError,ValueError):old={}
             old_studio=old.get('extension',{}).get('remaster',{}).get('studio_revision',0)
-            studio_backup=path.with_name(path.name+('.pre-studio-v2' if old_studio==0 else '.pre-studio-v3'))
-            if old.get('version')==2 and old.get('extension',{}).get('remaster',{}).get('studio_revision')!=3 and (old.get('room')=='r28' or 'r28' in old.get('snapshots',{})) and not studio_backup.exists():shutil.copy2(path,studio_backup)
+            studio_backup=path.with_name(path.name+('.pre-studio-v2' if old_studio==0 else '.pre-studio-v'+str(old_studio+1)))
+            if old.get('version')==2 and old.get('extension',{}).get('remaster',{}).get('studio_revision')!=4 and (old.get('room')=='r28' or 'r28' in old.get('snapshots',{})) and not studio_backup.exists():shutil.copy2(path,studio_backup)
             backup=path.with_name(path.name+'.pre-v45')
             if old.get('content_revision')!='4.5' and not backup.exists():shutil.copy2(path,backup)
         return super().save(path)

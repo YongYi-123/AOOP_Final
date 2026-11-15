@@ -3,11 +3,11 @@ import pygame
 from puzzle_maze.studio_layout import MIAO_ROUTE
 from puzzle_maze.miao_adapter import guide_frame
 LINES=(
- ('MIAO MEOW',('He wrote down my dinner...','right beside the hard parts.')),
- ('MIAO MEOW',('I remember that fan.','He made it quieter for me.')),
- ('MIAO MEOW',('He never called that work.',)),
- ('MIAO MEOW',('Just... something to fix','before I went to sleep.')),
- ('MIAO MEOW',('Can we leave the blanket','where he put it?')),
+ ('MIAO MEOW',('He tested every machine.','Then checked my water.')),
+ ('MIAO MEOW',('That little grey light...','It always found its way back.')),
+ ('MIAO MEOW',('He left the repair lead in.',)),
+ ('MIAO MEOW',('Perhaps he thought someone','might finish this one.')),
+ ('MIAO MEOW',('Can we leave it running?','Just a little longer.')),
 )
 class LabEntrance:
     walk_start=1.2
@@ -27,7 +27,7 @@ class LabEntrance:
     @property
     def position(self):
         t=max(0,self.time-self.walk_start)
-        for a,b,duration in zip(MIAO_ROUTE,MIAO_ROUTE[1:],(1.3,.5,2.4)):
+        for a,b,duration in zip(MIAO_ROUTE,MIAO_ROUTE[1:],(1.4,1.4,1.4)):
             if t<duration:
                 q=t/duration;return tuple(a[i]+(b[i]-a[i])*q for i in (0,1))
             t-=duration
@@ -46,17 +46,13 @@ class LabEntrance:
         r.rect(s,(139,96,66),s.get_rect(),3);r.rect(s,(247,227,184),(5,5,122,78),1)
         r.rect(s,(203,163,111),(7,8,118,38));r.rect(s,(170,120,79),(7,46,118,35))
         for y in (55,65,75):r.line(s,(195,145,94),(8,y),(124,y))
-        # An everyday fragment: a hand turns down the fan, a cat sleeps nearby.
-        r.rect(s,(165,155,125),(79,21,20,34));r.rect(s,(63,87,85),(82,25,14,24))
-        r.circle(s,(157,177,152),(89,34),6,1);r.rect(s,(222,198,136),(85,47,7,2))
+        from puzzle_maze.workshop_art import cabinet
+        s.blit(cabinet('prototype'),(77,17))
         r.rect(s,(209,174,132),(29,30,15,14));r.rect(s,(77,64,62),(28,27,16,7))
         for x in (33,39):r.rect(s,(99,78,66),(x,35,1,1))
-        r.line(s,(164,112,92),(35,40),(38,40))
         r.polygon(s,(114,153,132),[(29,43),(42,43),(50,65),(22,65)])
-        r.line(s,(197,161,126),(42,47),(77,50),5);r.rect(s,(234,195,146),(75,47,9,5))
-        r.ellipse(s,(213,157,149),(66,62,44,15));r.ellipse(s,(247,221,177),(70,63,36,9))
-        cat=guide_frame(False,4.1);s.blit(cat,(77,52))
-        r.rect(s,(159,183,149),(85,67,17,6));r.line(s,(228,230,183),(87,69),(99,69))
+        r.line(s,(197,161,126),(42,47),(77,50),4)
+        cat=guide_frame(False,4.1);s.blit(cat,(53,60))
         self.fragment=s;return s
     def draw(self,renderer):
         s=renderer.surface;r=pygame.draw;t=self.time;renderer.ui.clear()
@@ -68,7 +64,7 @@ class LabEntrance:
                 r.line(s,(83,99,91),(25+i*17,y),(73+i*17,y),1)
         if 6.2<=t<9.2:
             q=min(1,(t-6.2)/1.4);q=q*q*(3-2*q)
-            crop=pygame.Rect(round(88+16*q),round(24+8*q),160,90)
+            crop=pygame.Rect(round(16+4*q),round(92+4*q),160,90)
             self.focus.blit(s,(0,0),crop);pygame.transform.scale(self.focus,(320,180),self.zoom);s.blit(self.zoom,(0,0))
         if 7.6<=t<9.2:
             self.veil.fill((80,56,40,100));s.blit(self.veil,(0,0));s.blit(self.memory(),(94,40))
@@ -81,9 +77,9 @@ class LabEntrance:
             name,lines=LINES[self.line];renderer.text(name,12,184,(245,207,143),max_width=296)
             for i,line in enumerate(lines):renderer.text(line,12,198+i*12,(248,229,194),max_width=296)
         elif 7.6<=t<9.2:
-            renderer.text('THE QUIET FAN',12,189,(248,215,158),max_width=296)
-            renderer.text('He always turned it down.',12,205,(228,204,166),max_width=296)
+            renderer.text('THE RETURN PATH',12,189,(248,215,158),max_width=296)
+            renderer.text('Leave a way back. Always.',12,205,(228,204,166),max_width=296)
         else:
-            renderer.text("KEVIN'S COZY STUDIO",12,189,(248,215,158),max_width=296)
+            renderer.text("THE FORGOTTEN WORKSHOP",12,189,(248,215,158),max_width=296)
             renderer.text('Some things were worth keeping.',12,205,(228,204,166),max_width=296)
         renderer.text('ENTER: Next / SPACE: Skip',12,229,(212,184,140),max_width=296)

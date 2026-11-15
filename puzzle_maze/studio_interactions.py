@@ -1,6 +1,5 @@
 """The same proximity target drives the visible prompt and the production E action."""
 import pygame
-SOFA_TILE=(4,10)
 LABELS={'kevin_photo':'Examine Photograph','kevin_note':'Read Notebook','miao_memory':'Talk to Miao Meow',
  'lab_gpu':'Inspect Graphics Card','lab_keyboard':'Inspect Keyboard','lab_terminal':'Inspect Computer',
  'lab_coffee':'Examine Coffee','lab_duck':'Inspect Rubber Duck','lab_button':'Press Red Button',
@@ -10,48 +9,51 @@ def nearby(session):
     p=session.player;facing=p.x+p.facing[0],p.y+p.facing[1]
     candidates=[(o.id,o.pos,o.data.get('content_id','')) for o in session.puzzles.objects.values()
                 if abs(o.x-p.x)+abs(o.y-p.y)<=1]
-    if p.y>=11 and abs(p.x-SOFA_TILE[0])+abs(p.y-SOFA_TILE[1])<=1:candidates.append(('sofa',SOFA_TILE,''))
     candidates.sort(key=lambda o:(abs(o[1][0]-p.x)+abs(o[1][1]-p.y),o[1]!=facing))
     if not candidates:return None
     key,pos,content=candidates[0]
     label='Sit' if key=='sofa' else 'Read Developer Log '+content[-3:] if content.startswith('dev_') else LABELS.get(content,'Inspect')
     return key,label
 
-class SofaSeat:
-    """A local, disposable pose; logical feet stay at the legal approach tile."""
-    def __init__(self,visual):self.start=(visual[0]*16+8,visual[1]*16+16);self.time=0.;self.leaving=False
-    def update(self,dt):
-        self.time=max(0,self.time-dt) if self.leaving else min(.4,self.time+dt)
-        return self.leaving and self.time<=0
-    @property
-    def position(self):
-        q=self.time/.4;q=q*q*(3-2*q)
-        return tuple(a+(b-a)*q for a,b in zip(self.start,(64,179)))
+WALL_NOTES={'dev_001':(43,76),'dev_002':(88,78),'dev_003':(131,75),'dev_004':(272,20),'studio_todo':(289,22),'studio_reminder':(256,25),'dev_006':(209,25),'dev_007':(238,24)}
 
-WALL_NOTES={'dev_004':(242,26),'studio_todo':(280,28)}
+DISPLAY_POINTS={'photo':(200,71),'note':(238,72),'gpu':(255,75),'keyboard':(188,77),'lab_duck':(215,77),'lab_coffee':(177,78),'lab_button':(66,162),'dev_005':(147,153)}
 
 def object_anchor(session,key):
-    if key=='sofa':return (64,160)
+    from puzzle_maze.studio_layout import FURNITURE
+    machine={'work_crt':'cab_cracked','work_back':'cab_open','work_frozen':'cab_frozen','work_prototype':'prototype','terminal':'prototype'}
+    if key in machine:
+        f=next(f for f in FURNITURE if f.name==machine[key]);return (f.bounds[0]+f.bounds[2]//2,f.bounds[1])
     if key in WALL_NOTES:
         x,y=WALL_NOTES[key];return x+5,y
-    obj=session.puzzles.objects[key]
-    return (obj.x*16+8,obj.y*16+4)
+    if key in DISPLAY_POINTS:
+        x,y=DISPLAY_POINTS[key];return x+5,y
+    obj=session.puzzles.objects[key];return (obj.x*16+8,obj.y*16+4)
 
+PROMPT='[E/ENTER] INSPECT'
 def draw_prompt(renderer,session,seat=None):
-    target=('sofa','') if seat else nearby(session)
+    target=nearby(session)
     if not target:return
-    x,y=object_anchor(session,target[0]);y=max(3,y-14)
-    box=pygame.Rect(max(2,min(296,x-10)),y,22,13)
-    pygame.draw.rect(renderer.surface,(62,48,40),box)
-    pygame.draw.rect(renderer.surface,(196,164,115),box,1)
-    pygame.draw.polygon(renderer.surface,(196,164,115),[(box.centerx-2,box.bottom),(box.centerx+2,box.bottom),(box.centerx,box.bottom+2)])
-    renderer.text('[E]',box.x+3,box.y+3,(239,213,169),max_width=18)
+    from puzzle_maze.studio_layout import FURNITURE,MIAO_TILE
+    x,y=object_anchor(session,target[0]);width=112;height=14
+    p=session.player
+    obstacles=[pygame.Rect(f.bounds) for f in FURNITURE]
+    obstacles.extend((pygame.Rect(p.x*16,p.y*16-3,16,20),pygame.Rect(MIAO_TILE[0]*16,MIAO_TILE[1]*16-4,16,20)))
+    options=[pygame.Rect(max(2,min(318-width,xx)),max(2,min(224,yy)),width,height)
+             for yy in (y-18,y+18,110,128,206) for xx in (x-width//2,x+12,x-width-12)]
+    def score(box):
+        overlap=sum(box.clip(o).width*box.clip(o).height for o in obstacles)
+        return (overlap,abs(box.centerx-x)+abs(box.centery-y))
+    box=min(options,key=score)
+    pygame.draw.rect(renderer.surface,(49,43,38),box)
+    pygame.draw.rect(renderer.surface,(193,166,118),box,1)
+    renderer.text(PROMPT,box.x+4,box.y+3,(236,211,165),max_width=width-8)
 
 def physical_objects(surface,session):
     """Each readable item has a small real paper, framed photo or hardware prop."""
     r=pygame.draw
     for obj in session.puzzles.objects.values():
-        key=obj.data.get('content_id','');x,y=obj.x*16+4,obj.y*16+5
+        key=obj.data.get('content_id','');x,y=DISPLAY_POINTS.get(obj.id,(obj.x*16+4,obj.y*16+5))
         if obj.id in WALL_NOTES:
             x,y=WALL_NOTES[obj.id];slant=-1 if obj.id=='dev_004' else 1
             r.polygon(surface,(87,68,50),[(x+1,y+2),(x+11,y+1+slant),(x+12,y+12),(x+2,y+13)])
@@ -59,7 +61,7 @@ def physical_objects(surface,session):
             r.line(surface,(212,191,148),(x+2,y+1),(x+8,y+slant+1),2)
             for yy in (4,7):r.line(surface,(118,104,79),(x+3,y+yy),(x+8,y+yy+slant))
             continue
-        if key=='miao_memory':continue
+        if key=='miao_memory' or obj.id.startswith('work_'):continue
         if key=='kevin_photo':
             r.rect(surface,(101,69,49),(x,y,10,11));r.rect(surface,(196,173,130),(x+1,y+1,8,9))
             r.rect(surface,(106,136,119),(x+3,y+3,3,5));r.rect(surface,(80,80,105),(x+6,y+5,2,3))
