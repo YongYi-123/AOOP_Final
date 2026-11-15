@@ -124,7 +124,7 @@ def _paint_marquee(s, style, label, frame, neon, accent):
     font = get_font()
     tw, th = font.size(label)
     tx, ty = r.centerx - tw // 2, r.y + 1
-    if style in ("racer", "brawl"):            # chase lights under flashing text
+    if style == "racer":            # chase lights under flashing text
         color = accent if frame % 2 == 0 else Col.YELLOW
         s.blit(font.render(label, color), (tx, ty))
         for i in range(8):
