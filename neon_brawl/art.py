@@ -5,7 +5,8 @@ import pygame
 from .data import ROSTER, ENEMIES, ATTACKS
 from .outfits import outfit_for, BOSS_NAMES
 from .characters import fighter_cel
-from .effects import attack_effects
+from .animation import animation_sample
+from .effects import attack_effects, fighter_effects, draw_impact, star
 from .ambient import draw_cats
 from .scenery import paint_section, animate_section, visual_section
 
@@ -36,6 +37,7 @@ class Renderer:
         self.background_frame=pygame.Surface((400,166))
         self.previous_background=None
         self.background_changed=0.
+        self.world_frame=pygame.Surface((400,300))
     def backdrop(self,s,stage,section,camera,time):
         key=(stage,section)
         if key!=self.background_key:
@@ -57,6 +59,19 @@ class Renderer:
         image=self.font.render(str(text),color,scale=scale)
         s.blit(image,((400-image.get_width())//2,y))
     def world(self,s,campaign,time):
+        self._world(self.world_frame,campaign,time)
+        s.blit(self.world_frame,(0,0))
+        if campaign.shake_time>0:
+            # Shake only the arena, never HUD, warnings text or controls.
+            arena=pygame.Rect(0,86,400,198)
+            old=s.get_clip();s.set_clip(arena)
+            s.fill((25,24,43),arena)
+            dx=campaign.shake_strength*(1 if int(campaign.shake_time*60)%2 else -1)
+            s.blit(self.world_frame,(dx,86),arena)
+            s.set_clip(old)
+        self.hud(s,campaign)
+
+    def _world(self,s,campaign,time):
         stage=campaign.stage; cam=campaign.camera
         section=visual_section(campaign)
         self.backdrop(s,stage,section,cam,time)
@@ -88,18 +103,15 @@ class Renderer:
         animate_section(s,stage,section,cam,time,max((e.phase for e in campaign.enemies if e.boss),default=1),any(e.boss and e.swing for e in campaign.enemies))
         campaign.staff.draw(s,cam,time)
         actors=sorted(campaign.enemies+[campaign.player],key=lambda f:f.y)
+        for enemy in campaign.enemies:
+            if enemy.alive: attack_effects(s,enemy,cam,time)
         for f in actors:
             x,y=int(f.x-cam),int(f.y)
             if not f.alive and f.defeat_age>1.4: continue
-            if f.name not in ROSTER: attack_effects(s,f,cam,time)
             pygame.draw.ellipse(s,(12,12,24),(x-15,y-4,30,7))
-            frame=int(time*(13 if f.swing else 8))%4
-            if f.swing:
-                from .data import ATTACKS
-                a=ATTACKS[f.swing.name]
-                frame=min(3,int(f.swing.age/(a.windup+a.active+a.recovery)*4))
-            if not f.alive: frame=min(3,int(f.defeat_age/.34))
-            image=sprite(f.name,'air' if f.jump>0 and not f.swing else f.state,frame,f.facing,getattr(f,"outfit",0))
+            fighter_effects(s,f,cam,behind=True)
+            visual_state,frame=animation_sample(f)
+            image=sprite(f.name,visual_state,frame,f.facing,getattr(f,"outfit",0))
             if not f.alive:
                 image=image.copy()
                 image.set_alpha(max(0,int(255*(1-max(0,f.defeat_age-.55)/.9))))
@@ -117,18 +129,18 @@ class Renderer:
                 s.fill((16,17,35),(90,61,220,13))
                 self.center(s,'SIGNAL OVERLOAD',65,(255,140,220))
             if f.flash:
-                image=image.copy(); image.fill((130,100,100,0),special_flags=pygame.BLEND_RGBA_ADD)
+                image=image.copy(); image.fill((35,25,35,0),special_flags=pygame.BLEND_RGBA_ADD)
             if f.name in ('WARDEN','RELAY','NULL'):
                 image=pygame.transform.scale(image,(80,80))
                 s.blit(image,(x-40,y-74-int(f.jump)))
             else: s.blit(image,(x-32,y-59-int(f.jump)))
+            if f.alive: fighter_effects(s,f,cam)
             if f.alive and f.name not in ROSTER:
                 s.fill((20,12,30),(x-15,y-66,30,3)); s.fill(c,(x-15,y-66,int(30*f.health/f.max_health),2))
         draw_cats(s,campaign.cats,cam,time)
-        for x,y,t in campaign.effects:
-            xx=int(x-cam); yy=int(y); r=int(5+(1-t/.2)*15)
-            for dx,dy in ((1,0),(-1,0),(0,1),(0,-1),(1,1),(-1,-1)):
-                pygame.draw.line(s,(255,235,145),(xx+dx*3,yy+dy*3),(xx+dx*r,yy+dy*r),2)
+        old=s.get_clip();s.set_clip(pygame.Rect(0,86,400,198))
+        for effect in campaign.effects: draw_impact(s,effect,cam)
+        s.set_clip(old)
         gate=int(campaign.bounds[1]-cam)
         if 0<gate<400:
             for yy in range(177,265,12):
@@ -141,7 +153,6 @@ class Renderer:
         for x,y in campaign.pickups:
             xx=int(x-cam); pygame.draw.polygon(s,(255,210,130),[(xx-6,y-7),(xx+7,y-7),(xx+5,y),(xx-5,y)])
             s.fill((255,95,125),(xx-3,y-5,5,2))
-        self.hud(s,campaign)
     def hud(self,s,c):
         p=c.player
         s.fill((12,10,27),(0,0,400,38))
@@ -151,7 +162,11 @@ class Renderer:
         for y,value,maxval,color in ((18,p.health,p.max_health,(245,80,130)),(27,p.energy,100,(75,225,240))):
             s.fill((45,35,60),(9,y,126,6)); s.fill(color,(10,y+1,int(124*value/maxval),4))
         self.text(s,f'HP {p.health}/{p.max_health}',143,19)
-        if c.combo>1: self.text(s,f'{c.combo} HITS',300,23,(255,220,90))
+        if c.combo>1:
+            label='STELLAR!' if c.combo>=10 else 'SPARK!' if c.combo>=5 else 'NICE!'
+            color=(165,250,245) if c.combo>=5 else (255,220,145)
+            star(s,color,277,27,3 if c.combo_time>1.8 else 2)
+            self.text(s,f'{c.combo} HITS / {label}',285,23,color)
         self.text(s,'J COMBO K HEAVY L JUMP U SPECIAL I DODGE',12,288,(150,150,185))
         bosses=[e for e in c.enemies if e.boss and e.alive]
         if bosses:

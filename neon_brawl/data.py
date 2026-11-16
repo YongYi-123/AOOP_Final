@@ -59,6 +59,8 @@ STAGES = (
 # Difficulty changes damage and tactics; original HP and player controls are preserved.
 ENEMY_DAMAGE = (1.0, 1.25, 1.5)
 BOSS_DAMAGE = (1.0, 1.4, 1.7)
+CHECKPOINT_HEAL = 35
+BOSS_ENTRY_HEAL = 65
 BOSS_PATTERNS = {
     'WARDEN': (('charge','slam','barrage'), ('slam','charge','wave','barrage')),
     'RELAY': (('dash','pulse','guard','orb'), ('dash','strike','guard','summon','pulse')),
