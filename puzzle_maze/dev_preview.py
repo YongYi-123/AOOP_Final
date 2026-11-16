@@ -10,7 +10,7 @@ class PreviewGame(Game):
         self.note_index=0;self.preview_target=target;self.restart_preview(target)
     def restart_preview(self,target=None):
         if target is not None:self.preview_target=target
-        self.last_maze_frame=None;self.inspection_intro=None
+        self.last_maze_frame=None;self.inspection_intro=None;self.workshop_inspection=None
         self.session=RemasteredSession();self.scene=GameScene.PLAY;self.running=True
         self.fade=0;self.cooldown=0;self.toast_time=0;self.autosave=0
         self.renderer.particles.clear();self.renderer.lab_effect=None
@@ -25,7 +25,7 @@ class PreviewGame(Game):
         else:
             self.session.grey_pixel=True;self.session.observe_secret()
             self.session.lab_memory_seen=self.preview_target!='miao-entrance'
-            arrival=ENTRY if self.preview_target=='miao-entrance' else approach(self.session.rooms.rooms['r28'],next(tuple(o['pos']) for o in self.session.rooms.rooms['r28']['objects'] if o['id']=='dev_001'))[0] if self.preview_target=='developer-diaries' else (12,8)
+            arrival=ENTRY if self.preview_target=='miao-entrance' else approach(self.session.rooms.rooms['r28'],next(tuple(o['pos']) for o in self.session.rooms.rooms['r28']['objects'] if o['id']=='note'))[0] if self.preview_target=='developer-diaries' else (12,8)
             self.session.enter('r28',arrival)
         self.visual=[float(self.session.player.x),float(self.session.player.y)]
         self.last_solved=self.session.puzzles.solved
@@ -41,17 +41,16 @@ class PreviewGame(Game):
         self.session.player.x,self.session.player.y=pos;self.session.player.facing=facing
         self.visual=list(map(float,pos))
         super().event(pygame.event.Event(pygame.KEYDOWN,key=pygame.K_e))
-        # F8/F9 are direct developer page jumps; normal E uses the full introduction.
-        self.inspection_intro=None
     def next_note(self):
-        from puzzle_maze.developer_diaries import DIARIES
-        from puzzle_maze.studio_notes import NOTES
-        keys=tuple(DIARIES)+tuple(NOTES)
+        keys=('work_crt','work_back','work_frozen','work_space','note','terminal','store_aoop','studio_todo','studio_cushion','power_cabinet','work_prototype')
         key=keys[self.note_index%len(keys)];self.note_index+=1;self.inspect_key(key)
     def event(self,event):
         if event.type==pygame.KEYDOWN:
             if getattr(event,'repeat',False) and event.key in (pygame.K_r,pygame.K_F5,pygame.K_F6,pygame.K_F7,pygame.K_F8,pygame.K_F9):return
-            if event.key==pygame.K_ESCAPE:self.running=False;return
+            if event.key==pygame.K_ESCAPE:
+                if self.scene==GameScene.SCROLL:super().event(event)
+                else:self.running=False
+                return
             if event.key==pygame.K_r:self.restart_preview();return
             if event.key==pygame.K_F5:self.restart_preview('grey-pixel');return
             if event.key==pygame.K_F6:self.restart_preview('developer-room');return

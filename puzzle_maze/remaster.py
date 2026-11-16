@@ -12,6 +12,7 @@ class RemasteredSession(AdvancedDungeonSession):
     def __init__(self,rooms=None):
         self.grey_pixel=False;self.lore=set();self.lab_memory_seen=False
         self.hint_requests={};self.room_elapsed=0.
+        self.inspection_counts={};self.prototype_recording_seen=False
         from puzzle_maze.studio_companion import StudioCompanion
         self.studio_companion=StudioCompanion()
         super().__init__(upgrade(rooms or load_rooms(MAP_PATH.with_name('dungeon_v4.json'))))
@@ -57,6 +58,22 @@ class RemasteredSession(AdvancedDungeonSession):
         from puzzle_maze.secret45 import LORE
         if self.rooms.current=='r28' and key in LORE:self.lore.add(key)
 
+    def inspect_object(self,object_id):
+        if self.rooms.current!='r28' or object_id not in self.puzzles.objects:raise ValueError('Unknown workshop object')
+        # The essential recording cannot be skipped by reopening or cancelling it.
+        if object_id=='work_prototype' and not self.prototype_recording_seen:return 0
+        count=self.inspection_counts.get(object_id,0)
+        self.inspection_counts[object_id]=min(1000000000,count+1)
+        from puzzle_maze.workshop_content import RESPONSES
+        content=self.puzzles.objects[object_id].data['content_id']
+        from puzzle_maze.workshop_documents import DOCUMENTS
+        return count%(3 if content in DOCUMENTS else len(RESPONSES.get(content,(None,))))
+
+    def complete_prototype_recording(self):
+        self.prototype_recording_seen=True
+        self.inspection_counts['work_prototype']=1
+        self.read_lore('work_prototype')
+
     def capture(self):
         snapshot=super().capture()
         # Miao's walking location is transient; the existing save schema validates
@@ -68,7 +85,7 @@ class RemasteredSession(AdvancedDungeonSession):
 
     def save_extension(self):
         result=super().save_extension()
-        result['remaster']=dict(grey_pixel=self.grey_pixel,lore=sorted(self.lore),lab_memory_seen=self.lab_memory_seen,studio_revision=8)
+        result['remaster']=dict(grey_pixel=self.grey_pixel,lore=sorted(self.lore),lab_memory_seen=self.lab_memory_seen,studio_revision=9,inspection_counts=dict(self.inspection_counts),prototype_recording_seen=self.prototype_recording_seen)
         return result
 
     def load_extension(self,data):
@@ -76,10 +93,16 @@ class RemasteredSession(AdvancedDungeonSession):
         from puzzle_maze.secret45 import LORE
         extra=data.get('remaster',{})
         if type(extra.get('grey_pixel',False)) is not bool or not isinstance(extra.get('lore',[]),list) or not set(extra.get('lore',[]))<=LORE.keys():raise ValueError('Invalid remaster secrets')
-        if type(extra.get('studio_revision',0)) is not int or extra.get('studio_revision',0) not in (0,2,3,4,5,6,7,8):raise ValueError('Invalid studio revision')
+        if type(extra.get('studio_revision',0)) is not int or extra.get('studio_revision',0) not in (0,2,3,4,5,6,7,8,9):raise ValueError('Invalid studio revision')
         self.grey_pixel=extra.get('grey_pixel',False);self.lore=set(extra.get('lore',[]))
         if type(extra.get('lab_memory_seen',False)) is not bool:raise ValueError('Invalid lab memory')
         self.lab_memory_seen=extra.get('lab_memory_seen',False)
+        counts=extra.get('inspection_counts',{})
+        if not isinstance(counts,dict) or any(not isinstance(key,str) or type(value) is not int or not 0<=value<=1000000000 for key,value in counts.items()):raise ValueError('Invalid inspection counters')
+        self.inspection_counts=dict(counts)
+        seen=extra.get('prototype_recording_seen',False)
+        if type(seen) is not bool:raise ValueError('Invalid prototype recording')
+        self.prototype_recording_seen=seen
         self.observe_secret()
 
     def next_hint(self):
@@ -97,7 +120,7 @@ class RemasteredSession(AdvancedDungeonSession):
             except (OSError,ValueError):old={}
             old_studio=old.get('extension',{}).get('remaster',{}).get('studio_revision',0)
             studio_backup=path.with_name(path.name+('.pre-studio-v2' if old_studio==0 else '.pre-studio-v'+str(old_studio+1)))
-            if old.get('version')==2 and old.get('extension',{}).get('remaster',{}).get('studio_revision')!=8 and (old.get('room')=='r28' or 'r28' in old.get('snapshots',{})) and not studio_backup.exists():shutil.copy2(path,studio_backup)
+            if old.get('version')==2 and old.get('extension',{}).get('remaster',{}).get('studio_revision')!=9 and (old.get('room')=='r28' or 'r28' in old.get('snapshots',{})) and not studio_backup.exists():shutil.copy2(path,studio_backup)
             backup=path.with_name(path.name+'.pre-v45')
             if old.get('content_revision')!='4.5' and not backup.exists():shutil.copy2(path,backup)
         return super().save(path)
@@ -139,7 +162,10 @@ class RemasteredSession(AdvancedDungeonSession):
         from puzzle_maze.puzzles import Chest
         entries=list(result['snapshots'].items())+[(result['room'],result['checkpoint']['objects'])]
         for room,snapshot in entries:
-            for id,obj in self.make_puzzles(self.rooms.rooms[room]).objects.items():
+            objects=self.make_puzzles(self.rooms.rooms[room]).objects
+            if room=='r28':
+                for old_id in set(snapshot)-set(objects):snapshot.pop(old_id)
+            for id,obj in objects.items():
                 if id not in snapshot and obj.data.get('optional'):
                     snapshot[id]=dict(pos=list(obj.pos),active=False,remaining=0,unlocked=False,latched=False)
                     if isinstance(obj,Chest):snapshot[id].update(chest_phase=obj.phase.value,spawn_time=0.,triggered=False)

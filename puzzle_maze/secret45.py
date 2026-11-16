@@ -16,6 +16,10 @@ LORE.update(DIARIES)
 from puzzle_maze.studio_notes import NOTES
 LORE.update(NOTES)
 LORE.update({
+ 'repair_log':('ARCADE REPAIR LOG',('I kept the maintenance log.','The totals are worrying.')),
+ 'project_file':('ABANDONED GAME PROJECT FILE',('I kept my cancelled project.','Three roads. One new idea.')),
+ 'work_space':('STARFALL ASSAULT / TEST UNIT',('A scorched test cabinet.','Its diagnostics still run.')),
+ 'power_cabinet':('MAIN POWER DISTRIBUTION',('A damaged power cabinet.','The warning light flickers.')),
  'store_tools':('THE MISSING 10 MM SOCKET', ('I bought five 10 mm sockets.', 'All five disappeared.', 'I bought a sixth.', 'Miao is sitting on it.')),
  'store_parts':('PARTS SORTING SYSTEM', ('[A] I tested these parts.', '[B] I broke these parts.', '[C] They work when I look.', 'I do not trust box C.')),
  'store_timebox':('THE BUG BOX', ('I labelled this box: BUGS.', 'I meant software bugs.', 'The box just sneezed.', 'I am moving my desk.')),

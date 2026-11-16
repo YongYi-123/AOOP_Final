@@ -104,7 +104,7 @@ def draw_note(renderer,key,page,room,preview=False):
     s.blit(aged_paper(),(18,y))
     r.rect(s,(170,136,85),(22,y+4,2,2))
     renderer.text(title,28,y+5,(102,72,47),max_width=264)
-    for i,line in enumerate(pages[page]):renderer.text(line,28,y+24+i*12,(94,76,52),max_width=264)
+    for i,line in enumerate(pages[page]):renderer.text(line,28,y+24+i*14,(94,76,52),max_width=264)
     footer='LEFT/RIGHT: Page / ENTER: Close' if len(pages)>1 else 'ENTER / ESC: Close'
     renderer.text(footer,28,y+85,(128,98,60),max_width=224,small=True)
     if len(pages)>1:

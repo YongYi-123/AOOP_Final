@@ -24,9 +24,14 @@ def draw_studio(renderer,session,visual,controls):
             pygame.draw.circle(s,(219,217,178),(orb.x*16+6,orb.y*16+8),2)
         elif obj=='miao':
             walking=scene.walking if scene else companion.walking
-            image=guide_frame(walking,scene.time if scene else companion.time,reaction=bool(scene and scene.reaction),side='right' if scene else companion.side,sleeping=not scene and companion.state=='sleep')
+            effect=getattr(renderer,'lab_effect',None)
+            bed_reaction=bool(effect and effect[0]=='studio_cushion' and 0<=renderer.time-effect[1]<2.4)
+            image=guide_frame(walking,scene.time if scene else companion.time,reaction=bool(scene and scene.reaction) or bed_reaction,side='right' if scene else companion.side,sleeping=not scene and not bed_reaction and companion.state=='sleep')
             s.blit(image,image.get_rect(midbottom=(round(miao[0]),round(miao[1]))))
-            if not scene and companion.state=='sleep':
+            if bed_reaction:
+                r.line(s,(155,194,172),(round(miao[0])+9,round(miao[1])-24),(round(miao[0])+9,round(miao[1])-21))
+                s.fill((155,194,172),(round(miao[0])+9,round(miao[1])-19,1,1))
+            if not scene and not bed_reaction and companion.state=='sleep':
                 x,y=round(miao[0])+9,round(miao[1])-13-int(renderer.time%3)
                 r.lines(s,(117,157,165),False,[(x,y),(x+3,y),(x,y+3),(x+3,y+3)])
         else:

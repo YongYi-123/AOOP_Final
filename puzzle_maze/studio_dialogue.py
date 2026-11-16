@@ -26,7 +26,7 @@ def make_dialogue(lines,play_sound=None,context=None):
             remaining=int(self.shown)
             for i,row in enumerate(self._rows()):
                 part=row[:max(0,remaining)];remaining-=len(row)+1
-                if part:draw_text(surf,part,(box.x+35,box.y+18+i*9),(194,207,210))
+                if part:draw_text(surf,part,(box.x+35,box.y+18+i*10),(194,207,210))
             if self.done_typing:
                 r.polygon(surf,(123,178,178),[(box.right-9,box.bottom-7),(box.right-4,box.bottom-7),(box.right-7,box.bottom-4)])
     dialogue=WorkshopDialogue([Line(*line) for line in lines],top=True,play_sound=play_sound,context=context)

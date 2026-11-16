@@ -11,22 +11,34 @@ def cabinet(kind):
     host=str(Path(__file__).resolve().parents[1]/'arcade_lobby')
     if host not in sys.path:sys.path.append(host)
     from machine import _build_cabinet
-    style={'cab_cracked':'racer','cab_open':'galaxy','cab_frozen':'maze','prototype':'brawl'}[kind]
+    style={'cab_cracked':'racer','cab_open':'brawl','cab_frozen':'maze','cab_space':'galaxy','prototype':'brawl'}[kind]
     s=_build_cabinet(style,'',0,(140,129,105),(118,154,147))
     tint=pygame.Surface(s.get_size(),pygame.SRCALPHA);tint.fill((184,176,159,255));s.blit(tint,(0,0),special_flags=pygame.BLEND_RGBA_MULT)
     R.rect(s,(22,33,38),(6,15,24,16))
     if kind=='cab_cracked':
         for a,b in (((12,16),(19,22)),((19,22),(16,28)),((19,22),(27,20)),((19,22),(25,29))):R.line(s,(169,190,172),a,b)
-        R.rect(s,(83,102,90),(8,18,4,3));R.line(s,(196,141,85),(5,45),(12,54))
+        R.rect(s,(11,19,24),(18,15,12,16));R.rect(s,(83,102,90),(8,18,4,3))
+        R.circle(s,(104,117,110),(16,39),4,1);R.line(s,(104,117,110),(16,39),(19,42))
+        R.line(s,(196,141,85),(5,45),(12,54))
     elif kind=='cab_open':
         R.rect(s,(35,40,38),(4,13,28,42));R.rect(s,(72,101,78),(7,17,21,19))
         for x in (9,17,23):
             R.rect(s,(43,54,51),(x,20,4,7));R.line(s,(166,149,94),(x+1,28),(x+1,33))
         for i,c in enumerate(((157,101,77),(104,135,143),(184,152,91))):R.lines(s,c,False,[(8+i*7,34),(13+i*3,41),(8+i*6,50)],1)
         R.rect(s,(110,108,86),(5,52,24,3))
+        for x,c in ((10,(151,105,91)),(17,(107,141,137)),(24,(155,145,102))):R.circle(s,c,(x,38),2)
+        R.circle(s,(58,61,62),(17,38),1)
     elif kind=='cab_frozen':
-        s.blit(render('ERR',8,(150,177,147)),(9,18));R.line(s,(92,119,115),(7,28),(28,28))
+        from puzzle_maze.miao_adapter import guide_frame
+        cat=pygame.transform.scale(guide_frame(False,0,sleeping=True),(12,8));s.blit(cat,(12,17))
+        R.rect(s,(82,114,107),(7,27,21,3),1);s.fill((141,159,126),(8,28,1,1))
         for x,y in ((3,4),(26,9),(4,55),(28,46)):s.fill((141,124,94),(x,y,3,1))
+    elif kind=='cab_space':
+        R.polygon(s,(135,173,160),[(18,19),(14,26),(22,26)])
+        for x in (10,25):s.fill((162,112,91),(x,18,2,2))
+        for x,y in ((2,4),(28,8),(4,46),(26,52)):
+            R.rect(s,(26,31,34),(x,y,5,6));R.line(s,(102,76,62),(x,y+4),(x+4,y))
+        R.rect(s,(80,100,93),(6,44,23,10));R.circle(s,(177,114,78),(29,37),1)
     else:
         R.rect(s,(82,107,97),(7,17,22,12));R.rect(s,(178,183,149),(15,20,4,4))
         R.rect(s,(38,42,40),(5,44,26,12));R.rect(s,(101,124,88),(9,46,19,8))
@@ -43,15 +55,23 @@ def monitor(s,x,y):
 
 def sprite(item):
     k=item.name
-    native={'cab_cracked':(36,62),'cab_open':(36,62),'cab_frozen':(36,62),
+    native={'cab_cracked':(36,62),'cab_open':(36,62),'cab_frozen':(36,62),'cab_space':(36,62),
             'prototype':(44,62),'desk':(120,70),'cart':(44,39),
             'food':(28,25),'cushion':(40,21),'server':(26,46)}
     s=pygame.Surface(native.get(k,item.bounds[2:]),pygame.SRCALPHA)
-    if k.startswith('cab_') or k=='prototype':
+    if k.startswith('cab_'):
         s.blit(cabinet(k),(0,0))
-        if k=='prototype':
-            R.rect(s,(105,108,87),(36,23,7,31));R.line(s,(183,137,81),(39,25),(39,51))
-            for yy in (28,37,46):R.rect(s,(65,87,72),(37,yy,5,5))
+    elif k=='prototype':
+        # Original control system: an angled console, visibly not an arcade cabinet.
+        R.rect(s,(46,71,75),(5,5,33,29));R.rect(s,(105,145,139),(5,5,33,29),1)
+        R.rect(s,(13,37,42),(9,10,25,18));R.rect(s,(169,193,167),(19,16,4,4))
+        R.line(s,(74,131,125),(11,24),(29,24));R.polygon(s,(95,123,117),[(4,32),(38,32),(43,47),(0,47)])
+        R.rect(s,(41,60,64),(1,47,41,9));R.rect(s,(125,145,122),(6,37,23,6))
+        for x in range(8,29,4):R.line(s,(43,69,67),(x,38),(x,41))
+        for x in (33,38):R.circle(s,(170,153,105),(x,41),2)
+        for x in (5,36):R.rect(s,(38,53,57),(x,54,4,7))
+        R.lines(s,(126,144,116),False,[(2,22),(0,30),(3,49),(0,58)])
+        s.blit(render('07',8,(155,187,168)),(15,0))
     elif k=='desk':
         # A clear work surface: computer left, testing instrument right, parts below.
         R.polygon(s,INK,[(2,32),(115,32),(119,47),(117,53),(1,53)])
@@ -77,7 +97,8 @@ def sprite(item):
         R.rect(s,(106,110,88),(4,26,35,6))
         R.rect(s,(75,116,82),(7,8,12,6));R.rect(s,(33,51,43),(10,9,5,3))
         R.ellipse(s,(81,77,66),(23,7,14,7));R.circle(s,(149,114,85),(27,10),2);R.circle(s,(154,140,88),(33,10),1)
-        R.line(s,(156,163,148),(32,3),(21,7),2);R.rect(s,(111,83,63),(32,1,8,3))
+        R.rect(s,(44,69,73),(25,0,15,10));R.rect(s,(138,168,145),(27,2,11,5))
+        R.line(s,(65,100,96),(28,4),(36,4))
     elif k=='server':
         R.rect(s,(40,46,50),(1,1,24,43));R.rect(s,(103,110,110),(1,1,24,43),1)
         for yy in (5,16,27):
@@ -98,7 +119,7 @@ def sprite(item):
         for x,y,w,h in ((1,10,19,14),(14,11,17,13),(7,0,19,13)):
             R.rect(s,(132,119,91),(x,y,w,h));R.rect(s,(71,74,65),(x,y,w,h),1)
             R.line(s,(174,154,108),(x+w//2,y+1),(x+w//2,y+h-2),2)
-            R.rect(s,(196,182,140),(x+3,y+4,8,4));R.line(s,(99,99,81),(x+4,y+6),(x+8,y+6))
+            R.line(s,(171,167,130),(x+4,y+6),(x+9,y+6));R.line(s,(99,99,81),(x+4,y+8),(x+7,y+8))
         R.line(s,(69,82,79),(11,1),(17,2));R.line(s,(69,82,79),(9,3),(12,4))
     elif k=='spare_crt':
         R.polygon(s,(83,95,96),[(3,2),(21,2),(24,7),(22,21),(1,21)])
@@ -110,7 +131,7 @@ def sprite(item):
         for x in (1,27):R.rect(s,(104,114,114),(x,0,2,29))
         for yy in (9,25):R.rect(s,(73,85,90),(0,yy,30,3))
         R.rect(s,(130,115,88),(4,12,21,12));R.line(s,(184,163,110),(14,12),(14,23),2)
-        R.rect(s,(185,173,133),(6,16,7,4));R.line(s,(95,100,86),(7,18),(11,18))
+        R.line(s,(160,162,128),(7,17),(12,17));R.line(s,(95,100,86),(7,19),(11,19))
         R.rect(s,(61,82,80),(5,1,9,7));R.circle(s,(142,155,128),(9,5),2,1)
         R.rect(s,(117,111,100),(17,2,8,6));R.line(s,(161,148,112),(19,2),(19,7))
     elif k=='electronics':
@@ -217,24 +238,33 @@ class WorkshopArt:
         for x in (192,212,232):
             R.rect(s,(84,91,94),(x,17,14,15));R.rect(s,(31,36,41),(x+3,20,8,5))
             R.lines(s,(122,99,78),False,[(x+6,30),(x+9,39),(x+1,45)],1)
-        # A cute chalk doodle gives no inspection content away.
-        R.rect(s,(84,97,94),(55,7,123,36));R.rect(s,(27,48,47),(57,9,119,32))
-        R.line(s,(136,146,124),(56,8),(176,8))
-        chalk=(159,183,155)
-        R.lines(s,chalk,True,[(79,29),(77,18),(82,20),(86,16),(89,21),(95,20),(97,29)],1)
-        R.ellipse(s,chalk,(79,24,18,11),1)
-        for x in (84,91):s.fill(chalk,(x,24,1,1))
-        R.lines(s,chalk,False,[(85,28),(87,30),(89,28)])
-        R.lines(s,chalk,False,[(97,31),(103,31),(103,26),(107,25)])
-        # A little lightbulb, a heart, and an impossible circuit.
-        R.circle(s,(185,181,132),(122,21),5,1)
-        R.line(s,chalk,(120,27),(124,27));R.line(s,chalk,(120,29),(124,29))
-        for x,y in ((122,12),(113,19),(131,19)):R.line(s,chalk,(x,y),(x,y+2))
-        R.lines(s,(146,163,151),False,[(143,33),(143,22),(148,18),(153,23),(157,18),(162,22),(162,33)])
-        R.circle(s,chalk,(151,30),2,1);R.line(s,chalk,(157,27),(160,27))
-        for x in (75,94,144):R.line(s,(59,82,73),(x,39),(x+7,39))
-        R.rect(s,(64,79,77),(63,43,109,3));R.rect(s,(180,184,147),(154,43,7,2))
-        R.rect(s,(36,44,48),(84,1,61,5));R.line(s,(155,169,159),(88,2),(141,2))
+        # Recognizable miniature class hierarchy and CPU/register/memory datapath.
+        R.rect(s,(84,97,94),(55,5,123,43));R.rect(s,(27,48,47),(57,7,119,39))
+        chalk=(158,184,158)
+        for y,label in ((9,'OBJ'),(22,'ACT'),(35,'PLY')):
+            R.rect(s,(103,146,128),(61,y,24,10),1);s.blit(render(label,8,chalk),(64,y+2))
+        for y in (19,32):
+            R.line(s,chalk,(73,y),(73,y+2));R.polygon(s,chalk,[(71,y+1),(75,y+1),(73,y+3)])
+        for x,y,w,label in ((96,9,26,'CPU'),(139,9,32,'RAM'),(97,30,19,'R0')):
+            R.rect(s,(120,155,134),(x,y,w,11),1);s.blit(render(label,8,chalk),(x+3,y+2))
+        R.line(s,chalk,(123,14),(137,14));R.lines(s,chalk,False,[(134,12),(137,14),(134,16)])
+        R.lines(s,chalk,False,[(107,29),(107,24),(108,21)])
+        R.lines(s,(119,158,143),False,[(155,21),(155,43),(120,43),(120,35),(117,35)])
+        # A tiny abandoned street plan and pigeon, beside a Miao schematic doodle.
+        for x in (153,160,167):R.line(s,(103,139,121),(x,25),(x,38))
+        for y in (27,34):R.line(s,(103,139,121),(150,y),(171,y))
+        s.fill(chalk,(164,29,2,2));s.fill(chalk,(166,28,1,1))
+        R.lines(s,chalk,True,[(124,35),(123,27),(127,29),(130,26),(134,30),(135,35)])
+        for x in (127,132):s.fill(chalk,(x,32,1,1))
+        R.line(s,chalk,(128,36),(131,36));R.line(s,(136,146,124),(56,6),(176,6))
+        R.rect(s,(64,79,77),(63,47,109,2));R.rect(s,(180,184,147),(154,47,7,2))
+        R.rect(s,(36,44,48),(84,0,61,4));R.line(s,(155,169,159),(88,1),(141,1))
+        # Damaged distribution box: exposed wires are decoration, never a hazard.
+        R.rect(s,(59,76,78),(267,9,27,31));R.rect(s,(113,132,126),(267,9,27,31),1)
+        for x in (272,278,284):R.rect(s,(27,46,51),(x,15,4,10))
+        R.lines(s,(145,118,84),False,[(272,25),(274,34),(270,43)])
+        R.lines(s,(91,130,134),False,[(282,25),(288,32),(284,44)])
+        R.circle(s,(173,118,75),(290,14),1)
         # Loose leads loop around the cabinets and the testing bench.
         for color,points in (
             ((31,36,40),[(53,99),(57,113),(85,116),(100,108),(141,111),(160,123),(182,119),(190,106)]),
@@ -272,9 +302,28 @@ class WorkshopArt:
         if not pygame.Rect(item.bounds).colliderect(actor):return False
         mask=pygame.mask.from_surface(self.sprite(item));return mask.overlap(pygame.mask.Mask(actor.size,fill=True),(actor.x-item.bounds[0],actor.y-item.bounds[1])) is not None
     def effects(self,s,time,effect):
-        # A slow grey return-pixel travels between the prototype and Kevin's bench.
-        x=94+int(time*9)%90;s.fill((168,181,157),(x,120,2,2))
-        if int(time*3)%4:s.fill((124,161,128),(18+32,160,3,1))
-        for i in range(6):
-            if int(time+i)%3==0:s.fill((157,140,106),(182+i*17,52+int((i*13+time)%42),1,1))
+        x=94+int(time*9)%90;s.fill((138,169,159),(x,120,2,2))
+        s.fill((118,93,63) if int(time*2)%3 else (67,64,55),(290,14,1,1))
+        if not effect:return
+        key,started=effect;age=time-started
+        if not 0<=age<2.4:return
+        blink=int(age*12)%3
+        screens={'work_crt':(40,65,16,9),'work_back':(86,65,16,9),
+                 'work_frozen':(132,65,16,9),'work_space':(167,65,16,9)}
+        if key in screens and blink:
+            box=pygame.Rect(screens[key]);R.rect(s,(38,67,70),box)
+            R.line(s,(116,164,151),(box.x+1,box.y+blink*2),(box.right-2,box.y+blink*2))
+        elif key in ('lab_terminal','project_file') and age<1.6:
+            x=212 if key=='lab_terminal' else 262
+            R.rect(s,(21,45,47),(x,62,15,8));s.blit(render('ERR' if key=='lab_terminal' else 'DIR',8,(156,179,141)),(x,62))
+        elif key=='store_aoop':
+            box=((60,8,26,12),(95,8,28,13),(138,8,34,13))[int(age*2)%3]
+            R.rect(s,(166,191,151),box,1)
+        elif key=='power_cabinet':
+            R.circle(s,(196,145,89) if blink else (79,77,61),(290,14),1)
+        elif key=='kevin_note':
+            R.rect(s,(124,159,149),(230,74,25,11),1)
+        elif key=='work_prototype':
+            R.rect(s,(93,174,163),(40,151,20,15),1)
+            R.line(s,(145,205,181),(43,156+blink*2),(57,156+blink*2))
     def draw(self,target,camera,time,effect=None):target.blit(self.layer(),(-camera[0],-camera[1]))

@@ -15,14 +15,21 @@ def nearby(session):
     label='Sit' if key=='sofa' else 'Read Developer Log '+content[-3:] if content.startswith('dev_') else LABELS.get(content,'Inspect')
     return key,label
 
-WALL_NOTES={'dev_001':(43,76),'dev_002':(88,78),'dev_003':(131,75),'dev_004':(272,20),'studio_todo':(289,22),'studio_reminder':(256,25),'dev_006':(209,25),'dev_007':(238,24)}
+# Exactly three purposeful notes: two fault tags and one clipboard.
+WALL_NOTES={}
+PAPER_NOTES={'work_crt':(54,85),'note':(238,77),'studio_todo':(283,77)}
 
 DISPLAY_POINTS={'photo':(200,74),'note':(238,77),'gpu':(258,81),'keyboard':(215,79),'lab_duck':(251,66),'lab_coffee':(282,76),'lab_button':(59,163),'dev_005':(85,158)}
 
 def object_anchor(session,key):
     from puzzle_maze.studio_layout import FURNITURE
-    machine={'work_crt':'cab_cracked','work_back':'cab_open','work_frozen':'cab_frozen','work_prototype':'prototype','terminal':'prototype','store_tools':'toolbox','store_parts':'crates','store_timebox':'shelf','store_server':'server','store_breadboard':'electronics','store_cables':'wire_spool'}
+    machine={'work_crt':'cab_cracked','work_back':'cab_open','work_frozen':'cab_frozen','work_space':'cab_space','work_prototype':'prototype','note':'desk','store_tools':'toolbox','store_parts':'crates','store_timebox':'shelf','store_server':'server','store_breadboard':'electronics','store_cables':'wire_spool'}
     if key=='store_aoop':return 112,12
+    if key=='power_cabinet':return 280,18
+    if key=='terminal':return 220,60
+    if key=='project_file':return 270,63
+    if key=='repair_log':return 88,159
+    if key=='studio_todo':return 286,77
     if key=='miao':return session.studio_companion.x,session.studio_companion.y-18
     if key in machine:
         f=next(f for f in FURNITURE if f.name==machine[key]);return (f.bounds[0]+f.bounds[2]//2,f.bounds[1])
@@ -67,6 +74,15 @@ def draw_prompt(renderer,session):
 def physical_objects(surface,session):
     """Each readable item has a small real paper, framed photo or hardware prop."""
     r=pygame.draw
+    for key,(x,y) in PAPER_NOTES.items():
+        if key=='note':
+            r.rect(surface,(77,76,61),(x-1,y,12,9));r.rect(surface,(158,150,110),(x+1,y+1,9,6))
+            r.line(surface,(81,89,76),(x+2,y+1),(x+2,y+6))
+        elif key=='studio_todo':
+            r.rect(surface,(73,82,77),(x-1,y-1,9,12));r.rect(surface,(181,174,129),(x,y,7,9))
+            r.line(surface,(103,105,83),(x+1,y+3),(x+5,y+3));r.rect(surface,(112,127,113),(x+2,y-1,3,2))
+        else:
+            r.rect(surface,(174,166,121),(x,y,3,5));surface.fill((112,88,63),(x+1,y+1,1,1))
     for obj in session.puzzles.objects.values():
         key=obj.data.get('content_id','');x,y=DISPLAY_POINTS.get(obj.id,(obj.x*16+4,obj.y*16+5))
         if obj.id in WALL_NOTES:
@@ -89,8 +105,3 @@ def physical_objects(surface,session):
             elif key=='lab_button':r.circle(surface,(99,80,60),(x+5,y+7),4);r.circle(surface,(174,81,67),(x+5,y+6),2)
             elif key=='lab_duck':r.ellipse(surface,(199,157,75),(x,y+5,9,4));r.circle(surface,(221,177,88),(x+7,y+3),3);surface.fill((50,47,40),(x+8,y+2,1,1))
             elif key=='lab_coffee':r.rect(surface,(173,150,114),(x+2,y+3,6,7));r.rect(surface,(75,57,44),(x+3,y+3,4,2))
-        else:
-            # Small bound notebook / pinned card with an actual spine and ruled paper.
-            r.rect(surface,(71,53,42),(x,y+2,10,10));r.rect(surface,(183,162,122),(x+1,y+1,9,9))
-            r.line(surface,(133,91,66),(x+1,y+1),(x+1,y+9))
-            for yy in (4,6,8):r.line(surface,(114,101,80),(x+3,y+yy),(x+7,y+yy))
