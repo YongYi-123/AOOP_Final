@@ -10,12 +10,13 @@ class Furniture:
     bounds:tuple
     footprint:tuple
 FURNITURE=(
- Furniture('cab_cracked',(30,38,36,62),(32,85,32,20)),
- Furniture('cab_open',(75,40,36,62),(77,87,32,18)),
- Furniture('cab_frozen',(120,38,36,62),(122,85,32,20)),
- Furniture('desk',(176,40,120,70),(179,76,114,29)),
- Furniture('prototype',(32,136,44,62),(34,177,40,22)),
- Furniture('cart',(120,145,44,39),(122,166,40,18)),
+ Furniture('cab_cracked',(34,54,28,48),(35,85,26,20)),
+ Furniture('cab_open',(79,54,28,48),(80,87,26,18)),
+ Furniture('cab_frozen',(124,54,28,48),(125,85,26,20)),
+ Furniture('desk',(184,54,104,52),(186,83,100,22)),
+ Furniture('prototype',(36,150,34,48),(38,177,30,22)),
+ Furniture('cart',(123,152,36,32),(125,166,32,18)),
+ Furniture('server',(211,138,26,46),(213,166,22,18)),
  Furniture('food',(270,142,28,25),(272,154,25,13)),
  Furniture('cushion',(260,179,40,21),(266,186,29,12)),
 )

@@ -45,7 +45,7 @@ class Game:
         self.selection=0;self.running=True;self.cooldown=0
         self.visual=[float(self.session.player.x),float(self.session.player.y)]
         from puzzle_maze.lab_scene import LabEntrance
-        self.lab_entrance=LabEntrance()
+        self.lab_entrance=LabEntrance(play_sound=self.audio.play)
         from puzzle_maze.grey_pixel_scene import GreyPixelReveal
         self.grey_reveal=GreyPixelReveal()
         from puzzle_maze.treasury_scene import TreasuryReveal
@@ -320,7 +320,7 @@ class Game:
             self.treasury_reveal=TreasuryReveal();self.treasury_seen=True;self.scene=GameScene.TREASURY;self.fade=0;return
         if isinstance(self.session,RemasteredSession) and self.session.rooms.current=='r28' and not self.session.lab_memory_seen:
             from puzzle_maze.lab_scene import LabEntrance
-            self.lab_entrance=LabEntrance(getattr(self,'last_maze_frame',None));self.scene=GameScene.MEMORY;self.fade=0;return
+            self.lab_entrance=LabEntrance(getattr(self,'last_maze_frame',None),play_sound=self.audio.play);self.scene=GameScene.MEMORY;self.fade=0;return
         self.cooldown=max(0,self.cooldown-dt)
         p=self.session.player
         self.session.tick(dt)

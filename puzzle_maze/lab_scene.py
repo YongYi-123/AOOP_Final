@@ -13,9 +13,19 @@ class LabEntrance:
     walk_start=1.2
     walk_end=5.4
     dialogue_at=9.8
-    def __init__(self,maze_frame=None):
+    def __init__(self,maze_frame=None,play_sound=None):
         self.maze_frame=maze_frame.copy() if maze_frame is not None else None
         self.time=0.;self.line=0;self.dwell=0.;self.done=False
+        # The same portrait, typewriter cadence and panel used by Golden Age.
+        import sys
+        from pathlib import Path
+        host=str(Path(__file__).resolve().parents[1]/'arcade_lobby')
+        if host not in sys.path:sys.path.append(host)
+        from story_dialogue import StoryDialogue,Line
+        from settings import VIEW_W,VIEW_H
+        self.dialogue=StoryDialogue([Line(name,' '.join(rows),'gentle') for name,rows in LINES],
+                                    top=True,play_sound=play_sound)
+        self.dialogue_canvas=pygame.Surface((VIEW_W,VIEW_H),pygame.SRCALPHA)
         self.veil=pygame.Surface((320,180),pygame.SRCALPHA)
         self.focus=pygame.Surface((160,90));self.zoom=pygame.Surface((320,180));self.fragment=None
     @property
@@ -34,12 +44,14 @@ class LabEntrance:
         return MIAO_ROUTE[-1]
     def update(self,dt):
         before=self.time;self.time+=max(0,dt)
-        self.dwell+=max(0,self.time-max(before,self.dialogue_at))
+        elapsed=max(0,self.time-max(before,self.dialogue_at))
+        self.dwell+=elapsed
+        if elapsed and not self.done:self.dialogue.update(elapsed)
     def advance(self,skip=False):
         if skip:self.done=True
         elif self.ready and self.dwell>=.25:
-            self.line+=1;self.dwell=0.
-            if self.line>=len(LINES):self.done=True
+            self.dialogue.handle_event(pygame.event.Event(pygame.KEYDOWN,key=pygame.K_RETURN))
+            self.line=self.dialogue.index;self.done=self.dialogue.closed;self.dwell=0.
     def memory(self):
         if self.fragment is not None:return self.fragment
         s=pygame.Surface((132,88));r=pygame.draw;s.fill((237,208,157))
@@ -72,14 +84,10 @@ class LabEntrance:
         elif (.6<=t<1.2 or t<.6 and self.maze_frame is None) or 9.2<=t<9.8:
             progress=max(0,(t-.6)/.6) if t<1.2 else (t-9.2)/.6
             self.veil.fill((63,45,34,round(235*(1-progress))));s.blit(self.veil,(0,0))
-        r.rect(s,(67,51,43),(0,180,320,60));r.line(s,(207,169,112),(0,180),(320,180))
         if self.ready and not self.done:
-            name,lines=LINES[self.line];renderer.text(name,12,184,(245,207,143),max_width=296)
-            for i,line in enumerate(lines):renderer.text(line,12,198+i*12,(248,229,194),max_width=296)
-        elif 7.6<=t<9.2:
-            renderer.text('THE RETURN PATH',12,189,(248,215,158),max_width=296)
-            renderer.text('Leave a way back. Always.',12,205,(228,204,166),max_width=296)
-        else:
-            renderer.text("THE FORGOTTEN WORKSHOP",12,189,(248,215,158),max_width=296)
-            renderer.text('Some things were worth keeping.',12,205,(228,204,166),max_width=296)
-        renderer.text('ENTER: Next / SPACE: Skip',12,229,(212,184,140),max_width=296)
+            self.dialogue_canvas.fill((0,0,0,0))
+            self.dialogue.draw(self.dialogue_canvas)
+            s.blit(pygame.transform.scale(self.dialogue_canvas,(320,240)),(0,0))
+        elif t<6.2:
+            renderer.text('THE FORGOTTEN WORKSHOP',12,219,(170,180,181),max_width=296)
+        renderer.text('ENTER: Next / SPACE: Skip',12,231,(153,166,170),max_width=296)

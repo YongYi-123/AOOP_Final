@@ -5,7 +5,7 @@ import pygame
 from puzzle_maze.studio_layout import SIZE,FURNITURE
 from puzzle_maze.pixel_font import render
 R=pygame.draw
-INK=(54,43,39);WOOD=(116,84,58);TOP=(169,135,91);EDGE=(202,170,120)
+INK=(28,32,36);WOOD=(66,73,77);TOP=(106,113,115);EDGE=(145,149,145)
 
 def cabinet(kind):
     host=str(Path(__file__).resolve().parents[1]/'arcade_lobby')
@@ -42,7 +42,10 @@ def monitor(s,x,y):
     R.rect(s,(96,96,78),(x+10,y+21,5,4));R.rect(s,(155,143,111),(x+5,y+25,16,2))
 
 def sprite(item):
-    s=pygame.Surface(item.bounds[2:],pygame.SRCALPHA);k=item.name
+    k=item.name
+    native={'cab_cracked':(36,62),'cab_open':(36,62),'cab_frozen':(36,62),
+            'prototype':(44,62),'desk':(120,70),'cart':(44,39)}
+    s=pygame.Surface(native.get(k,item.bounds[2:]),pygame.SRCALPHA)
     if k.startswith('cab_') or k=='prototype':
         s.blit(cabinet(k),(0,0))
         if k=='prototype':
@@ -72,6 +75,14 @@ def sprite(item):
         R.rect(s,(75,116,82),(7,8,12,6));R.rect(s,(33,51,43),(10,9,5,3))
         R.ellipse(s,(81,77,66),(23,7,14,7));R.circle(s,(149,114,85),(27,10),2);R.circle(s,(154,140,88),(33,10),1)
         R.line(s,(156,163,148),(32,3),(21,7),2);R.rect(s,(111,83,63),(32,1,8,3))
+    elif k=='server':
+        R.rect(s,(40,46,50),(1,1,24,43));R.rect(s,(103,110,110),(1,1,24,43),1)
+        for yy in (5,16,27):
+            R.rect(s,(63,70,73),(4,yy,18,9))
+            for xx in range(7,21,3):R.line(s,(25,30,34),(xx,yy+2),(xx,yy+6))
+            s.fill((127,161,133),(5,yy+3,1,1))
+        R.line(s,(137,100,75),(2,37),(8,42))
+        R.lines(s,(122,113,88),False,[(23,8),(18,12),(23,22),(17,35),(24,39)])
     elif k=='food':
         R.rect(s,WOOD,(0,3,28,20));R.rect(s,INK,(3,6,22,14))
         for x in (5,12,19):R.rect(s,(154,162,123),(x,9,5,9));R.rect(s,(213,190,137),(x,11,5,2))
@@ -79,43 +90,67 @@ def sprite(item):
         R.ellipse(s,(80,61,51),(0,6,40,15));R.ellipse(s,(180,137,126),(1,2,38,16));R.ellipse(s,(210,181,147),(5,4,30,10))
         R.rect(s,(127,150,124),(15,3,15,7));R.line(s,(189,199,153),(17,6),(28,6))
         for x in (5,30):R.line(s,(132,95,94),(x,12),(x+3,13))
+    # Dusty desaturated materials, with readable screens and worn edges.
+    tint=pygame.Surface(s.get_size(),pygame.SRCALPHA);tint.fill((171,186,197,255))
+    s.blit(tint,(0,0),special_flags=pygame.BLEND_RGBA_MULT)
+    if s.get_size()!=item.bounds[2:]:s=pygame.transform.scale(s,item.bounds[2:])
     edge=pygame.mask.from_surface(s).to_surface(setcolor=(*INK,255),unsetcolor=(0,0,0,0))
     out=pygame.Surface(s.get_size(),pygame.SRCALPHA)
     for off in ((-1,0),(1,0),(0,-1),(0,1)):out.blit(edge,off)
     out.blit(s,(0,0));return out
 
 class WorkshopArt:
-    revision='forgotten-workshop-4'
+    revision='warehouse-workshop-5'
     def __init__(self):self.base=None;self.cached=None;self.parts={};self.masks={}
     def floor(self):
         if self.base is not None:return self.base
-        s=pygame.Surface(SIZE);s.fill((124,113,92));R.rect(s,(150,137,110),(12,7,296,36))
-        for x in range(16,310,23):R.line(s,(135,123,101),(x,8),(x,43))
-        R.rect(s,(81,72,61),(12,42,296,6))
-        for y in range(48,235,12):
-            for x in range(-20 if y%24 else 0,320,40):
-                R.rect(s,(114+(x//40)%2*4,91,65),(x+1,y,39,11));R.line(s,(130,105,75),(x+4,y+2),(x+33,y+2))
-        for x in (11,305):R.rect(s,(90,76,59),(x,42,5,198))
-        R.rect(s,(74,64,52),(12,233,296,7))
-        # A service door, wiring channels and a tool pegboard; no domestic furniture.
-        R.rect(s,(135,102,68),(7,105,24,37));R.rect(s,(65,57,49),(12,110,17,27));R.rect(s,(179,142,94),(9,107,21,33),1)
-        R.lines(s,(57,64,59),False,[(18,31),(168,31),(168,132),(51,132),(51,140)],2)
-        R.rect(s,(85,74,57),(184,12,108,23))
-        for x in range(188,290,6):
-            for y in (16,22,28):s.fill((54,52,44),(x,y,1,1))
-        for x in (190,202,214):R.line(s,(167,164,138),(x,17),(x+3,28),2);R.rect(s,(122,85,57),(x+1,25,4,6))
-        R.circle(s,(159,151,120),(230,22),5,2);R.rect(s,(93,118,99),(244,16,14,13))
-        for xx in range(246,257,3):R.line(s,(176,155,105),(xx,18),(xx,26))
-        R.rect(s,(178,164,123),(275,16,10,14));R.line(s,(129,103,74),(278,20),(282,20))
+        s=pygame.Surface(SIZE);s.fill((55,61,66))
+        # Stained concrete and sheet-metal walls; a cold, long-abandoned storeroom.
+        R.rect(s,(72,79,84),(12,7,296,39))
+        for x in range(16,310,24):
+            R.line(s,(49,56,62),(x,8),(x,44))
+            for y in (13,39):s.fill((119,123,120),(x+2,y,1,1))
+        R.rect(s,(31,37,42),(12,42,296,6))
+        for y in range(49,235,24):
+            for x in range(14,306,32):
+                R.rect(s,(64+(x//32+y//24)%3*3,70,74),(x,y,31,23))
+                if (x+y)%5==0:R.line(s,(49,55,59),(x+2,y+14),(x+13,y+17))
+        for i in range(95):
+            x=17+(i*71)%286;y=50+(i*47)%182
+            s.fill((80,84,84) if i%3 else (44,50,55),(x,y,2 if i%4==0 else 1,1))
+        for x in (11,305):R.rect(s,(35,41,46),(x,42,5,198))
+        R.rect(s,(33,39,43),(12,233,296,7))
+        R.rect(s,(98,103,102),(7,105,24,37));R.rect(s,(25,31,36),(12,110,17,27))
+        R.rect(s,(141,126,93),(9,107,21,33),1)
+        # Overhead conduit, dead fluorescent tube and exposed fuse board.
+        R.lines(s,(107,111,108),False,[(18,19),(170,19),(170,46)],2)
+        R.rect(s,(34,40,45),(186,12,105,25))
+        for x in (192,212,232):
+            R.rect(s,(84,91,94),(x,17,14,15));R.rect(s,(31,36,41),(x+3,20,8,5))
+            R.lines(s,(122,99,78),False,[(x+6,30),(x+9,39),(x+1,45)],1)
+        R.rect(s,(32,38,42),(72,11,62,7));R.rect(s,(160,174,169),(76,13,53,2))
+        # Loose leads loop around the cabinets and the testing bench.
+        for color,points in (
+            ((31,36,40),[(53,99),(57,113),(85,116),(100,108),(141,111),(160,123),(182,119),(190,106)]),
+            ((110,91,75),[(91,98),(87,106),(72,111),(63,107),(68,101),(101,104),(110,115),(159,116)]),
+            ((76,95,99),[(145,96),(152,110),(141,116),(134,110),(139,105),(167,110),(178,120)]),
+            ((30,36,40),[(63,186),(82,192),(96,183),(91,172),(80,177),(91,190),(115,189),(123,175)]),
+            ((106,101,81),[(228,172),(244,180),(249,169),(239,163),(237,184),(257,189)])):
+            R.lines(s,color,False,points,2 if color==(31,36,40) else 1)
+            R.rect(s,(144,142,127),(*points[-1],3,2))
+        # Spare CRTs, labelled cartons, vent ducts and dismantled panels sit at the edges.
+        for x,y,w,h in ((24,211,29,20),(58,214,23,17),(181,211,29,20),(214,216,22,15)):
+            R.rect(s,(88,87,79),(x,y,w,h));R.rect(s,(45,49,50),(x,y,w,h),1)
+            R.line(s,(124,119,99),(x+w//2,y+1),(x+w//2,y+h-2))
+            R.rect(s,(150,149,130),(x+4,y+5,10,4));R.line(s,(69,73,72),(x+6,y+7),(x+11,y+7))
+        R.rect(s,(41,47,50),(92,209,30,22));R.rect(s,(92,99,98),(94,210,26,18),1)
+        R.rect(s,(22,32,36),(98,213,18,11));R.line(s,(108,103,86),(95,229),(121,229))
+        R.polygon(s,(91,96,96),[(145,214),(165,209),(169,231),(149,233)])
+        for y in range(216,229,3):R.line(s,(40,47,51),(151,y),(163,y-2))
         for f in FURNITURE:
-            x,y,w,h=f.footprint;R.ellipse(s,(77,65,50),(x-2,y+h-5,w+5,8))
-        # The prototype's marked service bay and a narrow cable route establish depth.
-        for x,y in ((28,132),(77,132),(28,205),(77,205)):
-            R.line(s,(177,143,80),(x,y),(x+6,y));R.line(s,(177,143,80),(x,y),(x,y+4))
-        R.lines(s,(67,67,55),False,[(70,168),(93,168),(93,121),(184,121),(184,105)],2)
-        # Small affectionate corner, not a bedroom.
-        for x,c in ((259,(159,124,87)),(279,(109,146,142))):R.ellipse(s,(70,62,50),(x,208,14,5));R.ellipse(s,c,(x+1,207,12,4))
-        R.circle(s,(165,120,117),(306,196),2)
+            x,y,w,h=f.footprint;R.ellipse(s,(35,41,45),(x-2,y+h-5,w+5,8))
+        for x,c in ((259,(112,116,110)),(279,(92,118,123))):
+            R.ellipse(s,(31,38,42),(x,208,14,5));R.ellipse(s,c,(x+1,207,12,4))
         self.base=s;return s
     def sprite(self,item,ghost=False):
         if item.name not in self.parts:self.parts[item.name]=sprite(item)
