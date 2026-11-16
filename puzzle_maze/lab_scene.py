@@ -21,11 +21,20 @@ class LabEntrance:
         from pathlib import Path
         host=str(Path(__file__).resolve().parents[1]/'arcade_lobby')
         if host not in sys.path:sys.path.append(host)
-        from story_dialogue import StoryDialogue,Line
-        from settings import VIEW_W,VIEW_H
-        self.dialogue=StoryDialogue([Line(name,' '.join(rows),'gentle') for name,rows in LINES],
+        from story_dialogue import StoryDialogue,Line,solid_panel
+        from settings import Col
+        from ui import wrap_text
+        class WorkshopDialogue(StoryDialogue):
+            # Keep native font pixels at Maze's 320px canvas width.
+            def _panel(self):
+                if not hasattr(self,'panel_image'):
+                    self.panel_image=solid_panel(self.box.w,self.box.h,Col.CYAN,Col.PURPLE,246)
+                return self.panel_image
+            def _rows(self):
+                return wrap_text(self.line.text,self.box.right-14-66)[:3]
+        self.dialogue=WorkshopDialogue([Line(name,' '.join(rows),'gentle') for name,rows in LINES],
                                     top=True,play_sound=play_sound)
-        self.dialogue_canvas=pygame.Surface((VIEW_W,VIEW_H),pygame.SRCALPHA)
+        self.dialogue.box=pygame.Rect(6,8,308,62)
         self.veil=pygame.Surface((320,180),pygame.SRCALPHA)
         self.focus=pygame.Surface((160,90));self.zoom=pygame.Surface((320,180));self.fragment=None
     @property
@@ -85,9 +94,7 @@ class LabEntrance:
             progress=max(0,(t-.6)/.6) if t<1.2 else (t-9.2)/.6
             self.veil.fill((63,45,34,round(235*(1-progress))));s.blit(self.veil,(0,0))
         if self.ready and not self.done:
-            self.dialogue_canvas.fill((0,0,0,0))
-            self.dialogue.draw(self.dialogue_canvas)
-            s.blit(pygame.transform.scale(self.dialogue_canvas,(320,240)),(0,0))
+            self.dialogue.draw(s)
         elif t<6.2:
-            renderer.text('THE FORGOTTEN WORKSHOP',12,219,(170,180,181),max_width=296)
-        renderer.text('ENTER: Next / SPACE: Skip',12,231,(153,166,170),max_width=296)
+            renderer.text('THE FORGOTTEN WORKSHOP',12,213,(170,180,181),max_width=296,small=True)
+        renderer.text('ENTER: Next / SPACE: Skip',12,228,(153,166,170),max_width=296,small=True)

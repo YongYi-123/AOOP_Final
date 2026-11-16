@@ -112,7 +112,8 @@ class CozyStudioTests(unittest.TestCase):
             self.assertLessEqual(abs(x-previous[0])+abs(y-previous[1]),.65)
             self.assertFalse(contact_blocked(x,y,boxes));self.assertFalse(scene.ready)
             scene.advance();self.assertEqual(scene.line,0);previous=(x,y)
-        scene.update(.5);self.assertTrue(scene.ready);scene.advance();self.assertEqual(scene.line,1)
+        scene.update(.5);self.assertTrue(scene.ready);scene.advance();self.assertEqual(scene.line,0)
+        scene.update(.3);scene.advance();self.assertEqual(scene.line,1)
         self.assertEqual(scene.position,MIAO_ROUTE[-1]);self.assertIs(scene.memory(),scene.memory())
 
 

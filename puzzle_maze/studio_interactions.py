@@ -41,7 +41,7 @@ def draw_prompt(renderer,session):
     obstacles=[pygame.Rect(f.bounds) for f in FURNITURE]
     obstacles.extend((pygame.Rect(p.x*16,p.y*16-3,16,20),pygame.Rect(MIAO_TILE[0]*16,MIAO_TILE[1]*16-4,16,20)))
     options=[pygame.Rect(max(2,min(318-width,xx)),max(2,min(224,yy+round(math.sin(renderer.time*3)))),width,height)
-             for yy in (y-18,y+18,110,128,206) for xx in (x-width//2,x+12,x-width-12)]
+             for yy in (y-18,y+18,110,128,190) for xx in (x-width//2,x+12,x-width-12)]
     def score(box):
         overlap=sum(box.clip(o).width*box.clip(o).height for o in obstacles)
         return (overlap,abs(box.centerx-x)+abs(box.centery-y))

@@ -13,7 +13,7 @@ FURNITURE=(
  Furniture('cab_cracked',(34,54,28,48),(35,85,26,20)),
  Furniture('cab_open',(79,54,28,48),(80,87,26,18)),
  Furniture('cab_frozen',(124,54,28,48),(125,85,26,20)),
- Furniture('desk',(184,54,104,52),(186,83,100,22)),
+ Furniture('desk',(184,54,104,52),(186,76,100,29)),
  Furniture('prototype',(36,150,34,48),(38,177,30,22)),
  Furniture('cart',(123,152,36,32),(125,166,32,18)),
  Furniture('server',(211,138,26,46),(213,166,22,18)),
@@ -36,7 +36,7 @@ def tile_blocked(x,y,footprints=None):
 
 def configure(room):
     from puzzle_maze.build_dungeon import obj
-    room.update(name="The Forgotten Arcade Workshop",spawn=list(ENTRY),studio_revision=4,decorations=[],
+    room.update(name="The Forgotten Arcade Workshop",spawn=list(ENTRY),studio_revision=5,decorations=[],
                 architecture='studio',hint='The western door leads back. There is no hurry here.',
                 tiles=['#'*20]*3+['#'+'.'*18+'#' for _ in range(9)]+['#'*20],
                 solid_footprints=[list(f.footprint) for f in FURNITURE])
@@ -72,7 +72,7 @@ def safe_position(pos,room):
 
 def migrate_save(data,room):
     extra=data.get('extension',{}).get('remaster',{})
-    if extra.get('studio_revision',0)==4:return
+    if extra.get('studio_revision',0)==5:return
     if extra.get('lab_memory_seen',False):
         room=dict(room,solid_footprints=room['solid_footprints']+[list(MIAO_FOOTPRINT)])
     snapshots=[]

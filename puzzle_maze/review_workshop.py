@@ -23,7 +23,10 @@ def generate(output='/tmp/forgotten-workshop'):
     for t,name in ((.25,'01_maze_transition'),(1.5,'02_workshop_reveal'),(3.,'03_miao_entrance'),(6.8,'04_prototype_focus'),(8.3,'05_archived_repair'),(10.2,'06_story_dialogue')):
         while g.lab_entrance.time<t:g.update(min(1/60,t-g.lab_entrance.time))
         shot(name)
-    for i in range(5):key(pygame.K_RETURN);g.update(.3)
+    for i in range(5):
+        key(pygame.K_RETURN);g.update(.3)  # Complete the typewriter line.
+        shot('dialogue_'+str(i)+'_complete')
+        key(pygame.K_RETURN);g.update(.3)
     assert g.scene==GameScene.PLAY;shot('07_workshop_overview')
     for i,obj in enumerate(list(s.puzzles.objects.values())):
         pos,facing=approach(s.rooms.data,obj.pos);walk(g,pos);s.player.facing=facing
