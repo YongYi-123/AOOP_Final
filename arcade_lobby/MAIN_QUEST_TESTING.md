@@ -114,6 +114,19 @@ Retro Racer 的 Reverse Road：
 cd ../retro_racer && PYTHONPATH=.. python3 -m unittest test_reverse_road test_out_of_time; cd -
 ```
 
+### Lobby 的貓咪午睡彩蛋
+
+從專案根目錄執行 `.venv/bin/python arcade_lobby/main.py`，進入 HOME、ARCADE FLOOR 或 PRIZE PLAZA。
+在空地放開方向鍵，連續站著超過 30 秒：目前區域的貓咪會陸續走到腳邊，躺下睡覺並飄出 Z 字。
+走動會解除聚集，貓咪會讓出通路；摸貓、選單、劇情、跳舞或切換房間後，等待時間重新計算。
+不用修改存檔，也不會獲得道具或改變主線進度。
+
+回歸測試（專案根目錄）：
+
+```bash
+PYTHONPATH=arcade_lobby:. .venv/bin/python -m unittest test_idle_cat_nap test_cats
+```
+
 ### 完整的 Arcade Hub 測試（每個模組平行跑，約 3–4 分鐘）
 
 ```bash

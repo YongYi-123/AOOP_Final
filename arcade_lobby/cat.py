@@ -437,6 +437,8 @@ class CatNPC(AnimatedSprite):
                 else:
                     self.anchor = (self.x, self.y)
                     self.set_state(CatState.SIT)
+        elif getattr(world, 'idle_nap', None) is not None and world.idle_nap.drives(self):
+            world.idle_nap.step(self, dt, world)
         elif self.state == CatState.FOLLOW:
             self.target = (player.x, player.y)
             self.speed = self.FOLLOW_SPEED
