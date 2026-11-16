@@ -18,11 +18,11 @@ def nearby(session):
 
 WALL_NOTES={'dev_001':(43,76),'dev_002':(88,78),'dev_003':(131,75),'dev_004':(272,20),'studio_todo':(289,22),'studio_reminder':(256,25),'dev_006':(209,25),'dev_007':(238,24)}
 
-DISPLAY_POINTS={'photo':(207,74),'note':(248,77),'gpu':(259,79),'keyboard':(206,80),'lab_duck':(232,79),'lab_coffee':(240,80),'lab_button':(59,163),'dev_005':(142,153)}
+DISPLAY_POINTS={'photo':(200,74),'note':(238,77),'gpu':(258,81),'keyboard':(215,79),'lab_duck':(251,66),'lab_coffee':(282,76),'lab_button':(59,163),'dev_005':(85,158)}
 
 def object_anchor(session,key):
     from puzzle_maze.studio_layout import FURNITURE
-    machine={'work_crt':'cab_cracked','work_back':'cab_open','work_frozen':'cab_frozen','work_prototype':'prototype','terminal':'prototype'}
+    machine={'work_crt':'cab_cracked','work_back':'cab_open','work_frozen':'cab_frozen','work_prototype':'prototype','terminal':'prototype','store_tools':'toolbox','store_parts':'crates','store_timebox':'shelf','store_server':'server'}
     if key=='miao':return session.studio_companion.x,session.studio_companion.y-18
     if key in machine:
         f=next(f for f in FURNITURE if f.name==machine[key]);return (f.bounds[0]+f.bounds[2]//2,f.bounds[1])
@@ -63,7 +63,7 @@ def physical_objects(surface,session):
             r.line(surface,(212,191,148),(x+2,y+1),(x+6,y+slant+1),1)
             for yy in (4,6):r.line(surface,(118,104,79),(x+3,y+yy),(x+6,y+yy+slant))
             continue
-        if key=='miao_memory' or obj.id.startswith('work_'):continue
+        if key=='miao_memory' or obj.id.startswith(('work_','store_')):continue
         if key=='kevin_photo':
             r.rect(surface,(101,69,49),(x,y,10,11));r.rect(surface,(196,173,130),(x+1,y+1,8,9))
             r.rect(surface,(106,136,119),(x+3,y+3,3,5));r.rect(surface,(80,80,105),(x+6,y+5,2,3))

@@ -13,7 +13,7 @@ from puzzle_maze.studio_interactions import nearby,object_anchor
 class CompanionTests(TestCase):
     def test_roaming_following_naps_and_waking_use_legal_floor_and_live_interactions(self):
         g=PreviewGame('developer-room',True);s=g.session;c=s.studio_companion
-        s.player.x,s.player.y=6,12
+        s.player.x,s.player.y=10,12
         states=set();positions=set()
         for _ in range(70*30):
             s.tick(1/30);states.add(c.state);positions.add((round(c.x),round(c.y)))
@@ -22,7 +22,7 @@ class CompanionTests(TestCase):
             self.assertEqual(s.puzzles.objects['miao'].pos,c.tile)
         self.assertGreater(len(positions),60)
         self.assertTrue({'wander','follow','sleep','idle'}<=states,states)
-        c.time=35;c.x,c.y=168.,128.;s.player.x,s.player.y=6,12;s.tick(.03)
+        c.time=35;c.x,c.y=168.,128.;s.player.x,s.player.y=10,12;s.tick(.03)
         self.assertEqual(c.state,'sleep')
         s.player.x,s.player.y=10,8;s.tick(.03)
         self.assertNotEqual(c.state,'sleep')
@@ -45,7 +45,7 @@ class CompanionTests(TestCase):
                 tile=(x+dx,y+dy)
                 if tile not in seen and s.can_enter(*tile):seen.add(tile);q.append(tile)
         self.assertGreater(len(seen),155)
-        self.assertTrue({(1,7),(3,13),(10,12),(18,13),(10,7)}<=seen)
+        self.assertTrue({(1,7),(3,13),(10,12),(16,13),(10,7)}<=seen)
 
     def test_miao_can_yield_if_player_steps_into_her_position(self):
         s=PreviewGame('developer-room',True).session;c=s.studio_companion
@@ -58,7 +58,7 @@ class CompanionTests(TestCase):
         from pathlib import Path
         from tempfile import TemporaryDirectory
         s=PreviewGame('developer-room',True).session
-        s.player.x,s.player.y=6,12
+        s.player.x,s.player.y=10,12
         for _ in range(180):s.tick(1/30)
         self.assertNotEqual(s.studio_companion.tile,(10,7))
         s.read_lore('kevin_photo')
@@ -67,7 +67,7 @@ class CompanionTests(TestCase):
             restored=type(s).load(path)
             self.assertEqual(restored.rooms.current,'r28')
             self.assertEqual(restored.lore,s.lore);self.assertTrue(restored.grey_pixel)
-            self.assertEqual((restored.player.x,restored.player.y),(6,12))
+            self.assertEqual((restored.player.x,restored.player.y),(10,12))
             restored.tick(.03)
             self.assertEqual(restored.puzzles.objects['miao'].pos,restored.studio_companion.tile)
             s.enter('r24',(22,8));s.save(path)

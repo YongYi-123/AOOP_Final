@@ -29,7 +29,7 @@ class StudioRefinementTests(TestCase):
             self.assertEqual(app.reading,obj.data['content_id'])
     def test_prompt_disappears_at_distance_and_does_not_cover_dialogue(self):
         app=PreviewGame('developer-room',True)
-        app.session.player.x,app.session.player.y=18,7;app.visual=[18.,7.]
+        app.session.player.x,app.session.player.y=11,10;app.visual=[11.,10.]
         self.assertIsNone(nearby(app.session))
         for scene in (GameScene.PLAY,GameScene.SCROLL):
             app.scene=scene;app.reading='kevin_note';app.reading_page=0;app.draw(0)

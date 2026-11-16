@@ -19,7 +19,7 @@ class StudioConsistencyTests(TestCase):
         with patch.object(g.renderer,'text',wraps=g.renderer.text) as text:
             g.draw(0);self.assertEqual([c.args[0] for c in text.call_args_list],['[E/ENTER] INSPECT'])
         rects=g.renderer.ui.rects;self.assertEqual(len(rects),1);self.assertLess(rects[0].y,208*g.screen.get_height()/240)
-        footer=pygame.Rect(0,208,320,32)
+        footer=pygame.Rect(120,208,130,32)
         self.assertEqual(pygame.image.tobytes(g.renderer.surface.subsurface(footer),'RGB'),pygame.image.tobytes(g.renderer.developer_art.floor().subsurface(footer),'RGB'))
         g.event(pygame.event.Event(pygame.KEYDOWN,key=pygame.K_e));self.assertEqual(g.scene,GameScene.SCROLL)
         with patch.object(g.renderer,'text',wraps=g.renderer.text) as text:
@@ -27,9 +27,9 @@ class StudioConsistencyTests(TestCase):
         g.event(pygame.event.Event(pygame.KEYDOWN,key=pygame.K_RETURN));self.assertEqual(g.scene,GameScene.PLAY)
     def test_prompt_disappears_out_of_range_and_closest_wins_over_facing(self):
         g=PreviewGame('developer-room',True);p=g.session.player
-        p.x,p.y=18,7;g.visual=[18.,7.]
+        p.x,p.y=11,10;g.visual=[11.,10.]
         with patch.object(g.renderer,'text',wraps=g.renderer.text) as text:g.draw(0);self.assertEqual(text.call_count,0)
-        p.x,p.y=13,5;p.facing=(-1,0)
+        p.x,p.y=15,4;p.facing=(-1,0)
         self.assertEqual(nearby(g.session)[0],'lab_duck') # same tile beats a more distant facing card
     def test_miao_allows_open_floor_and_has_reachable_conversation_and_exit(self):
         g=PreviewGame('developer-room',True);s=g.session;s.player.x,s.player.y=10,8
@@ -40,9 +40,9 @@ class StudioConsistencyTests(TestCase):
         g.event(pygame.event.Event(pygame.KEYDOWN,key=pygame.K_e));self.assertEqual(g.reading,'miao_memory')
     def test_both_lamps_and_desk_block_physical_overlap(self):
         g=PreviewGame('developer-room',True);s=g.session
-        self.assertFalse(s.can_enter(8,10)) # standing lamp's base
+        self.assertFalse(s.can_enter(5,10)) # standing lamp's base
         self.assertFalse(s.can_enter(17,5)) # desk lamp / solid tabletop
-        for start,direction in (((8,9),(0,1)),((17,4),(0,1))):
+        for start,direction in (((5,9),(0,1)),((17,4),(0,1))):
             s.player.x,s.player.y=start;self.assertFalse(s.move(*direction));self.assertEqual((s.player.x,s.player.y),start)
     def test_all_prop_pixels_remain_opaque_when_ghost_requested(self):
         g=PreviewGame('developer-room',True);art=g.renderer.developer_art

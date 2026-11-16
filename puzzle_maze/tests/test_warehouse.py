@@ -41,11 +41,11 @@ class WarehouseTests(TestCase):
         with TemporaryDirectory() as directory:
             path=Path(directory)/'save.json';s.save(path);data=json.loads(path.read_text())
             data['extension']['remaster']['studio_revision']=5
-            data['player']=[14,10];data['checkpoint']['pos']=[14,10]
+            data['player']=[17,7];data['checkpoint']['pos']=[17,7]
             path.write_text(json.dumps(data));before=path.read_bytes()
             restored=type(s).load(path)
             self.assertTrue(restored.can_enter(restored.player.x,restored.player.y))
-            self.assertNotEqual([restored.player.x,restored.player.y],[14,10])
+            self.assertNotEqual([restored.player.x,restored.player.y],[17,7])
             self.assertEqual(restored.grey_pixel,s.grey_pixel);self.assertEqual(restored.lore,s.lore)
             restored.save(path);backup=path.with_name(path.name+'.pre-studio-v6')
             self.assertEqual(backup.read_bytes(),before)

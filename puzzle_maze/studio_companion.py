@@ -36,7 +36,8 @@ class StudioCompanion:
         phase=self.time%54
         if 34<=phase<47 and distance>=22:
             self.state='sleep';self.path=[];return
-        if 17<=distance<32 and self.time%8<2.5:
+        facing_cat=p.facing[0]*(self.x-player[0])+p.facing[1]*(self.y-player[1])>8
+        if 17<=distance<32 and (facing_cat or self.time%8<2.5):
             self.state='idle';self.path=[];return
         self.state='follow' if distance>75 else 'wander'
         if self.think<=0 or (distance<20 and not self.path):

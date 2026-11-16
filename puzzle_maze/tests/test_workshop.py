@@ -48,7 +48,7 @@ class WorkshopTests(TestCase):
             self.assertIs(image,g.renderer.developer_art.sprite(item,True))
             self.assertLessEqual({image.get_at((x,y)).a for x in range(image.get_width()) for y in range(image.get_height())},{0,255})
             x,y,w,h=item.footprint
-            self.assertTrue(any(not s.can_enter(tx,ty) for tx in range(1,19) for ty in range(3,12) if x<=tx*16+8<x+w and y<=ty*16+15<y+h),item.name)
+            self.assertTrue(any(not s.can_enter(tx,ty) for tx in range(1,19) for ty in range(3,14) if x<=tx*16+8<x+w and y<=ty*16+15<y+h),item.name)
         s.player.x,s.player.y=10,8;self.assertTrue(s.move(0,-1))
     def test_prototype_has_distinct_optional_story_and_no_economy_binding(self):
         g=PreviewGame('developer-room',True);g.inspect_key('work_prototype')

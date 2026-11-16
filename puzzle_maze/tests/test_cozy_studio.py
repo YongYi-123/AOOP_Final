@@ -25,7 +25,7 @@ class CozyStudioTests(unittest.TestCase):
         s=RemasteredSession();s.enter('r28');s.inventory.abilities.add('boots')
         for item in FURNITURE:
             x,y,w,h=item.footprint
-            tiles=[(tx,ty) for tx in range(1,19) for ty in range(3,12) if x<tx*16+8<x+w and y<ty*16+15<y+h]
+            tiles=[(tx,ty) for tx in range(1,19) for ty in range(3,14) if x<tx*16+8<x+w and y<ty*16+15<y+h]
             self.assertTrue(tiles,item.name)
             self.assertTrue(all(not s.can_enter(*pos) for pos in tiles),item.name)
         s.player.x,s.player.y=8,6;s.player.facing=(0,-1)

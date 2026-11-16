@@ -48,7 +48,7 @@ class LabEntrance:
                                     top=True,play_sound=play_sound)
         self.dialogue.box=pygame.Rect(24,8,272,50)
         self.veil=pygame.Surface((320,240),pygame.SRCALPHA)
-        self.focus=pygame.Surface((160,120));self.zoom=pygame.Surface((320,240));self.fragment=None
+        self.fragment=None
     @property
     def ready(self):return self.time>=self.dialogue_at
     @property
@@ -79,42 +79,41 @@ class LabEntrance:
         self.fragment=repair_photograph();return self.fragment
 
     def television(self,s):
-        """A dead tube finds a signal: dot, horizontal beam, vertical sweep, locked image."""
+        """Full-frame temporal interference with a CRT ignition, never a cropped view."""
         import math
-        t=self.time;r=pygame.draw;room=s.copy()
-        if t<.2:
-            if self.maze_frame is not None:s.blit(self.maze_frame,(0,0))
-            for i in range(7):
-                y=20+i*29
-                r.line(s,(72,115,122),(20+(i*19)%50,y),(170+i*12,y))
-            shade=pygame.Surface((320,240),pygame.SRCALPHA)
-            shade.fill((10,17,24,int(255*t/.2)));s.blit(shade,(0,0));return
-        s.fill((6,11,17));q=min(1,max(0,(t-.2)/1.0))
-        if q<.3:
-            half=2+int(145*(q/.3)**1.7)
-            for width,color in ((5,(18,45,53)),(3,(63,112,119)),(1,(190,227,214))):
-                r.line(s,color,(160-half,120),(160+half,120),width)
-            r.circle(s,(224,239,216),(160,120),2)
-        else:
-            openness=min(1,(q-.3)/.7);height=max(2,int(240*openness**.7))
-            image=pygame.transform.scale(room,(320,height));s.blit(image,(0,120-height//2))
-            r.line(s,(102,186,184),(4,120-height//2),(315,120-height//2))
-            r.line(s,(118,98,157),(4,119+height//2),(315,119+height//2))
-            if openness<.9:
-                for i in range(5):
-                    y=max(0,min(239,120-height//2+i*max(1,height//5)))
-                    s.blit(room,(int(math.sin(t*38+i)*5*(1-openness)),y),(0,y,320,2))
-        if q>.55:
-            # Receding coordinate frames imply depth while the tube finds this space.
-            for i in range(4):
-                scale=((q*1.4+i/4)%1)**1.3
-                w=max(4,int(304*scale));h=max(3,int(220*scale))
-                color=(35,72,79) if i%2 else (57,48,80)
-                r.rect(s,color,(160-w//2,120-h//2,w,h),1)
-        for y in range(0,240,3):r.line(s,(8,18,25),(0,y),(319,y))
-        for i in range(24):
-            x=(i*73+int(t*93))%318;y=(i*41+int(t*57))%238
-            if abs(y-120)<max(3,int(120*q)):s.fill((58,90,94),(x,y,2,1))
+        import random
+        t=self.time;r=pygame.draw;room=s.copy();rng=random.Random(int(t*32))
+        source=self.maze_frame if t<.2 and self.maze_frame is not None else room
+        s.blit(source,(0,0))
+        # All parts of the scene break into horizontal signal bands.
+        strength=max(0,1-t/1.2)
+        for y in range(0,240,6):
+            shift=round(math.sin(y*.37+t*53)*12*strength)
+            s.blit(source,(shift,y),(0,y,320,6))
+            if shift>0:s.blit(source,(shift-320,y),(0,y,320,6))
+            elif shift<0:s.blit(source,(320+shift,y),(0,y,320,6))
+        overlay=pygame.Surface((320,240),pygame.SRCALPHA)
+        darkness=int((150+55*math.sin(t*39))*strength)
+        overlay.fill((7,15,23,max(0,min(230,darkness))))
+        for y in range(0,240,3):
+            r.line(overlay,(25,48,57,int(130*strength)),(0,y),(319,y))
+        for i in range(180):
+            x=rng.randrange(320);y=rng.randrange(240)
+            color=(98,169,166,int(155*strength)) if i%3 else (116,96,158,int(155*strength))
+            r.line(overlay,color,(x,y),(min(319,x+rng.randrange(1,9)),y))
+        # Whole-screen rolling sync bars and receding coordinate frames.
+        for i in range(3):
+            y=int((t*170+i*80)%240)
+            r.rect(overlay,(72,137,145,int(80*strength)),(0,y,320,3))
+        for i in range(5):
+            scale=((t*1.5+i/5)%1)**1.3
+            w=max(4,int(320*scale));h=max(3,int(240*scale))
+            r.rect(overlay,(75,139,144,int(120*strength)),(160-w//2,120-h//2,w,h),1)
+        s.blit(overlay,(0,0))
+        # A tube's horizontal ignition is an accent across the entire width.
+        if .2<=t<.55:
+            for width,color in ((5,(23,57,66)),(3,(61,111,119)),(1,(184,218,207))):
+                r.line(s,color,(0,120),(319,120),width)
 
     def draw(self,renderer):
         s=renderer.surface;r=pygame.draw;t=self.time;renderer.ui.clear()
@@ -125,10 +124,6 @@ class LabEntrance:
             strength=(2.2-t)
             for y in range(0,240,3):pygame.draw.line(overlay,(10,20,28,int(65*strength)),(0,y),(319,y))
             s.blit(overlay,(0,0))
-        if 6.2<=t<9.2:
-            q=min(1,(t-6.2)/1.4);q=q*q*(3-2*q)
-            crop=pygame.Rect(round(16+4*q),round(92+4*q),160,120)
-            self.focus.blit(s,(0,0),crop);pygame.transform.scale(self.focus,(320,240),self.zoom);s.blit(self.zoom,(0,0))
         if 7.6<=t<9.2:
             self.veil.fill((80,56,40,100));s.blit(self.veil,(0,0));s.blit(self.memory(),(80,37))
             renderer.text('A SMALL MEMORY',24,14,(247,216,158),max_width=272)
