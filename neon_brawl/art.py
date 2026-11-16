@@ -130,10 +130,7 @@ class Renderer:
                 self.center(s,'SIGNAL OVERLOAD',65,(255,140,220))
             if f.flash:
                 image=image.copy(); image.fill((35,25,35,0),special_flags=pygame.BLEND_RGBA_ADD)
-            if f.name in ('WARDEN','RELAY','NULL'):
-                image=pygame.transform.scale(image,(80,80))
-                s.blit(image,(x-40,y-74-int(f.jump)))
-            else: s.blit(image,(x-32,y-59-int(f.jump)))
+            s.blit(image,(x-32,y-59-int(f.jump)))
             if f.alive: fighter_effects(s,f,cam)
             if f.alive and f.name not in ROSTER:
                 s.fill((20,12,30),(x-15,y-66,30,3)); s.fill(c,(x-15,y-66,int(30*f.health/f.max_health),2))

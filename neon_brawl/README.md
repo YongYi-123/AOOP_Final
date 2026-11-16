@@ -1,5 +1,36 @@
 # NEON BRAWL 研究設施改版
 
+## 角色與戰鬥動畫更新
+
+角色已重新以 **32×32 原生像素**繪製，再用整數 2 倍顯示；NOVA 保留青色短髮、耳機與飄帶。
+普通敵人的蓬鬆髮型、快攻型的尖髮／圍巾、重裝型的寬身與安全帽，以及三位頭目的金色髮捲、天線頭盔、貓耳機械兜帽，使用不同輪廓。
+頭目與一般角色維持相同像素倍率，沒有改動原有世界座標碰撞或攻擊範圍。
+
+出拳、重擊與技能使用八幀姿勢，直接依照 `windup`／`active`／角色各自的 `recovery` 取樣。
+上下臂各維持 3 個原生像素長度，透過關節旋轉出拳，不會拉長；攻擊距離用短拳風與能量效果表達。
+新增跳躍收腿／灰塵、閃避殘影、眨眼與受擊瞇眼、倒地翻轉、青色技能環、星形命中粒子與連擊提示。
+保留原有 45ms 命中停頓；強力命中才有 1–2 像素、120ms 的場景震動，HUD 保持固定。
+
+每關第三區清場、進入 Boss 區前的保證補血由 **35 HP 提高到 65 HP**，最多補到角色血量上限。
+一般檢查點仍補 35 HP；原有食物額外補 30 HP，其他數值與主線、存檔、票券結算不變。
+
+正常由 Lobby 的 ARCADE FLOOR 左島 **NEON BRAWL** 進入。選 NOVA，使用 J／K／L／U／I 測試連段、重擊、跳躍、特殊技與閃避。
+也可啟動不寫存檔、不扣代幣的獨立正常遊玩視窗：
+
+```sh
+PYTHONPATH=arcade_lobby:. .venv/bin/python -m neon_brawl.review_combat --play
+```
+
+專項回歸測試和可重現的動作／實戰渲染圖：
+
+```sh
+SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy PYTHONPATH=arcade_lobby:. .venv/bin/python -m unittest neon_brawl.tests.test_character_polish -v
+SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy PYTHONPATH=arcade_lobby:. .venv/bin/python -m neon_brawl.review_combat
+```
+
+渲染圖存於 `/tmp/brawl-combat-review`；包含角色、NOVA 八幀動作，以及透過真實輸入和更新迴圈擷取的拳擊、重擊、技能、跳躍、閃避，另有三位頭目的預警／出招／收招。
+這些是離屏渲染檢查與自動化操作，並非真人桌面遊玩紀錄。
+
 目前版本保留戰鬥、角色、敵群、頭目、四區流程、機台與票券結算；三關統一為同一座部分廢棄研究設施：
 
 - **MACHINE LEARNING LAB**：資料收集、模型訓練、神經網路、失敗實驗；有 loss 曲線、散點分類、混淆矩陣、漏水、破損機櫃與「只認得貓」的模型。
@@ -55,8 +86,9 @@ persists throughout the run, including the tutorial preview.
 
 The 11-second opening is non-blocking and skippable. A nine-second interactive
 tutorial follows character selection. Four locked encounter blocks per stage
-scroll across layered pixel environments. Clearing each block grants 35 HP and
-20 energy; E collects an additional 30 HP meal. Defeat ends the run.
+scroll across layered pixel environments. Continuing from a checkpoint grants
+35 HP (65 HP before each boss) and 20 energy; E collects an additional 30 HP meal.
+Defeat ends the run.
 
 1. **Machine Learning Lab:** data collection, model training, neural research and failed experiments.
    Introduces Grunts, Runners and Bruisers. WARDEN is a long-coated gang leader
@@ -89,7 +121,8 @@ knockdown recovery and checkpoint aid prevent continuous stun loops.
 - `model.py`: `Fighter`, `PlayerFighter`, `EnemyFighter`, `Swing`,
   `CombatSystem`, `Campaign`. Enemy and boss polymorphism uses data-driven
   names/patterns; combat never calls background rendering or environmental collision.
-- `outfits.py` / `wardrobe.py`: curated clothing and dedicated boss bodies.
+- `outfits.py` / `characters.py`: curated clothing, original 32px characters and rigid arm geometry (`wardrobe.py` is the unused legacy drawing).
+- `animation.py`: simulation-clock sampling of anticipation, active and recovery poses.
 - `ai.py`: composed boss patterns and phase logic.
 - `scenery.py` / `effects.py`: twelve districts and collision-matched warnings.
 - `cinematic.py`: separate visual, logo, subtitle and prompt zones.

@@ -66,7 +66,9 @@ def fighter_cel(name, state, frame, outfit=0):
         lean = (-1,-1,0,1,1,1,0,0)[frame]
         bob = (1,1,0,0,0,1,0,0)[frame]
     if state=='hurt': lean=(-2,-2,-1,-1,0,0,0,0)[frame]
-    if state=='dodge': lean,bob=1,2
+    if state=='dodge':
+        lean=(0,1,1,1,1,0,0,0)[frame]
+        bob=(1,2,3,3,2,1,1,0)[frame]
     if boss and state in ('idle','intro','phase','summon','teleport'):
         if name=='WARDEN': lean=(0,0,0,1,1,0,0,0)[frame]
         elif name=='RELAY': bob=(0,0,-1,0,0,1,0,0)[frame]
