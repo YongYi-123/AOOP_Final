@@ -4,7 +4,7 @@ from functools import lru_cache
 import pygame
 from .data import ROSTER, ENEMIES, ATTACKS
 from .outfits import outfit_for, BOSS_NAMES
-from .wardrobe import dress, boss_sprite
+from .characters import fighter_cel
 from .effects import attack_effects
 from .ambient import draw_cats
 from .scenery import paint_section, animate_section, visual_section
@@ -14,79 +14,8 @@ WHITE=(225,240,245)
 
 @lru_cache(maxsize=2048)
 def sprite(name, state='idle', frame=0, facing=1, outfit=0):
-    if name in BOSS_NAMES:
-        image=boss_sprite(name,state,frame)
-        return pygame.transform.flip(image,True,False) if facing<0 else image
-    s=pygame.Surface((64,64),pygame.SRCALPHA)
-    color=ROSTER[name].color if name in ROSTER else outfit_for(name,outfit).color
-    heavy=name in ('BRUNO','bruiser','WARDEN','NULL')
-    w=9 if heavy else 7
-    skin=(220,155,115) if name not in ('NULL','RELAY','ranged') else (150,175,195)
-    dark=tuple(c//2 for c in color)
-    bob=3 if state=='hurt' else (frame%2) if state in ('idle','walk','victory') else 0
-    attack=state in ATTACKS
-    stride=(-3,0,3,0)[frame%4] if state=='walk' else 0
-    def rect(c,r): pygame.draw.rect(s,c,r)
-    def limb(points,c,width=5):
-        pygame.draw.lines(s,INK,False,points,width+2)
-        pygame.draw.lines(s,c,False,points,width)
-    # Boots, articulated trousers, jacket, collar, individual face pixels.
-    limb([(29,40),(27+stride,49),(25+stride,56)],(46,48,82),6)
-    limb([(36,40),(37-stride,49),(39-stride,56)],(65,64,105),6)
-    rect(INK,(20+stride,54,10,5)); rect(dark,(20+stride,55,9,2))
-    rect(INK,(35-stride,54,11,5)); rect(color,(36-stride,55,9,2))
-    pygame.draw.polygon(s,INK,[(32-w-2,24+bob),(32+w+2,24+bob),(32+w,43),(32-w,43)])
-    pygame.draw.polygon(s,color,[(32-w,25+bob),(32+w,25+bob),(32+w-2,41),(32-w+1,41)])
-    rect(dark,(25,30+bob,5,10)); rect(WHITE,(32,25+bob,2,15))
-    rect(INK,(24,40,17,3)); rect((255,215,100),(31,40,4,2))
-    limb([(32-w,27+bob),(20,34),(22,39)],dark)
-    reach=55 if attack and frame%4 in (1,2) else 43
-    limb([(32+w,27+bob),(43,29+bob),(reach,24 if attack else 36)],color)
-    rect(INK,(reach-3,(21 if attack else 33),7,7)); rect(skin,(reach-2,(22 if attack else 34),5,4))
-    rect(INK,(25,9+bob,15,17)); rect(skin,(27,11+bob,11,13))
-    rect((135,85,85),(27,20+bob,3,3)); rect(WHITE,(34,16+bob,3,2)); rect(INK,(36,16+bob,1,2))
-    if name=='BRUNO':
-        rect((40,50,75),(26,29,13,11)); rect(color,(27,25,2,14)); rect(color,(36,25,2,14))
-        rect((160,170,180),(30,33,5,3))
-    if name=='NOVA':
-        rect(color,(24,7+bob,15,7)); pygame.draw.polygon(s,color,[(25,10),(18,19),(23,25),(28,12)])
-        rect(INK,(27,14+bob,11,3)); rect(WHITE,(33,14+bob,4,1))
-    elif name=='BRUNO' or name=='WARDEN':
-        rect(color,(24,8+bob,17,5)); rect(dark,(22,12+bob,21,2)); rect(INK,(29,21+bob,9,4))
-    elif name=='NULL':
-        rect(INK,(23,7,18,8)); rect(color,(24,10,17,3)); rect(WHITE,(29,16,10,2))
-        pygame.draw.polygon(s,dark,[(22,25),(13,49),(26,44)])
-    elif name in ('ranged','RELAY'):
-        rect(dark,(23,8+bob,19,9)); rect(color,(25,15+bob,16,3)); rect(WHITE,(30,16+bob,9,1))
-        if attack: rect(dark,(46,22,15,6)); rect(WHITE,(58,23,3,3))
-    else:
-        pygame.draw.polygon(s,INK,[(24,15+bob),(24,8+bob),(29,5+bob),(32,8+bob),(38,7+bob),(40,14+bob)])
-        rect(color,(24,13+bob,15,2))
-        if name=='runner': rect(color,(16,22,10,3))
-    if state=='special':
-        for i in range(6):
-            a=i*math.tau/6+frame
-            x,y=32+int(math.cos(a)*27),31+int(math.sin(a)*24)
-            pygame.draw.line(s,WHITE,(x,y),(x+3,y-4),2)
-    if state in ('combo3','air','sweep') and frame in (1,2):
-        limb([(34,40),(43,41),(55,36)],(65,64,105),6)
-        rect(INK,(52,33,9,7)); rect(color,(53,34,7,2))
-    if state in ('heavy','smash') and frame in (1,2):
-        limb([(38,28),(43,19),(39,8)],color,6)
-        rect(skin,(37,5,6,6))
-    if state=='hurt':
-        limb([(25,28),(29,34),(36,31)],dark)
-        rect((255,180,150),(27,19+bob,10,2))
-    if state=='victory':
-        limb([(38,27),(43,17),(42,7)],color)
-    if name not in ROSTER:
-        dress(s,name,outfit,bob,reach,attack)
-    if state in ('knockdown','defeated'):
-        s=pygame.transform.rotate(s,90)
-        shifted=pygame.Surface((64,64),pygame.SRCALPHA)
-        shifted.blit(s,(0,22)); s=shifted
-    if state=='dodge': s.set_alpha(150)
-    return pygame.transform.flip(s,True,False) if facing<0 else s
+    image = fighter_cel(name, state, frame, outfit)
+    return pygame.transform.flip(image, True, False) if facing < 0 else image
 
 @lru_cache(maxsize=28)
 def background(stage,layer,section=0):
