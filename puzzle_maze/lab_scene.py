@@ -21,20 +21,32 @@ class LabEntrance:
         from pathlib import Path
         host=str(Path(__file__).resolve().parents[1]/'arcade_lobby')
         if host not in sys.path:sys.path.append(host)
-        from story_dialogue import StoryDialogue,Line,solid_panel
-        from settings import Col
-        from ui import wrap_text
+        from story_dialogue import StoryDialogue,Line
+        from ui import wrap_text,draw_text
         class WorkshopDialogue(StoryDialogue):
-            # Keep native font pixels at Maze's 320px canvas width.
-            def _panel(self):
-                if not hasattr(self,'panel_image'):
-                    self.panel_image=solid_panel(self.box.w,self.box.h,Col.CYAN,Col.PURPLE,246)
-                return self.panel_image
+            # Native pixels, restrained neon and a compact speech panel.
             def _rows(self):
-                return wrap_text(self.line.text,self.box.right-14-66)[:3]
+                return wrap_text(self.line.text,222)[:3]
+            def draw(self,surf):
+                box=self.box;r=pygame.draw
+                r.rect(surf,(16,24,31),box,border_radius=3)
+                r.rect(surf,(42,77,83),box.inflate(2,2),1,border_radius=3)
+                r.line(surf,(104,182,177),box.topleft,(box.right-1,box.top))
+                r.line(surf,(113,99,153),(box.left,box.bottom-1),(box.right-1,box.bottom-1))
+                r.polygon(surf,(16,24,31),[(box.left+18,box.bottom-1),(box.left+25,box.bottom+5),(box.left+31,box.bottom-1)])
+                r.lines(surf,(79,126,134),False,[(box.left+18,box.bottom),(box.left+25,box.bottom+5),(box.left+31,box.bottom)])
+                face=self.speaker.face(self.line.mood,self.context)
+                if face is not None:surf.blit(pygame.transform.scale(face,(24,24)),(box.x+5,box.y+17))
+                draw_text(surf,self.speaker.name,(box.x+35,box.y+5),(132,193,188))
+                remaining=int(self.shown)
+                for i,row in enumerate(self._rows()):
+                    part=row[:max(0,remaining)];remaining-=len(row)+1
+                    if part:draw_text(surf,part,(box.x+35,box.y+18+i*9),(194,207,210))
+                if self.done_typing:
+                    r.polygon(surf,(123,178,178),[(box.right-9,box.bottom-7),(box.right-4,box.bottom-7),(box.right-7,box.bottom-4)])
         self.dialogue=WorkshopDialogue([Line(name,' '.join(rows),'gentle') for name,rows in LINES],
                                     top=True,play_sound=play_sound)
-        self.dialogue.box=pygame.Rect(6,8,308,62)
+        self.dialogue.box=pygame.Rect(24,8,272,50)
         self.veil=pygame.Surface((320,180),pygame.SRCALPHA)
         self.focus=pygame.Surface((160,90));self.zoom=pygame.Surface((320,180));self.fragment=None
     @property

@@ -44,7 +44,8 @@ def monitor(s,x,y):
 def sprite(item):
     k=item.name
     native={'cab_cracked':(36,62),'cab_open':(36,62),'cab_frozen':(36,62),
-            'prototype':(44,62),'desk':(120,70),'cart':(44,39)}
+            'prototype':(44,62),'desk':(120,70),'cart':(44,39),
+            'food':(28,25),'cushion':(40,21),'server':(26,46)}
     s=pygame.Surface(native.get(k,item.bounds[2:]),pygame.SRCALPHA)
     if k.startswith('cab_') or k=='prototype':
         s.blit(cabinet(k),(0,0))
@@ -94,13 +95,32 @@ def sprite(item):
     tint=pygame.Surface(s.get_size(),pygame.SRCALPHA);tint.fill((171,186,197,255))
     s.blit(tint,(0,0),special_flags=pygame.BLEND_RGBA_MULT)
     if s.get_size()!=item.bounds[2:]:s=pygame.transform.scale(s,item.bounds[2:])
+    # Final-resolution damage stays legible after furniture has been reduced.
+    if k.startswith('cab_') or k=='prototype':
+        w,h=s.get_size()
+        for x,y in ((2,7),(w-4,h-8),(4,h-3)):
+            R.line(s,(120,125,122),(x,y),(x+2,y))
+            s.fill((49,55,58),(x,y+1,1,1))
+        if k=='cab_open':
+            for dx,color in ((0,(126,104,83)),(3,(82,125,128)),(6,(120,113,132))):
+                R.lines(s,color,False,[(6+dx,23),(9+dx,27),(5+dx,32),(10+dx,36)])
+        else:
+            R.line(s,(62,76,78),(w-4,5),(w-6,13))
+    elif k=='desk':
+        for x in (8,39,62):
+            R.line(s,(154,154,143),(x,29),(x+6,29))
+        R.lines(s,(63,91,97),False,[(48,30),(51,35),(45,39),(52,41)])
+        R.rect(s,(48,56,60),(64,34,15,6),1)
+    elif k=='server':
+        R.line(s,(128,100,78),(2,30),(7,33))
+        for y in (9,19,28):s.fill((119,165,153),(3,y,1,1))
     edge=pygame.mask.from_surface(s).to_surface(setcolor=(*INK,255),unsetcolor=(0,0,0,0))
     out=pygame.Surface(s.get_size(),pygame.SRCALPHA)
     for off in ((-1,0),(1,0),(0,-1),(0,1)):out.blit(edge,off)
     out.blit(s,(0,0));return out
 
 class WorkshopArt:
-    revision='warehouse-workshop-5'
+    revision='warehouse-workshop-6'
     def __init__(self):self.base=None;self.cached=None;self.parts={};self.masks={}
     def floor(self):
         if self.base is not None:return self.base
@@ -111,13 +131,23 @@ class WorkshopArt:
             R.line(s,(49,56,62),(x,8),(x,44))
             for y in (13,39):s.fill((119,123,120),(x+2,y,1,1))
         R.rect(s,(31,37,42),(12,42,296,6))
-        for y in range(49,235,24):
-            for x in range(14,306,32):
-                R.rect(s,(64+(x//32+y//24)%3*3,70,74),(x,y,31,23))
-                if (x+y)%5==0:R.line(s,(49,55,59),(x+2,y+14),(x+13,y+17))
-        for i in range(95):
-            x=17+(i*71)%286;y=50+(i*47)%182
-            s.fill((80,84,84) if i%3 else (44,50,55),(x,y,2 if i%4==0 else 1,1))
+        # Broad poured concrete, patches and hairline fractures rather than a tile grid.
+        R.rect(s,(62,67,70),(16,48,288,185))
+        for i in range(520):
+            x=17+(i*71)%286;y=49+(i*47)%183
+            color=((70,74,76),(52,58,62),(79,81,80),(58,63,66))[i%4]
+            s.fill(color,(x,y,1+i%2,1))
+        for points in (
+            [(16,74),(38,78),(47,72),(62,75)],
+            [(173,50),(170,66),(175,74),(169,87)],
+            [(20,214),(42,209),(51,214),(65,212),(71,220)],
+            [(181,233),(176,220),(182,211),(178,204)],
+            [(302,106),(286,110),(280,117),(269,114)]):
+            R.lines(s,(39,46,50),False,points,1)
+            x,y=points[-1];R.line(s,(88,90,87),(x+1,y),(x+3,y+2))
+        for x,y in ((107,197),(217,130),(160,155)):
+            R.ellipse(s,(56,62,65),(x,y,22,7),1)
+            R.line(s,(72,76,77),(x+4,y+4),(x+14,y+5))
         for x in (11,305):R.rect(s,(35,41,46),(x,42,5,198))
         R.rect(s,(33,39,43),(12,233,296,7))
         R.rect(s,(98,103,102),(7,105,24,37));R.rect(s,(25,31,36),(12,110,17,27))
@@ -138,15 +168,10 @@ class WorkshopArt:
             ((106,101,81),[(228,172),(244,180),(249,169),(239,163),(237,184),(257,189)])):
             R.lines(s,color,False,points,2 if color==(31,36,40) else 1)
             R.rect(s,(144,142,127),(*points[-1],3,2))
-        # Spare CRTs, labelled cartons, vent ducts and dismantled panels sit at the edges.
-        for x,y,w,h in ((24,211,29,20),(58,214,23,17),(181,211,29,20),(214,216,22,15)):
-            R.rect(s,(88,87,79),(x,y,w,h));R.rect(s,(45,49,50),(x,y,w,h),1)
-            R.line(s,(124,119,99),(x+w//2,y+1),(x+w//2,y+h-2))
-            R.rect(s,(150,149,130),(x+4,y+5,10,4));R.line(s,(69,73,72),(x+6,y+7),(x+11,y+7))
-        R.rect(s,(41,47,50),(92,209,30,22));R.rect(s,(92,99,98),(94,210,26,18),1)
-        R.rect(s,(22,32,36),(98,213,18,11));R.line(s,(108,103,86),(95,229),(121,229))
-        R.polygon(s,(91,96,96),[(145,214),(165,209),(169,231),(149,233)])
-        for y in range(216,229,3):R.line(s,(40,47,51),(151,y),(163,y-2))
+        # Only flat debris on the open floor: all equipment has matching furniture bounds.
+        for x,y in ((26,204),(193,217),(294,210)):
+            R.line(s,(101,100,91),(x,y),(x+3,y+1))
+            R.line(s,(37,43,46),(x+5,y+3),(x+7,y+1))
         for f in FURNITURE:
             x,y,w,h=f.footprint;R.ellipse(s,(35,41,45),(x-2,y+h-5,w+5,8))
         for x,c in ((259,(112,116,110)),(279,(92,118,123))):

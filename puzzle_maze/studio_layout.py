@@ -10,15 +10,15 @@ class Furniture:
     bounds:tuple
     footprint:tuple
 FURNITURE=(
- Furniture('cab_cracked',(34,54,28,48),(35,85,26,20)),
- Furniture('cab_open',(79,54,28,48),(80,87,26,18)),
- Furniture('cab_frozen',(124,54,28,48),(125,85,26,20)),
- Furniture('desk',(184,54,104,52),(186,76,100,29)),
- Furniture('prototype',(36,150,34,48),(38,177,30,22)),
- Furniture('cart',(123,152,36,32),(125,166,32,18)),
- Furniture('server',(211,138,26,46),(213,166,22,18)),
- Furniture('food',(270,142,28,25),(272,154,25,13)),
- Furniture('cushion',(260,179,40,21),(266,186,29,12)),
+ Furniture('cab_cracked',(36,55,24,40),(38,82,20,14)),
+ Furniture('cab_open',(82,55,24,40),(84,82,20,14)),
+ Furniture('cab_frozen',(128,55,24,40),(130,82,20,14)),
+ Furniture('desk',(202,56,84,43),(204,80,80,17)),
+ Furniture('prototype',(36,145,28,43),(38,174,24,13)),
+ Furniture('cart',(129,151,28,26),(131,166,24,11)),
+ Furniture('server',(224,139,22,39),(226,165,18,13)),
+ Furniture('food',(275,145,22,19),(276,154,20,10)),
+ Furniture('cushion',(269,181,28,15),(272,189,22,7)),
 )
 MIAO_FOOTPRINT=(162,122,12,6)
 POSITIONS={'photo':(12,5),'note':(14,5),'miao':MIAO_TILE,'gpu':(15,5),'keyboard':(11,5),'terminal':(3,10),
@@ -36,9 +36,9 @@ def tile_blocked(x,y,footprints=None):
 
 def configure(room):
     from puzzle_maze.build_dungeon import obj
-    room.update(name="The Forgotten Arcade Workshop",spawn=list(ENTRY),studio_revision=5,decorations=[],
+    room.update(name="The Forgotten Arcade Workshop",spawn=list(ENTRY),studio_revision=6,decorations=[],
                 architecture='studio',hint='The western door leads back. There is no hurry here.',
-                tiles=['#'*20]*3+['#'+'.'*18+'#' for _ in range(9)]+['#'*20],
+                tiles=['#'*20]*3+['#'+'.'*18+'#' for _ in range(11)]+['#'*20],
                 solid_footprints=[list(f.footprint) for f in FURNITURE])
     for data in room['objects']:data['pos']=list(POSITIONS[data['id']])
     for key in ('studio_todo','studio_food','studio_cushion','studio_reminder','work_crt','work_back','work_frozen','work_prototype'):
@@ -60,21 +60,19 @@ def safe_position(pos,room):
     """Relocate a valid old studio position only; malformed saves still fail validation."""
     from collections import deque
     if not isinstance(pos,list) or len(pos)!=2 or any(type(v) is not int for v in pos) or not (0<pos[0]<25 and 0<pos[1]<15):return pos
-    start=(max(1,min(18,pos[0])),max(3,min(11,pos[1])))
+    start=(max(1,min(18,pos[0])),max(3,min(13,pos[1])))
     q=deque([start]);seen={start}
     while q:
         x,y=q.popleft()
         if room['tiles'][y][x]!='#' and not tile_blocked(x,y,room['solid_footprints']):return [x,y]
         for dx,dy in ((1,0),(-1,0),(0,1),(0,-1)):
             p=x+dx,y+dy
-            if 1<=p[0]<=18 and 3<=p[1]<=11 and p not in seen:seen.add(p);q.append(p)
+            if 1<=p[0]<=18 and 3<=p[1]<=13 and p not in seen:seen.add(p);q.append(p)
     return list(ENTRY)
 
 def migrate_save(data,room):
     extra=data.get('extension',{}).get('remaster',{})
-    if extra.get('studio_revision',0)==5:return
-    if extra.get('lab_memory_seen',False):
-        room=dict(room,solid_footprints=room['solid_footprints']+[list(MIAO_FOOTPRINT)])
+    if extra.get('studio_revision',0)==6:return
     snapshots=[]
     if 'r28' in data.get('snapshots',{}):snapshots.append(data['snapshots']['r28'])
     current=data.get('room')=='r28'
@@ -90,7 +88,7 @@ def migrate_save(data,room):
     points=data.get('explored',{}).get('r28')
     if points is not None:
         if not isinstance(points,list) or any(not isinstance(p,list) or len(p)!=2 or any(type(v) is not int for v in p) or not (0<=p[0]<26 and 0<=p[1]<16) for p in points):raise ValueError('Invalid old studio exploration')
-        data['explored']['r28']=[p for p in points if p[0]<20 and p[1]<13]
+        data['explored']['r28']=[p for p in points if p[0]<20 and p[1]<15]
     for orb,player in ((data.get('extension',{}).get('orb'),data.get('player')),
                        (data.get('checkpoint',{}).get('orb'),data.get('checkpoint',{}).get('pos'))):
         if orb and orb.get('room')=='r28':

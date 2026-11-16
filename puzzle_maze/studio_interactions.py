@@ -18,11 +18,12 @@ def nearby(session):
 
 WALL_NOTES={'dev_001':(43,76),'dev_002':(88,78),'dev_003':(131,75),'dev_004':(272,20),'studio_todo':(289,22),'studio_reminder':(256,25),'dev_006':(209,25),'dev_007':(238,24)}
 
-DISPLAY_POINTS={'photo':(200,71),'note':(238,72),'gpu':(255,75),'keyboard':(188,77),'lab_duck':(215,77),'lab_coffee':(177,78),'lab_button':(66,162),'dev_005':(147,153)}
+DISPLAY_POINTS={'photo':(207,74),'note':(248,77),'gpu':(259,79),'keyboard':(206,80),'lab_duck':(232,79),'lab_coffee':(240,80),'lab_button':(59,163),'dev_005':(142,153)}
 
 def object_anchor(session,key):
     from puzzle_maze.studio_layout import FURNITURE
     machine={'work_crt':'cab_cracked','work_back':'cab_open','work_frozen':'cab_frozen','work_prototype':'prototype','terminal':'prototype'}
+    if key=='miao':return session.studio_companion.x,session.studio_companion.y-18
     if key in machine:
         f=next(f for f in FURNITURE if f.name==machine[key]);return (f.bounds[0]+f.bounds[2]//2,f.bounds[1])
     if key in WALL_NOTES:
@@ -39,7 +40,7 @@ def draw_prompt(renderer,session):
     x,y=object_anchor(session,target[0]);width=112;height=14
     p=session.player
     obstacles=[pygame.Rect(f.bounds) for f in FURNITURE]
-    obstacles.extend((pygame.Rect(p.x*16,p.y*16-3,16,20),pygame.Rect(MIAO_TILE[0]*16,MIAO_TILE[1]*16-4,16,20)))
+    obstacles.extend((pygame.Rect(p.x*16,p.y*16-3,16,20),pygame.Rect(session.studio_companion.x-10,session.studio_companion.y-20,20,20)))
     options=[pygame.Rect(max(2,min(318-width,xx)),max(2,min(224,yy+round(math.sin(renderer.time*3)))),width,height)
              for yy in (y-18,y+18,110,128,190) for xx in (x-width//2,x+12,x-width-12)]
     def score(box):
@@ -57,10 +58,10 @@ def physical_objects(surface,session):
         key=obj.data.get('content_id','');x,y=DISPLAY_POINTS.get(obj.id,(obj.x*16+4,obj.y*16+5))
         if obj.id in WALL_NOTES:
             x,y=WALL_NOTES[obj.id];slant=-1 if obj.id=='dev_004' else 1
-            r.polygon(surface,(87,68,50),[(x+1,y+2),(x+11,y+1+slant),(x+12,y+12),(x+2,y+13)])
-            r.polygon(surface,(186,166,122),[(x,y),(x+10,y+slant),(x+11,y+10),(x+1,y+11)])
-            r.line(surface,(212,191,148),(x+2,y+1),(x+8,y+slant+1),2)
-            for yy in (4,7):r.line(surface,(118,104,79),(x+3,y+yy),(x+8,y+yy+slant))
+            r.polygon(surface,(87,68,50),[(x+1,y+2),(x+8,y+1+slant),(x+9,y+9),(x+2,y+10)])
+            r.polygon(surface,(186,166,122),[(x,y),(x+7,y+slant),(x+8,y+8),(x+1,y+9)])
+            r.line(surface,(212,191,148),(x+2,y+1),(x+6,y+slant+1),1)
+            for yy in (4,6):r.line(surface,(118,104,79),(x+3,y+yy),(x+6,y+yy+slant))
             continue
         if key=='miao_memory' or obj.id.startswith('work_'):continue
         if key=='kevin_photo':
