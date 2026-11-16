@@ -20,7 +20,6 @@ FURNITURE=(
  Furniture('food',(275,145,22,19),(276,154,20,10)),
  Furniture('cushion',(269,181,28,15),(272,189,22,7)),
 )
-MIAO_FOOTPRINT=(162,122,12,6)
 POSITIONS={'photo':(12,5),'note':(14,5),'miao':MIAO_TILE,'gpu':(15,5),'keyboard':(11,5),'terminal':(3,10),
  'dev_001':(3,6),'dev_002':(5,6),'dev_003':(8,6),'dev_004':(16,3),'dev_005':(8,10),'dev_006':(10,3),'dev_007':(12,3),
  'lab_duck':(13,5),'lab_coffee':(10,5),'lab_button':(4,10),

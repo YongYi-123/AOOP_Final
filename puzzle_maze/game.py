@@ -311,7 +311,7 @@ class Game:
             return
         if self.scene==GameScene.MEMORY:
             before=self.lab_entrance.time;self.lab_entrance.update(dt)
-            for when,cue in ((1.2,'step'),(6.2,'use'),(7.6,'key')):
+            for when,cue in ((.2,'use'),(.5,'pulse'),(1.2,'step'),(6.2,'use'),(7.6,'key')):
                 if before<when<=self.lab_entrance.time:self.audio.play(cue)
             return
         if self.scene!=GameScene.PLAY:return

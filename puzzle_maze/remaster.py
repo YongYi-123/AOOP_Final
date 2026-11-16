@@ -57,6 +57,15 @@ class RemasteredSession(AdvancedDungeonSession):
         from puzzle_maze.secret45 import LORE
         if self.rooms.current=='r28' and key in LORE:self.lore.add(key)
 
+    def capture(self):
+        snapshot=super().capture()
+        # Miao's walking location is transient; the existing save schema validates
+        # readable story objects at their authored coordinates.
+        if self.rooms.current=='r28' and 'miao' in snapshot:
+            from puzzle_maze.studio_layout import MIAO_TILE
+            snapshot['miao']['pos']=list(MIAO_TILE)
+        return snapshot
+
     def save_extension(self):
         result=super().save_extension()
         result['remaster']=dict(grey_pixel=self.grey_pixel,lore=sorted(self.lore),lab_memory_seen=self.lab_memory_seen,studio_revision=6)

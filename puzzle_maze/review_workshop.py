@@ -37,6 +37,15 @@ def generate(output='/tmp/forgotten-workshop'):
     # Explicit obstruction checks through the same move method used by the game.
     for start,direction in (((3,6),(0,-1)),((12,6),(0,-1)),((8,9),(0,1))):
         walk(g,start);assert not s.move(*direction),(start,direction)
+    # Capture natural movement and sleep through normal gameplay updates.
+    walk(g,(6,12))
+    for _ in range(180):g.update(1/60)
+    shot('miao_roaming')
+    for _ in range(54*60):
+        g.update(1/60)
+        if s.studio_companion.state=='sleep':break
+    assert s.studio_companion.state=='sleep'
+    shot('miao_sleeping')
     walk(g,(1,7));assert s.rooms.current=='r24';shot('08_safe_exit')
     print('Real bomb / Grey Pixel / workshop entrance / all inspections / collisions / exit verified:',out)
 if __name__=='__main__':

@@ -24,7 +24,7 @@ def draw_studio(renderer,session,visual,controls):
             pygame.draw.circle(s,(219,217,178),(orb.x*16+6,orb.y*16+8),2)
         elif obj=='miao':
             walking=scene.walking if scene else companion.walking
-            image=guide_frame(walking,scene.time if scene else renderer.time,reaction=bool(scene and scene.reaction),side='right' if scene else companion.side,sleeping=not scene and companion.state=='sleep')
+            image=guide_frame(walking,scene.time if scene else companion.time,reaction=bool(scene and scene.reaction),side='right' if scene else companion.side,sleeping=not scene and companion.state=='sleep')
             s.blit(image,image.get_rect(midbottom=(round(miao[0]),round(miao[1]))))
             if not scene and companion.state=='sleep':
                 x,y=round(miao[0])+9,round(miao[1])-13-int(renderer.time%3)

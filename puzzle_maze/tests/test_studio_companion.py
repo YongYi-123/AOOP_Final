@@ -54,6 +54,28 @@ class CompanionTests(TestCase):
         self.assertGreater(math.dist(start,c.position),17)
         self.assertTrue(s.can_enter(10,7))
 
+    def test_saving_after_miao_moves_keeps_room_progress_loadable(self):
+        from pathlib import Path
+        from tempfile import TemporaryDirectory
+        s=PreviewGame('developer-room',True).session
+        s.player.x,s.player.y=6,12
+        for _ in range(180):s.tick(1/30)
+        self.assertNotEqual(s.studio_companion.tile,(10,7))
+        s.read_lore('kevin_photo')
+        with TemporaryDirectory() as directory:
+            path=Path(directory)/'moving-miao.json';s.save(path)
+            restored=type(s).load(path)
+            self.assertEqual(restored.rooms.current,'r28')
+            self.assertEqual(restored.lore,s.lore);self.assertTrue(restored.grey_pixel)
+            self.assertEqual((restored.player.x,restored.player.y),(6,12))
+            restored.tick(.03)
+            self.assertEqual(restored.puzzles.objects['miao'].pos,restored.studio_companion.tile)
+            s.enter('r24',(22,8));s.save(path)
+            restored=type(s).load(path)
+            self.assertEqual(restored.rooms.current,'r24');self.assertEqual(restored.lore,s.lore)
+            restored.enter('r28',(6,8));restored.tick(.03)
+            self.assertEqual(restored.puzzles.objects['miao'].pos,restored.studio_companion.tile)
+
     def test_sleep_and_walk_frames_are_visibly_distinct(self):
         from puzzle_maze.miao_adapter import guide_frame
         frames=[guide_frame(False,35,sleeping=True),guide_frame(True,.2),guide_frame(False,0)]

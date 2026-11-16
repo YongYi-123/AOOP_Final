@@ -1,4 +1,4 @@
-"""Production studio cinematic: warm reveal, legal Miao walk, focus and a quiet memory."""
+"""Production studio cinematic: CRT arrival, legal Miao walk and an aged repair memory."""
 import pygame
 from puzzle_maze.studio_layout import MIAO_ROUTE
 from puzzle_maze.miao_adapter import guide_frame
@@ -104,6 +104,13 @@ class LabEntrance:
                 for i in range(5):
                     y=max(0,min(239,120-height//2+i*max(1,height//5)))
                     s.blit(room,(int(math.sin(t*38+i)*5*(1-openness)),y),(0,y,320,2))
+        if q>.55:
+            # Receding coordinate frames imply depth while the tube finds this space.
+            for i in range(4):
+                scale=((q*1.4+i/4)%1)**1.3
+                w=max(4,int(304*scale));h=max(3,int(220*scale))
+                color=(35,72,79) if i%2 else (57,48,80)
+                r.rect(s,color,(160-w//2,120-h//2,w,h),1)
         for y in range(0,240,3):r.line(s,(8,18,25),(0,y),(319,y))
         for i in range(24):
             x=(i*73+int(t*93))%318;y=(i*41+int(t*57))%238
@@ -129,6 +136,6 @@ class LabEntrance:
             self.veil.fill((20,29,36,round(170*(1-(t-9.2)/.6))));s.blit(self.veil,(0,0))
         if self.ready and not self.done:
             self.dialogue.draw(s)
-        elif t<6.2:
+        elif 1.2<=t<6.2:
             renderer.text('THE FORGOTTEN WORKSHOP',12,213,(170,180,181),max_width=296,small=True)
         renderer.text('ENTER: Next / SPACE: Skip',12,228,(153,166,170),max_width=296,small=True)
