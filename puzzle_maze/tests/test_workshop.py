@@ -41,7 +41,7 @@ class WorkshopTests(TestCase):
             g.draw(0);self.assertEqual([c.args[0] for c in text.call_args_list],[PROMPT])
         self.assertEqual(PROMPT,'[E/ENTER] INSPECT')
         g.event(pygame.event.Event(pygame.KEYDOWN,key=pygame.K_RETURN,repeat=True));self.assertEqual(g.scene,GameScene.PLAY)
-    def test_opaque_solids_and_cat_do_not_allow_overlap(self):
+    def test_opaque_solids_block_and_miao_does_not_lock_open_floor(self):
         g=PreviewGame('developer-room',True);s=g.session
         for item in FURNITURE:
             image=g.renderer.developer_art.sprite(item)
@@ -49,7 +49,7 @@ class WorkshopTests(TestCase):
             self.assertLessEqual({image.get_at((x,y)).a for x in range(image.get_width()) for y in range(image.get_height())},{0,255})
             x,y,w,h=item.footprint
             self.assertTrue(any(not s.can_enter(tx,ty) for tx in range(1,19) for ty in range(3,12) if x<=tx*16+8<x+w and y<=ty*16+15<y+h),item.name)
-        s.player.x,s.player.y=10,8;self.assertFalse(s.move(0,-1))
+        s.player.x,s.player.y=10,8;self.assertTrue(s.move(0,-1))
     def test_prototype_has_distinct_optional_story_and_no_economy_binding(self):
         g=PreviewGame('developer-room',True);g.inspect_key('work_prototype')
         self.assertIn('work_prototype',g.session.lore);self.assertFalse(g.persistent)

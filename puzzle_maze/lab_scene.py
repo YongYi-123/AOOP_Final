@@ -47,8 +47,8 @@ class LabEntrance:
         self.dialogue=WorkshopDialogue([Line(name,' '.join(rows),'gentle') for name,rows in LINES],
                                     top=True,play_sound=play_sound)
         self.dialogue.box=pygame.Rect(24,8,272,50)
-        self.veil=pygame.Surface((320,180),pygame.SRCALPHA)
-        self.focus=pygame.Surface((160,90));self.zoom=pygame.Surface((320,180));self.fragment=None
+        self.veil=pygame.Surface((320,240),pygame.SRCALPHA)
+        self.focus=pygame.Surface((160,120));self.zoom=pygame.Surface((320,240));self.fragment=None
     @property
     def ready(self):return self.time>=self.dialogue_at
     @property
@@ -75,36 +75,58 @@ class LabEntrance:
             self.line=self.dialogue.index;self.done=self.dialogue.closed;self.dwell=0.
     def memory(self):
         if self.fragment is not None:return self.fragment
-        s=pygame.Surface((132,88));r=pygame.draw;s.fill((237,208,157))
-        r.rect(s,(139,96,66),s.get_rect(),3);r.rect(s,(247,227,184),(5,5,122,78),1)
-        r.rect(s,(203,163,111),(7,8,118,38));r.rect(s,(170,120,79),(7,46,118,35))
-        for y in (55,65,75):r.line(s,(195,145,94),(8,y),(124,y))
-        from puzzle_maze.workshop_art import cabinet
-        s.blit(cabinet('prototype'),(77,17))
-        r.rect(s,(209,174,132),(29,30,15,14));r.rect(s,(77,64,62),(28,27,16,7))
-        for x in (33,39):r.rect(s,(99,78,66),(x,35,1,1))
-        r.polygon(s,(114,153,132),[(29,43),(42,43),(50,65),(22,65)])
-        r.line(s,(197,161,126),(42,47),(77,50),4)
-        cat=guide_frame(False,4.1);s.blit(cat,(53,60))
-        self.fragment=s;return s
+        from puzzle_maze.memory_photo import repair_photograph
+        self.fragment=repair_photograph();return self.fragment
+
+    def television(self,s):
+        """A dead tube finds a signal: dot, horizontal beam, vertical sweep, locked image."""
+        import math
+        t=self.time;r=pygame.draw;room=s.copy()
+        if t<.2:
+            if self.maze_frame is not None:s.blit(self.maze_frame,(0,0))
+            for i in range(7):
+                y=20+i*29
+                r.line(s,(72,115,122),(20+(i*19)%50,y),(170+i*12,y))
+            shade=pygame.Surface((320,240),pygame.SRCALPHA)
+            shade.fill((10,17,24,int(255*t/.2)));s.blit(shade,(0,0));return
+        s.fill((6,11,17));q=min(1,max(0,(t-.2)/1.0))
+        if q<.3:
+            half=2+int(145*(q/.3)**1.7)
+            for width,color in ((5,(18,45,53)),(3,(63,112,119)),(1,(190,227,214))):
+                r.line(s,color,(160-half,120),(160+half,120),width)
+            r.circle(s,(224,239,216),(160,120),2)
+        else:
+            openness=min(1,(q-.3)/.7);height=max(2,int(240*openness**.7))
+            image=pygame.transform.scale(room,(320,height));s.blit(image,(0,120-height//2))
+            r.line(s,(102,186,184),(4,120-height//2),(315,120-height//2))
+            r.line(s,(118,98,157),(4,119+height//2),(315,119+height//2))
+            if openness<.9:
+                for i in range(5):
+                    y=max(0,min(239,120-height//2+i*max(1,height//5)))
+                    s.blit(room,(int(math.sin(t*38+i)*5*(1-openness)),y),(0,y,320,2))
+        for y in range(0,240,3):r.line(s,(8,18,25),(0,y),(319,y))
+        for i in range(24):
+            x=(i*73+int(t*93))%318;y=(i*41+int(t*57))%238
+            if abs(y-120)<max(3,int(120*q)):s.fill((58,90,94),(x,y,2,1))
+
     def draw(self,renderer):
         s=renderer.surface;r=pygame.draw;t=self.time;renderer.ui.clear()
-        if t<.6 and self.maze_frame is not None:
-            s.blit(self.maze_frame,(0,0))
-            self.veil.fill((20,18,22,round(120+130*t/.6)));s.blit(self.veil,(0,0))
-            for i in range(5):
-                y=30+i*27+int(t*17)%7
-                r.line(s,(83,99,91),(25+i*17,y),(73+i*17,y),1)
+        if t<1.2:self.television(s)
+        elif t<2.2:
+            # Brief scanline lock and spatial echoes settle into the room.
+            overlay=pygame.Surface((320,240),pygame.SRCALPHA)
+            strength=(2.2-t)
+            for y in range(0,240,3):pygame.draw.line(overlay,(10,20,28,int(65*strength)),(0,y),(319,y))
+            s.blit(overlay,(0,0))
         if 6.2<=t<9.2:
             q=min(1,(t-6.2)/1.4);q=q*q*(3-2*q)
-            crop=pygame.Rect(round(16+4*q),round(92+4*q),160,90)
-            self.focus.blit(s,(0,0),crop);pygame.transform.scale(self.focus,(320,180),self.zoom);s.blit(self.zoom,(0,0))
+            crop=pygame.Rect(round(16+4*q),round(92+4*q),160,120)
+            self.focus.blit(s,(0,0),crop);pygame.transform.scale(self.focus,(320,240),self.zoom);s.blit(self.zoom,(0,0))
         if 7.6<=t<9.2:
-            self.veil.fill((80,56,40,100));s.blit(self.veil,(0,0));s.blit(self.memory(),(94,40))
+            self.veil.fill((80,56,40,100));s.blit(self.veil,(0,0));s.blit(self.memory(),(80,37))
             renderer.text('A SMALL MEMORY',24,14,(247,216,158),max_width=272)
-        elif (.6<=t<1.2 or t<.6 and self.maze_frame is None) or 9.2<=t<9.8:
-            progress=max(0,(t-.6)/.6) if t<1.2 else (t-9.2)/.6
-            self.veil.fill((63,45,34,round(235*(1-progress))));s.blit(self.veil,(0,0))
+        elif 9.2<=t<9.8:
+            self.veil.fill((20,29,36,round(170*(1-(t-9.2)/.6))));s.blit(self.veil,(0,0))
         if self.ready and not self.done:
             self.dialogue.draw(s)
         elif t<6.2:

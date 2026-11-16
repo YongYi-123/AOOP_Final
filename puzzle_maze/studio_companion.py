@@ -34,10 +34,12 @@ class StudioCompanion:
         p=session.player;player=(p.x*16+8,p.y*16+16)
         distance=math.dist(self.position,player)
         phase=self.time%54
-        if 34<=phase<47 and distance>38:
+        if 34<=phase<47 and distance>=22:
             self.state='sleep';self.path=[];return
+        if 17<=distance<32 and self.time%8<2.5:
+            self.state='idle';self.path=[];return
         self.state='follow' if distance>75 else 'wander'
-        if self.think<=0 or distance<20:
+        if self.think<=0 or (distance<20 and not self.path):
             self.think=self.rng.uniform(2.2,4.5)
             candidates=[(x,y) for y,row in enumerate(session.rooms.data['tiles']) for x,_ in enumerate(row)
                         if session.can_enter(x,y) and math.dist((x*16+8,y*16+16),player)>=24
@@ -61,7 +63,7 @@ class StudioCompanion:
             step=min(length,budget)
             nx=self.x+(goal[0]-self.x)/length*step;ny=self.y+(goal[1]-self.y)/length*step
             # Feet, walls and furniture use the same physical checks as the player.
-            if (math.dist((nx,ny),player)<17 or
+            if ((math.dist((nx,ny),player)<17 and math.dist((nx,ny),player)<=math.dist(self.position,player)) or
                 contact_blocked(nx,ny,session.rooms.data['solid_footprints'],width=10,height=6)):
                 self.path=[];self.think=0.;break
             if abs(nx-self.x)>.01:self.side='right' if nx>self.x else 'left'

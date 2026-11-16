@@ -31,9 +31,9 @@ class StudioConsistencyTests(TestCase):
         with patch.object(g.renderer,'text',wraps=g.renderer.text) as text:g.draw(0);self.assertEqual(text.call_count,0)
         p.x,p.y=13,5;p.facing=(-1,0)
         self.assertEqual(nearby(g.session)[0],'lab_duck') # same tile beats a more distant facing card
-    def test_miao_blocks_real_movement_but_has_reachable_conversation_and_exit(self):
+    def test_miao_allows_open_floor_and_has_reachable_conversation_and_exit(self):
         g=PreviewGame('developer-room',True);s=g.session;s.player.x,s.player.y=10,8
-        self.assertFalse(s.can_enter(10,7));self.assertFalse(s.move(0,-1));self.assertEqual((s.player.x,s.player.y),(10,8))
+        self.assertTrue(s.can_enter(10,7));self.assertTrue(s.move(0,-1));self.assertEqual((s.player.x,s.player.y),(10,7))
         self.assertTrue(s.move(1,0));self.assertTrue(s.can_enter(1,7))
         pos,facing=approach(s.rooms.data,s.puzzles.objects['miao'].pos)
         self.assertTrue(s.can_enter(*pos));s.player.x,s.player.y=pos;s.player.facing=facing
@@ -41,8 +41,8 @@ class StudioConsistencyTests(TestCase):
     def test_both_lamps_and_desk_block_physical_overlap(self):
         g=PreviewGame('developer-room',True);s=g.session
         self.assertFalse(s.can_enter(8,10)) # standing lamp's base
-        self.assertFalse(s.can_enter(17,4)) # desk lamp / solid tabletop
-        for start,direction in (((8,9),(0,1)),((17,3),(0,1))):
+        self.assertFalse(s.can_enter(17,5)) # desk lamp / solid tabletop
+        for start,direction in (((8,9),(0,1)),((17,4),(0,1))):
             s.player.x,s.player.y=start;self.assertFalse(s.move(*direction));self.assertEqual((s.player.x,s.player.y),start)
     def test_all_prop_pixels_remain_opaque_when_ghost_requested(self):
         g=PreviewGame('developer-room',True);art=g.renderer.developer_art

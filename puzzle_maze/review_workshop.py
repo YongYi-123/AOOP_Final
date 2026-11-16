@@ -20,7 +20,7 @@ def generate(output='/tmp/forgotten-workshop'):
     walk(g,(23,8));key(pygame.K_e);assert g.scene==GameScene.DISCOVERY
     g.update(3);shot('00_grey_pixel');g.update(3)
     walk(g,(23,9));walk(g,(23,8));assert s.rooms.current=='r28';g.update(.01)
-    for t,name in ((.25,'01_maze_transition'),(1.5,'02_workshop_reveal'),(3.,'03_miao_entrance'),(6.8,'04_prototype_focus'),(8.3,'05_archived_repair'),(10.2,'06_story_dialogue')):
+    for t,name in ((.1,'00a_signal_lost'),(.3,'00b_crt_beam'),(.7,'00c_crt_sweep'),(1.,'01_maze_transition'),(1.5,'02_workshop_reveal'),(3.,'03_miao_entrance'),(6.8,'04_prototype_focus'),(8.3,'05_archived_repair'),(10.2,'06_story_dialogue')):
         while g.lab_entrance.time<t:g.update(min(1/60,t-g.lab_entrance.time))
         shot(name)
     for i in range(5):
@@ -35,7 +35,7 @@ def generate(output='/tmp/forgotten-workshop'):
         assert g.scene==GameScene.SCROLL and g.reading==obj.data['content_id'],obj.id
         shot('inspect_'+obj.id+'_open');key(pygame.K_RETURN)
     # Explicit obstruction checks through the same move method used by the game.
-    for start,direction in (((3,6),(0,-1)),((12,6),(0,-1)),((10,8),(0,-1)),((8,9),(0,1))):
+    for start,direction in (((3,6),(0,-1)),((12,6),(0,-1)),((8,9),(0,1))):
         walk(g,start);assert not s.move(*direction),(start,direction)
     walk(g,(1,7));assert s.rooms.current=='r24';shot('08_safe_exit')
     print('Real bomb / Grey Pixel / workshop entrance / all inspections / collisions / exit verified:',out)
