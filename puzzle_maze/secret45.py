@@ -2,12 +2,12 @@
 SECRET_ID='dungeon_grey_pixel'
 DISCOVERY='DEBUG LAYER DISCOVERED. ORIGINAL MAP RESTORED.'
 LORE={
- 'kevin_photo':('OLD PHOTOGRAPH',('Kevin and a much smaller','Miao, beside the workbench.','His hand steadies her paw.','The corners are worn soft.')),
- 'kevin_note':('KEVIN / HANDWRITTEN NOTE',('Prototype 07 failed again.','Miao stayed until sunrise.','She seems to think I am','doing something important.')),
+ 'kevin_photo':('OLD PHOTOGRAPH', ('I asked Miao to pose.', 'She inspected my soldering.', 'I kept the blurry photo.', 'Best review I got all week.')),
+ 'kevin_note':('KEVIN / HANDWRITTEN NOTE', ('I missed dinner again.', 'Prototype 07 still fails.', 'Miao stayed until sunrise.', 'I should build her a bed.')),
  'miao_memory':('MIAO MEOW',('I know that blanket.','He always folded it twice.','I never asked him to.','He just noticed.')),
- 'lab_gpu':('VINTAGE GRAPHICS CARD',('Twin fans. Worn contacts.','Kevin kept this card alive','through countless nights.')),
- 'lab_keyboard':('CLICK. CLACK.',('A handwritten label:','DO NOT LET MIAO WALK','ON THIS KEYBOARD.','The label has paw prints.')),
- 'lab_terminal':('BUILD FAILED',('ERROR: CAT DETECTED','ON KEYBOARD.','The error looks pleased','with itself.')),
+ 'lab_gpu':('VINTAGE GRAPHICS CARD', ('I replaced both tiny fans.', 'The card survived the night.', 'My patience did not.', 'I saved the card anyway.')),
+ 'lab_keyboard':('CLICK. CLACK.', ('I wrote: NO CATS ON KEYS.', 'Miao added paw prints.', 'I revised the house rules:', 'ASK THE CAT FOR ACCESS.')),
+ 'lab_terminal':('BUILD FAILED', ('I fixed a missing bracket.', 'My agent added twelve more.', 'Now the build has eyebrows.', 'I have asked it to stop.')),
  'debug_layer':('GREY PIXEL',('DEBUG LAYER DISCOVERED.','ORIGINAL MAP RESTORED.','The western arch still leads','back to the archive.')),
 }
 
@@ -16,17 +16,17 @@ LORE.update(DIARIES)
 from puzzle_maze.studio_notes import NOTES
 LORE.update(NOTES)
 LORE.update({
- 'store_tools':('THE MISSING 10 MM SOCKET',('Bought five 10 mm sockets.','All five disappeared.','Kevin bought a sixth.','Miao is sitting on it.')),
- 'store_parts':('PARTS SORTING SYSTEM',('BOX A: WORKING PARTS.','BOX B: BROKEN PARTS.','BOX C: PARTS THAT WORK','ONLY WHEN KEVIN WATCHES.')),
- 'store_timebox':('THE BUG BOX',('DO NOT OPEN. CONTAINS BUGS.','Kevin meant software bugs.','The box just sneezed.','Miao has resigned.')),
- 'store_server':('THE BACKUP SERVER',('Fan 1 cools Fan 2.','Fan 2 cools Fan 1.','The server is unplugged.','Both fans got promoted.')),
- 'store_aoop':('AOOP / OWNERSHIP DIAGRAM',('Game owns Room.','Room owns Cat.','Cat owns the keyboard.','Kevin owns the bugs.')),
- 'store_breadboard':('THE BREADBOARD EXPERIMENT',('Breadboard has no bread.','Kevin added a sandwich.','The circuit still failed.','Lunch test: PASSED.')),
- 'store_cables':('CABLE MANAGEMENT',('IN: ONE STRAIGHT CABLE.','OUT: ONE ROUND CABLE.','Kevin calls this progress.','Miao calls it a pillow.')),
- 'work_crt':('THE CRACKED CRT',('A tiny screen fracture.','Kevin marked the fault:','DO NOT FIX WITH A HAMMER.','The hammer is missing.')),
- 'work_back':('OPEN SERVICE PANEL',('Each wire has a label.','One says: DOOR CHIME.','Another: NOT DOOR CHIME.','Both lead to the same bell.')),
- 'work_frozen':('PAUSED FOREVER',('The score is still zero.','The machine reports:','PLAYER TWO IS A CAT.','WAITING FOR THUMBS.')),
- 'work_prototype':('PROTOTYPE / RETURN PATH',('A grey test pixel travels','through an unfinished game.','An old service recording:','Leave a way back. Always.')),
+ 'store_tools':('THE MISSING 10 MM SOCKET', ('I bought five 10 mm sockets.', 'All five disappeared.', 'I bought a sixth.', 'Miao is sitting on it.')),
+ 'store_parts':('PARTS SORTING SYSTEM', ('[A] I tested these parts.', '[B] I broke these parts.', '[C] They work when I look.', 'I do not trust box C.')),
+ 'store_timebox':('THE BUG BOX', ('I labelled this box: BUGS.', 'I meant software bugs.', 'The box just sneezed.', 'I am moving my desk.')),
+ 'store_server':('THE BACKUP SERVER', ('I built a cooling system.', 'Fan 1 only cools Fan 2.', 'Fan 2 only cools Fan 1.', 'I forgot to plug it in.')),
+ 'store_aoop':('AOOP / OWNERSHIP DIAGRAM', ('I wrote: Game owns Room.', 'Then I added: Room owns Cat.', 'Miao crossed that out.', 'She says Cat owns Game.')),
+ 'store_breadboard':('THE BREADBOARD EXPERIMENT', ('I tested a breadboard.', 'I added a sandwich.', 'The circuit still failed.', 'My lunch passed inspection.')),
+ 'store_cables':('CABLE MANAGEMENT', ('I tried to untangle a lead.', 'Three hours. One round knot.', 'I called it cable storage.', 'Miao called it her pillow.')),
+ 'work_crt':('THE CRACKED CRT', ('I found a crack in the CRT.', 'I wrote: NO HAMMERS.', 'Someone borrowed my hammer.', 'I will try to trust them.')),
+ 'work_back':('OPEN SERVICE PANEL', ('I labelled every wire.', 'Both labels say THIS END.', 'I traced them to the bell.', 'I am now afraid to knock.')),
+ 'work_frozen':('PAUSED FOREVER', ('I added a second player.', 'Miao took that seat at once.', 'I am still waiting for her', 'to grow opposable thumbs.')),
+ 'work_prototype':('PROTOTYPE / RETURN PATH', ('I left one grey test pixel.', 'My map forgot this workshop.', 'The pixel did not forget.', 'Leave a way back. Always.')),
 })
 
 def add_secret(rooms):

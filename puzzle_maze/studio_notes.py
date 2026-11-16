@@ -1,21 +1,22 @@
 """Warm personal notes, with an actual paged paper list instead of a quest log."""
 import pygame
 NOTES={
- 'studio_todo':("KEVIN'S TO-DO LIST",('[X] Repair Arcade audio.','[X] Replace the GPU fan.','','A quieter fan was worth it.')),
- 'studio_food':('MIAO / FOOD CUPBOARD',('Neatly arranged food cans.','Each has a tiny label:','For Miao. Her favorite.','Even the spare has a label.')),
- 'studio_cushion':('THE SLEEPING CUSHION',('The seams are repaired','with different pink thread.','The little blanket is','folded with unusual care.')),
- 'studio_reminder':('A SMALL REMINDER',('Turn the computer off','before Miao goes to sleep.','The fan keeps her awake.','She never complains.')),
+ 'studio_todo':("KEVIN'S TO-DO LIST",('[X] I fixed my audio.','[X] I replaced the GPU fan.','','I can hear Miao purr again.')),
+ 'studio_food':('MIAO / FOOD CUPBOARD',('I labelled every food can.','Her favorite is on the left.','I bought two extra tins.','I know she will count them.')),
+ 'studio_cushion':('THE SLEEPING CUSHION',('I patched her cushion again.','I only had pink thread.','She tested it for six hours.','I think she approved it.')),
+ 'studio_reminder':('A SMALL REMINDER',('I must stop the fans early.','They keep Miao awake.','She stays beside me anyway.','I can finish this tomorrow.')),
 }
 PAGES={'studio_todo':(
  NOTES['studio_todo'][1],
- ("[ ] Buy Miao's favorite",'    canned food.','[ ] Wash her cushion.','    Gentle soap this time.'),
- ('[ ] Eat a proper dinner.','[ ] Finish the prototype.','','Noodles are not a meal.'),
- ('[ ] Take Miao outside','    when the rain stops.','','Pack her little blanket.'),
+ ("[ ] Buy Miao's favorite.",'[ ] Wash her little blanket.','I used strong soap once.','She complained in silence.'),
+ ('[ ] I need a proper dinner.','[ ] Finish my prototype.','','I cannot eat a build log.'),
+ ('[ ] Take Miao out tomorrow.','[ ] Leave the agent offline.','I packed her little blanket.','I am allowed one quiet day.'),
+), 'store_aoop':(
+ ('I wrote: Game owns Room.','Then I added: Room owns Cat.','Miao crossed that out.','She says Cat owns Game.'),
+ ('I made my tools private.','Miao still has full access.','I asked my agent why.','It says she is the owner.'),
 )}
-PAGES['store_aoop']=(
- ('Game owns Room.','Room owns Cat.','Cat owns the keyboard.','Kevin owns the bugs.'),
- ('PUBLIC: Miao may enter.','PRIVATE: Kevin may not eat','the emergency cat food.','Miao wrote the access rules.'),
-)
+from puzzle_maze.developer_diaries import DIARY_PAGES
+PAGES.update(DIARY_PAGES)
 NAMES={'kevin_photo':'Photo','kevin_note':'Notebook','miao_memory':'Miao Meow','lab_gpu':'GPU','lab_keyboard':'Keyboard',
  'lab_terminal':'Terminal','lab_coffee':'Coffee','lab_duck':'Duck','lab_button':'Red button',
  'studio_todo':'To-do list','studio_food':'Food cans','studio_cushion':'Cushion','studio_reminder':'Reminder'}
