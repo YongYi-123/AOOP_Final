@@ -36,6 +36,25 @@ class WarehouseTests(TestCase):
             self.assertTrue(pygame.Rect(0,0,320,240).contains(scene.dialogue.box))
             g.draw(0)
 
+    def test_normal_room_scale_is_preserved_during_the_former_zoom_beat(self):
+        g=PreviewGame('miao-entrance',True);scene=LabEntrance()
+        scene.time=6.8
+        for x in range(320):g.renderer.surface.fill((x%255,70,90),(x,0,1,240))
+        before=pygame.image.tobytes(g.renderer.surface,'RGB')
+        scene.draw(g.renderer)
+        self.assertEqual(pygame.image.tobytes(g.renderer.surface,'RGB'),before)
+
+    def test_memory_kevin_uses_lobby_scale_and_paper_is_yellowed(self):
+        from puzzle_maze.memory_photo import kevin_engineer_frame
+        from puzzle_maze.miao_adapter import guide_frame
+        from puzzle_maze.studio_notes import aged_paper
+        person=kevin_engineer_frame();cat=guide_frame()
+        self.assertLessEqual(person.get_height(),cat.get_height()*1.5)
+        self.assertLessEqual(person.get_width(),cat.get_width())
+        paper=aged_paper();red,green,blue,_=paper.get_at((30,20))
+        self.assertGreater(red,green);self.assertGreater(green,blue)
+        self.assertNotEqual(paper.get_at((30,20)),paper.get_at((1,1)))
+
     def test_revision_five_player_in_moved_server_is_relocated_and_backup_preserved(self):
         g=PreviewGame('developer-room',True);s=g.session
         with TemporaryDirectory() as directory:

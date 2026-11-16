@@ -20,15 +20,44 @@ def pages_for(key):
     from puzzle_maze.secret45 import LORE
     return PAGES.get(key,(LORE[key][1],))
 
+_PAPER=None
+
+def aged_paper():
+    """Cached yellowed stock with soft stains, a fold and chipped edges."""
+    global _PAPER
+    if _PAPER is not None:return _PAPER
+    paper=pygame.Surface((284,98),pygame.SRCALPHA);r=pygame.draw
+    for y in range(98):
+        edge=min(y,97-y,10)
+        color=(214+edge*2,185+edge*2,130+edge*3)
+        r.line(paper,color,(0,y),(283,y))
+    for i in range(85):
+        x=(i*73)%284;y=(i*29)%98
+        if x<9 or x>275 or y<4 or y>94:
+            paper.fill((176,145,98),(x,y,1,1))
+    r.rect(paper,(183,150,99),(0,0,284,98),1)
+    r.line(paper,(214,185,133),(140,3),(139,93))
+    r.line(paper,(240,215,166),(141,3),(140,93))
+    r.circle(paper,(207,177,123),(272,11),8,1)
+    r.circle(paper,(214,184,130),(272,11),7,1)
+    r.polygon(paper,(181,149,100),[(272,0),(283,0),(283,11)])
+    r.line(paper,(246,222,175),(272,0),(283,11))
+    for x,y in ((0,0),(281,95),(0,94)):
+        paper.fill((0,0,0,0),(x,y,3,3))
+    r.line(paper,(183,148,94),(5,17),(277,17))
+    for y in (34,46,58,70):r.line(paper,(224,197,146),(7,y),(276,y))
+    _PAPER=paper;return paper
+
 def draw_note(renderer,key,page,room,preview=False):
     from puzzle_maze.secret45 import LORE
     pages=pages_for(key);page=max(0,min(page,len(pages)-1));title=LORE[key][0]
     obj=next((o for o in room['objects'] if o.get('content_id')==key),None)
     y=42 if obj and obj['pos'][1]>=8 else 136
     s=renderer.surface;r=pygame.draw;renderer.ui.clear()
-    r.rect(s,(103,77,59),(17,y+3,286,101));r.rect(s,(250,232,192),(18,y,284,98))
-    r.line(s,(218,181,126),(21,y+17),(298,y+17));r.rect(s,(225,186,137),(21,y+3,3,3))
-    renderer.text(title,28,y+5,(113,76,57),max_width=264)
-    for i,line in enumerate(pages[page]):renderer.text(line,28,y+24+i*12,(109,86,65),max_width=264)
+    r.rect(s,(42,37,32),(17,y+4,286,99))
+    s.blit(aged_paper(),(18,y))
+    r.rect(s,(170,136,85),(22,y+4,2,2))
+    renderer.text(title,28,y+5,(102,72,47),max_width=264)
+    for i,line in enumerate(pages[page]):renderer.text(line,28,y+24+i*12,(94,76,52),max_width=264)
     footer=f'ARROWS: {page+1}/{len(pages)} / ENTER: Close' if len(pages)>1 else 'ENTER: Close / ESC: Exit' if preview else 'ENTER / ESC: Close'
-    renderer.text(footer,28,y+84,(151,103,69),max_width=264)
+    renderer.text(footer,28,y+84,(128,98,60),max_width=264)

@@ -46,7 +46,7 @@ class Renderer:
         from puzzle_maze.onboarding import DEFAULT_CONTROLS
         controls=DEFAULT_CONTROLS if controls is None else controls
         self.ui.clear();self.boss_panel_rect=None
-        self.time+=dt;s=self.surface;r=pygame.draw;s.fill(INK)
+        self.frame_dt=max(0,dt);self.time+=dt;s=self.surface;r=pygame.draw;s.fill(INK)
         room=session.rooms.data;p=session.player
         if session.rooms.current=='r28':
             from puzzle_maze.studio_view import draw_studio

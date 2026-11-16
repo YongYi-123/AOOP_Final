@@ -38,7 +38,9 @@ class WorkshopTests(TestCase):
         g=PreviewGame('developer-room',True);g.inspect_key('work_crt')
         g.event(pygame.event.Event(pygame.KEYDOWN,key=pygame.K_RETURN))
         with patch.object(g.renderer,'text',wraps=g.renderer.text) as text:
-            g.draw(0);self.assertEqual([c.args[0] for c in text.call_args_list],[PROMPT])
+            g.draw(.2);self.assertEqual(text.call_count,0)
+        self.assertEqual(g.renderer.studio_prompt.key,'E/ENTER')
+        self.assertEqual(g.renderer.studio_prompt.label,'INSPECT')
         self.assertEqual(PROMPT,'[E/ENTER] INSPECT')
         g.event(pygame.event.Event(pygame.KEYDOWN,key=pygame.K_RETURN,repeat=True));self.assertEqual(g.scene,GameScene.PLAY)
     def test_opaque_solids_block_and_miao_does_not_lock_open_floor(self):
@@ -58,10 +60,14 @@ class WorkshopTests(TestCase):
     def test_long_prompt_renders_without_ellipsis_at_normal_resolution(self):
         g=PreviewGame('developer-room',True);g.inspect_key('work_crt')
         g.event(pygame.event.Event(pygame.KEYDOWN,key=pygame.K_RETURN));g.draw(0)
-        self.assertEqual(g.renderer.ui.commands[0][0],PROMPT)
-        self.assertEqual(g.renderer.ui.commands[0][4],8)
-        scale=g.screen.get_height()/240
-        self.assertEqual(g.renderer.ui.rects[0].width,(len(PROMPT)*6-1)*int(scale))
+        g.draw(.2)
+        from ui import PromptBubble
+        reference=PromptBubble('INSPECT',key='E/ENTER')
+        actual=g.renderer.studio_prompt
+        for ours,golden in zip(actual.frames,reference.frames):
+            self.assertEqual(pygame.image.tobytes(ours,'RGBA'),pygame.image.tobytes(golden,'RGBA'))
+        self.assertTrue(pygame.Rect(0,0,320,240).contains(g.renderer.studio_prompt_rect))
+        self.assertEqual(g.renderer.ui.commands,[])
 
     def test_living_room_save_migrates_missing_new_machines_and_preserves_secrets(self):
         import json

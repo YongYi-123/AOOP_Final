@@ -12,7 +12,7 @@ def generate(output='/tmp/forgotten-workshop'):
     s.inventory.abilities.add('map');s.inventory.bombs=2;s.enter('r24',(21,7));g.visual=[21.,7.]
     def key(k):g.event(pygame.event.Event(pygame.KEYDOWN,key=k))
     def shot(name):
-        g.draw(0);pygame.image.save(g.screen,out/(name+'.png'))
+        g.draw(.2);pygame.image.save(g.screen,out/(name+'.png'))
         rects=g.renderer.ui.rects
         assert all(g.screen.get_rect().contains(r) for r in rects),name
         assert all(not a.colliderect(b) for i,a in enumerate(rects) for b in rects[i+1:]),name

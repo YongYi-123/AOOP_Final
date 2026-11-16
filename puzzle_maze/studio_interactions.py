@@ -1,6 +1,5 @@
 """The same proximity target drives the visible prompt and the production E action."""
 import pygame
-import math
 LABELS={'kevin_photo':'Examine Photograph','kevin_note':'Read Notebook','miao_memory':'Talk to Miao Meow',
  'lab_gpu':'Inspect Graphics Card','lab_keyboard':'Inspect Keyboard','lab_terminal':'Inspect Computer',
  'lab_coffee':'Examine Coffee','lab_duck':'Inspect Rubber Duck','lab_button':'Press Red Button',
@@ -34,22 +33,20 @@ def object_anchor(session,key):
 
 PROMPT='[E/ENTER] INSPECT'
 def draw_prompt(renderer,session):
-    target=nearby(session)
-    if not target:return
-    from puzzle_maze.studio_layout import FURNITURE,MIAO_TILE
-    x,y=object_anchor(session,target[0]);width=112;height=14
-    p=session.player
+    """The exact Golden Age PromptBubble, bounded to Maze's native canvas."""
+    from ui import PromptBubble
+    from puzzle_maze.studio_layout import FURNITURE
+    if not hasattr(renderer,'studio_prompt'):
+        renderer.studio_prompt=PromptBubble('INSPECT',key='E/ENTER')
+        renderer.studio_prompt.SAFE=pygame.Rect(2,2,316,232)
+    prompt=renderer.studio_prompt;target=nearby(session);p=session.player
+    anchor=(p.x*16+8,p.y*16+16-prompt.HEAD_GAP) if target else None
+    prompt.update(getattr(renderer,'frame_dt',0),anchor,'INSPECT' if target else None)
     obstacles=[pygame.Rect(f.bounds) for f in FURNITURE]
-    obstacles.extend((pygame.Rect(p.x*16,p.y*16-3,16,20),pygame.Rect(session.studio_companion.x-10,session.studio_companion.y-20,20,20)))
-    options=[pygame.Rect(max(2,min(318-width,xx)),max(2,min(224,yy+round(math.sin(renderer.time*3)))),width,height)
-             for yy in (y-18,y+18,110,128,190) for xx in (x-width//2,x+12,x-width-12)]
-    def score(box):
-        overlap=sum(box.clip(o).width*box.clip(o).height for o in obstacles)
-        return (overlap,abs(box.centerx-x)+abs(box.centery-y))
-    box=min(options,key=score)
-    pygame.draw.rect(renderer.surface,(49,43,38),box)
-    pygame.draw.rect(renderer.surface,(193,166,118),box,1)
-    renderer.text(PROMPT,box.x+4,box.y+3,(236,211,165),max_width=width-8,small=True)
+    obstacles.append(pygame.Rect(p.x*16,p.y*16-4,16,20))
+    c=session.studio_companion
+    obstacles.append(pygame.Rect(round(c.x)-10,round(c.y)-20,20,20))
+    renderer.studio_prompt_rect=prompt.draw(renderer.surface,renderer.time,obstacles,below_first=True)
 
 def physical_objects(surface,session):
     """Each readable item has a small real paper, framed photo or hardware prop."""
