@@ -35,6 +35,7 @@ POSITIONS={'photo':(12,5),'note':(14,5),'miao':MIAO_TILE,'gpu':(15,5),'keyboard'
  'repair_log':(5,11),'project_file':(16,5),
  'power_cabinet':(17,3),'work_crt':(3,5),'work_back':(5,5),'work_frozen':(8,5),
  'work_space':(10,5),'work_prototype':(2,10)}
+RETIRED_INTERACTIONS={*(f'dev_{i:03d}' for i in range(1,8)),'lab_button','studio_reminder','sofa','studio_sofa'}
 CONTENT_IDS={**{key:key for key in POSITIONS},'photo':'kevin_photo','note':'kevin_note','miao':'miao_memory',
              'gpu':'lab_gpu','keyboard':'lab_keyboard','terminal':'lab_terminal'}
 

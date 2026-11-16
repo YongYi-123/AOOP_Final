@@ -28,25 +28,35 @@ def generate(output='/tmp/forgotten-workshop'):
         shot('dialogue_'+str(i)+'_complete')
         key(pygame.K_RETURN);g.update(.3)
     assert g.scene==GameScene.PLAY;shot('07_workshop_overview')
-    for i,obj in enumerate(list(s.puzzles.objects.values())):
+    def inspect(obj,index=0):
         pos,facing=approach(s.rooms.data,obj.pos);walk(g,pos);s.player.facing=facing
         if obj.id=='miao':
             from puzzle_maze.studio_interactions import nearby
             for _ in range(8):
                 if nearby(s) and nearby(s)[0]=='miao':break
-                # Follow the live interaction location, as a player approaching her does.
                 walk(g,s.studio_companion.tile)
-        shot('inspect_'+obj.id+'_prompt')
-        key(pygame.K_RETURN if i%2 else pygame.K_e)
+        prefix='inspect_'+obj.id+'_response_'+str(index+1)
+        shot(prefix+'_prompt');key(pygame.K_RETURN if index%2 else pygame.K_e)
         assert g.scene==GameScene.SCROLL and g.reading==obj.data['content_id'],obj.id
-        g.update(.4);shot('inspect_'+obj.id+'_description')
-        while g.inspection_intro is not None:key(pygame.K_RETURN)
-        shot('inspect_'+obj.id+'_open')
-        from puzzle_maze.studio_notes import pages_for
-        for page in range(1,len(pages_for(g.reading))):
-            key(pygame.K_RIGHT);assert g.reading_page==page
-            shot('inspect_'+obj.id+'_page_'+str(page+1))
-        key(pygame.K_RETURN)
+        inspection=g.workshop_inspection;count=s.inspection_counts.get(obj.id,0)
+        g.update(.8);shot(prefix+'_observation')
+        for _ in range(100):
+            if inspection.dialogue is None or inspection.closed:break
+            key(pygame.K_RETURN);g.update(.04)
+        else:raise AssertionError('Observation did not finish: '+obj.id)
+        for _ in range(100):
+            if g.scene!=GameScene.SCROLL:break
+            shot(prefix+'_page_'+str(inspection.page+1)+'_scroll_'+str(inspection.scroll))
+            key(pygame.K_RETURN)
+        else:raise AssertionError('NOTE did not close: '+obj.id)
+        if not inspection.recording:assert s.inspection_counts[obj.id]==count,obj.id
+    for obj in list(s.puzzles.objects.values()):inspect(obj)
+    from puzzle_maze.workshop_content import RESPONSES
+    from puzzle_maze.workshop_documents import DOCUMENTS
+    for obj in list(s.puzzles.objects.values()):
+        if obj.data['content_id'] in RESPONSES or obj.data['content_id'] in DOCUMENTS:
+            inspect(obj,1);inspect(obj,2)
+    assert s.prototype_recording_seen
     # Explicit obstruction checks through the same move method used by the game.
     for start,direction in (((3,6),(0,-1)),((12,6),(0,-1)),((5,9),(0,1))):
         walk(g,start);assert not s.move(*direction),(start,direction)
@@ -60,7 +70,7 @@ def generate(output='/tmp/forgotten-workshop'):
     assert s.studio_companion.state=='sleep'
     shot('miao_sleeping')
     walk(g,(1,7));assert s.rooms.current=='r24';shot('08_safe_exit')
-    print('Real bomb / Grey Pixel / workshop entrance / all inspections / collisions / exit verified:',out)
+    print('Real bomb / Grey Pixel / workshop entrance / all responses / all NOTE pages and scroll positions / recording / collisions / exit verified:',out)
 if __name__=='__main__':
     parser=argparse.ArgumentParser();parser.add_argument('--output',default='/tmp/forgotten-workshop')
     generate(parser.parse_args().output)

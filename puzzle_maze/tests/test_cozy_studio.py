@@ -65,7 +65,7 @@ class CozyStudioTests(unittest.TestCase):
             old={'photo':[12,5],'note':[14,5],'miao':[8,8],'terminal':[21,9]}
             for snapshot in [data['snapshots']['r28'],data['checkpoint']['objects']]:
                 for key,pos in old.items():snapshot[key]['pos']=pos
-                for key in ('studio_todo','studio_food','studio_cushion','studio_reminder'):snapshot.pop(key)
+                for key in ('studio_todo','studio_food','studio_cushion','studio_reminder'):snapshot.pop(key,None)
             path.write_text(json.dumps(data));before=path.read_bytes();loaded=RemasteredSession.load(path)
             self.assertEqual(path.read_bytes(),before);self.assertEqual(loaded.rooms.current,'r28')
             self.assertEqual(loaded.inventory.coins,17);self.assertEqual(loaded.lore,s.lore);self.assertTrue(loaded.grey_pixel)
@@ -95,7 +95,9 @@ class CozyStudioTests(unittest.TestCase):
         g=PreviewGame('kevin-notes',True)
         self.assertEqual(g.scene,GameScene.SCROLL);self.assertEqual(g.reading,'studio_todo')
         self.assertIn('studio_todo',g.session.lore)
-        for page in range(1,4):
+        from puzzle_maze.tests.studio_flow import open_paper
+        open_paper(g)
+        for page in range(1,3):
             g.event(pygame.event.Event(pygame.KEYDOWN,key=pygame.K_RIGHT));self.assertEqual(g.reading_page,page)
             g.event(pygame.event.Event(pygame.KEYDOWN,key=pygame.K_RIGHT,repeat=True));self.assertEqual(g.reading_page,page)
             g.draw(0)

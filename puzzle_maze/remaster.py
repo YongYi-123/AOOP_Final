@@ -163,8 +163,9 @@ class RemasteredSession(AdvancedDungeonSession):
         entries=list(result['snapshots'].items())+[(result['room'],result['checkpoint']['objects'])]
         for room,snapshot in entries:
             objects=self.make_puzzles(self.rooms.rooms[room]).objects
-            if room=='r28':
-                for old_id in set(snapshot)-set(objects):snapshot.pop(old_id)
+            if room=='r28' and data.get('extension',{}).get('remaster',{}).get('studio_revision',0)<9:
+                from puzzle_maze.studio_layout import RETIRED_INTERACTIONS
+                for old_id in RETIRED_INTERACTIONS:snapshot.pop(old_id,None)
             for id,obj in objects.items():
                 if id not in snapshot and obj.data.get('optional'):
                     snapshot[id]=dict(pos=list(obj.pos),active=False,remaining=0,unlocked=False,latched=False)

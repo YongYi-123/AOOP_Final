@@ -13,17 +13,15 @@ from puzzle_maze.studio_notes import pages_for
 class KevinJournalTests(TestCase):
     def test_written_pages_are_first_person_and_fit_the_bitmap_budget(self):
         from puzzle_maze.pixel_font import render
-        g=PreviewGame('developer-room',True)
-        for obj in g.session.puzzles.objects.values():
-            key=obj.data['content_id']
-            if key=='miao_memory':continue  # This is Miao speaking, not a written paper.
-            for page in pages_for(key):
-                body=' '.join(page)
-                self.assertTrue(any(word in body for word in ('I ','my ','My ')),key)
-                self.assertNotIn('Kevin',body,key)
-                self.assertLessEqual(len(page),4)
-                for line in page:
-                    self.assertLessEqual(render('  '+line,33,(255,255,255)).get_width(),732,(key,line))
+        from puzzle_maze.workshop_documents import DOCUMENTS
+        for key,doc in DOCUMENTS.items():
+            text=' '.join(' '.join(page.paragraphs) for page in doc.pages)
+            self.assertTrue(any(word in text for word in ('I ','my ','My ')),key)
+            self.assertNotIn('Kevin',text,key)
+        from puzzle_maze.developer_diaries import DIARY_PAGES
+        for key,pages in DIARY_PAGES.items():
+            for page in pages:
+                for line in page:self.assertLessEqual(render('  '+line,33,(255,255,255)).get_width(),732)
         self.assertGreater(len(pages_for('dev_001')),1)
         self.assertGreater(len(pages_for('dev_002')),1)
 
@@ -31,7 +29,8 @@ class KevinJournalTests(TestCase):
         g=PreviewGame('developer-room',True)
         for key in list(g.session.puzzles.objects):
             g.inspect_key(key)
-            g.event(pygame.event.Event(pygame.KEYDOWN,key=pygame.K_RETURN))
+            from puzzle_maze.tests.studio_flow import close_inspection
+            close_inspection(g)
             g.draw(.2)
             anchor=object_anchor(g.session,key);rect=g.renderer.studio_prompt_rect
             self.assertEqual(g.renderer.studio_prompt_target,key)

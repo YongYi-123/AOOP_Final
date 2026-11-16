@@ -106,3 +106,97 @@ def response_for(content,index=0):
     from puzzle_maze.secret45 import LORE
     title,lines=LORE[content]
     return R(title,' '.join(lines),style='paper' if content=='kevin_photo' else 'screen')
+
+# Brief object discoveries are spoken by the protagonist. These longer records
+# have real written contents; the latest brief asks for Kevin's first-person voice.
+WRITTEN_RECORDS={
+ ('store_aoop',1):(
+  'I once planned an open-world crime simulator called Grand Theft Arcade.',
+  'My prototype featured three streets, two vehicles, and one extremely judgmental pigeon.',
+  'I suspended development after a suspiciously large game company sent a very professionally worded legal warning.',
+  'Maybe I should make a farming game instead.',
+ ),
+ ('store_aoop',2):(
+  'I covered half the board with an ambitious object-oriented design.',
+  'GameObject → Character → Player → LegendaryPlayer → Kevin.',
+  'I crossed out the last two classes.',
+  'Inheritance is easy. Explaining it to Miao Meow is impossible.',
+ ),
+ ('work_crt',1):(
+  'I accidentally swapped the accelerator and brake inputs.',
+  'My test driver reached a maximum speed of three pixels per second.',
+  'I filed the incident under: emotionally devastating.',
+ ),
+ ('work_crt',2):(
+  'I tried repairing the steering system with a paper clip and a rubber band.',
+  'I wrote: Works on my machine.',
+  'It does not work on this machine.',
+ ),
+ ('work_back',1):(
+  'I accidentally gave my weakest enemy 9,999 HP.',
+  'Every playtester lost.',
+  'I labeled my update: Increased difficulty for experienced players.',
+ ),
+ ('work_frozen',1):(
+  'I originally designed difficult missions for this prototype.',
+  'During testing, Miao Meow walked across my keyboard and activated a hidden nap mechanic.',
+  'I decided her nap mechanic was better than my entire original game.',
+ ),
+ ('work_space',1):(
+  'I tried simulating ten thousand enemies on a computer with almost no memory.',
+  'My game achieved one frame every seven seconds.',
+  'I am calling this cinematic pacing.',
+ ),
+ ('lab_terminal',1):(
+  'I compared different processor configurations.',
+  'CPU: Operational','REGISTER FILE: Operational','CACHE: Missed everything',
+  'DEVELOPER: Also missed everything',
+ ),
+ ('lab_terminal',2):(
+  'I saved my final compilation message.',
+  'Build completed with 0 errors and 47 warnings.',
+  'Warnings are just suggestions from an overly dramatic compiler.',
+ ),
+ ('power_cabinet',1):(
+  'CAUSE: Unauthorized modification.','RESPONSIBLE PERSON: Kevin.',
+  'In my defense, it looked much easier in the tutorial.',
+ ),
+ ('power_cabinet',2):(
+  'I left my inspection checklist attached to the cabinet.',
+  'Electrical safety: FAILED.','Fire safety: FAILED.','Cat safety: PASSED.',
+  'I circled the last result three times.',
+ ),
+}
+
+RECORD_OBSERVATIONS={
+ ('store_aoop',1):("There's an abandoned game proposal on this board.","Three streets and a pigeon. Ambitious."),
+ ('store_aoop',2):("Someone crossed out the last two classes in this diagram.","I'll read the explanation before judging."),
+ ('work_crt',1):("This cabinet still has its testing log.","The test drive seems to have gone very slowly."),
+ ('work_crt',2):("There's a steering repair report here.","That really is a paper clip."),
+ ('work_back',1):("There's a balance patch in the testing menu.","I wonder what changed."),
+ ('work_frozen',1):("The test notes mention Miao Meow.","That probably explains the nap."),
+ ('work_space',1):("A performance log is still open.","Those frame timestamps are very far apart."),
+ ('lab_terminal',1):("There's a processor benchmark here.","Even the developer has a status line."),
+ ('lab_terminal',2):("This must be the last compilation.","Forty-seven warnings... optimistic."),
+ ('power_cabinet',1):("There's an incident report in the maintenance display.",),
+ ('power_cabinet',2):("Someone recorded a safety inspection.","One result has been circled very enthusiastically."),
+}
+
+def written_response(content,index):
+    response=response_for(content,index)
+    return Response(response.title,WRITTEN_RECORDS[(content,index)],'paper')
+
+SPOKEN_DETAILS={
+ 'kevin_photo':("Someone wrote on the back of this photograph:","'I asked Miao to pose. She inspected my soldering. I kept the blurry photo. Best review I got all week.'"),
+ 'lab_gpu':('Twin fans, worn contacts, and a very determined repair.','Whoever kept this card alive really wanted one more build.'),
+ 'lab_keyboard':('The label says: NO CATS ON KEYS.','The paw prints suggest the cat had final approval.'),
+ 'lab_duck':('A rubber duck with a tiny staff badge.','I suppose silence counts as excellent code review.'),
+ 'lab_coffee':('That coffee looks older than this entire build.',"The computer is still warm. The mug definitely isn't."),
+ 'studio_food':('Three little cans, all lined up by flavour.',"The labels say they're Miao's favourites.",'Someone clearly took feeding time very seriously.'),
+ 'store_tools':('The 10 mm socket has its own empty compartment.','An impression in the dust suggests Miao borrowed the whole drawer.'),
+ 'store_parts':('Three painted categories: tested, broken, and only works when watched.',"I don't think I trust that third box."),
+ 'store_timebox':('The box is marked BUGS.','Something inside just sneezed.',"I'm going to assume that was a sound effect."),
+ 'store_server':('Two fans, each aimed at the other.',"The server isn't even plugged in.","At least they've got each other."),
+ 'store_breadboard':('An old breadboard, a multimeter, and... a sandwich?',"I can't tell which part was the experiment."),
+ 'store_cables':('This was probably a straight cable once.',"Now it's a very ambitious knot.",'Miao seems to consider it a pillow.'),
+}

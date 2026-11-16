@@ -38,7 +38,8 @@ class StudioRefinementTests(TestCase):
     def test_prototype_inspection_returns_control_to_the_clear_service_aisle(self):
         app=PreviewGame('developer-room',True);app.inspect_key('work_prototype')
         self.assertEqual(app.scene,GameScene.SCROLL);self.assertEqual(app.reading,'work_prototype')
-        key(app,pygame.K_RETURN);p=app.session.player
+        from puzzle_maze.tests.studio_flow import close_inspection
+        close_inspection(app);p=app.session.player
         self.assertEqual((p.x,p.y),(1,10));app.cooldown=0
         app.update(.14,defaultdict(bool,{pygame.K_DOWN:True}));self.assertEqual((p.x,p.y),(1,11))
     def test_preview_restart_and_inspect_do_not_write_real_progress(self):
@@ -59,7 +60,8 @@ class StudioRefinementTests(TestCase):
         with patch('puzzle_maze.workshop_art.render',wraps=render) as lettering:
             art=DeveloperRoomArt();base=art.floor()
         labels=[call.args[0] for call in lettering.call_args_list]
-        self.assertEqual(labels,[])
+        self.assertTrue({'OBJ','ACT','PLY','CPU','RAM','R0'}<=set(labels))
+        self.assertTrue(all(len(label)<=3 for label in labels))
         self.assertLess(sum(base.get_at((150,20))[:3]),600)
         self.assertNotEqual(base.get_at((150,20)),base.get_at((150,125)))
 

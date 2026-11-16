@@ -6,7 +6,7 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest import TestCase
 from unittest.mock import patch
-from puzzle_maze.tests.studio_flow import open_paper
+from puzzle_maze.tests.studio_flow import open_paper,close_inspection
 import pygame
 from puzzle_maze.dev_preview import PreviewGame
 from puzzle_maze.game import GameScene
@@ -16,7 +16,7 @@ from puzzle_maze.studio_interactions import nearby,WALL_NOTES,object_anchor
 class StudioConsistencyTests(TestCase):
     def test_only_single_small_e_is_shown_before_inspection_and_footer_is_floor(self):
         g=PreviewGame('developer-room',True);g.inspect_key('note')
-        g.event(pygame.event.Event(pygame.KEYDOWN,key=pygame.K_RETURN))
+        close_inspection(g)
         with patch.object(g.renderer,'text',wraps=g.renderer.text) as text:
             g.draw(.2);self.assertEqual(text.call_count,0)
         self.assertEqual(g.renderer.studio_prompt.label,'INSPECT')
@@ -28,7 +28,7 @@ class StudioConsistencyTests(TestCase):
         open_paper(g)
         with patch.object(g.renderer,'text',wraps=g.renderer.text) as text:
             g.draw(0);self.assertNotIn('[E/ENTER] INSPECT',[c.args[0] for c in text.call_args_list]);self.assertGreater(len(text.call_args_list),1)
-        g.event(pygame.event.Event(pygame.KEYDOWN,key=pygame.K_RETURN));self.assertEqual(g.scene,GameScene.PLAY)
+        close_inspection(g);self.assertEqual(g.scene,GameScene.PLAY)
     def test_prompt_disappears_out_of_range_and_closest_wins_over_facing(self):
         g=PreviewGame('developer-room',True);p=g.session.player
         p.x,p.y=11,10;g.visual=[11.,10.]

@@ -28,6 +28,7 @@ def cabinet(kind):
         R.rect(s,(110,108,86),(5,52,24,3))
         for x,c in ((10,(151,105,91)),(17,(107,141,137)),(24,(155,145,102))):R.circle(s,c,(x,38),2)
         R.circle(s,(58,61,62),(17,38),1)
+        R.rect(s,(119,125,111),(24,48,6,4));R.line(s,(158,102,76),(25,50),(28,50))
     elif kind=='cab_frozen':
         from puzzle_maze.miao_adapter import guide_frame
         cat=pygame.transform.scale(guide_frame(False,0,sleeping=True),(12,8));s.blit(cat,(12,17))
@@ -57,7 +58,7 @@ def sprite(item):
     k=item.name
     native={'cab_cracked':(36,62),'cab_open':(36,62),'cab_frozen':(36,62),'cab_space':(36,62),
             'prototype':(44,62),'desk':(120,70),'cart':(44,39),
-            'food':(28,25),'cushion':(40,21),'server':(26,46)}
+            'food':(22,19),'cushion':(40,21),'server':(26,46)}
     s=pygame.Surface(native.get(k,item.bounds[2:]),pygame.SRCALPHA)
     if k.startswith('cab_'):
         s.blit(cabinet(k),(0,0))
@@ -83,7 +84,8 @@ def sprite(item):
         R.rect(s,(151,143,112),(89,57,7,2))
         monitor(s,18,2)
         R.rect(s,(111,119,109),(79,11,25,18));R.rect(s,(20,42,44),(82,14,16,10))
-        R.lines(s,(113,165,136),False,[(83,20),(86,20),(88,16),(91,22),(94,18),(96,18)])
+        R.rect(s,(113,165,136),(83,17,12,6));R.rect(s,(113,165,136),(83,15,5,2))
+        R.line(s,(45,77,73),(85,20),(92,20))
         for yy in (16,22):R.circle(s,(56,66,63),(101,yy),1)
         R.rect(s,(66,81,75),(44,33,28,10));R.rect(s,(126,137,116),(46,35,24,6),1)
         R.line(s,(89,98,95),(114,35),(114,13),2)
@@ -154,8 +156,21 @@ def sprite(item):
         for y in (8,10,12):R.line(s,(46,76,79),(3,y),(24,y))
         R.lines(s,(137,120,88),False,[(23,8),(27,14),(23,20),(16,19)])
     elif k=='food':
-        R.rect(s,WOOD,(0,3,28,20));R.rect(s,INK,(3,6,22,14))
-        for x in (5,12,19):R.rect(s,(154,162,123),(x,9,5,9));R.rect(s,(213,190,137),(x,11,5,2))
+        # An open cat-eared cubby: the tins are the subject, never hidden by a door.
+        R.rect(s,(111,144,138),(0,2,22,16),border_radius=2)
+        R.polygon(s,(145,166,150),[(1,3),(3,0),(6,3)])
+        R.polygon(s,(145,166,150),[(16,3),(19,0),(21,3)])
+        R.rect(s,(29,48,51),(2,5,18,11));R.line(s,(178,187,157),(1,4),(20,4))
+        for x,color in ((3,(205,151,132)),(9,(151,198,173)),(15,(216,194,139))):
+            R.rect(s,(117,139,136),(x,6,5,10))
+            R.rect(s,color,(x,8,5,7));R.line(s,(224,230,210),(x,6),(x+4,6))
+            R.line(s,(176,190,174),(x,7),(x+4,7));R.line(s,(198,209,186),(x,15),(x+4,15))
+            R.line(s,(84,111,110),(x,9),(x,14))
+            # Tiny paw-print labels distinguish the three flavours.
+            for dx,dy in ((1,10),(3,10),(2,12)):s.fill((73,95,90),(x+dx,dy,1,1))
+            s.fill((73,95,90),(x+1,13,3,1))
+        R.rect(s,(93,125,122),(1,16,20,2));R.line(s,(164,184,160),(2,16),(19,16))
+        for x in (2,18):s.fill((60,82,85),(x,18,2,1))
     elif k=='cushion':
         R.ellipse(s,(80,61,51),(0,6,40,15));R.ellipse(s,(180,137,126),(1,2,38,16));R.ellipse(s,(210,181,147),(5,4,30,10))
         R.rect(s,(127,150,124),(15,3,15,7));R.line(s,(189,199,153),(17,6),(28,6))
@@ -189,7 +204,7 @@ def sprite(item):
     out.blit(s,(0,0));return out
 
 class WorkshopArt:
-    revision='warehouse-workshop-8'
+    revision='workshop-stories-9'
     def __init__(self):self.base=None;self.cached=None;self.parts={};self.masks={}
     def floor(self):
         if self.base is not None:return self.base
@@ -321,6 +336,8 @@ class WorkshopArt:
             R.rect(s,(166,191,151),box,1)
         elif key=='power_cabinet':
             R.circle(s,(196,145,89) if blink else (79,77,61),(290,14),1)
+        elif key=='repair_log':
+            R.rect(s,(143,182,156),(88,158,10,6),1)
         elif key=='kevin_note':
             R.rect(s,(124,159,149),(230,74,25,11),1)
         elif key=='work_prototype':

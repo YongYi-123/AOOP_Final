@@ -4,7 +4,7 @@ os.environ.setdefault('SDL_VIDEODRIVER','dummy');os.environ.setdefault('SDL_AUDI
 from collections import deque
 from unittest import TestCase
 from unittest.mock import patch
-from puzzle_maze.tests.studio_flow import open_paper
+from puzzle_maze.tests.studio_flow import open_paper,close_inspection
 import pygame
 from puzzle_maze.dev_preview import PreviewGame
 from puzzle_maze.game import GameScene
@@ -14,7 +14,7 @@ class WorkshopTests(TestCase):
     def test_four_different_arcade_cabinets_replace_domestic_furniture(self):
         g=PreviewGame('developer-room',True);names={f.name for f in FURNITURE}
         self.assertFalse(names&{'sofa','bookshelf','table','plant'})
-        cabinets=[f for f in FURNITURE if f.name.startswith('cab_') or f.name=='prototype']
+        cabinets=[f for f in FURNITURE if f.name.startswith('cab_')]
         self.assertEqual(len(cabinets),4)
         frames={pygame.image.tobytes(g.renderer.developer_art.sprite(f),'RGBA') for f in cabinets}
         self.assertEqual(len(frames),4)
@@ -34,11 +34,10 @@ class WorkshopTests(TestCase):
                 self.assertEqual(nearby(s)[0],obj.id)
                 g.event(pygame.event.Event(pygame.KEYDOWN,key=key));self.assertEqual(g.scene,GameScene.SCROLL)
                 self.assertEqual(g.reading,obj.data['content_id'])
-                open_paper(g)
-                g.event(pygame.event.Event(pygame.KEYDOWN,key=pygame.K_RETURN));self.assertEqual(g.scene,GameScene.PLAY)
+                close_inspection(g);self.assertEqual(g.scene,GameScene.PLAY)
     def test_exact_prompt_no_names_before_e_and_no_repeated_enter(self):
         g=PreviewGame('developer-room',True);g.inspect_key('work_crt')
-        g.event(pygame.event.Event(pygame.KEYDOWN,key=pygame.K_RETURN))
+        close_inspection(g)
         with patch.object(g.renderer,'text',wraps=g.renderer.text) as text:
             g.draw(.2);self.assertEqual(text.call_count,0)
         self.assertEqual(g.renderer.studio_prompt.key,'E/ENTER')
@@ -61,7 +60,7 @@ class WorkshopTests(TestCase):
 
     def test_long_prompt_renders_without_ellipsis_at_normal_resolution(self):
         g=PreviewGame('developer-room',True);g.inspect_key('work_crt')
-        g.event(pygame.event.Event(pygame.KEYDOWN,key=pygame.K_RETURN));g.draw(0)
+        close_inspection(g);g.draw(0)
         g.draw(.2)
         from ui import PromptBubble
         reference=PromptBubble('INSPECT',key='E/ENTER')

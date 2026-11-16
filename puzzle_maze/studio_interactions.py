@@ -15,7 +15,7 @@ def nearby(session):
     label='Sit' if key=='sofa' else 'Read Developer Log '+content[-3:] if content.startswith('dev_') else LABELS.get(content,'Inspect')
     return key,label
 
-# Exactly three purposeful notes: two fault tags and one clipboard.
+# Exactly three paper props: one fault tag, one notebook, and one clipboard.
 WALL_NOTES={}
 PAPER_NOTES={'work_crt':(54,85),'note':(238,77),'studio_todo':(283,77)}
 
@@ -23,7 +23,7 @@ DISPLAY_POINTS={'photo':(200,74),'note':(238,77),'gpu':(258,81),'keyboard':(215,
 
 def object_anchor(session,key):
     from puzzle_maze.studio_layout import FURNITURE
-    machine={'work_crt':'cab_cracked','work_back':'cab_open','work_frozen':'cab_frozen','work_space':'cab_space','work_prototype':'prototype','note':'desk','store_tools':'toolbox','store_parts':'crates','store_timebox':'shelf','store_server':'server','store_breadboard':'electronics','store_cables':'wire_spool'}
+    machine={'work_crt':'cab_cracked','work_back':'cab_open','work_frozen':'cab_frozen','work_space':'cab_space','work_prototype':'prototype','store_tools':'toolbox','store_parts':'crates','store_timebox':'shelf','store_server':'server','store_breadboard':'electronics','store_cables':'wire_spool'}
     if key=='store_aoop':return 112,12
     if key=='power_cabinet':return 280,18
     if key=='terminal':return 220,60
