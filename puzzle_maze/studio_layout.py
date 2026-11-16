@@ -21,6 +21,8 @@ FURNITURE=(
  Furniture('toolbox',(20,188,30,29),(22,206,26,12)),
  Furniture('crates',(55,192,32,25),(57,206,28,12)),
  Furniture('spare_crt',(89,193,25,25),(91,206,21,12)),
+ Furniture('electronics',(171,205,35,25),(173,218,31,12)),
+ Furniture('wire_spool',(213,207,28,22),(215,218,24,12)),
  Furniture('shelf',(270,203,30,29),(272,218,26,14)),
  Furniture('cushion',(269,181,28,15),(272,189,22,7)),
 )
@@ -28,6 +30,7 @@ POSITIONS={'photo':(12,5),'note':(14,5),'miao':MIAO_TILE,'gpu':(15,5),'keyboard'
  'dev_001':(3,6),'dev_002':(5,6),'dev_003':(8,6),'dev_004':(16,3),'dev_005':(5,11),'dev_006':(10,3),'dev_007':(12,3),
  'lab_duck':(15,4),'lab_coffee':(18,5),'lab_button':(4,10),
  'studio_todo':(18,3),'studio_food':(17,9),'studio_cushion':(17,11),'studio_reminder':(14,3),
+ 'store_aoop':(6,3),'store_breadboard':(11,13),'store_cables':(14,13),
  'store_tools':(2,12),'store_parts':(4,12),'store_timebox':(17,13),'store_server':(17,7),
  'work_crt':(3,5),'work_back':(5,5),'work_frozen':(8,5),'work_prototype':(2,10)}
 
@@ -40,12 +43,12 @@ def tile_blocked(x,y,footprints=None):
 
 def configure(room):
     from puzzle_maze.build_dungeon import obj
-    room.update(name="The Forgotten Arcade Workshop",spawn=list(ENTRY),studio_revision=7,decorations=[],
+    room.update(name="The Forgotten Arcade Workshop",spawn=list(ENTRY),studio_revision=8,decorations=[],
                 architecture='studio',hint='The western door leads back. There is no hurry here.',
                 tiles=['#'*20]*3+['#'+'.'*18+'#' for _ in range(11)]+['#'*20],
                 solid_footprints=[list(f.footprint) for f in FURNITURE])
     for data in room['objects']:data['pos']=list(POSITIONS[data['id']])
-    for key in ('studio_todo','studio_food','studio_cushion','studio_reminder','work_crt','work_back','work_frozen','work_prototype','store_tools','store_parts','store_timebox','store_server'):
+    for key in ('studio_todo','studio_food','studio_cushion','studio_reminder','work_crt','work_back','work_frozen','work_prototype','store_tools','store_parts','store_timebox','store_server','store_aoop','store_breadboard','store_cables'):
         room['objects'].append(obj('mystery_scroll',key,POSITIONS[key],content_id=key,optional=True))
 
 
@@ -76,7 +79,7 @@ def safe_position(pos,room):
 
 def migrate_save(data,room):
     extra=data.get('extension',{}).get('remaster',{})
-    if extra.get('studio_revision',0)==7:return
+    if extra.get('studio_revision',0)==8:return
     snapshots=[]
     if 'r28' in data.get('snapshots',{}):snapshots.append(data['snapshots']['r28'])
     current=data.get('room')=='r28'

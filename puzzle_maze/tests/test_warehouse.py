@@ -55,6 +55,25 @@ class WarehouseTests(TestCase):
         self.assertGreater(red,green);self.assertGreater(green,blue)
         self.assertNotEqual(paper.get_at((30,20)),paper.get_at((1,1)))
 
+    def test_revision_seven_gains_new_optional_notes_without_losing_progress(self):
+        g=PreviewGame('developer-room',True);s=g.session;s.read_lore('kevin_photo')
+        with TemporaryDirectory() as directory:
+            path=Path(directory)/'old-layout.json';s.save(path);data=json.loads(path.read_text())
+            data['extension']['remaster']['studio_revision']=7
+            data['player']=[11,13];data['checkpoint']['pos']=[11,13]
+            new_keys=('store_aoop','store_breadboard','store_cables')
+            for snapshot in (data['snapshots']['r28'],data['checkpoint']['objects']):
+                for key in new_keys:snapshot.pop(key)
+            path.write_text(json.dumps(data));before=path.read_bytes()
+            loaded=type(s).load(path)
+            self.assertEqual(loaded.rooms.current,'r28');self.assertEqual(loaded.lore,s.lore)
+            self.assertTrue(loaded.grey_pixel);self.assertTrue(loaded.lab_memory_seen)
+            self.assertTrue(loaded.can_enter(loaded.player.x,loaded.player.y))
+            self.assertTrue(set(new_keys)<=loaded.puzzles.objects.keys())
+            loaded.save(path);backup=path.with_name(path.name+'.pre-studio-v8')
+            self.assertEqual(backup.read_bytes(),before)
+            loaded.save(path);self.assertEqual(backup.read_bytes(),before)
+
     def test_revision_five_player_in_moved_server_is_relocated_and_backup_preserved(self):
         g=PreviewGame('developer-room',True);s=g.session
         with TemporaryDirectory() as directory:

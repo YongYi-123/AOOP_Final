@@ -113,6 +113,25 @@ def sprite(item):
         R.rect(s,(185,173,133),(6,16,7,4));R.line(s,(95,100,86),(7,18),(11,18))
         R.rect(s,(61,82,80),(5,1,9,7));R.circle(s,(142,155,128),(9,5),2,1)
         R.rect(s,(117,111,100),(17,2,8,6));R.line(s,(161,148,112),(19,2),(19,7))
+    elif k=='electronics':
+        # Open project case: breadboard, meter, probes, solder spool and a sandwich.
+        R.rect(s,(50,64,69),(1,9,33,14));R.rect(s,(102,117,112),(2,10,31,12),1)
+        R.rect(s,(151,156,134),(3,1,29,10));R.rect(s,(74,94,88),(5,3,25,6))
+        R.rect(s,(208,206,171),(4,12,15,8))
+        for y in (14,17):
+            for x in range(6,18,3):s.fill((88,108,104),(x,y,1,1))
+        R.lines(s,(141,119,91),False,[(7,14),(9,11),(13,11),(14,17)])
+        R.rect(s,(155,139,85),(22,11,9,10));R.rect(s,(39,64,65),(24,13,5,3))
+        R.circle(s,(53,72,72),(26,18),2)
+        R.lines(s,(94,133,131),False,[(25,21),(26,23),(20,23),(19,19)])
+        R.polygon(s,(185,166,117),[(6,4),(10,1),(15,5)]);R.line(s,(104,129,92),(8,4),(13,4))
+        for x in (5,29):R.circle(s,(34,44,49),(x,23),1)
+    elif k=='wire_spool':
+        R.rect(s,(71,86,88),(1,15,26,5));R.ellipse(s,(115,126,116),(0,10,28,10))
+        R.ellipse(s,(75,105,103),(2,2,24,14));R.ellipse(s,(132,140,119),(2,0,24,10))
+        R.ellipse(s,(33,57,63),(8,2,12,5));R.line(s,(162,157,118),(7,13),(22,13))
+        for y in (8,10,12):R.line(s,(46,76,79),(3,y),(24,y))
+        R.lines(s,(137,120,88),False,[(23,8),(27,14),(23,20),(16,19)])
     elif k=='food':
         R.rect(s,WOOD,(0,3,28,20));R.rect(s,INK,(3,6,22,14))
         for x in (5,12,19):R.rect(s,(154,162,123),(x,9,5,9));R.rect(s,(213,190,137),(x,11,5,2))
@@ -149,7 +168,7 @@ def sprite(item):
     out.blit(s,(0,0));return out
 
 class WorkshopArt:
-    revision='warehouse-workshop-7'
+    revision='warehouse-workshop-8'
     def __init__(self):self.base=None;self.cached=None;self.parts={};self.masks={}
     def floor(self):
         if self.base is not None:return self.base
@@ -179,24 +198,39 @@ class WorkshopArt:
             R.line(s,(72,76,77),(x+4,y+4),(x+14,y+5))
         for x in (11,305):R.rect(s,(35,41,46),(x,42,5,198))
         R.rect(s,(33,39,43),(12,233,296,7))
-        # Recessed warehouse shutter: corrugation, steel guide rails and a worn threshold.
-        R.rect(s,(26,33,39),(5,101,27,46));R.rect(s,(86,99,101),(6,102,25,5))
-        for x in (6,29):R.rect(s,(115,123,119),(x,105,2,38))
-        R.rect(s,(13,22,29),(9,109,20,32))
-        for y in range(107,120,3):
-            R.line(s,(88,101,104),(9,y),(28,y));R.line(s,(45,58,63),(9,y+1),(28,y+1))
-        R.rect(s,(53,65,69),(8,140,23,5));R.line(s,(143,143,111),(9,141),(29,141))
-        for x in range(10,30,6):R.line(s,(39,48,51),(x,141),(x+3,144),2)
-        R.line(s,(73,86,90),(27,122),(27,132));R.circle(s,(139,136,100),(26,129),1)
-        R.rect(s,(40,60,63),(8,96,19,5));R.line(s,(112,168,146),(11,98),(23,98))
-        R.lines(s,(103,112,108),False,[(32,105),(35,113),(33,117),(36,121)],1)
+        # The shutter is set into the west wall, sharing its steel and concrete.
+        R.rect(s,(35,41,46),(5,44,12,189))
+        R.rect(s,(24,33,39),(8,100,24,47))
+        R.rect(s,(49,61,66),(7,100,25,4));R.line(s,(76,87,89),(8,100),(31,100))
+        for x in (8,29):R.rect(s,(60,74,79),(x,104,2,39))
+        R.rect(s,(12,22,29),(11,108,18,33))
+        for y in range(105,120,3):
+            R.line(s,(78,94,98),(11,y),(28,y));R.line(s,(39,54,62),(11,y+1),(28,y+1))
+        R.rect(s,(48,61,65),(10,141,21,3))
+        for x in range(12,29,6):R.line(s,(106,110,94),(x,141),(x+2,143))
+        R.line(s,(75,90,94),(27,123),(27,132));s.fill((128,130,105),(26,129,1,1))
+        R.line(s,(49,62,66),(32,99),(32,147))
+        R.rect(s,(36,54,59),(8,94,20,5));R.line(s,(99,151,137),(12,96),(23,96))
         # Overhead conduit, dead fluorescent tube and exposed fuse board.
         R.lines(s,(107,111,108),False,[(18,19),(170,19),(170,46)],2)
         R.rect(s,(34,40,45),(186,12,105,25))
         for x in (192,212,232):
             R.rect(s,(84,91,94),(x,17,14,15));R.rect(s,(31,36,41),(x+3,20,8,5))
             R.lines(s,(122,99,78),False,[(x+6,30),(x+9,39),(x+1,45)],1)
-        R.rect(s,(32,38,42),(72,11,62,7));R.rect(s,(160,174,169),(76,13,53,2))
+        # A chalky AOOP ownership diagram, pinned over old screw holes.
+        R.rect(s,(84,97,94),(55,7,123,36));R.rect(s,(27,48,47),(57,9,119,32))
+        R.line(s,(136,146,124),(56,8),(176,8))
+        s.blit(render('AOOP',8,(167,185,156)),(61,12))
+        s.blit(render('CAT > UML',8,(136,157,140)),(117,12))
+        for x,label,w in ((61,'GAME',27),(103,'ROOM',27),(148,'CAT',22)):
+            R.rect(s,(119,150,134),(x,24,w,12),1)
+            s.blit(render(label,8,(181,194,158)),(x+2,27))
+        for x in (89,132):
+            R.line(s,(155,174,147),(x,29),(x+11,29))
+            R.lines(s,(155,174,147),False,[(x+8,27),(x+11,29),(x+8,31)])
+        for x in (75,94,144):R.line(s,(59,82,73),(x,39),(x+7,39))
+        R.rect(s,(64,79,77),(63,43,109,3));R.rect(s,(180,184,147),(154,43,7,2))
+        R.rect(s,(36,44,48),(84,1,61,5));R.line(s,(155,169,159),(88,2),(141,2))
         # Loose leads loop around the cabinets and the testing bench.
         for color,points in (
             ((31,36,40),[(53,99),(57,113),(85,116),(100,108),(141,111),(160,123),(182,119),(190,106)]),
@@ -209,8 +243,8 @@ class WorkshopArt:
         # A patched coat, a clock that lost its hands, and a very carefully parked broom.
         R.rect(s,(112,118,105),(37,16,3,3));R.polygon(s,(81,97,94),[(36,21),(43,21),(48,30),(44,32),(43,41),(35,41),(34,30),(30,31)])
         R.line(s,(128,139,119),(38,24),(38,39));R.rect(s,(137,123,94),(39,34,3,3))
-        R.circle(s,(103,114,111),(158,23),7);R.circle(s,(37,49,55),(158,23),5)
-        for x,y in ((158,19),(158,27),(154,23),(162,23)):s.fill((155,155,129),(x,y,1,1))
+        R.circle(s,(103,114,111),(18,24),7);R.circle(s,(37,49,55),(18,24),5)
+        for x,y in ((18,20),(18,28),(14,24),(22,24)):s.fill((155,155,129),(x,y,1,1))
         R.line(s,(125,111,82),(300,158),(293,191),2);R.polygon(s,(116,123,104),[(290,188),(298,190),(299,197),(286,195)])
         for x in (289,292,295):R.line(s,(62,76,77),(x,191),(x-1,194))
         # Only flat debris on the open floor: all equipment has matching furniture bounds.

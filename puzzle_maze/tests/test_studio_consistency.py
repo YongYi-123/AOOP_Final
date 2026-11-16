@@ -20,7 +20,7 @@ class StudioConsistencyTests(TestCase):
             g.draw(.2);self.assertEqual(text.call_count,0)
         self.assertEqual(g.renderer.studio_prompt.label,'INSPECT')
         self.assertTrue(pygame.Rect(0,0,320,240).contains(g.renderer.studio_prompt_rect))
-        footer=pygame.Rect(120,208,130,32)
+        footer=pygame.Rect(120,208,40,32)
         self.assertEqual(pygame.image.tobytes(g.renderer.surface.subsurface(footer),'RGB'),pygame.image.tobytes(g.renderer.developer_art.floor().subsurface(footer),'RGB'))
         g.event(pygame.event.Event(pygame.KEYDOWN,key=pygame.K_e));self.assertEqual(g.scene,GameScene.SCROLL)
         with patch.object(g.renderer,'text',wraps=g.renderer.text) as text:

@@ -21,7 +21,8 @@ DISPLAY_POINTS={'photo':(200,74),'note':(238,77),'gpu':(258,81),'keyboard':(215,
 
 def object_anchor(session,key):
     from puzzle_maze.studio_layout import FURNITURE
-    machine={'work_crt':'cab_cracked','work_back':'cab_open','work_frozen':'cab_frozen','work_prototype':'prototype','terminal':'prototype','store_tools':'toolbox','store_parts':'crates','store_timebox':'shelf','store_server':'server'}
+    machine={'work_crt':'cab_cracked','work_back':'cab_open','work_frozen':'cab_frozen','work_prototype':'prototype','terminal':'prototype','store_tools':'toolbox','store_parts':'crates','store_timebox':'shelf','store_server':'server','store_breadboard':'electronics','store_cables':'wire_spool'}
+    if key=='store_aoop':return 112,12
     if key=='miao':return session.studio_companion.x,session.studio_companion.y-18
     if key in machine:
         f=next(f for f in FURNITURE if f.name==machine[key]);return (f.bounds[0]+f.bounds[2]//2,f.bounds[1])

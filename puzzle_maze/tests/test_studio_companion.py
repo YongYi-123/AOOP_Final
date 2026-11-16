@@ -44,7 +44,8 @@ class CompanionTests(TestCase):
             for dx,dy in ((1,0),(-1,0),(0,1),(0,-1)):
                 tile=(x+dx,y+dy)
                 if tile not in seen and s.can_enter(*tile):seen.add(tile);q.append(tile)
-        self.assertGreater(len(seen),155)
+        self.assertGreater(len(seen),145)
+        self.assertTrue(all((x,y) in seen for x in range(5,16) for y in range(7,10)))
         self.assertTrue({(1,7),(3,13),(10,12),(16,13),(10,7)}<=seen)
 
     def test_miao_can_yield_if_player_steps_into_her_position(self):

@@ -16,10 +16,13 @@ LORE.update(DIARIES)
 from puzzle_maze.studio_notes import NOTES
 LORE.update(NOTES)
 LORE.update({
- 'store_tools':('THE MISSING SOCKET',('8 mm. 10 mm. 12 mm.','The 10 mm slot is empty.','A note blames gravity.','Gravity has not replied.')),
- 'store_parts':('PARTS SORTING SYSTEM',('Three boxes: GOOD, BAD,','EMOTIONALLY UNAVAILABLE.','Every screw is in box 3.','A fourth box holds hope.')),
- 'store_timebox':('DELIVERY / TEMPORAL PARTS',('DO NOT OPEN UNTIL YESTERDAY.','The parcel is still sealed.','Its delivery slip is dated','next Tuesday.')),
- 'store_server':('THE BACKUP SERVER',('UPTIME: 0 DAYS, 913 NIGHTS.','One folder: FINAL_FINAL.','A second fan cools the first.','Neither is taking a break.')),
+ 'store_tools':('THE MISSING 10 MM SOCKET',('Bought five 10 mm sockets.','All five disappeared.','Kevin bought a sixth.','Miao is sitting on it.')),
+ 'store_parts':('PARTS SORTING SYSTEM',('BOX A: WORKING PARTS.','BOX B: BROKEN PARTS.','BOX C: PARTS THAT WORK','ONLY WHEN KEVIN WATCHES.')),
+ 'store_timebox':('THE BUG BOX',('DO NOT OPEN. CONTAINS BUGS.','Kevin meant software bugs.','The box just sneezed.','Miao has resigned.')),
+ 'store_server':('THE BACKUP SERVER',('Fan 1 cools Fan 2.','Fan 2 cools Fan 1.','The server is unplugged.','Both fans got promoted.')),
+ 'store_aoop':('AOOP / OWNERSHIP DIAGRAM',('Game owns Room.','Room owns Cat.','Cat owns the keyboard.','Kevin owns the bugs.')),
+ 'store_breadboard':('THE BREADBOARD EXPERIMENT',('Breadboard has no bread.','Kevin added a sandwich.','The circuit still failed.','Lunch test: PASSED.')),
+ 'store_cables':('CABLE MANAGEMENT',('IN: ONE STRAIGHT CABLE.','OUT: ONE ROUND CABLE.','Kevin calls this progress.','Miao calls it a pillow.')),
  'work_crt':('THE CRACKED CRT',('A tiny screen fracture.','Kevin marked the fault:','DO NOT FIX WITH A HAMMER.','The hammer is missing.')),
  'work_back':('OPEN SERVICE PANEL',('Each wire has a label.','One says: DOOR CHIME.','Another: NOT DOOR CHIME.','Both lead to the same bell.')),
  'work_frozen':('PAUSED FOREVER',('The score is still zero.','The machine reports:','PLAYER TWO IS A CAT.','WAITING FOR THUMBS.')),
