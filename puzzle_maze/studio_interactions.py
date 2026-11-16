@@ -38,10 +38,25 @@ def draw_prompt(renderer,session):
     from ui import PromptBubble
     from puzzle_maze.studio_layout import FURNITURE
     if not hasattr(renderer,'studio_prompt'):
-        renderer.studio_prompt=PromptBubble('INSPECT',key='E/ENTER')
+        class ObjectPrompt(PromptBubble):
+            def place(self,avoid=(),below_first=False):
+                # Keep every candidate beside the inspected object. The shared
+                # avatar placement can drift across a crowded workshop.
+                ax,ay=self.anchor;w,h=self.frames[0].get_size()
+                options=[]
+                for below in (False,True):
+                    for shift in (0,-12,12):
+                        rect=pygame.Rect(round(ax-w/2+shift),round(ay+6 if below else ay-h-6),w,h).clamp(self.SAFE)
+                        overlap=sum(rect.clip(obstacle).width*rect.clip(obstacle).height for obstacle in avoid)
+                        options.append((overlap,abs(rect.centerx-ax)+abs(rect.centery-ay),below,rect))
+                _,_,below,rect=min(options,key=lambda option:option[:3])
+                self._rect=rect;self._tail_up=below
+                return rect,below
+        renderer.studio_prompt=ObjectPrompt('INSPECT',key='E/ENTER')
         renderer.studio_prompt.SAFE=pygame.Rect(2,2,316,232)
     prompt=renderer.studio_prompt;target=nearby(session);p=session.player
-    anchor=(p.x*16+8,p.y*16+16-prompt.HEAD_GAP) if target else None
+    anchor=object_anchor(session,target[0]) if target else None
+    renderer.studio_prompt_target=target[0] if target else None
     prompt.update(getattr(renderer,'frame_dt',0),anchor,'INSPECT' if target else None)
     obstacles=[pygame.Rect(f.bounds) for f in FURNITURE]
     obstacles.append(pygame.Rect(p.x*16,p.y*16-4,16,20))

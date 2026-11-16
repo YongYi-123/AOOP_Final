@@ -26,10 +26,10 @@ class GreyPixelReveal:
                 a=i*math.tau/12+t*.35;d=27+progress*19
                 x=int(160+math.cos(a)*d);y=int(94+math.sin(a)*d)
                 r.rect(s,(122,212,186),(x,y,2,2))
-        renderer.text('MAP BOUNDARY ANOMALY' if t<2.2 else 'SECRET ITEM 03 / 03',53,24,(132,218,196),max_width=260)
+        renderer.centered_text('MAP BOUNDARY ANOMALY' if t<2.2 else 'SECRET ITEM 03 / 03',24,(132,218,196),max_width=260)
         if t>=2.2:
-            renderer.text('GREY PIXEL',82,145,(246,207,134),max_width=230)
-            renderer.text('DEBUG LAYER DISCOVERED.',28,177,(231,230,217),max_width=280)
-            renderer.text('ORIGINAL MAP RESTORED.',28,192,(231,230,217),max_width=280)
-        else:renderer.text('Something does not belong.',34,183,(215,223,219),max_width=270)
-        renderer.text('ENTER / SPACE: Continue',37,221,(154,188,185),max_width=270)
+            renderer.centered_text('GREY PIXEL',145,(246,207,134),max_width=230)
+            renderer.centered_text('DEBUG LAYER DISCOVERED.',177,(231,230,217),max_width=280)
+            renderer.centered_text('ORIGINAL MAP RESTORED.',192,(231,230,217),max_width=280)
+        else:renderer.centered_text('Something does not belong.',183,(215,223,219),max_width=270)
+        renderer.centered_text('ENTER / SPACE: Continue',221,(154,188,185),max_width=270)

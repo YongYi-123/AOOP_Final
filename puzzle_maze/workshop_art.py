@@ -198,19 +198,19 @@ class WorkshopArt:
             R.line(s,(72,76,77),(x+4,y+4),(x+14,y+5))
         for x in (11,305):R.rect(s,(35,41,46),(x,42,5,198))
         R.rect(s,(33,39,43),(12,233,296,7))
-        # The shutter is set into the west wall, sharing its steel and concrete.
-        R.rect(s,(35,41,46),(5,44,12,189))
-        R.rect(s,(24,33,39),(8,100,24,47))
-        R.rect(s,(49,61,66),(7,100,25,4));R.line(s,(76,87,89),(8,100),(31,100))
-        for x in (8,29):R.rect(s,(60,74,79),(x,104,2,39))
-        R.rect(s,(12,22,29),(11,108,18,33))
-        for y in range(105,120,3):
-            R.line(s,(78,94,98),(11,y),(28,y));R.line(s,(39,54,62),(11,y+1),(28,y+1))
-        R.rect(s,(48,61,65),(10,141,21,3))
-        for x in range(12,29,6):R.line(s,(106,110,94),(x,141),(x+2,143))
-        R.line(s,(75,90,94),(27,123),(27,132));s.fill((128,130,105),(26,129,1,1))
-        R.line(s,(49,62,66),(32,99),(32,147))
-        R.rect(s,(36,54,59),(8,94,20,5));R.line(s,(99,151,137),(12,96),(23,96))
+        # Golden Age puts its narrow side-view door at x=0, flush with the wall.
+        # Reuse that exact silhouette, recoloured as old warehouse steel.
+        host=str(Path(__file__).resolve().parents[1]/'arcade_lobby')
+        if host not in sys.path:sys.path.append(host)
+        from golden_age_art import door
+        image=pygame.transform.scale(door(),(16,44))
+        for x in range(16):
+            for y in range(44):
+                red,green,blue,alpha=image.get_at((x,y))
+                shade=(red+green+blue)//3
+                image.set_at((x,y),(int(shade*.65),int(shade*.8),int(shade*.86),alpha))
+        R.rect(s,(35,41,46),(0,44,16,189))
+        s.blit(image,(0,104))
         # Overhead conduit, dead fluorescent tube and exposed fuse board.
         R.lines(s,(107,111,108),False,[(18,19),(170,19),(170,46)],2)
         R.rect(s,(34,40,45),(186,12,105,25))

@@ -9,13 +9,15 @@ BOLD_FONT_PATH = FONT_PATH.with_name('DejaVuSans-Bold.ttf')
 class NativeText:
     def __init__(self):
         self.commands=[]
+        self.alignments={}
         self.fonts={}
         self.rects=[]
 
     def clear(self):
-        self.commands.clear()
+        self.commands.clear();self.alignments.clear()
 
-    def queue(self,text,x,y,color,title=False,max_width=None,small=False):
+    def queue(self,text,x,y,color,title=False,max_width=None,small=False,align="left"):
+        if align!='left':self.alignments[len(self.commands)]=align
         self.commands.append((str(text),x,y,color,8 if small else 24 if title else 11,max_width))
 
     def font(self,size,bold=False):
@@ -27,11 +29,12 @@ class NativeText:
 
     def present(self,target,origin,scale):
         self.rects=[]
-        for text,x,y,color,base,max_width in self.commands:
+        for index,(text,x,y,color,base,max_width) in enumerate(self.commands):
             px=max(0,int(origin[0]+x*scale));py=max(0,int(origin[1]+y*scale))
             size=max(8,int(base*scale))
             font=self.font(size,base==24)
-            width=max(1,target.get_width()-px-4)
+            centered=self.alignments.get(index)=='center'
+            width=max(1,target.get_width()-2*origin[0]-4 if centered else target.get_width()-px-4)
             if max_width is not None:width=min(width,max(1,int(max_width*scale)))
             img=pixel_font.render(text,size,color)
             if base==24:
@@ -44,5 +47,6 @@ class NativeText:
                 img=pixel_font.render(text,size,color)
             if img.get_height()>target.get_height():continue
             py=min(py,max(0,target.get_height()-img.get_height()))
+            if centered:px=round(origin[0]+x*scale-img.get_width()/2)
             rect=img.get_rect(topleft=(px,py))
             target.blit(img,(px,py));self.rects.append(rect)
