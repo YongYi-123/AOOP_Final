@@ -39,7 +39,14 @@ def generate(output='/tmp/forgotten-workshop'):
         shot('inspect_'+obj.id+'_prompt')
         key(pygame.K_RETURN if i%2 else pygame.K_e)
         assert g.scene==GameScene.SCROLL and g.reading==obj.data['content_id'],obj.id
-        shot('inspect_'+obj.id+'_open');key(pygame.K_RETURN)
+        g.update(.4);shot('inspect_'+obj.id+'_description')
+        while g.inspection_intro is not None:key(pygame.K_RETURN)
+        shot('inspect_'+obj.id+'_open')
+        from puzzle_maze.studio_notes import pages_for
+        for page in range(1,len(pages_for(g.reading))):
+            key(pygame.K_RIGHT);assert g.reading_page==page
+            shot('inspect_'+obj.id+'_page_'+str(page+1))
+        key(pygame.K_RETURN)
     # Explicit obstruction checks through the same move method used by the game.
     for start,direction in (((3,6),(0,-1)),((12,6),(0,-1)),((5,9),(0,1))):
         walk(g,start);assert not s.move(*direction),(start,direction)

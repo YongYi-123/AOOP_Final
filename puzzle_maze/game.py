@@ -50,6 +50,7 @@ class Game:
         self.grey_reveal=GreyPixelReveal()
         from puzzle_maze.treasury_scene import TreasuryReveal
         self.treasury_reveal=TreasuryReveal();self.treasury_seen=False
+        self.inspection_intro=None
         self.reading_page=0
         self.reading='coming_soon'
         self.toast='';self.toast_time=0;self.fade=0;self.autosave=0
@@ -157,6 +158,13 @@ class Game:
             elif key==pygame.K_ESCAPE and self.scene==GameScene.GAMEOVER:self.choose("Main menu")
             return
         if self.scene==GameScene.SCROLL:
+            if self.inspection_intro is not None:
+                if getattr(event,'repeat',False):return
+                if key==pygame.K_ESCAPE:
+                    self.inspection_intro=None;self.scene=GameScene.PLAY;return
+                self.inspection_intro.handle_event(event)
+                if self.inspection_intro.closed:self.inspection_intro=None
+                return
             if getattr(event,'repeat',False) and key in (pygame.K_RETURN,pygame.K_e,pygame.K_ESCAPE):return
             if self.session.rooms.current=='r28' and key in (pygame.K_LEFT,pygame.K_RIGHT):
                 if getattr(event,'repeat',False):return
@@ -205,6 +213,8 @@ class Game:
                     self.reading=obj.data['content_id'];self.reading_page=0
                     self.renderer.lab_effect=(self.reading,self.renderer.time)
                     self.session.read_lore(self.reading);self.scene=GameScene.SCROLL
+                    from puzzle_maze.studio_notes import inspection_dialogue
+                    self.inspection_intro=inspection_dialogue(self.reading,self.audio.play)
                 return
         if key==pygame.K_e and hasattr(self.session,'interact_orb') and self.session.interact_orb():return
         if key==pygame.K_e and getattr(self.session.inventory,'carried',None):
@@ -314,6 +324,9 @@ class Game:
             for when,cue in ((.2,'use'),(.5,'pulse'),(1.2,'step'),(6.2,'use'),(7.6,'key')):
                 if before<when<=self.lab_entrance.time:self.audio.play(cue)
             return
+        if self.scene==GameScene.SCROLL and self.inspection_intro is not None:
+            self.inspection_intro.update(dt)
+            return
         if self.scene!=GameScene.PLAY:return
         if self.session.rooms.current=='r27' and not self.treasury_seen:
             from puzzle_maze.treasury_scene import TreasuryReveal
@@ -384,7 +397,9 @@ class Game:
             r.text(label,36,193,(133,163,156),max_width=244)
         elif self.scene==GameScene.SCROLL:
             from puzzle_maze.secret45 import LORE
-            if self.reading in LORE:
+            if self.inspection_intro is not None:
+                r.ui.clear();self.inspection_intro.draw(r.surface)
+            elif self.reading in LORE:
                 title,lines=LORE[self.reading]
                 if self.session.rooms.current=='r28':
                     from puzzle_maze.studio_notes import draw_note

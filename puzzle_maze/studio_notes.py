@@ -12,9 +12,54 @@ PAGES={'studio_todo':(
  ('[ ] Eat a proper dinner.','[ ] Finish the prototype.','','Noodles are not a meal.'),
  ('[ ] Take Miao outside','    when the rain stops.','','Pack her little blanket.'),
 )}
+PAGES['store_aoop']=(
+ ('Game owns Room.','Room owns Cat.','Cat owns the keyboard.','Kevin owns the bugs.'),
+ ('PUBLIC: Miao may enter.','PRIVATE: Kevin may not eat','the emergency cat food.','Miao wrote the access rules.'),
+)
 NAMES={'kevin_photo':'Photo','kevin_note':'Notebook','miao_memory':'Miao Meow','lab_gpu':'GPU','lab_keyboard':'Keyboard',
  'lab_terminal':'Terminal','lab_coffee':'Coffee','lab_duck':'Duck','lab_button':'Red button',
  'studio_todo':'To-do list','studio_food':'Food cans','studio_cushion':'Cushion','studio_reminder':'Reminder'}
+
+DESCRIPTIONS={
+ 'kevin_photo':"An old photograph is tucked beside the workbench.",
+ 'kevin_note':"Someone left a notebook on the engineer's desk.",
+ 'miao_memory':"Miao looks like she has something to tell me.",
+ 'lab_gpu':"There is a dusty graphics card on an anti-static mat.",
+ 'lab_keyboard':"A handwritten label is stuck to this old keyboard.",
+ 'lab_terminal':"The prototype's monitor still has a message on it.",
+ 'lab_coffee':"An old coffee mug. There is a note underneath it.",
+ 'lab_duck':"A rubber duck is guarding the test equipment.",
+ 'lab_button':"Someone labelled this very tempting red button.",
+ 'studio_todo':"A folded to-do list is pinned beside the tools.",
+ 'studio_food':"These food cans all have little handwritten labels.",
+ 'studio_cushion':"The cat cushion has been carefully patched up.",
+ 'studio_reminder':"A small reminder is taped above the workbench.",
+ 'work_crt':"A sticky note is taped to this abandoned arcade machine.",
+ 'work_back':"There are handwritten labels inside the open service panel.",
+ 'work_frozen':"This broken machine is still showing a message.",
+ 'work_prototype':"There is a service log beside Prototype 07.",
+ 'store_tools':"A scrap of paper is caught in the toolbox drawer.",
+ 'store_parts':"These parts boxes have a handwritten sorting guide.",
+ 'store_timebox':"Someone put a very serious warning on this parcel.",
+ 'store_server':"A maintenance note hangs from the backup server.",
+ 'store_aoop':"A cute cat doodle covers this old classroom board.",
+ 'store_breadboard':"There is a lab report inside this electronics case.",
+ 'store_cables':"A little tag is tied around the cable reel.",
+}
+
+def inspection_dialogue(key,play_sound=None):
+    from types import SimpleNamespace
+    from puzzle_maze.studio_dialogue import make_dialogue
+    import sys
+    from pathlib import Path
+    host=str(Path(__file__).resolve().parents[1]/'arcade_lobby')
+    if host not in sys.path:sys.path.append(host)
+    from player import PlayerLook
+    text=DESCRIPTIONS.get(key,"A repair diary is taped beside this old equipment.")
+    look=PlayerLook('expedition',shirt=(67,158,163),shirt_dark=(49,112,127),
+                    beanie=(85,89,103),beanie_dark=(57,65,79),pom=(94,98,111))
+    return make_dialogue([('PLAYER',text,'normal')],play_sound,
+                         context={'players':[SimpleNamespace(look=look)]})
 
 def pages_for(key):
     from puzzle_maze.secret45 import LORE
@@ -59,5 +104,7 @@ def draw_note(renderer,key,page,room,preview=False):
     r.rect(s,(170,136,85),(22,y+4,2,2))
     renderer.text(title,28,y+5,(102,72,47),max_width=264)
     for i,line in enumerate(pages[page]):renderer.text(line,28,y+24+i*12,(94,76,52),max_width=264)
-    footer=f'ARROWS: {page+1}/{len(pages)} / ENTER: Close' if len(pages)>1 else 'ENTER: Close / ESC: Exit' if preview else 'ENTER / ESC: Close'
-    renderer.text(footer,28,y+84,(128,98,60),max_width=264)
+    footer='LEFT/RIGHT: Page / ENTER: Close' if len(pages)>1 else 'ENTER / ESC: Close'
+    renderer.text(footer,28,y+85,(128,98,60),max_width=224,small=True)
+    if len(pages)>1:
+        renderer.text(f'{page+1}/{len(pages)}',274,y+85,(115,86,52),max_width=24,small=True)

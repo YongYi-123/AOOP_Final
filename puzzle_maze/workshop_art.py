@@ -217,17 +217,21 @@ class WorkshopArt:
         for x in (192,212,232):
             R.rect(s,(84,91,94),(x,17,14,15));R.rect(s,(31,36,41),(x+3,20,8,5))
             R.lines(s,(122,99,78),False,[(x+6,30),(x+9,39),(x+1,45)],1)
-        # A chalky AOOP ownership diagram, pinned over old screw holes.
+        # A cute chalk doodle gives no inspection content away.
         R.rect(s,(84,97,94),(55,7,123,36));R.rect(s,(27,48,47),(57,9,119,32))
         R.line(s,(136,146,124),(56,8),(176,8))
-        s.blit(render('AOOP',8,(167,185,156)),(61,12))
-        s.blit(render('CAT > UML',8,(136,157,140)),(117,12))
-        for x,label,w in ((61,'GAME',27),(103,'ROOM',27),(148,'CAT',22)):
-            R.rect(s,(119,150,134),(x,24,w,12),1)
-            s.blit(render(label,8,(181,194,158)),(x+2,27))
-        for x in (89,132):
-            R.line(s,(155,174,147),(x,29),(x+11,29))
-            R.lines(s,(155,174,147),False,[(x+8,27),(x+11,29),(x+8,31)])
+        chalk=(159,183,155)
+        R.lines(s,chalk,True,[(79,29),(77,18),(82,20),(86,16),(89,21),(95,20),(97,29)],1)
+        R.ellipse(s,chalk,(79,24,18,11),1)
+        for x in (84,91):s.fill(chalk,(x,24,1,1))
+        R.lines(s,chalk,False,[(85,28),(87,30),(89,28)])
+        R.lines(s,chalk,False,[(97,31),(103,31),(103,26),(107,25)])
+        # A little lightbulb, a heart, and an impossible circuit.
+        R.circle(s,(185,181,132),(122,21),5,1)
+        R.line(s,chalk,(120,27),(124,27));R.line(s,chalk,(120,29),(124,29))
+        for x,y in ((122,12),(113,19),(131,19)):R.line(s,chalk,(x,y),(x,y+2))
+        R.lines(s,(146,163,151),False,[(143,33),(143,22),(148,18),(153,23),(157,18),(162,22),(162,33)])
+        R.circle(s,chalk,(151,30),2,1);R.line(s,chalk,(157,27),(160,27))
         for x in (75,94,144):R.line(s,(59,82,73),(x,39),(x+7,39))
         R.rect(s,(64,79,77),(63,43,109,3));R.rect(s,(180,184,147),(154,43,7,2))
         R.rect(s,(36,44,48),(84,1,61,5));R.line(s,(155,169,159),(88,2),(141,2))

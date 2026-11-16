@@ -11,7 +11,7 @@ class PreviewGame(Game):
         self.note_index=0;self.preview_target=target;self.restart_preview(target)
     def restart_preview(self,target=None):
         if target is not None:self.preview_target=target
-        self.last_maze_frame=None
+        self.last_maze_frame=None;self.inspection_intro=None
         self.session=RemasteredSession();self.scene=GameScene.PLAY;self.running=True
         self.fade=0;self.cooldown=0;self.toast_time=0;self.autosave=0
         self.renderer.particles.clear();self.renderer.lab_effect=None
@@ -42,6 +42,8 @@ class PreviewGame(Game):
         self.session.player.x,self.session.player.y=pos;self.session.player.facing=facing
         self.visual=list(map(float,pos))
         super().event(pygame.event.Event(pygame.KEYDOWN,key=pygame.K_e))
+        # F8/F9 are direct developer page jumps; normal E uses the full introduction.
+        self.inspection_intro=None
     def next_note(self):
         from puzzle_maze.developer_diaries import DIARIES
         from puzzle_maze.studio_notes import NOTES

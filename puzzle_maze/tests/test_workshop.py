@@ -4,6 +4,7 @@ os.environ.setdefault('SDL_VIDEODRIVER','dummy');os.environ.setdefault('SDL_AUDI
 from collections import deque
 from unittest import TestCase
 from unittest.mock import patch
+from puzzle_maze.tests.studio_flow import open_paper
 import pygame
 from puzzle_maze.dev_preview import PreviewGame
 from puzzle_maze.game import GameScene
@@ -33,6 +34,7 @@ class WorkshopTests(TestCase):
                 self.assertEqual(nearby(s)[0],obj.id)
                 g.event(pygame.event.Event(pygame.KEYDOWN,key=key));self.assertEqual(g.scene,GameScene.SCROLL)
                 self.assertEqual(g.reading,obj.data['content_id'])
+                open_paper(g)
                 g.event(pygame.event.Event(pygame.KEYDOWN,key=pygame.K_RETURN));self.assertEqual(g.scene,GameScene.PLAY)
     def test_exact_prompt_no_names_before_e_and_no_repeated_enter(self):
         g=PreviewGame('developer-room',True);g.inspect_key('work_crt')

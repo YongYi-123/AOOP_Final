@@ -6,6 +6,7 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest import TestCase
 from unittest.mock import patch
+from puzzle_maze.tests.studio_flow import open_paper
 import pygame
 from puzzle_maze.dev_preview import PreviewGame
 from puzzle_maze.game import GameScene
@@ -23,6 +24,8 @@ class StudioConsistencyTests(TestCase):
         footer=pygame.Rect(120,208,40,32)
         self.assertEqual(pygame.image.tobytes(g.renderer.surface.subsurface(footer),'RGB'),pygame.image.tobytes(g.renderer.developer_art.floor().subsurface(footer),'RGB'))
         g.event(pygame.event.Event(pygame.KEYDOWN,key=pygame.K_e));self.assertEqual(g.scene,GameScene.SCROLL)
+        self.assertIsNotNone(g.inspection_intro)
+        open_paper(g)
         with patch.object(g.renderer,'text',wraps=g.renderer.text) as text:
             g.draw(0);self.assertNotIn('[E/ENTER] INSPECT',[c.args[0] for c in text.call_args_list]);self.assertGreater(len(text.call_args_list),1)
         g.event(pygame.event.Event(pygame.KEYDOWN,key=pygame.K_RETURN));self.assertEqual(g.scene,GameScene.PLAY)

@@ -53,13 +53,13 @@ class StudioRefinementTests(TestCase):
         app.update(.01);self.assertEqual(app.scene,GameScene.MEMORY)
         self.assertIsNotNone(app.lab_entrance.maze_frame)
         key(app,pygame.K_SPACE);self.assertEqual(app.scene,GameScene.PLAY);self.assertTrue(app.session.lab_memory_seen)
-    def test_wall_has_aoop_diagram_without_a_room_title(self):
+    def test_board_shows_doodles_without_revealing_its_written_content(self):
         from puzzle_maze.developer_art import DeveloperRoomArt
         from puzzle_maze.pixel_font import render
         with patch('puzzle_maze.workshop_art.render',wraps=render) as lettering:
             art=DeveloperRoomArt();base=art.floor()
         labels=[call.args[0] for call in lettering.call_args_list]
-        self.assertIn('AOOP',labels);self.assertNotIn('THE FORGOTTEN WORKSHOP',labels)
+        self.assertEqual(labels,[])
         self.assertLess(sum(base.get_at((150,20))[:3]),600)
         self.assertNotEqual(base.get_at((150,20)),base.get_at((150,125)))
 

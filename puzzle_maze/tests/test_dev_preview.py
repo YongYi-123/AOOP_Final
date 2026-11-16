@@ -5,6 +5,7 @@ import unittest
 from unittest.mock import patch
 from tempfile import TemporaryDirectory
 from pathlib import Path
+from puzzle_maze.tests.studio_flow import open_paper
 import pygame
 from puzzle_maze.dev_preview import PreviewGame,TARGETS
 from puzzle_maze.game import GameScene
@@ -32,6 +33,7 @@ class PreviewTests(unittest.TestCase):
     def test_diary_and_real_room_exit(self):
         g=PreviewGame('developer-diaries',True);self.key(g,pygame.K_e)
         self.assertEqual(g.scene,GameScene.SCROLL);self.assertEqual(g.reading,'dev_001')
+        open_paper(g)
         self.key(g,pygame.K_RETURN);self.assertEqual(g.scene,GameScene.PLAY)
         g.session.player.x=1;g.session.player.y=7
         self.assertTrue(g.session.transition());self.assertEqual(g.session.rooms.current,'r24')
