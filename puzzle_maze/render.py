@@ -36,6 +36,9 @@ class Renderer:
     def text(self,text,x,y,color=WHITE,font=None,max_width=None,small=False):
         self.ui.queue(text,x,y,color,font is self.title,max_width,small=small)
 
+    def centered_text(self,text,y,color=WHITE,max_width=296,small=False):
+        self.ui.queue(text,160,y,color,max_width=max_width,small=small,align='center')
+
     def burst(self,x,y,color=GOLD,count=18):
         if len(self.particles)>120:self.particles=self.particles[-120:]
         for _ in range(count):
@@ -46,7 +49,7 @@ class Renderer:
         from puzzle_maze.onboarding import DEFAULT_CONTROLS
         controls=DEFAULT_CONTROLS if controls is None else controls
         self.ui.clear();self.boss_panel_rect=None
-        self.time+=dt;s=self.surface;r=pygame.draw;s.fill(INK)
+        self.frame_dt=max(0,dt);self.time+=dt;s=self.surface;r=pygame.draw;s.fill(INK)
         room=session.rooms.data;p=session.player
         if session.rooms.current=='r28':
             from puzzle_maze.studio_view import draw_studio

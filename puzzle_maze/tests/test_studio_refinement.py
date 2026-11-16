@@ -29,7 +29,7 @@ class StudioRefinementTests(TestCase):
             self.assertEqual(app.reading,obj.data['content_id'])
     def test_prompt_disappears_at_distance_and_does_not_cover_dialogue(self):
         app=PreviewGame('developer-room',True)
-        app.session.player.x,app.session.player.y=18,7;app.visual=[18.,7.]
+        app.session.player.x,app.session.player.y=11,10;app.visual=[11.,10.]
         self.assertIsNone(nearby(app.session))
         for scene in (GameScene.PLAY,GameScene.SCROLL):
             app.scene=scene;app.reading='kevin_note';app.reading_page=0;app.draw(0)
@@ -38,7 +38,8 @@ class StudioRefinementTests(TestCase):
     def test_prototype_inspection_returns_control_to_the_clear_service_aisle(self):
         app=PreviewGame('developer-room',True);app.inspect_key('work_prototype')
         self.assertEqual(app.scene,GameScene.SCROLL);self.assertEqual(app.reading,'work_prototype')
-        key(app,pygame.K_RETURN);p=app.session.player
+        from puzzle_maze.tests.studio_flow import close_inspection
+        close_inspection(app);p=app.session.player
         self.assertEqual((p.x,p.y),(1,10));app.cooldown=0
         app.update(.14,defaultdict(bool,{pygame.K_DOWN:True}));self.assertEqual((p.x,p.y),(1,11))
     def test_preview_restart_and_inspect_do_not_write_real_progress(self):
@@ -53,10 +54,14 @@ class StudioRefinementTests(TestCase):
         app.update(.01);self.assertEqual(app.scene,GameScene.MEMORY)
         self.assertIsNotNone(app.lab_entrance.maze_frame)
         key(app,pygame.K_SPACE);self.assertEqual(app.scene,GameScene.PLAY);self.assertTrue(app.session.lab_memory_seen)
-    def test_wall_has_no_room_name_text_and_dim_base_preserves_wood_contrast(self):
+    def test_board_shows_doodles_without_revealing_its_written_content(self):
         from puzzle_maze.developer_art import DeveloperRoomArt
-        with patch('puzzle_maze.workshop_art.render',side_effect=AssertionError('wall text')):
+        from puzzle_maze.pixel_font import render
+        with patch('puzzle_maze.workshop_art.render',wraps=render) as lettering:
             art=DeveloperRoomArt();base=art.floor()
+        labels=[call.args[0] for call in lettering.call_args_list]
+        self.assertTrue({'OBJ','ACT','PLY','CPU','RAM','R0'}<=set(labels))
+        self.assertTrue(all(len(label)<=3 for label in labels))
         self.assertLess(sum(base.get_at((150,20))[:3]),600)
         self.assertNotEqual(base.get_at((150,20)),base.get_at((150,125)))
 

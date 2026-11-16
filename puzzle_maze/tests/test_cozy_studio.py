@@ -25,7 +25,7 @@ class CozyStudioTests(unittest.TestCase):
         s=RemasteredSession();s.enter('r28');s.inventory.abilities.add('boots')
         for item in FURNITURE:
             x,y,w,h=item.footprint
-            tiles=[(tx,ty) for tx in range(1,19) for ty in range(3,12) if x<tx*16+8<x+w and y<ty*16+15<y+h]
+            tiles=[(tx,ty) for tx in range(1,19) for ty in range(3,14) if x<tx*16+8<x+w and y<ty*16+15<y+h]
             self.assertTrue(tiles,item.name)
             self.assertTrue(all(not s.can_enter(*pos) for pos in tiles),item.name)
         s.player.x,s.player.y=8,6;s.player.facing=(0,-1)
@@ -65,7 +65,7 @@ class CozyStudioTests(unittest.TestCase):
             old={'photo':[12,5],'note':[14,5],'miao':[8,8],'terminal':[21,9]}
             for snapshot in [data['snapshots']['r28'],data['checkpoint']['objects']]:
                 for key,pos in old.items():snapshot[key]['pos']=pos
-                for key in ('studio_todo','studio_food','studio_cushion','studio_reminder'):snapshot.pop(key)
+                for key in ('studio_todo','studio_food','studio_cushion','studio_reminder'):snapshot.pop(key,None)
             path.write_text(json.dumps(data));before=path.read_bytes();loaded=RemasteredSession.load(path)
             self.assertEqual(path.read_bytes(),before);self.assertEqual(loaded.rooms.current,'r28')
             self.assertEqual(loaded.inventory.coins,17);self.assertEqual(loaded.lore,s.lore);self.assertTrue(loaded.grey_pixel)
@@ -95,7 +95,9 @@ class CozyStudioTests(unittest.TestCase):
         g=PreviewGame('kevin-notes',True)
         self.assertEqual(g.scene,GameScene.SCROLL);self.assertEqual(g.reading,'studio_todo')
         self.assertIn('studio_todo',g.session.lore)
-        for page in range(1,4):
+        from puzzle_maze.tests.studio_flow import open_paper
+        open_paper(g)
+        for page in range(1,3):
             g.event(pygame.event.Event(pygame.KEYDOWN,key=pygame.K_RIGHT));self.assertEqual(g.reading_page,page)
             g.event(pygame.event.Event(pygame.KEYDOWN,key=pygame.K_RIGHT,repeat=True));self.assertEqual(g.reading_page,page)
             g.draw(0)
@@ -112,7 +114,8 @@ class CozyStudioTests(unittest.TestCase):
             self.assertLessEqual(abs(x-previous[0])+abs(y-previous[1]),.65)
             self.assertFalse(contact_blocked(x,y,boxes));self.assertFalse(scene.ready)
             scene.advance();self.assertEqual(scene.line,0);previous=(x,y)
-        scene.update(.5);self.assertTrue(scene.ready);scene.advance();self.assertEqual(scene.line,1)
+        scene.update(.5);self.assertTrue(scene.ready);scene.advance();self.assertEqual(scene.line,0)
+        scene.update(.3);scene.advance();self.assertEqual(scene.line,1)
         self.assertEqual(scene.position,MIAO_ROUTE[-1]);self.assertIs(scene.memory(),scene.memory())
 
 

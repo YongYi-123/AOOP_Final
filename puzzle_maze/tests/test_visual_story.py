@@ -33,7 +33,9 @@ class MemoryTimingTests(unittest.TestCase):
         scene=LabEntrance();self.assertEqual(scene.position,(24,128));scene.advance();self.assertEqual(scene.line,0)
         scene.update(2);self.assertFalse(scene.ready);self.assertGreater(scene.position[0],24)
         scene.update(8.1);self.assertTrue(scene.ready);self.assertEqual(scene.position,(168,128))
-        for _ in LINES:scene.update(.3);scene.advance()
+        for _ in LINES:
+            scene.update(.3);scene.advance()  # Finish typing first.
+            scene.update(.3);scene.advance()
         self.assertTrue(scene.done)
         scene=LabEntrance();scene.advance(skip=True);self.assertTrue(scene.done)
 

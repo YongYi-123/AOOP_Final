@@ -4,6 +4,7 @@ os.environ.setdefault('SDL_VIDEODRIVER','dummy');os.environ.setdefault('SDL_AUDI
 from collections import deque
 from unittest import TestCase
 from unittest.mock import patch
+from puzzle_maze.tests.studio_flow import open_paper,close_inspection
 import pygame
 from puzzle_maze.dev_preview import PreviewGame
 from puzzle_maze.game import GameScene
@@ -13,7 +14,7 @@ class WorkshopTests(TestCase):
     def test_four_different_arcade_cabinets_replace_domestic_furniture(self):
         g=PreviewGame('developer-room',True);names={f.name for f in FURNITURE}
         self.assertFalse(names&{'sofa','bookshelf','table','plant'})
-        cabinets=[f for f in FURNITURE if f.name.startswith('cab_') or f.name=='prototype']
+        cabinets=[f for f in FURNITURE if f.name.startswith('cab_')]
         self.assertEqual(len(cabinets),4)
         frames={pygame.image.tobytes(g.renderer.developer_art.sprite(f),'RGBA') for f in cabinets}
         self.assertEqual(len(frames),4)
@@ -33,23 +34,25 @@ class WorkshopTests(TestCase):
                 self.assertEqual(nearby(s)[0],obj.id)
                 g.event(pygame.event.Event(pygame.KEYDOWN,key=key));self.assertEqual(g.scene,GameScene.SCROLL)
                 self.assertEqual(g.reading,obj.data['content_id'])
-                g.event(pygame.event.Event(pygame.KEYDOWN,key=pygame.K_RETURN));self.assertEqual(g.scene,GameScene.PLAY)
+                close_inspection(g);self.assertEqual(g.scene,GameScene.PLAY)
     def test_exact_prompt_no_names_before_e_and_no_repeated_enter(self):
         g=PreviewGame('developer-room',True);g.inspect_key('work_crt')
-        g.event(pygame.event.Event(pygame.KEYDOWN,key=pygame.K_RETURN))
+        close_inspection(g)
         with patch.object(g.renderer,'text',wraps=g.renderer.text) as text:
-            g.draw(0);self.assertEqual([c.args[0] for c in text.call_args_list],[PROMPT])
+            g.draw(.2);self.assertEqual(text.call_count,0)
+        self.assertEqual(g.renderer.studio_prompt.key,'E/ENTER')
+        self.assertEqual(g.renderer.studio_prompt.label,'INSPECT')
         self.assertEqual(PROMPT,'[E/ENTER] INSPECT')
         g.event(pygame.event.Event(pygame.KEYDOWN,key=pygame.K_RETURN,repeat=True));self.assertEqual(g.scene,GameScene.PLAY)
-    def test_opaque_solids_and_cat_do_not_allow_overlap(self):
+    def test_opaque_solids_block_and_miao_does_not_lock_open_floor(self):
         g=PreviewGame('developer-room',True);s=g.session
         for item in FURNITURE:
             image=g.renderer.developer_art.sprite(item)
             self.assertIs(image,g.renderer.developer_art.sprite(item,True))
             self.assertLessEqual({image.get_at((x,y)).a for x in range(image.get_width()) for y in range(image.get_height())},{0,255})
             x,y,w,h=item.footprint
-            self.assertTrue(any(not s.can_enter(tx,ty) for tx in range(1,19) for ty in range(3,12) if x<=tx*16+8<x+w and y<=ty*16+15<y+h),item.name)
-        s.player.x,s.player.y=10,8;self.assertFalse(s.move(0,-1))
+            self.assertTrue(any(not s.can_enter(tx,ty) for tx in range(1,19) for ty in range(3,14) if x<=tx*16+8<x+w and y<=ty*16+15<y+h),item.name)
+        s.player.x,s.player.y=10,8;self.assertTrue(s.move(0,-1))
     def test_prototype_has_distinct_optional_story_and_no_economy_binding(self):
         g=PreviewGame('developer-room',True);g.inspect_key('work_prototype')
         self.assertIn('work_prototype',g.session.lore);self.assertFalse(g.persistent)
@@ -57,11 +60,15 @@ class WorkshopTests(TestCase):
 
     def test_long_prompt_renders_without_ellipsis_at_normal_resolution(self):
         g=PreviewGame('developer-room',True);g.inspect_key('work_crt')
-        g.event(pygame.event.Event(pygame.KEYDOWN,key=pygame.K_RETURN));g.draw(0)
-        self.assertEqual(g.renderer.ui.commands[0][0],PROMPT)
-        self.assertEqual(g.renderer.ui.commands[0][4],8)
-        scale=g.screen.get_height()/240
-        self.assertEqual(g.renderer.ui.rects[0].width,(len(PROMPT)*6-1)*int(scale))
+        close_inspection(g);g.draw(0)
+        g.draw(.2)
+        from ui import PromptBubble
+        reference=PromptBubble('INSPECT',key='E/ENTER')
+        actual=g.renderer.studio_prompt
+        for ours,golden in zip(actual.frames,reference.frames):
+            self.assertEqual(pygame.image.tobytes(ours,'RGBA'),pygame.image.tobytes(golden,'RGBA'))
+        self.assertTrue(pygame.Rect(0,0,320,240).contains(g.renderer.studio_prompt_rect))
+        self.assertEqual(g.renderer.ui.commands,[])
 
     def test_living_room_save_migrates_missing_new_machines_and_preserves_secrets(self):
         import json

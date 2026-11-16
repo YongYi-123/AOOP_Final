@@ -12,7 +12,11 @@ class PersonalityTests(unittest.TestCase):
         from puzzle_maze.remaster import RemasteredSession
         s=RemasteredSession();s.enter('r28')
         self.assertGreaterEqual(len(DIARIES),7)
-        for key in DIARIES:self.assertTrue(s.puzzles.objects[key].data['optional'])
+        from puzzle_maze.secret45 import LORE
+        self.assertTrue(set(DIARIES)<=LORE.keys())
+        self.assertFalse(any(key.startswith('dev_') for key in s.puzzles.objects))
+        for key,obj in s.puzzles.objects.items():
+            if key not in ('photo','note','miao'):self.assertTrue(obj.data['optional'])
         self.assertEqual(s.rooms.data['exits'][0]['requires'],[])
         self.assertFalse(any('memory' in line.lower() or 'lost signal' in line.lower() for _,lines in LINES for line in lines))
     def test_slime_eyes_and_all_states_are_contained_and_connected(self):

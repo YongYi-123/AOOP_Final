@@ -1,4 +1,4 @@
-"""Production studio cinematic: warm reveal, legal Miao walk, focus and a quiet memory."""
+"""Production studio cinematic: CRT arrival, legal Miao walk and an aged repair memory."""
 import pygame
 from puzzle_maze.studio_layout import MIAO_ROUTE
 from puzzle_maze.miao_adapter import guide_frame
@@ -13,11 +13,13 @@ class LabEntrance:
     walk_start=1.2
     walk_end=5.4
     dialogue_at=9.8
-    def __init__(self,maze_frame=None):
+    def __init__(self,maze_frame=None,play_sound=None):
         self.maze_frame=maze_frame.copy() if maze_frame is not None else None
         self.time=0.;self.line=0;self.dwell=0.;self.done=False
-        self.veil=pygame.Surface((320,180),pygame.SRCALPHA)
-        self.focus=pygame.Surface((160,90));self.zoom=pygame.Surface((320,180));self.fragment=None
+        from puzzle_maze.studio_dialogue import make_dialogue
+        self.dialogue=make_dialogue([(name,' '.join(rows),'gentle') for name,rows in LINES],play_sound)
+        self.veil=pygame.Surface((320,240),pygame.SRCALPHA)
+        self.fragment=None
     @property
     def ready(self):return self.time>=self.dialogue_at
     @property
@@ -34,52 +36,72 @@ class LabEntrance:
         return MIAO_ROUTE[-1]
     def update(self,dt):
         before=self.time;self.time+=max(0,dt)
-        self.dwell+=max(0,self.time-max(before,self.dialogue_at))
+        elapsed=max(0,self.time-max(before,self.dialogue_at))
+        self.dwell+=elapsed
+        if elapsed and not self.done:self.dialogue.update(elapsed)
     def advance(self,skip=False):
         if skip:self.done=True
         elif self.ready and self.dwell>=.25:
-            self.line+=1;self.dwell=0.
-            if self.line>=len(LINES):self.done=True
+            self.dialogue.handle_event(pygame.event.Event(pygame.KEYDOWN,key=pygame.K_RETURN))
+            self.line=self.dialogue.index;self.done=self.dialogue.closed;self.dwell=0.
     def memory(self):
         if self.fragment is not None:return self.fragment
-        s=pygame.Surface((132,88));r=pygame.draw;s.fill((237,208,157))
-        r.rect(s,(139,96,66),s.get_rect(),3);r.rect(s,(247,227,184),(5,5,122,78),1)
-        r.rect(s,(203,163,111),(7,8,118,38));r.rect(s,(170,120,79),(7,46,118,35))
-        for y in (55,65,75):r.line(s,(195,145,94),(8,y),(124,y))
-        from puzzle_maze.workshop_art import cabinet
-        s.blit(cabinet('prototype'),(77,17))
-        r.rect(s,(209,174,132),(29,30,15,14));r.rect(s,(77,64,62),(28,27,16,7))
-        for x in (33,39):r.rect(s,(99,78,66),(x,35,1,1))
-        r.polygon(s,(114,153,132),[(29,43),(42,43),(50,65),(22,65)])
-        r.line(s,(197,161,126),(42,47),(77,50),4)
-        cat=guide_frame(False,4.1);s.blit(cat,(53,60))
-        self.fragment=s;return s
+        from puzzle_maze.memory_photo import repair_photograph
+        self.fragment=repair_photograph();return self.fragment
+
+    def television(self,s):
+        """Full-frame temporal interference with a CRT ignition, never a cropped view."""
+        import math
+        import random
+        t=self.time;r=pygame.draw;room=s.copy();rng=random.Random(int(t*32))
+        source=self.maze_frame if t<.2 and self.maze_frame is not None else room
+        s.blit(source,(0,0))
+        # All parts of the scene break into horizontal signal bands.
+        strength=max(0,1-t/1.2)
+        for y in range(0,240,6):
+            shift=round(math.sin(y*.37+t*53)*12*strength)
+            s.blit(source,(shift,y),(0,y,320,6))
+            if shift>0:s.blit(source,(shift-320,y),(0,y,320,6))
+            elif shift<0:s.blit(source,(320+shift,y),(0,y,320,6))
+        overlay=pygame.Surface((320,240),pygame.SRCALPHA)
+        darkness=int((150+55*math.sin(t*39))*strength)
+        overlay.fill((7,15,23,max(0,min(230,darkness))))
+        for y in range(0,240,3):
+            r.line(overlay,(25,48,57,int(130*strength)),(0,y),(319,y))
+        for i in range(180):
+            x=rng.randrange(320);y=rng.randrange(240)
+            color=(98,169,166,int(155*strength)) if i%3 else (116,96,158,int(155*strength))
+            r.line(overlay,color,(x,y),(min(319,x+rng.randrange(1,9)),y))
+        # Whole-screen rolling sync bars and receding coordinate frames.
+        for i in range(3):
+            y=int((t*170+i*80)%240)
+            r.rect(overlay,(72,137,145,int(80*strength)),(0,y,320,3))
+        for i in range(5):
+            scale=((t*1.5+i/5)%1)**1.3
+            w=max(4,int(320*scale));h=max(3,int(240*scale))
+            r.rect(overlay,(75,139,144,int(120*strength)),(160-w//2,120-h//2,w,h),1)
+        s.blit(overlay,(0,0))
+        # A tube's horizontal ignition is an accent across the entire width.
+        if .2<=t<.55:
+            for width,color in ((5,(23,57,66)),(3,(61,111,119)),(1,(184,218,207))):
+                r.line(s,color,(0,120),(319,120),width)
+
     def draw(self,renderer):
         s=renderer.surface;r=pygame.draw;t=self.time;renderer.ui.clear()
-        if t<.6 and self.maze_frame is not None:
-            s.blit(self.maze_frame,(0,0))
-            self.veil.fill((20,18,22,round(120+130*t/.6)));s.blit(self.veil,(0,0))
-            for i in range(5):
-                y=30+i*27+int(t*17)%7
-                r.line(s,(83,99,91),(25+i*17,y),(73+i*17,y),1)
-        if 6.2<=t<9.2:
-            q=min(1,(t-6.2)/1.4);q=q*q*(3-2*q)
-            crop=pygame.Rect(round(16+4*q),round(92+4*q),160,90)
-            self.focus.blit(s,(0,0),crop);pygame.transform.scale(self.focus,(320,180),self.zoom);s.blit(self.zoom,(0,0))
+        if t<1.2:self.television(s)
+        elif t<2.2:
+            # Brief scanline lock and spatial echoes settle into the room.
+            overlay=pygame.Surface((320,240),pygame.SRCALPHA)
+            strength=(2.2-t)
+            for y in range(0,240,3):pygame.draw.line(overlay,(10,20,28,int(65*strength)),(0,y),(319,y))
+            s.blit(overlay,(0,0))
         if 7.6<=t<9.2:
-            self.veil.fill((80,56,40,100));s.blit(self.veil,(0,0));s.blit(self.memory(),(94,40))
+            self.veil.fill((80,56,40,100));s.blit(self.veil,(0,0));s.blit(self.memory(),(80,37))
             renderer.text('A SMALL MEMORY',24,14,(247,216,158),max_width=272)
-        elif (.6<=t<1.2 or t<.6 and self.maze_frame is None) or 9.2<=t<9.8:
-            progress=max(0,(t-.6)/.6) if t<1.2 else (t-9.2)/.6
-            self.veil.fill((63,45,34,round(235*(1-progress))));s.blit(self.veil,(0,0))
-        r.rect(s,(67,51,43),(0,180,320,60));r.line(s,(207,169,112),(0,180),(320,180))
+        elif 9.2<=t<9.8:
+            self.veil.fill((20,29,36,round(170*(1-(t-9.2)/.6))));s.blit(self.veil,(0,0))
         if self.ready and not self.done:
-            name,lines=LINES[self.line];renderer.text(name,12,184,(245,207,143),max_width=296)
-            for i,line in enumerate(lines):renderer.text(line,12,198+i*12,(248,229,194),max_width=296)
-        elif 7.6<=t<9.2:
-            renderer.text('THE RETURN PATH',12,189,(248,215,158),max_width=296)
-            renderer.text('Leave a way back. Always.',12,205,(228,204,166),max_width=296)
-        else:
-            renderer.text("THE FORGOTTEN WORKSHOP",12,189,(248,215,158),max_width=296)
-            renderer.text('Some things were worth keeping.',12,205,(228,204,166),max_width=296)
-        renderer.text('ENTER: Next / SPACE: Skip',12,229,(212,184,140),max_width=296)
+            self.dialogue.draw(s)
+        elif 1.2<=t<6.2:
+            renderer.text('THE FORGOTTEN WORKSHOP',12,213,(170,180,181),max_width=296,small=True)
+        renderer.text('ENTER: Next / SPACE: Skip',12,228,(153,166,170),max_width=296,small=True)

@@ -12,6 +12,10 @@ class AudioManager:
             self.enabled = True
             for name,freq in [('step',180),('use',520),('key',880),('solve',1046),('pulse',330),('attack',440),('hit',170),('hurt',110),('heal',740),('defeat',660),('bomb_place',280),('explosion',70),('shield',130),('teleport',620),('projectile',410),('ignite',570),('pot_lift',230),('pot_break',90),('crystal',960),('order_wrong',140),('order_step',760),('chest_spawn',1320),('wall_break',85),('boss_break',1180),('boss_key',1568)]:
                 self.sounds[name]=self.tone(freq,.09 if name=='step' else .25)
+            from pathlib import Path
+            cue=Path(__file__).resolve().parents[1]/'arcade_lobby/assets/sfx/vend_select.wav'
+            self.sounds['vend_select']=pygame.mixer.Sound(str(cue))
+            self.sounds['vend_select'].set_volume(.7)
             notes=[261.63,329.63,392,523.25,440,392,329.63,293.66,
                    220,261.63,329.63,440,392,329.63,293.66,246.94]
             samples=array('h')
