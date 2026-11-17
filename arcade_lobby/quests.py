@@ -144,6 +144,7 @@ def canonical_item(key):
 
 MEMORY_FRAGMENTS = {"trial_01": "memory_fragment_01"}      # a trial's first completion unseals its Memory Fragment (a story flag, kept once)
 TRIAL_NOTES = ("trial01_intro", "trial01_breakout")                           # quiet flags a trial scene keeps for itself (its opening has played)
+MAGAZINE_READ_EVENT = "magazine_read"   # quiet flag: RETRO GAMING (HOME's magazine) was read; only Miao's vending hints use it
 TOUR_EVENTS = ("tour_home", "tour_arcade", "met_mochi")     # the tour conversations that have played (flags in the story)
 LEGACY_QUESTS = {"get_your_bearings"}                        # a quest the tour replaced: reading it in a save means 'tour done'
 
@@ -714,7 +715,7 @@ class QuestManager:
                 self.handle("tickets_earned")
 
     def _on_session_event(self, owner, event):
-        if event.type in ("vending_secret", "secret_item_found", "secret_trial_done", "easter_egg_found", FINALE_EVENT,
+        if event.type in ("vending_secret", MAGAZINE_READ_EVENT, "secret_item_found", "secret_trial_done", "easter_egg_found", FINALE_EVENT,
                           CLUE_FOUND_EVENT, CLUE_TRY_EVENT, CLUE_ROUTE_EVENT):
             self.handle(event.type, event.key)
 
@@ -747,7 +748,7 @@ class QuestManager:
                 fragment = MEMORY_FRAGMENTS.get(ident) if name == "secret_trial_done" else None
                 if fragment:                                  # kept with the first completion, never handed out twice
                     state.setdefault("flags", {})[fragment] = True
-        elif name in TRIAL_NOTES:                             # quiet: no pop-up, no counter, no reward
+        elif name in TRIAL_NOTES or name == MAGAZINE_READ_EVENT:                             # quiet: no pop-up, no counter, no reward
             if not state.setdefault("flags", {}).get(name):
                 state["flags"][name] = True
                 self.save()
