@@ -37,6 +37,8 @@ class CatColony:
         self.ambient_cooldown = self.AMBIENT_GAP
         self.push_time = 0.0
         self._last_pos = {}      # player -> where it was last frame
+        from idle_cat_nap import IdleCatNap
+        self.idle_nap = IdleCatNap(room)
 
     def __iter__(self):
         return iter(self.cats)
@@ -90,6 +92,7 @@ class CatColony:
         themselves. Returns False (nothing happens) while the colony is paused or there are no cats."""
         if self.paused or not self.cats:
             return False
+        self.idle_nap.reset()
         self.stop_following()
         self.dance_left = duration or self.DANCE_TIME
         self.dance_clock = 0.0
@@ -110,7 +113,7 @@ class CatColony:
         is the follower, which trots at the player's heels."""
         feet = player.feet
         return [c.feet for c in self.cats
-                if c is not self.follower and not c.feet.colliderect(feet)]
+                if c is not self.follower and not self.idle_nap.ignores_collision(c) and not c.feet.colliderect(feet)]
 
     def find_nearby(self, player):
         """The closest cat that can be petted right now, or None."""
@@ -131,7 +134,9 @@ class CatColony:
             self.player = player
         if self.follower is cat:
             self.follower = None
-        return cat.pet(self)
+        reacted = cat.pet(self)
+        if reacted:self.idle_nap.reset()
+        return reacted
 
     # ------------------------------------------------------ per frame
     def update(self, dt, players, busy=False):
@@ -155,6 +160,7 @@ class CatColony:
             self.stop_following()
         if self.follower is not None and self.follower.state != CatState.FOLLOW:
             self.follower = None
+        self.idle_nap.update(dt, self, busy)
         self._check_push(dt)
         for cat in self.cats:
             self.player = min(self.players, key=cat.distance_to)
@@ -182,12 +188,14 @@ class CatColony:
     def pause(self):
         """Entering a minigame: stop following, meowing and bubbles."""
         self.paused = True
+        self.idle_nap.reset()
         self.stop_dance()
         self.stop_following()
         for cat in self.cats:
             cat.settle()
 
     def resume(self):
+        self.idle_nap.reset()
         self.paused = False
         self.push_time = 0.0
         self._last_pos = {}

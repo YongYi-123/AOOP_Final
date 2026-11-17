@@ -2,9 +2,10 @@
 import math
 import pygame
 from .model import Campaign
-from .data import ROSTER, STAGES
+from .data import ROSTER, STAGES, CHECKPOINT_HEAL, BOSS_ENTRY_HEAL
 from .art import Renderer, sprite, background
 from .cinematic import Cinematic
+from .animation import animation_sample
 
 MOVEMENT={pygame.K_a:(-1,0),pygame.K_d:(1,0),pygame.K_w:(0,-1),pygame.K_s:(0,1),
           pygame.K_LEFT:(-1,0),pygame.K_RIGHT:(1,0),pygame.K_UP:(0,-1),pygame.K_DOWN:(0,1)}
@@ -162,8 +163,6 @@ class BrawlGame:
         r=self.renderer
         if self.campaign and self.screen not in ('title','intro','select','tutorial','controls'):
             r.world(s,self.campaign,self.time)
-            if self.campaign.hitstop>0:
-                shifted=s.copy(); s.fill((8,7,20)); s.blit(shifted,(2 if int(self.time*60)%2 else -2,1))
         else:
             s.blit(background(0,0),(0,0)); s.blit(background(0,1),(-int(self.time*12)%400-200,0))
             s.fill((18,17,34),(0,168,400,132))
@@ -171,7 +170,7 @@ class BrawlGame:
         if screen=='title':
             r.center(s,'NEON',45,(75,235,245),4); r.center(s,'BRAWL',88,(255,85,170),4)
             for i,name in enumerate(ROSTER):
-                image=pygame.transform.scale(sprite(name,'idle',int(self.time*5)%4),(96,96)); s.blit(image,(54+i*100,153))
+                image=pygame.transform.scale(sprite(name,'idle',int(self.time*5)%8),(96,96)); s.blit(image,(54+i*100,153))
             r.center(s,'ENTER THE LAB. BREAK THE SIGNAL.',140)
             r.center(s,'ENTER : START    ESC : LEAVE',273,(255,215,100))
         elif screen=='select':
@@ -179,7 +178,7 @@ class BrawlGame:
             for i,(name,stats) in enumerate(ROSTER.items()):
                 x=15+i*130; selected=i==self.selection
                 pygame.draw.rect(s,stats.color if selected else (60,50,80),(x,47,120,190),2 if selected else 1)
-                image=pygame.transform.scale(sprite(name,'idle',int(self.time*6)%4),(96,96)); s.blit(image,(x+12,53))
+                image=pygame.transform.scale(sprite(name,'idle',int(self.time*6)%8),(96,96)); s.blit(image,(x+12,53))
                 r.text(s,name,x+12,153,stats.color,2)
                 for j,(label,value) in enumerate((('SPD',stats.speed/27),('PWR',stats.power*3),('DEF',stats.defense*3))):
                     r.text(s,label,x+8,181+j*15)
@@ -191,13 +190,18 @@ class BrawlGame:
             lines=('WASD / ARROWS   MOVE IN TWO LANES','J   LIGHT / THREE-HIT COMBO','K   HEAVY / BREAK THEIR GUARD','L   JUMP   + J : AIR ATTACK','U   SPECIAL / 40 ENERGY','I   DODGE / BRIEF INVULNERABILITY','E   PICK UP FOOD AT CHECKPOINTS','ESC PAUSE / ENTER BEGIN')
             for i,line in enumerate(lines): r.text(s,line,15,54+i*21,(235,225,190))
             demo=self.tutorial_player
-            state=demo.state if demo.swing or demo.timer else ('walk','heavy','air','special')[int(self.time)%4]
-            s.blit(sprite(demo.name,state,int(self.time*8)%4),(300,222))
+            state,frame=animation_sample(demo)
+            s.blit(sprite(demo.name,state,frame),(300,222-int(demo.jump)))
             r.center(s,'TRY THE ACTION KEYS NOW',275,(75,230,225))
         elif screen=='paused':
             self.panel(s,'PAUSED',[('> ' if self.pause_selection==i else '  ')+v for i,v in enumerate(('RESUME','CONTROLS','END RUN / RETURN'))]+['W/S SELECT / ENTER CONFIRM'])
         elif screen=='checkpoint':
-            self.panel(s,'AREA SECURED',['CHECKPOINT / +35 HEALTH / +20 ENERGY','E : FOOD +30 HP / NEXT BLOCK OPEN','ENTER : CONTINUE'])
+            boss_next = self.campaign.wave == 2
+            healing = BOSS_ENTRY_HEAL if boss_next else CHECKPOINT_HEAL
+            self.panel(s,'BOSS AHEAD' if boss_next else 'AREA SECURED',[
+                f'CHECKPOINT / +{healing} HEALTH / +20 ENERGY',
+                'E : FOOD +30 HP / ENTER : BOSS ROOM' if boss_next else 'E : FOOD +30 HP / NEXT BLOCK OPEN',
+                'ENTER : CONTINUE'])
         elif screen=='stage_clear':
             self.panel(s,'STAGE CLEAR',[STAGES[self.campaign.stage][0],'THE SIGNAL LEADS DEEPER...','ENTER : CONTINUE'])
         elif screen=='game_over': self.panel(s,'SIGNAL LOST',['THE EXPERIMENT IS NOT OVER.','ENTER : VIEW RESULTS'])

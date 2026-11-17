@@ -1,7 +1,7 @@
 """Combat simulation: no display, input devices, audio, or save dependencies."""
 import math
 from dataclasses import dataclass, field
-from .data import ROSTER, ENEMIES, ATTACKS, WAVES, ENEMY_DAMAGE, BOSS_DAMAGE
+from .data import ROSTER, ENEMIES, ATTACKS, WAVES, ENEMY_DAMAGE, BOSS_DAMAGE, CHECKPOINT_HEAL, BOSS_ENTRY_HEAL
 from .ai import BossBrain
 from .ambient import AmbientCats
 
@@ -16,6 +16,16 @@ class Swing:
     origin: tuple = (0, 0)
     target: tuple = (0, 0)
     direction: int = 1
+
+
+@dataclass
+class Impact:
+    x: float
+    y: float
+    kind: str
+    direction: int
+    age: float = 0.
+    duration: float = .24
 
 class Fighter:
     def __init__(self, name, x, y, health, speed, power=1, defense=1):
@@ -32,6 +42,7 @@ class Fighter:
         self.age = 0.
         self.defeat_age = 0.
         self.attack_recovery = 1.
+        self.reaction_age = 0.
 
     @property
     def alive(self): return self.health > 0
@@ -56,10 +67,12 @@ class Fighter:
         self.invulnerable = self.timer + .32
         self.state = 'defeated' if not self.alive else 'knockdown' if knockdown else 'hurt'
         self.flash = .14
+        self.reaction_age = 0.
         return dealt
 
     def tick(self, dt):
         self.age += dt
+        self.reaction_age += dt
         if not self.alive: self.defeat_age += dt
         for attr in ('timer', 'invulnerable', 'flash'):
             setattr(self, attr, max(0, getattr(self, attr)-dt))
@@ -226,6 +239,8 @@ class Campaign:
         self.combo_time = self.elapsed = self.hitstop = 0.
         self.state = 'playing'
         self.effects = []
+        self.shake_time = 0.
+        self.shake_strength = 0
         self.pickups = []
         self.events = []
         self.camera = 0.
@@ -266,7 +281,9 @@ class Campaign:
         self.events.clear()
         self.cats.update(dt,self.elapsed,self.stage,self.wave,self.player.x,self.enemies,self.camera)
         self.staff.update(dt,self.elapsed,self.stage,self.wave,self.player,self.enemies,self.camera)
-        self.effects = [(x,y,t-dt) for x,y,t in self.effects if t>dt]
+        for effect in self.effects: effect.age += dt
+        self.effects = [effect for effect in self.effects if effect.age < effect.duration]
+        self.shake_time = max(0., self.shake_time-dt)
         if self.hitstop>0:
             self.hitstop -= dt
             return
@@ -319,7 +336,7 @@ class Campaign:
             self.best_combo = max(self.best_combo,self.combo)
             self.combo_time = 2
             p.energy = min(100,p.energy+4)
-            self.impact(target)
+            self.impact(target, p.swing.name, p.swing.direction)
             if not target.alive:
                 self.kills += 1
                 self.score += 150 if not target.boss else 1200
@@ -327,7 +344,7 @@ class Campaign:
         for e in self.enemies:
             for target, damage in CombatSystem.resolve(e,[p]):
                 self.damage_received += damage
-                self.impact(target)
+                self.impact(target, e.swing.name, e.swing.direction)
                 self.events.append('hurt')
         self.hazard_clock += dt
         if self.stage > 0 and self.wave < 3 and 4.7 < self.hazard_clock % 7 < 5.15 and abs(p.y-251)<9:
@@ -347,8 +364,12 @@ class Campaign:
         target = max(0,min(1050,p.x-150))
         self.camera += (target-self.camera)*min(1,dt*6)
 
-    def impact(self, target):
-        self.effects.append((target.x,target.y-23,.20))
+    def impact(self, target, attack='light', direction=1):
+        strong = ATTACKS[attack].knockdown
+        self.effects.append(Impact(target.x, target.y-26, attack, direction))
+        if strong:
+            self.shake_time = .12
+            self.shake_strength = 2 if attack == 'special' else 1
         self.hitstop = .045
         self.events.append('hit')
 
@@ -362,7 +383,8 @@ class Campaign:
     def advance(self):
         if self.state not in ('checkpoint','stage_clear'): return
         # Checkpoint aid is guaranteed, even if the player skips the food pickup.
-        self.player.health = min(self.player.max_health,self.player.health+35)
+        healing = BOSS_ENTRY_HEAL if self.state == 'checkpoint' and self.wave == 2 else CHECKPOINT_HEAL
+        self.player.health = min(self.player.max_health,self.player.health+healing)
         self.player.energy = min(100,self.player.energy+20)
         if self.wave == 3:
             if self.stage == 2:

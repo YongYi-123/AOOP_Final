@@ -27,7 +27,7 @@ class Cinematic:
             rect=image.get_rect(center=(zone.centerx,zone.centery if y is None else y))
             s.blit(image,rect); self.last_layout.append(('text',label,rect.copy()))
         def actor(name,x,feet,state='walk',dark=False):
-            image=sprite(name,state,int(time*8)%4,1 if name=='REX' else -1)
+            image=sprite(name,state,int(time*8)%8,1 if name=='REX' else -1)
             if dark:
                 image=image.copy(); image.fill((30,35,60,255),special_flags=pygame.BLEND_RGBA_MULT)
             rect=image.get_rect(midbottom=(int(x),int(feet)))
