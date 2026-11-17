@@ -20,7 +20,7 @@ from local_session import LocalSession  # noqa: E402
 from miao_meow import PLAZA  # noqa: E402
 from mochi_chat import MochiChatScene  # noqa: E402
 from player_profile import PlayerProfile, ProfileStore  # noqa: E402
-from quests import MOCHI_ARCADE_STORY, SECRET_ITEM_RETRO_RACER, QuestManager  # noqa: E402
+from quests import MIAO_ASK_MOCHI, MOCHI_ARCADE_STORY, SECRET_ITEM_RETRO_RACER, QuestManager  # noqa: E402
 from room_testing import goto_room  # noqa: E402
 from shop_ui import ShopScene  # noqa: E402
 from vending_ui import VendingScene  # noqa: E402
@@ -62,8 +62,9 @@ class Base(unittest.TestCase):
         self.frames(1, [up(k)])
 
     # ------------------------------------------------------------ the real secret
-    def unlock_for_real(self):
-        """Open the vending machine's hidden screen with its own key sequence, exactly as a player does."""
+    def unlock_for_real(self, ask_miao=True):
+        """Open the vending machine's hidden screen with its own key sequence, exactly as a player does; then (unless
+        `ask_miao` is False) talk to Miao Meow, who sends the player to Mochi."""
         room = goto_room(self.game, "arcade_floor")
         room.acting_player = room.players[0]
         room.open_vending()
@@ -77,7 +78,20 @@ class Base(unittest.TestCase):
         while self.game.scenes.current is not room:                 # leave the hidden screens
             self.frames(1, [down(K.K_ESCAPE)])
             self.frames(90)
+        if ask_miao:
+            self.ask_miao(room)
         return room
+
+    def ask_miao(self, room):
+        """Press E on Miao Meow and read her talk to the end."""
+        self.story.talk_to_miao(room, room.players[0])
+        for _ in range(40):
+            if self.story.dialogue is None:
+                break
+            self.frames(80)
+            self.frames(1, [down(K.K_RETURN)])
+        self.frames(2)
+        self.assertIsNone(self.story.dialogue)
 
     # ------------------------------------------------------------ Mochi
     def open_shop(self, who=0):
@@ -165,6 +179,26 @@ class LockedTests(Base):
 
 # ------------------------------------------------------------------ the unlock and the first story
 class UnlockedTests(Base):
+    def test_after_the_secret_mochi_has_nothing_until_miao_sends_the_player(self):
+        room = self.unlock_for_real(ask_miao=False)
+        self.assertIsNone(self.m.mochi_story_stage)
+        self.assertFalse(self.open_shop().chat_ready())
+        self.frames(1, [down(K.K_ESCAPE)])
+        self.frames(90)
+        self.ask_miao(room)
+        self.assertTrue(self.m.state["flags"][MIAO_ASK_MOCHI])
+        self.assertEqual(self.m.mochi_story_stage, "new")
+        self.assertFalse(self.m.reverse_road_open)                    # the road waits for Mochi's story itself
+
+    def test_mochis_first_story_opens_the_road_and_every_retelling_plays_it_again(self):
+        self.unlock_for_real()
+        chat = self.open_chat()
+        first = self.read(chat)
+        self.assertTrue(self.m.reverse_road_open)
+        again = self.read(chat)                                        # asked again: the same story, told again
+        self.assertEqual([l.text for l in again], [l.text for l in first])
+        self.assertTrue(self.m.reverse_road_open)
+
     def test_the_real_secret_screen_makes_the_old_arcade_option_appear(self):
         self.unlock_for_real()
         self.assertEqual(self.m.mochi_story_stage, "new")
