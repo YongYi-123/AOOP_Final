@@ -37,7 +37,7 @@ import pygame
 
 from miao_meow import ARCADE, HOME, SPOTS, THRESHOLD, MiaoBrain
 from quest_ui import ObjectiveTracker, QuestBanner, QuestLogUI
-from quests import MIAO_CH2_HINT, MIAO_REVERSE_ROAD, SECRET_ITEM_RETRO_RACER, QuestManager
+from quests import MIAO_ASK_MOCHI, MIAO_CH2_HINT, MIAO_REVERSE_ROAD, SECRET_ITEM_RETRO_RACER, QuestManager
 from settings import VIEW_H, VIEW_W
 from story_dialogue import LOW_ON_SCREEN as D_LOW, Line, StoryDialogue
 import forgotten_games
@@ -92,6 +92,13 @@ REVERSE_ROAD_CHAT = (            # told once, the next time she is spoken to aft
     Line(MIAO, "BACKWARDS?!", "surprised"),
     Line(MIAO, "Hahaha! Humans are so weird!", "happy"),
     Line(MIAO, "Can we try it together next time?", "happy"),
+)
+
+ASK_MOCHI_CHAT = (               # told the first time she is spoken to after the vending machine's Secret Interface
+    Line(MIAO, "Did you see that?! The vending machine just... woke up!", "surprised"),
+    Line(YOU, "That old terminal... what was it?"),
+    Line(MIAO, "I don't know! But Mochi has run the Prize Plaza forever.", "normal"),
+    Line(MIAO, "If anyone remembers the old arcade, it's her. Go ask Mochi!", "happy"),
 )
 
 GREETINGS = (
@@ -551,6 +558,13 @@ class StoryDirector:
             self.brain.notify("talk", player)
             self.open_dialogue(room, player, REVERSE_ROAD_CHAT,
                                on_done=lambda: (m.handle(MIAO_REVERSE_ROAD), self.brain.end_talk()))
+            return
+        if m.opening_done and m.ask_mochi_due:
+            # the first talk after the vending secret sends the player to Mochi: only then does she have her
+            # Retro Racer story (and only that story opens the Reverse Road). Quitting halfway means it is told again.
+            self.brain.notify("talk", player)
+            self.open_dialogue(room, player, ASK_MOCHI_CHAT,
+                               on_done=lambda: (m.handle(MIAO_ASK_MOCHI), self.brain.end_talk()))
             return
         n = self._chats
         self._chats += 1
