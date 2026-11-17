@@ -233,7 +233,7 @@ class Driver:
         t = 0.0
         held = None
         while g.state != "clear" and t < limit:
-            if g.state in ("ready", "over"):
+            if g.state == "ready":
                 if real:
                     self.tap(K.K_SPACE)
                 else:

@@ -730,7 +730,7 @@ def bot(game, err=0.0, seconds=900.0, rng=None):
     rnd = rng or random.Random(1)
     t = 0.0
     while game.state != "clear" and t < seconds:
-        if game.state in ("ready", "over"):
+        if game.state == "ready":
             game.launch()
         cx = game.paddle_x + HB.PADDLE_W / 2
         tx = game.ball_x + HB.BALL / 2 + err
@@ -745,7 +745,8 @@ class BreakoutRuleTests(unittest.TestCase):
     def test_the_wall_and_the_start(self):
         g = HB.Breakout()
         self.assertEqual(g.remaining, HB.COLS * HB.ROWS)
-        self.assertEqual(g.lives, 3)
+        self.assertEqual(g.misses, 0)
+        self.assertFalse(hasattr(g, "lives"))                                         # no life limit at all
         self.assertEqual(g.state, "ready")
         self.assertEqual(g.score, 0)
         for b in g.bricks:                                                           # every brick is inside the field and none overlap
@@ -840,21 +841,22 @@ class BreakoutRuleTests(unittest.TestCase):
         g.step(1.0, 1)                                                               # (nothing moves once it is won)
         self.assertEqual(g.state, "clear")
 
-    def test_three_lives_then_a_free_restart(self):
+    def test_a_missed_ball_never_ends_the_game_and_the_wall_stays_broken(self):
         g = HB.Breakout()
-        for expected in (2, 1, 0):
+        g.bricks[0].alive = False                                                    # one brick already broken
+        g.score = HB.POINTS
+        for n in range(1, 21):                                                       # miss as often as you like
             g.launch()
             g.ball_y = HB.FIELD_H + 5
             g.step(0.02)
-            self.assertEqual(g.lives, expected)
-            self.assertIn("lose", [e[0] for e in g.take_events()])
-            if expected:
-                self.assertEqual(g.state, "ready")                                   # the ball is back on the paddle
-        self.assertEqual(g.state, "over")
-        g.step(1.0, 1)
-        self.assertEqual(g.state, "over")
-        g.launch()                                                                   # a launch press starts a brand new game
-        self.assertEqual((g.state, g.lives, g.score, g.remaining), ("ready", 3, 0, HB.COLS * HB.ROWS))
+            events = [e[0] for e in g.take_events()]
+            self.assertIn("lose", events)
+            self.assertNotIn("over", events)
+            self.assertEqual(g.state, "ready")                                       # the ball is back on the paddle
+            self.assertEqual(g.misses, n)
+        self.assertEqual((g.score, g.remaining), (HB.POINTS, HB.COLS * HB.ROWS - 1))  # nothing was reset
+        g.launch()
+        self.assertEqual(g.state, "playing")
 
     def test_the_ball_always_keeps_a_real_vertical_speed(self):
         g = HB.Breakout()
@@ -867,7 +869,7 @@ class BreakoutRuleTests(unittest.TestCase):
                 self.assertGreaterEqual(abs(g.vy), HB.MIN_VERTICAL * speed * 0.98 - 1e-6) if speed else None
             self.assertTrue(-5 <= g.ball_x <= HB.FIELD_W + 5)
             if g.state != "playing":
-                g.launch() if g.state in ("ready", "over") else None
+                g.launch() if g.state == "ready" else None
             if g.state == "clear":
                 break
 
@@ -891,7 +893,6 @@ class BreakoutRuleTests(unittest.TestCase):
             times.append(bot(g, err=random.Random(seed).uniform(-14, 14), rng=random.Random(seed)))
             self.assertEqual(g.state, "clear", seed)
             self.assertEqual(g.score, HB.POINTS * HB.COLS * HB.ROWS)
-            self.assertEqual(g.lives, 3)
         self.assertLess(max(times), 240)                                              # nobody is stuck for minutes
         self.assertGreater(min(times), 45)                                            # and it is not over in a blink
 
@@ -902,7 +903,7 @@ class BreakoutRuleTests(unittest.TestCase):
             rnd = random.Random(seed)
             err, last, since, worst, total = rnd.uniform(-14, 14), g.remaining, 0.0, 0.0, 0.0
             while g.state != "clear" and total < 900:
-                if g.state in ("ready", "over"):
+                if g.state == "ready":
                     g.launch()
                 cx = g.paddle_x + HB.PADDLE_W / 2
                 g.step(DT, 0 if abs(g.ball_x + 2 + err - cx) < 3 else (1 if g.ball_x + 2 + err > cx else -1))
@@ -922,7 +923,7 @@ class BreakoutRuleTests(unittest.TestCase):
             err = random.Random(seed).uniform(-14, 14)
             t = 0.0
             while g.state != "clear" and t < 900:
-                if g.state in ("ready", "over"):
+                if g.state == "ready":
                     g.launch()
                 cx = g.paddle_x + HB.PADDLE_W / 2
                 g.step(DT, 0 if abs(g.ball_x + 2 + err - cx) < 3 else (1 if g.ball_x + 2 + err > cx else -1))
@@ -1115,28 +1116,27 @@ class ComputerTests(TrialCase):
         self.assertEqual(panel.stage, "desktop")
         self.assertIs(scene.panel, panel)
 
-    def test_losing_all_three_lives_just_lets_you_try_again_for_free(self):
+    def test_missing_the_ball_any_number_of_times_never_ends_the_game(self):
         scene = self.to_desktop()
         wallet = (self.profile.tickets, self.profile.tokens)
         self.d.tap(K.K_1)
         panel = scene.panel
         g = panel.game
-        for expected in (2, 1, 0):
+        for n in range(1, 7):
             self.d.tap(K.K_SPACE)
             g.ball_y = HB.FIELD_H + 3                                               # (the ball slips past the paddle)
             self.d.seconds(0.1)
-            self.assertEqual(g.lives, expected)
-        self.assertEqual(g.state, "over")
+            self.assertEqual((g.state, g.misses), ("ready", n))                     # straight back on the paddle
         self.assertIn("breakout_lose", [n for _, n in self.d.sounds])
-        self.d.frames(2)
+        self.assertIs(scene.panel, panel)
+        self.assertEqual(panel.stage, "game")
         shown = []
         real = UI.draw_text
         with patch.object(UI, "draw_text", lambda surf, text, *a, **k: (shown.append(str(text)), real(surf, text, *a, **k))[1]):
             self.d.frames(2)
-        self.assertTrue(any("TRY AGAIN" in t for t in shown))
+        self.assertFalse(any("LIVES" in t or "TRY AGAIN" in t for t in shown))
+        self.assertTrue(any("LAUNCH" in t for t in shown))
         self.assertFalse(scene.run.breakout_cleared)
-        self.d.tap(K.K_e)                                                           # restart
-        self.assertEqual((g.state, g.lives, g.remaining), ("ready", 3, HB.COLS * HB.ROWS))
         self.assertEqual((self.profile.tickets, self.profile.tokens), wallet)       # nothing was charged
 
     def test_clearing_the_game_shows_game_clear_and_opens_the_locked_files(self):
@@ -2016,12 +2016,12 @@ class BreakoutSaveTests(TrialCase):
         self.assertFalse(quests.QuestManager(LocalSession(loaded)).trial_done("trial_01"))        # cleared the game, not yet the trial
         panel = scene.panel
         self.d.tap(K.K_e)                                                           # desktop
-        self.d.tap(K.K_1)                                                           # play again and lose on purpose
+        self.d.tap(K.K_1)                                                           # play again and miss on purpose
         for _ in range(3):
             self.d.tap(K.K_SPACE)
             panel.game.ball_y = HB.FIELD_H + 3
             self.d.seconds(0.1)
-        self.assertEqual(panel.game.state, "over")
+        self.assertEqual(panel.game.state, "ready")                                  # (no game over any more)
         self.assertTrue(scene.run.breakout_cleared)                                  # still cleared
         self.assertTrue(self.manager.state["flags"][G.BREAKOUT_FLAG])
         self.d.tap(K.K_ESCAPE)                                                       # pause ...
