@@ -178,7 +178,7 @@ QUESTS = (
               "Why not take a closer look at it? Arcade machines always have a few tricks up their sleeves.",
               "I can't tell you what it wants. Keep exploring the Arcade and trust your curiosity!")),
     # ---- CHAPTER 01: THE GOLDEN AGE
-    QuestDef("ch1_secret_item", "Chapter 01: The Golden Age", "Find Secret Item 01. Mochi at the Prize Plaza remembers an old Retro Racer story.",
+    QuestDef("ch1_secret_item", "Chapter 01: The Golden Age", "Find Secret Item 01. Talk to Miao Meow, then ask Mochi at the Prize Plaza about an old Retro Racer story.",
              "CH 01: FIND SECRET ITEM 01", ("item", SECRET_ITEM_RETRO_RACER),
              ("The vending machine woke something up! Mochi has run the Prize Plaza forever. Ask her?",
               "Old racing games had their own little secrets. Ask Mochi about the Retro Racer!",
