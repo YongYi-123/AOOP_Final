@@ -5,7 +5,7 @@
 Stages (each one starts a new test save at that point of the story):
     new       a brand-new player: the opening cutscene and the tutorial quests
     vending   tutorial done: find the vending machine's secret screen
-    ch1       Chapter 01 open: ask Mochi, find the Reverse Road in Retro Racer (Secret Item 01)
+    ch1       Chapter 01 open: talk to Miao (she sends you to Mochi), hear Mochi's story, then the Reverse Road (Secret Item 01)
     trial01   Secret Item 01 owned: open the Legacy Terminal and play Trial 01
     ch2       Chapter 02 open: hint cards in the capsule machines, the three symbols in the minigames
     routes    Chapter 02 open AND every route already earned: the three secrets are waiting, go and find them

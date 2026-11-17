@@ -18,7 +18,7 @@ cd arcade_lobby
 |---|---|---|
 | `python3 play_story.py new` | 全新玩家 | 開場動畫、新手任務（Miao 帶路、見 Mochi、玩 3 台機器、贏彩票） |
 | `python3 play_story.py vending` | 新手任務完成 | 找出販賣機的秘密畫面 |
-| `python3 play_story.py ch1` | 第一章開啟 | 問 Mochi Retro Racer 的故事，在 Retro Racer 找到 Reverse Road（秘密道具 01） |
+| `python3 play_story.py ch1` | 第一章開啟 | 先找 Miao 聊（她叫你去問 Mochi），再問 Mochi Retro Racer 的故事（聽完 Reverse Road 才會出現；可重聽），在 Retro Racer 找到 Reverse Road（秘密道具 01） |
 | `python3 play_story.py trial01` | 已有秘密道具 01 | 再開一次販賣機秘密畫面 → Legacy Terminal → Trial 01 |
 | `python3 play_story.py ch2` | 第二章開啟 | 扭蛋機的提示卡、三個小遊戲的符號 |
 | `python3 play_story.py routes` | 第二章開啟，三個秘密都已經出現 | 不用先達成路線條件，直接去三個小遊戲找符號 |
