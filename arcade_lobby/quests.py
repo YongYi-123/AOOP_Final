@@ -50,6 +50,7 @@ SECRET_ITEM_CLAW = "claw_secret_reward"                 # Secret Item 02: the Cl
 SECRET_ITEM_DUNGEON = "dungeon_grey_pixel"              # Secret Item 03: the Dungeon Maze's grey pixel
 ITEM_ALIASES = {"reverse_gear": SECRET_ITEM_RETRO_RACER}     # the racer's own name for its item (retro_racer/reverse_road.ITEM_KEY)
 MOCHI_ARCADE_STORY = "mochi_arcade_story"               # story flag: Mochi's first Retro Racer story has been told
+MIAO_ASK_MOCHI = "miao_ask_mochi"                       # story flag: in Chapter 01 Miao Meow has told the player to ask Mochi
 MIAO_REVERSE_ROAD = "miao_reverse_road"                 # story flag: Miao Meow's talk about the secret road has been told
 
 # ---- CHAPTER 02, THE FORGOTTEN GAMES (the game-facing rules live in forgotten_games.py). All of it is saved in the
@@ -495,6 +496,13 @@ class QuestManager:
             return False
         return self.has_secret_item(key) or self.chapter_unlocked(ITEMS_BY_KEY[key].chapter)
 
+    @property
+    def ask_mochi_due(self):
+        """Is Miao Meow's "go ask Mochi" talk still to come? After the vending secret, before Mochi's story or the gear."""
+        flags = self.state.get("flags", {})
+        return (self.secret_interface_unlocked and not flags.get(MIAO_ASK_MOCHI) and not flags.get(MOCHI_ARCADE_STORY)
+                and not self.has_secret_item(SECRET_ITEM_RETRO_RACER))
+
     def can_finish_trial(self, trial_id):
         """May a completion of `trial_id` be recorded? Only once its chapter is open (a player inside the room is never
         sent out, nor robbed of the result, whatever happens to the wallet)."""
@@ -813,9 +821,10 @@ class QuestManager:
             state.setdefault("flags", {})[name] = True
             self.save()
             return
-        elif name in (MOCHI_ARCADE_STORY, MIAO_REVERSE_ROAD):
+        elif name in (MOCHI_ARCADE_STORY, MIAO_REVERSE_ROAD, MIAO_ASK_MOCHI):
             flags = state.setdefault("flags", {})
-            ready = self.secret_interface_unlocked if name == MOCHI_ARCADE_STORY else self.has_secret_item(SECRET_ITEM_RETRO_RACER)
+            ready = (self.secret_interface_unlocked if name in (MOCHI_ARCADE_STORY, MIAO_ASK_MOCHI)
+                     else self.has_secret_item(SECRET_ITEM_RETRO_RACER))
             if ready and not flags.get(name):         # once, and only when what it talks about has really happened
                 flags[name] = True
                 changed = True
