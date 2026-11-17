@@ -529,7 +529,7 @@ PHOSPHOR, PHOSPHOR_DIM, AMBER = GREEN, (80, 170, 130), (255, 200, 110)
 class ComputerPanel(Panel):
     """INSERT BOOT DISK? > BOOTING... > the desktop (PLAY GAME / HIGH SCORES / LOCKED FILES / EXIT) > HAPPY BREAKOUT.EXE.
     The locked files only open once the game has been cleared; then they show the archive and PLAYER_000, and E ends it.
-    Playing is free, losing all three lives just lets you start again, and a cleared game stays cleared."""
+    Playing is free, there is no life limit (a missed ball just goes back on the paddle), and a cleared game stays cleared."""
     LINE_TIME = 0.85
 
     def __init__(self, play=None, cleared=False, on_clear=None):
@@ -765,8 +765,6 @@ class ComputerPanel(Panel):
         g = self.game
         draw_text(view, f"SCORE {g.score:04d}", (FIELD_X, 8), PHOSPHOR)
         draw_text(view, "HAPPY BREAKOUT", (SCREEN.w // 2, 8), PHOSPHOR_DIM, 1, "midtop")
-        for i in range(g.lives):                                               # lives: little paddles
-            view.fill((236, 232, 200), (FIELD_X + hb.FIELD_W - 18 - i * 14, 10, 10, 3))
         field = pygame.Rect(FIELD_X, FIELD_Y, hb.FIELD_W, hb.FIELD_H)
         pygame.draw.rect(view, (12, 34, 28), field)
         pygame.draw.rect(view, PHOSPHOR_DIM, field.inflate(2, 2), 1)
@@ -786,8 +784,6 @@ class ComputerPanel(Panel):
         mid = field.centerx
         if g.state == "ready":
             draw_text(view, "[E] / SPACE: LAUNCH    ARROWS / A D: MOVE", (SCREEN.w // 2, field.bottom + 6), PHOSPHOR_DIM, 1, "midtop")
-        elif g.state == "over":
-            self._card(view, field, ["OUT OF LIVES", "NO WORRIES. IT'S FREE.", "[E] TRY AGAIN    [ESC] DESKTOP"])
         if self.paused:
             self._card(view, field, ["PAUSED", "[E] RESUME    [ESC] DESKTOP"])
 
