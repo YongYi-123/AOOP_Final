@@ -1,12 +1,13 @@
 """HAPPY BREAKOUT.EXE: the rules of the little Breakout game on the old computer in Trial 01 (no drawing, no pygame).
 
 A paddle, a ball and a wall of bricks. Move the paddle with the arrow keys (or A / D), launch the ball with E / SPACE /
-UP. Clear every brick to win. Three lives; losing them all just lets you start again, free. Meant to be easy: a slow ball,
-a wide paddle and about two to four minutes of play.
+UP. Clear every brick to win. There is no life limit: a missed ball just goes back on the paddle and the bricks already
+broken stay broken (`misses` only counts them). Meant to be easy: a slow ball, a wide paddle and about two to four
+minutes of play.
 
 `step(dt, direction)` advances the game (in small fixed sub-steps so a fast frame can never let the ball tunnel through a
 brick) and records what happened in `events` as (name, x, y, colour index) for the screen to turn into sounds and sparks:
-"launch", "wall", "paddle", "brick", "lose", "clear", "over".
+"launch", "wall", "paddle", "brick", "lose", "clear".
 
 The ball can never get stuck: it always keeps a real vertical speed (so it cannot bounce sideways forever), a brick is
 removed the moment it is hit, and a ball that finds itself inside a brick or the paddle is pushed out first.
@@ -25,7 +26,6 @@ BALL = 4                                        # the ball is a 4x4 square
 BASE_SPEED, MAX_SPEED = 105.0, 150.0
 MIN_VERTICAL = 0.5                              # |vy| / speed never drops below this, so the ball cannot run sideways forever
 MAX_BOUNCE = math.radians(55)                   # steepest angle off the paddle's edge
-LIVES = 3
 SUBSTEP = 1 / 240
 POINTS = 10
 
@@ -47,12 +47,12 @@ class Breakout:
 
     # ------------------------------------------------------------ setup
     def reset(self):
-        """A brand new game: full wall, three lives, ball on the paddle. Free, as often as you like."""
+        """A brand new game: full wall, ball on the paddle. Free, as often as you like."""
         left = (FIELD_W - (COLS * (BRICK_W + GAP) - GAP)) // 2
         self.bricks = [Brick(left + c * (BRICK_W + GAP), TOP + r * (BRICK_H + GAP), r) for r in range(ROWS) for c in range(COLS)]
-        self.lives = LIVES
+        self.misses = 0                         # balls lost (there is no limit; nothing else depends on it)
         self.score = 0
-        self.state = "ready"                    # ready (ball on the paddle) / playing / over / clear
+        self.state = "ready"                    # ready (ball on the paddle) / playing / clear
         self.paddle_x = (FIELD_W - PADDLE_W) / 2
         self.events = []
         self.hits = 0
@@ -66,7 +66,7 @@ class Breakout:
         self.ball_x = self.paddle_x + PADDLE_W / 2 - BALL / 2
         self.ball_y = PADDLE_Y - BALL
         self.vx = self.vy = 0.0
-        self.state = "ready" if self.lives > 0 else "over"
+        self.state = "ready"
 
     @property
     def remaining(self):
@@ -80,7 +80,7 @@ class Breakout:
             self.vy = -self.speed * math.cos(angle)
             self.state = "playing"
             self.events.append(("launch", self.ball_x, self.ball_y, 0))
-        elif self.state in ("over", "clear"):
+        elif self.state == "clear":
             self.reset()
 
     # ------------------------------------------------------------ the loop
@@ -92,7 +92,7 @@ class Breakout:
             self._sub(dt / n, direction)
 
     def _sub(self, h, direction):
-        if self.state in ("over", "clear"):
+        if self.state == "clear":
             return
         self.paddle_x = max(0.0, min(FIELD_W - PADDLE_W, self.paddle_x + direction * PADDLE_SPEED * h))
         if self.state == "ready":
@@ -176,12 +176,9 @@ class Breakout:
             self.events.append(("clear", cx, cy, 0))
 
     def _lose(self):
-        self.lives -= 1
+        self.misses += 1
         self.events.append(("lose", self.ball_x, FIELD_H, 0))
-        self._park()
-        if self.lives <= 0:
-            self.state = "over"
-            self.events.append(("over", self.ball_x, FIELD_H, 0))
+        self._park()                            # back on the paddle: no lives to lose, the wall stays as it is
 
     def _keep_moving(self):
         """Hold the speed at its current value and keep the ball from running (almost) sideways."""
