@@ -662,6 +662,14 @@ def main():
     back_to_room()
     settle(20)
 
+    # Miao Meow first: her Chapter 01 hint sends the player to Mochi (until then Mochi has no Retro Racer story)
+    check("  Mochi has nothing to tell before Miao Meow's hint", manager().mochi_story_stage is None)
+    check("  the Reverse Road is closed before Mochi's story", not manager().reverse_road_open)
+    if talk_to_miao():
+        read_dialogue()
+    settle(10)
+    check("  Miao Meow sent the player to Mochi", manager().state["flags"].get(Q.MIAO_ASK_MOCHI))
+
     # Mochi's Retro Racer story (Prize Counter, then the bag key opens CHAT WITH MOCHI)
     use("prize_plaza", label="PRIZE COUNTER", until=lambda s: isinstance(s, ShopScene))
     tap(K.K_i, after=60)
@@ -674,6 +682,7 @@ def main():
             tap(K.K_RETURN, after=3)
         shot("08_mochi_story")
     check("  Mochi told the Retro Racer story", manager().state["flags"].get(Q.MOCHI_ARCADE_STORY))
+    check("  the Reverse Road is open after Mochi's story", manager().reverse_road_open)
     back_to_room()
 
     # ---------------------------------------------------------- 7. the Reverse Gear in Retro Racer
