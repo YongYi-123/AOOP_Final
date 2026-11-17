@@ -41,6 +41,7 @@ EVENT_HANDLERS = {
     "game_played": lambda profile, e: profile.record_game_played(e.game_id),
     # story events: nothing happens to the profile itself; the quest system hears them through add_listener()
     "vending_secret": lambda profile, e: None,
+    "magazine_read": lambda profile, e: None,               # HOME's magazine was read (only Miao's vending hints use it)
     "secret_item_found": lambda profile, e: None,
     "easter_egg_found": lambda profile, e: None,            # (OUT OF TIME: only the story keeps a note of it)
     "secret_trial_done": lambda profile, e: None,
