@@ -649,13 +649,17 @@ class QuestManager:
 
     @property
     def mochi_story_stage(self):
-        """Where Mochi's Retro Racer talk stands: None (locked: she says nothing about it), "new" (unlocked, the first
-        story not heard), "heard" (heard; the hint is offered) or "found" (Secret Item 01 is in hand)."""
+        """Where Mochi's Retro Racer talk stands: None (locked: she says nothing about it), "new" (Miao Meow has sent
+        the player to her, the first story not heard), "heard" (heard: the Reverse Road is open and the hint is offered)
+        or "found" (Secret Item 01 is in hand). Before Miao's talk she has nothing to say."""
         if not self.secret_interface_unlocked:
             return None
         if self.has_secret_item(SECRET_ITEM_RETRO_RACER):
             return "found"
-        return "heard" if self.state.get("flags", {}).get(MOCHI_ARCADE_STORY) else "new"
+        flags = self.state.get("flags", {})
+        if flags.get(MOCHI_ARCADE_STORY):
+            return "heard"
+        return "new" if flags.get(MIAO_ASK_MOCHI) else None
 
     @property
     def secret_items(self):

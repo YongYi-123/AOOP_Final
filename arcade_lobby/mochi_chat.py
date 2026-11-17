@@ -2,17 +2,18 @@
 
 Nothing here is a second unlock system. It only READS the shared story (quests.QuestManager.mochi_story_stage):
 
-    locked    the vending machine's real Secret Interface has not opened      no chat entry exists at all (the shop looks and
-                                                                               behaves exactly as it always did)
-    "new"     unlocked, the first story not heard yet                         "Any stories about the old arcade?"
-    "heard"   the first story was told, Secret Item 01 not found yet           + "Tell me more about Retro Racer." (a hint to STOP)
+    locked    the vending machine's real Secret Interface has not opened,      no chat entry exists at all (the shop looks and
+              or Miao Meow has not yet told the player to ask Mochi            behaves exactly as it always did)
+    "new"     Miao has sent the player here, the first story not heard yet    "Any stories about the old arcade?"
+    "heard"   the first story was told: the Reverse Road is open now           + "Tell me more about Retro Racer." (a hint to STOP)
     "found"   Secret Item 01 (Reverse Gear) is in hand                        + "About that secret race..." (the hint is gone)
     Chapter 02, once all three of its clues are found                        + "Did you find something unusual?": she shows
                                                                                the old maintenance record (maintenance_note.py),
                                                                                which points to the claw machine's prize lock
 
-The first story is recorded ONCE, in the shared story (a flag saved in every profile of the session), when it is finished;
-it can be read again as often as you like. The conversations are plain StoryDialogue boxes; Miao Meow only joins in when she
+The first story is recorded ONCE, in the shared story (a flag saved in the profile), when it is finished: that is what
+opens the Reverse Road in Retro Racer (QuestManager.can_collect). It can be read again as often as you like, and every
+re-read plays the whole story again. The conversations are plain StoryDialogue boxes; Miao Meow only joins in when she
 is already standing in the Prize Plaza (she is never moved here). Mochi's shop is untouched.
 """
 import pygame
