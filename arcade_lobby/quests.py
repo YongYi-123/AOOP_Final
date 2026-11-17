@@ -145,6 +145,9 @@ def canonical_item(key):
 MEMORY_FRAGMENTS = {"trial_01": "memory_fragment_01"}      # a trial's first completion unseals its Memory Fragment (a story flag, kept once)
 TRIAL_NOTES = ("trial01_intro", "trial01_breakout")                           # quiet flags a trial scene keeps for itself (its opening has played)
 MAGAZINE_READ_EVENT = "magazine_read"   # quiet flag: RETRO GAMING (HOME's magazine) was read; only Miao's vending hints use it
+# Miao Meow's last vending hints, after the quest's own three: first where to look, then (once it is read) which page
+VENDING_MAGAZINE_HINT = "Old gamers kept their best tricks in magazines. Isn't there one by the couch at HOME?"
+VENDING_PAGE_HINT = "You read the magazine! Page 4, BEHIND THE PIXELS, felt important. Something about surprises?"
 TOUR_EVENTS = ("tour_home", "tour_arcade", "met_mochi")     # the tour conversations that have played (flags in the story)
 LEGACY_QUESTS = {"get_your_bearings"}                        # a quest the tour replaced: reading it in a save means 'tour done'
 
@@ -681,21 +684,34 @@ class QuestManager:
         q = quest or self.active
         return self.state.get("hints", {}).get(q.id, 0) if q else 0
 
+    @property
+    def magazine_read(self):
+        return bool(self.state.get("flags", {}).get(MAGAZINE_READ_EVENT))
+
+    def hints_for(self, quest):
+        """A quest's hints, vaguest first. The vending quest ends on the magazine: where it is until it has been read,
+        then which page mattered (still never the code itself)."""
+        if quest.id != "check_the_vending_machine":
+            return quest.hints
+        return quest.hints + ((VENDING_PAGE_HINT,) if self.magazine_read else (VENDING_MAGAZINE_HINT,))
+
     def current_hint(self, quest=None):
         """The hint for the active quest at the tier already reached (does not advance it)."""
         q = quest or self.active
-        if q is None or not q.hints:
+        hints = self.hints_for(q) if q is not None else ()
+        if not hints:
             return None
-        return q.hints[min(self.hint_tier(q), len(q.hints) - 1)]
+        return hints[min(self.hint_tier(q), len(hints) - 1)]
 
     def take_hint(self):
         """Miao Meow gives a hint because the player asked: the vaguest first, a little more each time they ask again."""
         q = self.active
-        if q is None or not q.hints:
+        hints = self.hints_for(q) if q is not None else ()
+        if not hints:
             return None
         tier = self.hint_tier(q)
-        text = q.hints[min(tier, len(q.hints) - 1)]
-        if tier < len(q.hints) - 1:
+        text = hints[min(tier, len(hints) - 1)]
+        if tier < len(hints) - 1:
             self.state.setdefault("hints", {})[q.id] = tier + 1
             self.save()
         return text
