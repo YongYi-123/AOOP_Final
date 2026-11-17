@@ -21,7 +21,8 @@ from game import Game  # noqa: E402
 from local_session import LocalSession  # noqa: E402
 from player_profile import PlayerProfile, ProfileStore  # noqa: E402
 from quest_ui import ObjectiveTracker, QuestLogUI  # noqa: E402
-from quests import MIAO_REVERSE_ROAD, SECRET_ITEM_RETRO_RACER, QuestManager  # noqa: E402
+from quests import (MIAO_ASK_MOCHI, MIAO_REVERSE_ROAD, MOCHI_ARCADE_STORY, SECRET_ITEM_RETRO_RACER,  # noqa: E402
+                    QuestManager)  # noqa: E402
 from retro_racer_scene import RetroRacerScene  # noqa: E402
 from room_testing import goto_room  # noqa: E402
 
@@ -40,6 +41,7 @@ def keyup(k):
 class RacerHubBase(unittest.TestCase):
     players = 1
     chapter_open = True             # the vending machine's Secret Interface has opened CHAPTER 01 (the road may be found)
+    mochi_told = True               # ... and Miao Meow sent the player to Mochi, who told her Retro Racer story (road open)
 
     def setUp(self):
         self.profiles = [PlayerProfile(profile_id="ra", display_name="Ann", tokens=20, tickets=50),
@@ -54,6 +56,26 @@ class RacerHubBase(unittest.TestCase):
         self.m.finish_opening()
         if self.chapter_open:
             self.m.handle("vending_secret")
+            if self.mochi_told:
+                self.m.handle(MIAO_ASK_MOCHI)
+                self.m.handle(MOCHI_ARCADE_STORY)
+
+    def talk(self):
+        room = goto_room(self.game, "home")
+        self.story.talk_to_miao(room, room.player)
+        d = self.story.dialogue
+        self.assertIsNotNone(d)
+        return d
+
+    def close_dialogue(self):
+        d = self.story.dialogue
+        for _ in range(len(d.lines) * 2 + 2):
+            if self.story.dialogue is None:
+                break
+            for _ in range(80):
+                self.game.step([], DT)
+            self.game.step([key(K.K_RETURN)], DT)
+        self.game.step([], DT)
 
     # ------------------------------------------------------------ driving the real scene
     def launch(self):
@@ -305,23 +327,6 @@ class ReturnToTheArcadeTests(RacerHubBase):
 
 
 class StoryReactionTests(RacerHubBase):
-    def talk(self):
-        room = goto_room(self.game, "home")
-        self.story.talk_to_miao(room, room.player)
-        d = self.story.dialogue
-        self.assertIsNotNone(d)
-        return d
-
-    def close_dialogue(self):
-        d = self.story.dialogue
-        for _ in range(len(d.lines) * 2 + 2):
-            if self.story.dialogue is None:
-                break
-            for _ in range(80):
-                self.game.step([], DT)
-            self.game.step([key(K.K_RETURN)], DT)
-        self.game.step([], DT)
-
     def test_miao_meow_has_nothing_to_say_about_it_before_the_item(self):
         d = self.talk()
         self.assertNotIn("SECRET ROAD", " ".join(l.text.upper() for l in d.lines))
@@ -364,11 +369,56 @@ class StoryReactionTests(RacerHubBase):
         self.m.handle(MIAO_REVERSE_ROAD)
         self.assertFalse(self.m.state.get("flags", {}).get(MIAO_REVERSE_ROAD))
 
-    def test_mochi_updates_to_the_found_talk_once_the_interface_is_open(self):
-        self.m.handle("vending_secret")
-        self.assertEqual(self.m.mochi_story_stage, "new")
+    def test_mochi_updates_to_the_found_talk_once_the_item_is_found(self):
+        self.assertEqual(self.m.mochi_story_stage, "heard")
         self.m.handle("secret_item_found", SECRET_ITEM_RETRO_RACER)
         self.assertEqual(self.m.mochi_story_stage, "found")
+
+
+class MiaoThenMochiTests(RacerHubBase):
+    """The Reverse Road is only there once Miao Meow has sent the player to Mochi and Mochi has told her story."""
+    mochi_told = False
+
+    def test_after_the_vending_secret_the_road_is_closed_and_mochi_has_nothing_yet(self):
+        self.assertTrue(self.m.chapter_unlocked(1))
+        self.assertFalse(self.m.reverse_road_open)
+        self.assertIsNone(self.m.mochi_story_stage)
+        self.launch()
+        self.assertFalse(self.racer.secret_road_open)
+
+    def test_the_first_talk_with_miao_sends_the_player_to_mochi(self):
+        d = self.talk()
+        self.assertEqual(tuple(d.lines), ST.ASK_MOCHI_CHAT)
+        self.assertIn("Mochi", " ".join(l.text for l in d.lines))
+        self.assertFalse(self.m.state.get("flags", {}).get(MIAO_ASK_MOCHI))        # told, not yet finished
+        self.close_dialogue()
+        self.assertTrue(self.m.state["flags"][MIAO_ASK_MOCHI])
+        self.assertEqual(self.m.mochi_story_stage, "new")                         # Mochi has her story now
+        self.assertFalse(self.m.reverse_road_open)                                # ... but has not told it
+        again = self.talk()
+        self.assertNotEqual(tuple(again.lines), ST.ASK_MOCHI_CHAT)                # once, then her usual hints
+
+    def test_quitting_miaos_talk_halfway_means_she_says_it_again(self):
+        self.talk()
+        self.story.dialogue = None                                                 # closed without finishing
+        self.assertTrue(self.m.ask_mochi_due)
+        self.assertEqual(tuple(self.talk().lines), ST.ASK_MOCHI_CHAT)
+
+    def test_mochis_story_opens_the_road_for_the_racer(self):
+        self.talk()
+        self.close_dialogue()
+        self.m.handle(MOCHI_ARCADE_STORY)
+        self.assertTrue(self.m.reverse_road_open)
+        self.launch()
+        self.assertTrue(self.racer.secret_road_open)
+        self.to_secret()
+        self.finish_run()
+        self.assertEqual(self.m.secret_items, 1)
+
+    def test_the_talk_never_names_the_secret(self):
+        text = " ".join(l.text for l in ST.ASK_MOCHI_CHAT).upper()
+        for word in ("KEVIN", "BACKWARD", "REVERSE", "STOP", "SECRET ROAD", "RETRO RACER"):
+            self.assertNotIn(word, text)
 
 
 class RealKeyFlowTest(RacerHubBase):
@@ -548,6 +598,10 @@ class BeforeChapterOneTests(RacerHubBase):
         self.assertFalse(self.m.has_secret_item(SECRET_ITEM_RETRO_RACER))
         self.m.handle("vending_secret")
         self.assertTrue(self.m.can_collect(SECRET_ITEM_RETRO_RACER))
+        self.assertFalse(self.m.reverse_road_open)                 # ... the road waits for Miao, then Mochi's story
+        self.m.handle(MIAO_ASK_MOCHI)
+        self.m.handle(MOCHI_ARCADE_STORY)
+        self.assertTrue(self.m.reverse_road_open)
         self.scene = None
         self.launch()
         self.assertTrue(self.racer.secret_road_open)                # the next visit to the racer lets the road be found
