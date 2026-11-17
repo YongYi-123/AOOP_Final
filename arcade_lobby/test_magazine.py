@@ -1,7 +1,8 @@
 """Tests for RETRO GAMING - ISSUE 1986, the magazine rack beside HOME's couch: where it stands, that it never blocks
 anybody, the page-turning reader, that every page fits and is readable, that reading is free and
-repeatable and changes nothing (no notification, no quest progress), that the words KONAMI CODE appear exactly once, as
-plain body text and never with a key sequence, and that Miao Meow no longer points at it.
+repeatable and changes nothing but one quiet story flag (no notification, no quest progress), that the words KONAMI
+CODE appear exactly once, as plain body text and never with a key sequence, and that Miao Meow only points at it after
+her own three vending hints: first at the magazine, then (once it is read) at page 4.
 
 Run headless from this folder:   python -m unittest test_magazine -v
 """
@@ -18,7 +19,8 @@ from game import Game  # noqa: E402
 from local_session import LocalSession  # noqa: E402
 from magazine import (ARTICLES, INK, LAST_PAGE, PAPER, MagazineScene, MagazineStation)  # noqa: E402
 from player_profile import PlayerProfile  # noqa: E402
-from quests import QUESTS, VENDING_SECRET_FLAG  # noqa: E402
+from quests import (MAGAZINE_READ_EVENT, QUESTS, VENDING_MAGAZINE_HINT, VENDING_PAGE_HINT,  # noqa: E402
+                    VENDING_SECRET_FLAG)  # noqa: E402
 from room_testing import goto_room  # noqa: E402
 from secret_input import SEQUENCE  # noqa: E402
 from settings import VIEW_H, VIEW_W  # noqa: E402
@@ -247,6 +249,11 @@ class FreeAndHarmlessTests(HomeTest):
         after = p.to_dict()
         for field in ("tokens", "tickets", "inventory"):
             self.assertEqual(after.get(field), before.get(field), field)
+        flags = after.get("story", {}).get("flags", {})
+        self.assertEqual(flags.get(MAGAZINE_READ_EVENT), True)            # the one quiet note Miao's hint reads
+        after["story"]["flags"] = {k: v for k, v in flags.items() if k != MAGAZINE_READ_EVENT}
+        if not after["story"]["flags"]:
+            del after["story"]["flags"]
         self.assertEqual(after, before)
 
     def test_reading_does_not_complete_the_vending_quest_or_record_the_secret(self):
@@ -457,6 +464,84 @@ class MiaoHintTests(unittest.TestCase):
 
     def test_the_hint_texts_are_exactly_these_three(self):
         self.assertEqual(len(self.quest().hints), 3)
+
+    def test_the_magazine_hints_never_give_the_code_away(self):
+        for hint in (VENDING_MAGAZINE_HINT, VENDING_PAGE_HINT):
+            self.assertLess(len(hint), 100)
+            text = hint.upper()
+            for word in ("KONAMI", "CODE", "CHEAT", "ARROW", "UP UP", "DOWN DOWN", "LEFT RIGHT", "B A", "SEQUENCE",
+                         "PRESS", "GRADIUS"):
+                self.assertNotIn(word, text, f"{word!r} in {hint!r}")
+        self.assertIn("magazine", VENDING_MAGAZINE_HINT)
+        self.assertIn("HOME", VENDING_MAGAZINE_HINT)
+        self.assertIn("Page 4", VENDING_PAGE_HINT)
+        self.assertEqual(ARTICLES[4]["title"], "BEHIND THE PIXELS")       # the page that has LITTLE SURPRISES
+        self.assertIn(("h", "LITTLE SURPRISES"), ARTICLES[4]["blocks"])
+        self.assertIn("BEHIND THE PIXELS", VENDING_PAGE_HINT)
+
+
+class MiaoMagazineHintTests(HomeTest):
+    def ask(self, n=1):
+        manager = self.game.hub.story.manager
+        return [manager.take_hint() for _ in range(n)]
+
+    def active(self):
+        manager = self.game.hub.story.manager
+        for quest in QUESTS:                                          # walk the story to the vending quest
+            if quest.id == "check_the_vending_machine":
+                break
+            manager.state.setdefault("completed", []).append(quest.id)
+        self.assertEqual(manager.active.id, "check_the_vending_machine")
+        return manager
+
+    def read(self, pages=1):
+        self.stand_by_magazine()
+        self.frames(5)
+        self.frames(1, [key(K.K_e)])
+        self.frames(60)
+        for _ in range(pages):
+            self.frames(1, [key(K.K_e)])                              # E turns to the next page
+            self.frames(20)
+        self.frames(1, [key(K.K_ESCAPE)])
+        self.frames(20)
+        self.assertIs(self.game.scenes.current, self.room)
+
+    def test_asking_again_and_again_ends_on_the_magazine_until_it_is_read(self):
+        manager = self.active()
+        own = list(next(q for q in QUESTS if q.id == "check_the_vending_machine").hints)
+        self.assertEqual(self.ask(3), own)                            # her own three come first, unchanged
+        self.assertEqual(self.ask(3), [VENDING_MAGAZINE_HINT] * 3)    # then: go and look at the magazine
+        self.assertEqual(manager.current_hint(), VENDING_MAGAZINE_HINT)
+
+    def test_after_reading_the_next_ask_names_the_page(self):
+        manager = self.active()
+        self.ask(4)
+        self.read()
+        self.assertTrue(manager.magazine_read)
+        self.assertEqual(manager.current_hint(), VENDING_PAGE_HINT)   # the Quest Log shows it too
+        self.assertEqual(self.ask(2), [VENDING_PAGE_HINT] * 2)
+
+    def test_reading_early_skips_straight_to_the_page_after_her_own_three(self):
+        manager = self.active()
+        self.read()
+        self.assertEqual(self.ask(4)[3], VENDING_PAGE_HINT)
+        self.assertNotIn(VENDING_MAGAZINE_HINT, self.ask(2))
+
+    def test_opening_and_closing_on_the_cover_does_not_count_as_reading(self):
+        manager = self.active()
+        self.read(pages=0)
+        self.assertFalse(manager.magazine_read)
+
+    def test_the_flag_is_saved_and_reading_never_completes_the_quest(self):
+        manager = self.active()
+        self.read()
+        self.assertTrue(self.room.session.primary.profile.story["flags"][MAGAZINE_READ_EVENT])
+        self.assertNotIn("check_the_vending_machine", manager.completed_ids)
+
+    def test_other_quests_keep_their_own_hints(self):
+        manager = self.game.hub.story.manager
+        first = QUESTS[0]
+        self.assertEqual(manager.hints_for(first), first.hints)
 
 
 # ------------------------------------------------------------------ reading

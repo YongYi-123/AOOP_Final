@@ -345,7 +345,7 @@ class HintTests(unittest.TestCase):
         self.assertEqual(m.current_hint(), q.hints[0])                 # looking does not advance
         got = [m.take_hint() for _ in range(5)]
         self.assertEqual(got[:3], list(q.hints))
-        self.assertEqual(got[3:], [q.hints[-1]] * 2)
+        self.assertEqual(got[3:], [Q.VENDING_MAGAZINE_HINT] * 2)      # then the magazine, until it has been read
 
     def test_the_hint_changes_with_story_progress(self):
         p, m = finished()
