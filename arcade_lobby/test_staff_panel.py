@@ -121,7 +121,11 @@ class CabinetTests(StaffBase):
         claimed = {d["slot"] for d in MACHINES if "slot" in d}
         self.assertNotIn(SLOT, claimed)                                      # no completed minigame lived there
         self.assertEqual([m.id for m in self.room.machines], [d["id"] for d in MACHINES])
-        self.assertEqual(sum(isinstance(p, IdleCabinet) for p in self.room.props), 1)   # one SOON bay is left
+        free = self.room.layout.free_slots()
+        self.assertIn(SLOT, free)                                            # it stands in a spare bay
+        idle = sorted(p.pos for p in self.room.props if isinstance(p, IdleCabinet))
+        spare = sorted(IdleCabinet(pos).pos for name, pos in free.items() if name != SLOT)
+        self.assertEqual(idle, spare)                                        # every other spare bay stays SOON
 
     def test_same_footprint_as_the_dark_cabinet_it_replaces_so_paths_are_unchanged(self):
         self.assertEqual(self.cabinet().footprint, IdleCabinet(ARCADE_SLOTS[SLOT]).footprint)
