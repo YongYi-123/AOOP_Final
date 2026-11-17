@@ -503,6 +503,14 @@ class QuestManager:
         return (self.secret_interface_unlocked and not flags.get(MIAO_ASK_MOCHI) and not flags.get(MOCHI_ARCADE_STORY)
                 and not self.has_secret_item(SECRET_ITEM_RETRO_RACER))
 
+    @property
+    def reverse_road_open(self):
+        """Does Retro Racer's secret road exist yet? Chapter 01 must be open AND Mochi must have told her Retro Racer
+        story (which she only has once Miao Meow has sent the player to her). Once the gear is found it stays open."""
+        if self.has_secret_item(SECRET_ITEM_RETRO_RACER):
+            return True
+        return self.can_collect(SECRET_ITEM_RETRO_RACER) and bool(self.state.get("flags", {}).get(MOCHI_ARCADE_STORY))
+
     def can_finish_trial(self, trial_id):
         """May a completion of `trial_id` be recorded? Only once its chapter is open (a player inside the room is never
         sent out, nor robbed of the result, whatever happens to the wallet)."""
