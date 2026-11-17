@@ -190,7 +190,7 @@ class HomeRoomScene(BaseRoomScene):
         self.game.scenes.push(CollectionScene(self.game, owner))
 
     def open_magazine(self):
-        """RETRO GAMING in the rack beside the couch: whoever pressed E reads it (free, repeatable, no quest effect)."""
+        """RETRO GAMING in the rack beside the couch: whoever pressed E reads it (free, repeatable; only Miao's vending hint notices)."""
         owner = self.session.player_for_avatar(self._actor())
         self.game.scenes.push(MagazineScene(self.game, owner))
 

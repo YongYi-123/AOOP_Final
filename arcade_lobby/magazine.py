@@ -2,8 +2,9 @@
 
 It is plain scenery with an [E] prompt: walk up, press E, and a page-turning reader opens (a cover and seven pages of
 ordinary magazine: arcade history, a Gradius review, design trivia, difficulty, reader mail, useless facts). Reading is
-free and repeatable and changes nothing: no tokens, no tickets, no notification, no quest event. Nothing in it points
-anywhere; the vending machine's secret only counts when the REAL hidden screen opens.
+free and repeatable: no tokens, no tickets, no notification. Closing it after turning at least one page sends one quiet
+"magazine_read" event, which only moves Miao Meow's vending hint on to the page that matters (page 4, LITTLE
+SURPRISES); the vending machine's secret still only counts when the REAL hidden screen opens.
 
 MagazineStation  the magazine rack beside the couch (small, against the wall, so it never blocks anybody)
 MagazineScene    the reader (a MenuScene owned by the player who pressed E)
@@ -14,6 +15,7 @@ import math
 import pygame
 
 from font import LINE_H
+from local_session import GameEvent
 from gfx import scale_color
 from menu_kit import FRAME, MenuScene
 from settings import Col, Lofi
@@ -291,6 +293,7 @@ class MagazineScene(MenuScene):
     def __init__(self, game, owner):
         super().__init__(game, owner)
         self.page = 0
+        self.turned = False                 # has a page been turned (then closing counts as having read it)?
         self.flip = None                    # None, or {"t": 0..1, "from": page, "to": page}
         self.content_bottom = 0             # the lowest pixel of text on the last page rendered (layout checks)
         self.overflow = False               # did the last page rendered run out of room?
@@ -319,6 +322,9 @@ class MagazineScene(MenuScene):
 
     def close_reader(self):
         self.play("cancel")
+        session = getattr(self.game, "session", None)
+        if self.turned and session is not None:         # Miao's vending hint hears that the magazine was read
+            session.dispatch(GameEvent("magazine_read", self.owner.player_id))
         self.close()
 
     def turn(self, step):
@@ -327,6 +333,7 @@ class MagazineScene(MenuScene):
             return
         self.flip = {"t": 0.0, "from": self.page, "to": target}
         self.page = target
+        self.turned = True
         self.play("card")
 
     def update(self, dt):
