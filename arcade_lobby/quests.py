@@ -143,8 +143,10 @@ def canonical_item(key):
     return key if key in ITEMS_BY_KEY else None
 
 
-MEMORY_FRAGMENTS = {"trial_01": "memory_fragment_01"}      # a trial's first completion unseals its Memory Fragment (a story flag, kept once)
-TRIAL_NOTES = ("trial01_intro", "trial01_breakout")                           # quiet flags a trial scene keeps for itself (its opening has played)
+MEMORY_FRAGMENTS = {"trial_01": "memory_fragment_01",      # a trial's first completion unseals its Memory Fragment (a story flag, kept once)
+                    "trial_02": "memory_fragment_02"}
+TRIAL_NOTES = ("trial01_intro", "trial01_breakout",          # quiet flags a trial scene keeps for itself (its opening has played)
+               "trial02_intro", "trial02_founder")
 TRIAL_PROGRESS = "trial_progress"   # stats[TRIAL_PROGRESS][trial id]: a trial's own checkpoints (Trial 02: registration, rounds won)
 MAGAZINE_READ_EVENT = "magazine_read"   # quiet flag: RETRO GAMING (HOME's magazine) was read; only Miao's vending hints use it
 # Miao Meow's last vending hints, after the quest's own three: first where to look, then (once it is read) which page
@@ -236,7 +238,7 @@ class TrialDef:
 
 TRIALS = (
     TrialDef("trial_01", 1, "THE GOLDEN AGE", 1, needs_items=((SECRET_ITEM_RETRO_RACER, "REVERSE GEAR (SECRET ITEM 01)"),)),
-    TrialDef("trial_02", 2, "THE FORGOTTEN GAMES", 2),
+    TrialDef("trial_02", 2, "THE UNBEATEN RECORD", 2),
     TrialDef("trial_03", 3, "THE FINAL CHALLENGE", 3),
 )
 TRIALS_BY_ID = {t.id: t for t in TRIALS}
