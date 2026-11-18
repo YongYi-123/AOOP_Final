@@ -426,19 +426,6 @@ def plushie():
 
 
 @cached
-def bedside_table():
-    """A little wooden nightstand with a drawer, wide enough for a lamp and an alarm clock; 28x26."""
-    s = sprite(28, 26)
-    R(s, WOOD_MD, 0, 8, 28, 18)
-    R(s, WOOD_HI, 0, 8, 28, 2)
-    R(s, WOOD, 2, 12, 24, 7)
-    R(s, WOOD_HI, 2, 12, 24, 1)
-    R(s, BRASS, 12, 15, 4, 1)
-    R(s, WOOD_DK, 1, 22, 3, 4)
-    R(s, WOOD_DK, 24, 22, 3, 4)
-    return finish(s)
-
-@cached
 def small_lamp(on):
     """A little table lamp with a cream shade (bedside / desk); 14x20."""
     s = sprite(14, 20)
@@ -927,4 +914,399 @@ def side_poster():
     R(s, (40, 130, 70), 1, 21, 8, 8)
     R(s, (30, 30, 50), 4, 14, 3, 6)
     R(s, CREAM, 2, 3, 6, 1)
+    return finish(s)
+
+
+# ------------------------------------------------------------------ PUZZLE 05: the four old photographs
+# The same desk four times, from the same spot. Nothing is written on the fronts: the order is read from what changes
+# (golden_age.PHOTO_FACTS): the computer goes from a pile of wires to an open case to a working machine, the game on the
+# screen gets its colours, the little plant grows a leaf each time, the idea sheet moves from the desk to the wall, the
+# mug and the notebook wander, and at the end the room is full of friends.
+PHOTO_SIZE = (64, 48)
+SKIN = ((236, 196, 160), (196, 140, 100), (150, 100, 70))
+
+
+def _photo_room(s):
+    W, H = PHOTO_SIZE
+    R(s, (214, 182, 136), 0, 0, W, 30)                       # wallpaper
+    for x in range(0, W, 6):
+        R(s, (204, 170, 124), x, 0, 3, 30)
+    R(s, (120, 150, 196), 3, 3, 13, 11)                      # the window (the same patch of sky in every photo)
+    R(s, (170, 196, 230), 3, 3, 13, 4)
+    R(s, WOOD_DK, 9, 3, 1, 11)
+    R(s, WOOD_DK, 3, 8, 13, 1)
+    R(s, WOOD_MD, 2, 2, 15, 1)
+    R(s, WOOD_MD, 2, 14, 15, 1)
+    R(s, WOOD_LT, 0, 30, W, 3)                                # the desk top
+    R(s, WOOD_HI, 0, 30, W, 1)
+    R(s, WOOD_MD, 0, 33, W, H - 33)
+    R(s, WOOD, 40, 36, 20, 7)                                 # its drawer
+    R(s, BRASS, 48, 39, 4, 1)
+    R(s, WOOD_DK, 0, 33, W, 1)
+
+
+def _plant(s, stage):
+    R(s, RED_DK, 56, 25, 6, 5)
+    R(s, RED, 56, 25, 6, 1)
+    leaf = (90, 160, 80)
+    R(s, (60, 110, 60), 58, 21, 1, 4)                         # the stem
+    if stage >= 1:
+        R(s, leaf, 59, 22, 2, 1)
+    if stage >= 2:
+        R(s, leaf, 56, 21, 2, 1)
+    if stage >= 3:
+        R(s, (60, 110, 60), 58, 17, 1, 4)
+        R(s, leaf, 59, 18, 2, 1)
+    if stage >= 4:
+        R(s, (255, 150, 180), 57, 15, 3, 2)                    # a flower
+        R(s, (255, 230, 120), 58, 15)
+
+
+def _mug(s, x, y):
+    R(s, CREAM, x, y, 4, 4)
+    R(s, (90, 60, 40), x, y, 4, 1)
+    R(s, CREAM_DK, x + 4, y + 1, 1, 2)
+
+
+def _notebook(s, x, y, open_book=False):
+    if open_book:
+        R(s, (246, 240, 220), x, y, 10, 3)
+        R(s, (150, 130, 110), x + 5, y, 1, 3)
+        R(s, (120, 120, 160), x + 1, y + 1, 3, 1)
+        R(s, (120, 120, 160), x + 6, y + 1, 3, 1)
+    else:
+        R(s, (70, 110, 160), x, y + 1, 9, 2)
+        R(s, (184, 70, 56), x + 1, y, 8, 1)
+
+
+def _idea_sheet(s, x, y):
+    """The handwritten game idea: a paddle, a ball and an arrow, scribbled on lined paper."""
+    R(s, (250, 246, 230), x, y, 9, 11)
+    for i in range(3):
+        R(s, (150, 150, 190), x + 1, y + 1 + i * 2, 7 - i, 1)
+    R(s, (60, 60, 80), x + 2, y + 9, 4, 1)                     # the paddle
+    R(s, (184, 70, 56), x + 5, y + 7)                          # the ball
+    R(s, (60, 60, 80), x + 6, y + 6)
+
+
+def _monitor(s, on, art):
+    R(s, (206, 196, 168), 22, 12, 22, 18)                     # the beige case of the monitor
+    R(s, (176, 166, 140), 22, 28, 22, 2)
+    R(s, (150, 140, 116), 30, 30, 6, 1)
+    if not on:
+        R(s, (40, 46, 44), 24, 14, 18, 12)
+        R(s, (70, 80, 76), 25, 15, 4, 1)                       # a dull glint on dead glass
+        return
+    R(s, (20, 60, 46), 24, 14, 18, 12)
+    if art == 1:                                              # the first version: plain grey-green bricks
+        for r in range(2):
+            for c in range(4):
+                R(s, (110, 200, 150), 25 + c * 4, 15 + r * 2, 3, 1)
+    else:                                                     # the finished art: three rows of colours
+        cols = ((240, 150, 150), (240, 230, 130), (140, 190, 240))
+        for r in range(3):
+            for c in range(4):
+                R(s, cols[r], 25 + c * 4, 15 + r * 2, 3, 1)
+    R(s, (236, 232, 200), 30, 24, 5, 1)                       # paddle
+    R(s, (236, 232, 200), 33, 21)                             # ball
+
+
+def _person(s, x, y, hair, shirt, skin, laugh=False):
+    R(s, shirt, x - 1, y + 6, 8, 8)
+    R(s, mul(shirt, 1.2), x - 1, y + 6, 8, 1)
+    R(s, skin, x, y, 6, 6)
+    R(s, hair, x, y - 1, 6, 2)
+    R(s, hair, x - 1, y, 1, 3)
+    R(s, (40, 30, 30), x + 1, y + 2)
+    R(s, (40, 30, 30), x + 4, y + 2)
+    if laugh:
+        R(s, (150, 50, 60), x + 2, y + 4, 2, 1)
+        R(s, (40, 30, 30), x + 1, y + 3)
+        R(s, (40, 30, 30), x + 4, y + 3)
+    else:
+        R(s, (40, 30, 30), x + 2, y + 4, 2, 1)
+        R(s, (40, 30, 30), x + 1, y + 3)
+        R(s, (40, 30, 30), x + 4, y + 3)
+
+
+@cached
+def photo_base(key):
+    """One photograph at its own size (64x48, opaque, with a white border)."""
+    W, H = PHOTO_SIZE
+    s = pygame.Surface((W, H))
+    _photo_room(s)
+    if key == "desk":
+        _plant(s, 1)
+        _mug(s, 4, 26)
+        _notebook(s, 10, 27)
+        _notebook(s, 11, 25)
+        _idea_sheet(s, 24, 21)
+        for i, c in enumerate(((184, 70, 56), (70, 150, 90), (70, 110, 180))):       # loose wires all over the desk
+            for k in range(14):
+                R(s, c, 36 + k, 28 + int(1.4 * math.sin(k * 0.9 + i * 1.7)) - i % 2)
+    elif key == "build":
+        _plant(s, 2)
+        _notebook(s, 36, 29)                                     # the notebook has wandered right, the mug sits on it
+        _idea_sheet(s, 46, 6)
+        R(s, (220, 60, 60), 50, 6)                               # pinned
+        _monitor(s, False, 0)
+        R(s, (206, 196, 168), 4, 18, 14, 12)                    # the computer case, its side panel off
+        R(s, (40, 110, 70), 6, 20, 10, 8)
+        for (x, y) in ((7, 21), (10, 22), (13, 21), (8, 25), (12, 25)):
+            R(s, (30, 30, 36), x, y, 2, 2)                      # chips
+        R(s, (220, 190, 80), 6, 27, 9, 1)
+        R(s, (190, 190, 200), 45, 27, 7, 1)                     # a screwdriver
+        R(s, (220, 70, 60), 51, 26, 3, 3)
+        R(s, (30, 30, 36), 18, 28, 2, 2)                        # loose parts on the desk
+        R(s, (30, 30, 36), 46, 23, 2, 2)
+        R(s, (184, 70, 56), 20, 29, 6, 1)
+        _mug(s, 38, 25)
+    elif key == "game":
+        _plant(s, 3)
+        _idea_sheet(s, 46, 6)
+        R(s, (220, 60, 60), 50, 6)
+        _monitor(s, True, 1)
+        R(s, (206, 196, 168), 4, 18, 14, 12)                    # the case, closed now, its light on
+        R(s, (176, 166, 140), 4, 22, 14, 1)
+        R(s, (120, 255, 150), 15, 27)
+        R(s, (200, 194, 170), 24, 31, 18, 2)                    # keyboard
+        for (x, y) in ((18, 12), (44, 13), (44, 19)):            # sticky notes stuck round the screen
+            R(s, (250, 236, 130), x, y, 4, 4)
+            R(s, (170, 140, 60), x + 1, y + 1, 2, 1)
+        R(s, (250, 246, 230), 46, 28, 6, 3)                      # debug notes, one with a red X
+        R(s, (220, 60, 60), 47, 29)
+        R(s, (220, 60, 60), 49, 29)
+        R(s, (250, 246, 230), 20, 28, 4, 2)
+        _mug(s, 52, 26)
+        _notebook(s, 6, 31, open_book=True)
+    elif key == "friends":
+        _plant(s, 4)
+        _idea_sheet(s, 46, 6)
+        R(s, (220, 60, 60), 50, 6)
+        _monitor(s, True, 2)
+        R(s, (206, 196, 168), 4, 18, 14, 12)
+        R(s, (176, 166, 140), 4, 22, 14, 1)
+        R(s, (120, 255, 150), 15, 27)
+        R(s, (200, 194, 170), 24, 31, 18, 2)
+        _person(s, 8, 32, (60, 40, 30), (120, 160, 220), SKIN[0], laugh=True)
+        _person(s, 30, 34, (30, 30, 40), (230, 140, 90), SKIN[1], laugh=True)
+        _person(s, 50, 32, (150, 90, 50), (130, 190, 120), SKIN[2])
+        R(s, (250, 250, 250), 27, 33)                            # somebody's hand up, cheering
+        R(s, SKIN[1], 27, 34, 1, 3)
+    # an old print: a little faded, then the white border
+    fade = pygame.Surface((W, H), pygame.SRCALPHA)
+    fade.fill((255, 236, 200, 34))
+    s.blit(fade, (0, 0))
+    pygame.draw.rect(s, (244, 238, 222), (0, 0, W, H), 2)
+    return s
+
+
+@cached
+def photo(key, scale=1):
+    base = photo_base(key)
+    return base if scale == 1 else pygame.transform.scale(base, (PHOTO_SIZE[0] * scale, PHOTO_SIZE[1] * scale))
+
+
+# ------------------------------------------------------------------ the little cats (bell dials, doodles, carvings)
+CAT_SHAPES = {
+    "sit": ("...#...#....",
+            "...##.##....",
+            "...#####....",
+            "...#o#o#....",
+            "...#####....",
+            "....###.....",
+            "...#####....",
+            "..#######...",
+            "..#######.#.",
+            "..#######.#.",
+            "..########..",
+            "...##.##...."),
+    "sleep": ("..........z.",
+              ".........z..",
+              "........zzz.",
+              "............",
+              "..#.#.......",
+              "..###.......",
+              ".#-#-###....",
+              ".##########.",
+              "###########.",
+              "###########.",
+              ".#########..",
+              "............"),
+    "play": ("............",
+             "#...........",
+             "#...#..#....",
+             "#...####....",
+             "##.#o##o#...",
+             ".#.######...",
+             ".#########..",
+             ".########.y.",
+             ".########yyy",
+             "..##..##.yyy",
+             "..##..##..y.",
+             "............"),
+    "fish": ("............",
+             "............",
+             "............",
+             "...#####..#.",
+             "..#######.#.",
+             ".#o#######..",
+             ".#########..",
+             "..#######.#.",
+             "...#####..#.",
+             "............",
+             "............",
+             "............"),
+}
+
+
+@cached
+def cat_icon(kind, ink, eye=None, extra=None):
+    """A little cat (12x12): # in `ink`, o for its eyes (`eye`, or the paper showing through), - a closed eye, z and y the
+    sleeping Zs and the ball of yarn in `extra`."""
+    s = sprite(12, 12)
+    for y, row in enumerate(CAT_SHAPES[kind]):
+        for x, ch in enumerate(row):
+            if ch == "#":
+                R(s, ink, x, y)
+            elif ch == "o" and eye:
+                R(s, eye, x, y)
+            elif ch == "-":
+                R(s, mul(ink, 2.2) if eye is None else eye, x, y)
+            elif ch in "zy":
+                R(s, extra or ink, x, y)
+    return s
+
+
+def _scaled(surf, k):
+    return pygame.transform.scale(surf, (surf.get_width() * k, surf.get_height() * k))
+
+
+@cached
+def picture(name):
+    """A picture for a page of the reader (already at the size it is shown)."""
+    if name.startswith("photo_"):
+        return photo(name[6:], 3)
+    if name == "doodle_sit":                                   # blue ballpoint on the textbook's back cover
+        s = pygame.Surface((96, 72))
+        s.fill((236, 226, 196))
+        for y in range(6, 72, 8):
+            R(s, (214, 202, 170), 0, y, 96, 1)
+        s.blit(_scaled(cat_icon("sit", (60, 70, 150)), 4), (24, 12))
+        R(s, (60, 70, 150), 70, 54, 14, 1)                       # a scribbled line under it
+        return s
+    if name == "cartridge_sleep":
+        s = pygame.Surface((120, 72))
+        s.fill((96, 96, 108))
+        R(s, (120, 120, 132), 0, 0, 120, 4)
+        R(s, (70, 70, 80), 0, 68, 120, 4)
+        R(s, (232, 222, 196), 8, 12, 104, 48)                    # the label along its side
+        R(s, (184, 70, 56), 8, 12, 104, 6)
+        s.blit(_scaled(cat_icon("sleep", (70, 60, 70), None, (120, 120, 200)), 3), (38, 20))
+        return s
+    if name == "carving_play":
+        s = pygame.Surface((120, 72))
+        s.fill(WOOD)
+        rng = random.Random(41)
+        for _ in range(60):
+            R(s, mul(WOOD, rng.choice((0.9, 1.08))), rng.randrange(0, 116), rng.randrange(0, 72), rng.randrange(3, 9), 1)
+        cut = _scaled(cat_icon("play", WOOD_DK, None, mul(WOOD_DK, 1.7)), 4)
+        s.blit(cut, (36, 10))
+        hi = _scaled(cat_icon("play", WOOD_HI, None, WOOD_HI), 4)          # a light edge under each cut
+        hi.set_alpha(70)
+        s.blit(hi, (37, 11))
+        s.blit(cut, (36, 10))
+        return s
+    if name == "sketch":
+        s = pygame.Surface((96, 80))
+        s.fill((240, 232, 210))
+        pencil = (70, 66, 70)
+        body = _scaled(cat_icon("sit", pencil, (240, 232, 210)), 5)
+        s.blit(body, (18, 16))
+        for (x, y) in ((33, 14), (37, 11), (41, 14), (45, 11), (49, 14)):       # a tiny crown, in yellow pencil
+            R(s, (214, 170, 60), x, y, 3, 4)
+        R(s, (214, 170, 60), 33, 16, 19, 3)
+        rng = random.Random(77)
+        for _ in range(70):                                                     # a rough hand: stray strokes around the lines
+            x, y = rng.randrange(14, 82), rng.randrange(14, 78)
+            if any(s.get_at((x + dx, y + dy))[:3] == pencil for dx, dy in ((2, 0), (-2, 0), (0, 2), (0, -2))
+                   if 0 <= x + dx < 96 and 0 <= y + dy < 80):
+                R(s, (120, 116, 122), x, y, rng.choice((1, 2, 3)), 1)
+        for k in range(8):                                                      # the line it sits on
+            R(s, (150, 146, 150), 14 + k * 9, 72 - (k % 3), 6, 1)
+        return s
+    if name == "index_strip":
+        s = pygame.Surface((176, 40))
+        s.fill((40, 40, 48))
+        R(s, (250, 244, 222), 4, 6, 168, 28)
+        R(s, (184, 70, 56), 4, 6, 168, 4)
+        for i in range(3):
+            R(s, (200, 200, 220), 8, 16 + i * 6, 160, 1)
+        return s
+    raise KeyError(name)
+
+
+# ------------------------------------------------------------------ the photo board and the bedside cabinet's states
+@cached
+def side_photo_board(slots=(None, None, None, None), opened=False):
+    """The wooden photo board on the right-hand wall (seen from the side, like the frames opposite): four slots, one
+    above the other, holding whatever is pinned there. Opened: it has swung a little away from the wall; 12x46."""
+    s = sprite(12, 46)
+    R(s, WOOD_MD, 0, 0, 12, 46)
+    R(s, WOOD_LT, 0, 0, 12, 1)
+    R(s, WOOD_DK, 0, 45, 12, 1)
+    tones = {"desk": (214, 186, 140), "build": (170, 168, 150), "game": (110, 170, 140), "friends": (220, 160, 150)}
+    for i, p in enumerate(slots):
+        y = 3 + i * 10
+        if p is None:
+            R(s, WOOD_DK, 2, y, 8, 8)
+            R(s, mul(WOOD_DK, 0.8), 2, y, 8, 1)
+        else:
+            R(s, (244, 238, 222), 2, y, 8, 8)
+            R(s, tones[p], 3, y + 1, 6, 6)
+            R(s, mul(tones[p], 0.7), 3, y + 4, 6, 3)
+        R(s, BRASS_LT, 5, y - 1, 2, 1)
+    if opened:
+        R(s, (20, 12, 8), 0, 0, 2, 46)                          # the gap behind it
+        R(s, (250, 244, 222), 0, 20, 2, 4)                      # a pale corner of something tucked in there
+    return finish(s)
+
+
+@cached
+def bedside_table(state="shut"):
+    """A little wooden nightstand with a drawer, wide enough for a lamp and an alarm clock; 28x26. A tiny cat is scratched
+    into its front (you would only notice it close up). state: "shut", "note" (the hidden compartment at the bottom is
+    open with a folded paper in it) or "empty" (open, the note taken)."""
+    s = sprite(28, 26)
+    R(s, WOOD_MD, 0, 8, 28, 18)
+    R(s, WOOD_HI, 0, 8, 28, 2)
+    R(s, WOOD, 2, 12, 24, 7)
+    R(s, WOOD_HI, 2, 12, 24, 1)
+    R(s, BRASS, 12, 15, 4, 1)
+    R(s, WOOD_DK, 1, 22, 3, 4)
+    R(s, WOOD_DK, 24, 22, 3, 4)
+    for (x, y) in ((21, 20), (22, 19), (23, 20), (22, 21)):     # the scratched little cat, barely there
+        R(s, mul(WOOD_MD, 0.86), x, y)
+    if state in ("note", "empty"):
+        R(s, (24, 14, 10), 6, 20, 14, 3)
+        if state == "note":
+            R(s, CREAM, 9, 20, 6, 2)
+    return finish(s)
+
+
+@cached
+def index_icon(size=14):
+    s = sprite(size, size)
+    R(s, (250, 244, 222), 1, 4, 12, 6)
+    R(s, (184, 70, 56), 1, 4, 12, 2)
+    R(s, (150, 150, 180), 3, 7, 8, 1)
+    return finish(s)
+
+
+@cached
+def photo_icon(size=14):
+    s = sprite(size, size)
+    R(s, (244, 238, 222), 1, 2, 12, 10)
+    R(s, (150, 180, 200), 2, 3, 10, 5)
+    R(s, (150, 120, 90), 2, 8, 10, 3)
     return finish(s)
