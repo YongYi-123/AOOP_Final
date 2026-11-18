@@ -24,6 +24,7 @@ cd arcade_lobby
 | `python3 play_story.py routes` | 第二章開啟，三個秘密都已經出現 | 不用先達成路線條件，直接去三個小遊戲找符號 |
 | `python3 play_story.py clues` | 三個符號都已找到 | 回大廳等 Miao 主動說話，找 Mochi 看紀錄，再到夾娃娃機按 W 開鎖 |
 | `python3 play_story.py solved` | 符號鎖已打開 | 在 NEON CLAW 夾到 Golden Cat（秘密道具 02） |
+| `python3 play_story.py trial02` | 已有秘密道具 02，累積賺到 15 代幣 / 150 彩票 | 再開一次販賣機秘密畫面 → Legacy Terminal → Trial 02（THE UNBEATEN RECORD） |
 
 接著上次的臨時存檔繼續玩（不重建）：
 
@@ -58,6 +59,62 @@ Trial 01 新增的兩個謎題（2026-11-17）：
 - **貓的秘密（選做）**：查看床上的 Miao Meow 布偶，原本的對話之後會出現鈴鐺，有三個小轉盤。線索：書桌便利貼最後一張（貓的一天）、地上教科書的封底塗鴉、遊戲卡匣側面、床邊櫃側面的雕刻。順序對了按 E，鈴鐺會響，床邊櫃後面的暗格打開，裡面有紙條和 OLD CAT SKETCH（收藏品，只給一次，不給代幣、彩票或任何主線進度）。
 - 照片、照片板、索引、鈴鐺、紙條和素描都會存在存檔裡（離開、關遊戲、重玩都不會不見）。舊存檔如果已經完成 Trial 01，記憶碎片照樣保留，重玩時也不需要照片板。
 
+### 只測 Trial 02 的錦標賽大廳
+
+跳過大廳和販賣機，直接進 Trial 02 的 Tournament Hall（存檔只在記憶體裡，不會寫檔）：
+
+```bash
+python3 play_trial02.py
+```
+
+連開場一起看：
+
+```bash
+python3 play_trial02.py --fresh
+```
+
+前面的輪都贏了，停在第 N 輪前面的謎題（2 = THE BROKEN BRACKET，3 = THE CHAMPION'S TROPHY）：
+
+```bash
+python3 play_trial02.py --round 2
+```
+
+```bash
+python3 play_trial02.py --round 3
+```
+
+謎題也已經解開，直接打第 N 輪：
+
+```bash
+python3 play_trial02.py --round 3 --solved
+```
+
+三輪都贏了（大廳開著，跟主持人說話開始頒獎典禮，也就是結尾）：
+
+```bash
+python3 play_trial02.py --ending
+```
+
+Trial 02 的流程：
+
+1. **開場**：MEMORY RECONSTRUCTION LOADED，Miao 和玩家的對話（只播一次，ESC 可跳過）。目標只有「Explore the tournament.」。
+2. **大廳**：15 個 NPC 可以按 E 聊天（有些會提到 Kevin，有些只是閒聊或給提示），十幾樣東西可以按 E 查看（排行榜、時鐘、故障的 3 號機、維修紀錄、照片牆等）。聽過 3 個人講 Kevin 之後，Miao 頭上會出現「...」，按 E 跟她說話會播她的回想（只播一次，可以不看）：她和玩家推測 Kevin 大概就是 Trial 01 那間臥室的主人，他真的做到了；她覺得自己好像認識他、可能很親近，但沒有真正想起來。結尾燈光閃爍時她會說好像看過，但「只是一種感覺」。其他時候跟 Miao 說話是提示。
+3. **THE MISSING ENTRY（報名謎題）**：看海報（各組別的報名費）、失物招領箱裡的票根（付了多少、報到時間被撕掉一半）、報名簿（只寫付了多少錢、沒寫組別；有些名字被汽水弄髒；退費的人被劃掉）。四個線索都要用到才只剩一個答案：B10。推出代碼後到報名台的終端機：左右鍵選輪、上下鍵轉、E 送出。答錯只會顯示一句回覆，輪子不會被重設，也不會自動填答案。答對後拿到 TOURNAMENT BADGE（只在這個 Trial 裡用，不是秘密道具，也不會進背包）。
+4. **三輪比賽，每一輪前面都有一個謎題**：跟舞台上的主持人說話 → FIGHT!。用的是 NEON BRAWL 本身的選角畫面、操作說明、暫停選單（J 輕攻擊、K 重攻擊、L 跳、U 必殺、I 閃避）。輸了可以直接 RETRY 這一輪，或回大廳；已經贏的輪數和已經解開的謎題都會存起來，不用重來。比賽不收代幣、不給彩票。
+   - **第 1 輪 THE ROOKIE（簡單）**：謎題是上面的 THE MISSING ENTRY。
+   - **謎題 2：THE BROKEN BRACKET**（贏了第 1 輪後）：賽程板亂掉了，主持人不知道準決賽要叫誰。到大廳右下的賽程板（相片牆右邊）：上下選格子、左右換名字（名字照 A→Z 排，已經放在別格的會跳過）、E 標記勝者、X（或 Backspace / Delete）清空目前那格、選 CLEAR 一鍵清空整個板子、選 CHECK 檢查。板子左邊標了 MATCH 1～4（1-2 格是第 1 場、3-4 第 2 場、5-6 第 3 場、7-8 第 4 場），和裁判單上的 MATCH 編號一樣。雜誌架、相片牆、賽程板站在正下方（前面）也能按 E；相片牆左側、賽程板右側也可以。證據有三種（還沒看過裁判單時，Miao 的提示會先叫你去問主持人）：賽程板下方的規則、主持人給的裁判單（勝者是第幾格、比賽時間、備註，但名字被印表機弄糊了）、大家的證詞（贏了第 1 輪後很多 NPC 會講其他場比賽，重複問也會再講）。還要對照報名簿的編號和付費（TOMMY 付 1 代幣 = 少年組）。答案只有一個：3 MEI L. / 4 THE CHALLENGER / 5 DANNY K. / 6 JUNE P. / 7 ROCKO / 8 THE CHAMPION，勝者是 1、4、5、8。答錯只會說「IT STILL DOESN'T ADD UP.」，板子不會被重設或自動改正。
+   - **第 2 輪 THE CHALLENGER（普通）**：會防禦、會反擊，重攻擊可以破防。
+   - **謎題 3：THE CHAMPION'S TROPHY**（贏了第 2 輪後）：舞台的鑰匙不見了。看相片牆的三張照片（每張有一種獎盃和年份；三張都蓋同樣的 PRINTED 03/91 章，是無害的干擾）、時程板後面夾著的老冠軍紙條（最新的放最靠近門的地方、別讓獎盃背對觀眾），再到獎盃櫃（獎品櫃台右邊）：左右移動、E 拿起再放下（互換位置）、上下轉向、移到右邊的拉桿按 E 試。門在大廳左邊，所以答案從左到右是 搖桿（1990）、火箭（1989）、獎盃杯（1988），刻字都朝前。拉錯只會「CLUNK」，什麼都不會少。打開後拿到 CHAMPIONSHIP STAGE KEY（只在 Trial 裡用），插進舞台左邊的冠軍機台，會出現 DISPLAY DATA UPDATED，排行榜閃一下又恢復。
+   - **第 3 輪 THE CHAMPION（普通+）**：NEON BRAWL 的 WARDEN，大招不會被輕攻擊打斷，要閃。
+   - 卡關時可以一直跟 Miao 說話。每個階段第一次找她會先聊幾句（第 0 階段：人好多好開心；第 1 階段：剛剛那一擊好帥，然後提醒你先去找主持人拿裁判單；第 2 階段：決賽好興奮，大螢幕好像閃了一下；第 3 階段：冠軍！然後覺得音樂變小聲了），之後才是提示，提示一次比一次清楚，但不會直接講答案。聊過哪幾個階段會存檔。
+   - **NPC 對話分四個階段**，階段就是存檔裡贏了幾輪（0～3），讀檔後馬上用對的階段。每個 NPC 每個階段都有自己的話，上一階段的話不會再出現：
+     - 第 0 階段（第 1 輪前）：介紹比賽和大廳，五個人會提到 Kevin，櫃台給謎題 1 的方向。
+     - 第 1 階段（贏了第 1 輪）：恭喜你、聊其他場比賽。謎題 2 的證詞：TOURNAMENT FAN（冠軍秒殺 ROCKO）、STUDENT（DANNY 贏 JUNE）、NIGHT OWL（DANNY 那場打了三回合）、THE CHALLENGER（擋了 14 次），另外 OLD REGULAR、VISITOR（MEI 和 JUNE 沒有對打）、WAITING PLAYER（TOMMY 是少年組）是輔助證詞。第一次講話就會說，之後輪流也會再說。
+     - 第 2 階段（贏了第 2 輪）：聊決賽、老獎盃、相片牆、老冠軍。只指方向（相片牆、年份、時程板後面的紙條、獎盃櫃的拉桿），不會講順序。
+     - 第 3 階段（贏了第 3 輪）：贏了之後大廳不會馬上播結尾，可以先到處跟大家道別（大家開始聊要回家，有幾句會有點怪）。準備好了跟主持人說話 → START IT 開始頒獎典禮。
+   - **證據（TAB）**：隨時按 TAB 打開 EVIDENCE，左右鍵換頁。ITEMS 頁可以重看找到過的海報、票根、報名簿、賽程板、裁判單（MATCH RECORDS）、獎盃照片、老冠軍的紙條；WHAT PEOPLE SAID 頁是聽過的所有線索對話（誰說的、第幾輪後說的）。在報名終端機、賽程板、獎盃櫃裡面也可以按 TAB 查看，關掉後回到原本的謎題，輸入到一半的東西都還在。找到過的東西和聽過的對話都會存檔。
+5. **結尾**：慶祝、彩帶、99%，然後機台自己開機、排行榜出現不可能的分數、音樂失真、EXIT 燈閃、門鎖上、人群停住，CORE：「One more game?」，最後畫面變黑，出現 MEMORY FRAGMENT 02 RECOVERED / TRIAL 02 COMPLETE。（Trial 01 完成時現在也是同一個黑畫面和同一張完成卡。）選 RETURN TO ARCADE 回到 Legacy Terminal；選 STAY IN THE HALL 會重新開始這一晚（重玩不會再給任何東西）。
+
 ### 第二章要做的事（`ch2` 階段）
 
 1. **提示卡**：到 Prize Plaza 的扭蛋機抽卡。三張卡不會重複，連續 4 抽沒卡，下一抽保證出卡；最多 15 抽全部到手。卡片可以在背包重讀，不是必要的。
@@ -90,7 +147,7 @@ python3 verify_main_story.py
 ### 主線相關的測試
 
 ```bash
-python3 -m unittest test_story test_chapters test_vending test_mochi_chat test_reverse_gear test_golden_age test_lifetime_earnings test_capsule test_capsule_exchange test_claw_machine test_forgotten_games test_inventory test_collection test_showcase
+python3 -m unittest test_story test_chapters test_vending test_mochi_chat test_reverse_gear test_golden_age test_unbeaten_record test_lifetime_earnings test_capsule test_capsule_exchange test_claw_machine test_forgotten_games test_inventory test_collection test_showcase
 ```
 
 `test_golden_age` 要跑大約 6 分鐘。只想快速檢查第二章：
