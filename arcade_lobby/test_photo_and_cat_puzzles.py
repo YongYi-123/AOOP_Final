@@ -444,10 +444,14 @@ class CatPlayTests(TrialCase):
         for spot, mark in (("textbook", "sit"), ("cartridges", "sleep"), ("bedside_cabinet", "play")):
             self.d.use(spot)
             self.d.talk_through()
+            self.d.keep_photo()                                                        # (the cabinet's photo comes first)
             panel = scene.panel
             self.assertIsInstance(panel, UI.PagedPanel, spot)
-            while mark not in panel.marks_seen:
+            for _ in range(len(panel.pages)):
+                if mark in panel.marks_seen:
+                    break
                 self.d.tap(K.K_RIGHT)
+            self.assertIn(mark, panel.marks_seen, spot)
             page = panel.pages[panel.index]
             self.assertEqual(page["mark"], mark)
             self.assertGreater(A.picture(page["picture"]).get_width(), 0)
@@ -490,6 +494,20 @@ class CatPlayTests(TrialCase):
         self.d.set_bell(G.BELL_ANSWER)                                                  # and it can still be solved
         self.assertIsNotNone(panel.ringing)
 
+    def test_the_cabinet_photo_comes_first_and_the_carving_follows_it(self):
+        scene = self.enter()
+        self.d.use("bedside_cabinet")
+        self.d.talk_through()
+        self.assertEqual(scene.panel.tag, "photo")
+        self.assertEqual(self.d.keep_photo(), G.PHOTO_HIDING["bedside"])
+        self.assertEqual(scene.panel.tag, "carving")                                     # the carving right after it
+        self.d.close_all()
+        self.d.use("bedside_cabinet")                                                   # second time: just the carving
+        self.assertIsNone(scene.dialogue)
+        self.assertEqual(scene.panel.tag, "carving")
+        self.d.close_all()
+        self.assertEqual(scene.run.photos_found.count(G.PHOTO_HIDING["bedside"]), 1)
+
     def test_the_right_order_rings_opens_the_cabinet_and_gives_the_sketch_once(self):
         scene = self.enter()
         before = (self.profile.tickets, self.profile.tokens, self.manager.secret_items, self.manager.secret_trials,
@@ -499,8 +517,14 @@ class CatPlayTests(TrialCase):
         self.assertIn("bell_ring", [n for _, n in self.d.sounds])
         self.assertEqual(scene._bedside_look(), "note")                                # the compartment is open
         self.assertFalse(self.profile.inventory.has_item(C.SKETCH_ITEM))                # (not until the note is found)
-        self.d.use("bedside_cabinet")
-        self.assertEqual(scene.dialogue.lines[0].text, C.BEDSIDE_OPEN[0][1])
+        self.d.use("bedside_cabinet")                                                   # (never opened before)
+        self.assertEqual(scene.dialogue.lines[0].text, C.BEDSIDE_FIRST[0][1])
+        self.d.talk_through()
+        self.assertEqual(scene.panel.tag, "photo")                                       # its ordinary photo comes first...
+        self.assertEqual(scene.panel.pages[0]["title"], C.PHOTO_FOUND["bedside"])
+        self.assertFalse(scene.run.cat_note)
+        self.d.keep_photo()
+        self.assertEqual(scene.dialogue.lines[0].text, C.BEDSIDE_OPEN[0][1])            # ...then the gap at the back
         self.d.talk_through()
         panel = scene.panel
         self.assertEqual(panel.tag, "catnote")
@@ -508,7 +532,6 @@ class CatPlayTests(TrialCase):
         self.assertEqual(panel.pages[1]["picture"], "sketch")
         for _ in panel.pages:
             self.d.tap(K.K_e)
-        self.d.keep_photo()                                                            # (the cabinet's photo, if not found yet)
         spoken = []
         while scene.dialogue is not None:
             spoken.append((scene.dialogue.line.speaker, scene.dialogue.line.text))
