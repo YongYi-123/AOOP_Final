@@ -9,6 +9,7 @@ import os
 import shutil
 import tempfile
 import unittest
+from unittest.mock import patch
 
 os.environ.setdefault("SDL_VIDEODRIVER", "dummy")
 os.environ.setdefault("SDL_AUDIODRIVER", "dummy")
@@ -1961,7 +1962,9 @@ class LegacyTerminalTests(LegacyBase):
         surf = pygame.Surface((400, 300))
         term.draw(surf)
 
-    def test_selecting_an_open_trial_that_is_not_built_shows_the_placeholder_and_changes_nothing(self):
+    def test_selecting_open_trial_02_enters_its_room_and_changes_nothing(self):
+        # (Trial 02, THE UNBEATEN RECORD, is built now: an open trial without a room is covered by the trial 03 test below)
+        from unbeaten_scene import TournamentHallScene
         m = self.story.manager
         m.handle("vending_secret")
         m.handle("secret_item_found", Q.SECRET_ITEM_RETRO_RACER)
@@ -1970,20 +1973,17 @@ class LegacyTerminalTests(LegacyBase):
         self.profiles[0].add_tokens(15, "T")
         shop, term = self.open_terminal()
         self.frames(60)
-        self.tap(K.K_DOWN)                                                            # trial 02 (trial 01 is built now)
+        self.tap(K.K_DOWN)
         self.assertEqual(term.trial.number, 2)
-        before = (self.profiles[0].to_dict(), json.dumps(self.story.manager.state, sort_keys=True), term.index)
+        before = (self.profiles[0].to_dict(), json.dumps(self.story.manager.state, sort_keys=True))
         self.tap(K.K_e)
-        self.frames(5)
-        self.assertEqual(term.notice["title"], "TRIAL NOT YET AVAILABLE")
-        self.assertIn("NOTHING WAS CHARGED OR RECORDED.", term.notice["lines"])
-        term.draw(pygame.Surface((400, 300)))
-        after = (self.profiles[0].to_dict(), json.dumps(self.story.manager.state, sort_keys=True), term.index)
-        self.assertEqual(before, after)
-        self.assertEqual(self.story.manager.secret_trials, 1)                          # not falsely marked complete
-        self.assertFalse(self.story.manager.trial_done("trial_02"))
-        self.tap(K.K_e)                                                               # OK closes the card
+        self.frames(40)
+        self.assertIsInstance(self.game.scenes.current, TournamentHallScene)
         self.assertIsNone(term.notice)
+        after = (self.profiles[0].to_dict(), json.dumps(self.story.manager.state, sort_keys=True))
+        self.assertEqual(before, after)                                               # entering takes nothing, records nothing
+        self.assertEqual(self.story.manager.secret_trials, 1)
+        self.assertFalse(self.story.manager.trial_done("trial_02"))
 
     def test_selecting_the_locked_trial_explains_why_and_takes_nothing(self):
         shop, term = self.open_terminal()
@@ -2018,6 +2018,10 @@ class LegacyTerminalTests(LegacyBase):
         self.story.manager.handle("vending_secret")
         finish_chapters(self.story.manager, 1)
         self.story.manager.handle("secret_trial_done", "trial_02")
+        patcher = patch.dict(LT.TRIAL_SCENES)                     # (pretend Trial 02 had no room: the plain notice)
+        patcher.start()
+        self.addCleanup(patcher.stop)
+        LT.TRIAL_SCENES.pop("trial_02")
         shop, term = self.open_terminal()
         self.frames(60)
         self.tap(K.K_DOWN)
