@@ -145,6 +145,7 @@ def canonical_item(key):
 
 MEMORY_FRAGMENTS = {"trial_01": "memory_fragment_01"}      # a trial's first completion unseals its Memory Fragment (a story flag, kept once)
 TRIAL_NOTES = ("trial01_intro", "trial01_breakout")                           # quiet flags a trial scene keeps for itself (its opening has played)
+TRIAL_PROGRESS = "trial_progress"   # stats[TRIAL_PROGRESS][trial id]: a trial's own checkpoints (Trial 02: registration, rounds won)
 MAGAZINE_READ_EVENT = "magazine_read"   # quiet flag: RETRO GAMING (HOME's magazine) was read; only Miao's vending hints use it
 # Miao Meow's last vending hints, after the quest's own three: first where to look, then (once it is read) which page
 VENDING_MAGAZINE_HINT = "Old gamers kept their best tricks in magazines. Isn't there one by the couch at HOME?"
@@ -649,6 +650,33 @@ class QuestManager:
 
     def has_memory_fragment(self, trial_id):
         return bool(self.state.get("flags", {}).get(MEMORY_FRAGMENTS.get(trial_id, "")))
+
+    # ------------------------------------------------------------ a trial's own checkpoints
+    def trial_progress(self, trial_id):
+        """The checkpoints a trial scene saved for itself (a plain dict copy, {} when there are none). Never a counter,
+        never a reward: completing the trial is still only the "secret_trial_done" event."""
+        table = self.state.get("stats", {}).get(TRIAL_PROGRESS)
+        entry = table.get(trial_id) if isinstance(table, dict) else None
+        return copy.deepcopy(entry) if isinstance(entry, dict) else {}
+
+    def save_trial_progress(self, trial_id, data):
+        """Keep `data` (str / int / bool / list / dict) as the trial's checkpoints in the playing profile; {} forgets them.
+        Only for a real trial whose chapter is open (or that is already done, for replays). Returns whether it was kept."""
+        if not self.can_finish_trial(trial_id):
+            return False
+        stats = self.state.setdefault("stats", {})
+        table = stats.get(TRIAL_PROGRESS)
+        table = dict(table) if isinstance(table, dict) else {}
+        if data:
+            table[trial_id] = copy.deepcopy(dict(data))
+        else:
+            table.pop(trial_id, None)
+        if table:
+            stats[TRIAL_PROGRESS] = table
+        else:
+            stats.pop(TRIAL_PROGRESS, None)
+        self.save()
+        return True
 
     def has_secret_item(self, key):
         found = self.state.get("stats", {}).get("secret_items")
