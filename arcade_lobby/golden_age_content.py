@@ -46,10 +46,10 @@ JOURNAL_ENTRIES = (
              "I held onto a tree for ten seconds just to feel safe.\n\n"
              "The tree held onto the ground. Respect."},
     {"title": "NOV 2 - THE CAT",
-     "text": "A stray cat has decided my keyboard is a heated bed. Every time I write code it hops on and adds its own. "
-             "Last night it committed forty lines of the letter J.\n\n"
-             "I named it Mr. Compile because it breaks everything and I cannot stay mad at it. It sat on the Enter key "
-             "and submitted my homework unfinished.\n\n"
+     "text": "A stray cat has decided my keyboard is a heated bed. Every time I write code she hops on and adds her own. "
+             "Last night she committed forty lines of the letter J.\n\n"
+             "I named her Miss Compile because she breaks everything and I cannot stay mad at her. She sat on the Enter "
+             "key and submitted my homework unfinished.\n\n"
              "I blame the cat. The cat blames nobody. That is why the cat is happier than me."},
     {"title": "NOV 5 - THE COLLISION BUG",
      "text": "The ball goes through the bricks. Sometimes. Only on Tuesdays, apparently.\n\n"
