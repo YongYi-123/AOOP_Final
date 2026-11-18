@@ -350,7 +350,20 @@ def _card(s, c, a):
     s.fill(shade(a, -0.3), (4, 12, 4, 1))
 
 
-PAINTERS = {"sticker": _sticker, "card": _card, "cap": _cap, "ticket": _ticket, "badge": _badge,
+def _sketch(s, c, a):
+    """OLD CAT SKETCH: a sheet of paper with a little pencil cat in a crown."""
+    s.fill(shade(c, -0.3), (1, 2, 12, 11))
+    s.fill(c, (2, 3, 10, 9))
+    ink = (70, 66, 70)
+    for x, y in ((5, 5), (8, 5), (5, 6), (6, 6), (7, 6), (8, 6), (5, 7), (8, 7), (6, 8), (7, 8),
+                 (5, 9), (6, 9), (7, 9), (8, 9), (9, 10)):
+        s.fill(ink, (x, y, 1, 1))
+    s.fill(a, (5, 4, 4, 1))
+    s.fill(a, (5, 3, 1, 1))
+    s.fill(a, (8, 3, 1, 1))
+
+
+PAINTERS = {"sketch": _sketch, "sticker": _sticker, "card": _card, "cap": _cap, "ticket": _ticket, "badge": _badge,
             "lamp": _lamp, "plush": _plush, "bunny": _bunny, "plant": _plant, "clock": _clock, "frame": _frame,
             "rug": _rug, "star": _star, "ears": _ears, "glasses": _glasses, "swatch": _swatch,
             "headphones": _headphones, "crown": _crown, "visor": _visor, "medal": _medal,
