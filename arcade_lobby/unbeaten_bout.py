@@ -232,7 +232,9 @@ class TournamentBout(Campaign):
             dt = max(0.0, min(dt, 0.05))
             self.events.clear()
             self.finish_time += dt
-            self.effects = [(x, y, t - dt) for x, y, t in self.effects if t > dt]
+            for effect in self.effects:                  # (NEON BRAWL's hit sparks age the way Campaign.update ages them)
+                effect.age += dt
+            self.effects = [effect for effect in self.effects if effect.age < effect.duration]
             for f in [self.player] + self.enemies:
                 f.vx = f.vy = 0.0
                 f.tick(dt)
