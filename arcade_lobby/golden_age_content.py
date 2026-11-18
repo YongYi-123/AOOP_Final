@@ -234,7 +234,7 @@ LIFE = {
         [("PLAYER", "Old game cartridges. Half of them have no labels.", "normal"),
          ("MIAO MEOW", "Do you think any of them still work?", "normal"),
          ("PLAYER", "Only one way to find out. Also, no console.", "normal")],
-        [("PLAYER", "One label says BEST GAME EVER. Underneath: not really. Underneath that: well, kind of.", "normal")]]},
+        [("PLAYER", "Somebody doodled all over these labels.", "normal")]], "reader": "cartridge"},
     "poster": {"lines": [
         [("PLAYER", "A pixel hero staring at the sunset.", "normal"),
          ("PLAYER", "The poster says INSERT COIN TO CONTINUE. Mood.", "normal")],
@@ -324,3 +324,90 @@ GAME_CLEAR = ("GAME CLEAR!", "Finally fixed the collision bug.", "Only took me t
 HIGH_SCORES = (("AAA", 4200), ("NYCU", 3100), ("CAT", 1337), ("ZZZ", 10))
 ARCHIVE_LINES = ("ARCHIVE RESTORED.", "MEMORY FRAGMENT 01 UNSEALED.")
 ADMIN_CARD = ("PLAYER_000", "SYSTEM ADMINISTRATOR ACCESS")
+
+# ------------------------------------------------------------------ PUZZLE 05: THE FORGOTTEN PHOTOGRAPHS
+# Four old photos of the same desk, hidden around the room. Their order is never written down anywhere: it is read off
+# the pictures (golden_age_art.photo draws them; golden_age.PHOTO_FACTS lists what changes from one to the next).
+# The back of each photo only has a scribble that fits it, never a date or a number.
+PHOTO_BACKS = {
+    "desk": "On the back: note to self. Buy a computer. Or at least most of one.",
+    "build": "On the back: do NOT lose the tiny screws. I lost the tiny screws.",
+    "game": "On the back: IT RUNS. Mostly. Do not touch anything.",
+    "friends": "On the back: nobody won. Everybody laughed. Best night ever.",
+}
+PHOTO_FOUND = {        # where each one turns up: a line for the moment it is found
+    "drawer": "An old photograph was pushed to the back of the drawer.",
+    "programming": "A photograph slips out from between the pages.",
+    "homework": "Under the pile of homework: a photograph, a little bent.",
+    "bedside": "Inside the little cabinet, under a sock: a photograph.",
+}
+PHOTO_BOARD_FIRST = (
+    ("PLAYER", "A wooden board with four empty photo slots.", "normal"),
+    ("PLAYER", "Somebody took the photos down. Or hid them.", "normal"),
+)
+PHOTO_BOARD_EMPTY = (("PLAYER", "Four empty slots. Nothing to put in them yet.", "normal"),)
+PHOTO_BOARD_TITLE = "PHOTO BOARD"
+PHOTO_BOARD_WRONG = "NOTHING HAPPENS."
+PHOTO_BOARD_CLICK = "CLICK."
+ARCHIVE_INDEX = "ARCHIVE INDEX 01"                  # the item in the Trial Inventory
+INDEX_LOCATION = "A:/MEMORY/01"                     # pencilled on the label strip itself
+INDEX_STRIP = {"title": "MEMORY ARCHIVE INDEX - 01",
+               "text": "It started with a desk, a computer, and a really terrible idea."}
+INDEX_FOUND = (
+    ("PLAYER", "The board just clicked... there's a little gap behind it.", "normal"),
+    ("PLAYER", "An old floppy disk label. Somebody wrote on it in pencil.", "normal"),
+)
+NO_INDEX = ("ARCHIVE INDEX NOT FOUND.",)
+INDEX_LINES = ("READING ARCHIVE INDEX 01...", "LOCATED: A:/MEMORY/01")
+
+# ------------------------------------------------------------------ OPTIONAL: THE CAT'S SECRET
+# Three ordinary-looking cat drawings around the room, a bell with three little dials on the plushie, and a note about a
+# cat's day that gives the order. Nothing here is needed to finish the trial.
+CAT_ROUTINE = {"title": "STICKY NOTE",
+               "text": "My little troublemaker has a very strict daily routine.\n\n"
+                       "First, she sits beside my computer and judges my code.\n\n"
+                       "Then she falls asleep on whatever assignment I'm working on.\n\n"
+                       "And once I'm finally done, she decides it's playtime."}
+TEXTBOOK_DOODLE = {"title": "INSIDE THE BACK COVER", "picture": "doodle_sit", "mark": "sit",
+                   "text": "A pen doodle of a cat sitting very straight, like it is grading the page."}
+CARTRIDGE_PAGES = (
+    {"title": "A CARTRIDGE LABEL",
+     "text": "One label says BEST GAME EVER.\n\nUnderneath: not really.\n\nUnderneath that: well, kind of."},
+    {"title": "THE SIDE OF A CARTRIDGE", "picture": "cartridge_sleep", "mark": "sleep",
+     "text": "A tiny cat curled up asleep, drawn along the edge of the label."},
+)
+CARVING_PAGE = {"title": "THE SIDE OF THE CABINET", "picture": "carving_play", "mark": "play",
+                "text": "A little cat carved into the wood, pouncing on a ball of yarn."}
+BEDSIDE_FIRST = (("PLAYER", "A little bedside cabinet. Someone carved a cat into the side.", "normal"),)
+BEDSIDE_AGAIN = (("PLAYER", "The little cabinet. The carved cat is still playing.", "normal"),)
+BEDSIDE_OPEN = (("PLAYER", "There's a gap at the back of the cabinet that wasn't there before.", "normal"),)
+BELL_TITLE = "A TINY COIN BELL"
+BELL_SYMBOL_NAMES = {"sit": "SITTING", "sleep": "SLEEPING", "play": "PLAYING", "fish": "EATING"}
+BELL_RANG = (("PLAYER", "Did something just click? Over by the bedside cabinet.", "normal"),)
+CAT_NOTE = {"title": "A FOLDED NOTE",
+            "text": "For my favorite little troublemaker.\n\nPlease stop sleeping on my keyboard.", "scale": 2}
+CAT_SKETCH = {"title": "ON THE BACK", "picture": "sketch",
+              "text": "A small, rough sketch of a black cat wearing a tiny crown."}
+CAT_NOTE_TALK = (
+    ("PLAYER", "Apparently someone had a serious problem with cats sleeping on keyboards.", "normal"),
+    ("MIAO MEOW", "Excuse me!", "surprised"),
+    ("MIAO MEOW", "Sleeping on keyboards is a perfectly reasonable hobby!", "normal"),
+    ("PLAYER", "Is it?", "normal"),
+    ("MIAO MEOW", "Of course! They're warm!", "happy"),
+    ("MIAO MEOW", "Also... that note is kind of sweet.", "gentle"),
+)
+SKETCH_ITEM = "old_cat_sketch"                      # the collectible (item_registry), given once per profile
+
+HINTS.update({
+    "photos": ("This room keeps its memories somewhere. Not only on that computer.",
+               "That board on the wall has four empty slots. I bet the photos are hiding around the room.",
+               "Look at what changes from one photo to the next. The desk, the computer, the people."),
+    "cat": ("That bell has tiny pictures on it. Cats, I think?",
+            "I've seen cats like those around the room. In a book, on a cartridge, in the wood.",
+            "Somebody wrote down their cat's whole day. Maybe on a note by the desk?"),
+})
+
+# the cat clues live among the room's ordinary paper: the routine is the last sticky note on the desk, the sitting cat is in
+# the floor textbook's back cover, the sleeping cat on a cartridge (LIFE["cartridges"] reads CARTRIDGE_PAGES)
+STICKY_NOTES = STICKY_NOTES + (CAT_ROUTINE,)
+TEXTBOOK_PAGES = TEXTBOOK_PAGES + (TEXTBOOK_DOODLE,)
