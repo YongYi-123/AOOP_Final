@@ -5,8 +5,14 @@ Everything here is plain data and small state machines, so the whole puzzle chai
     Circuit         the 4x4 fuse board behind the power box (rotate tiles until the current reaches the output)
     morse_pulses    the telephone's message as timed tones, and MorsePlayback which walks through them frame by frame
     Desktop         the old computer's menu (PLAY GAME / HIGH SCORES / LOCKED FILES / EXIT); the game itself is happy_breakout.py
-    TrialRun        what has happened in the room so far (power, drawer, cabinet, journal, boot disk, computer), the
+    PhotoBoard      PUZZLE 05, THE FORGOTTEN PHOTOGRAPHS: four slots on the wall board, the photos found around the room
+    Bell            the optional cat puzzle: three little dials on the plushie's coin-bell
+    TrialRun        what has happened in the room so far (power, drawer, cabinet, journal, boot disk, photos, computer), the
                     Trial Inventory, the clue list and the current objective
+
+The photos, the board, the archive index and the cat puzzle are KEEPSAKES: unlike the rest of the run they are kept in the
+profile (QuestManager.save_trial_progress("trial_01", run.keepsakes())) and survive leaving, quitting and finishing the
+trial, so a solved board never has to be solved again. Nothing else of the run is saved.
 
 The scene (golden_age_scene.py) draws and plays; the story only hears about the end (event "secret_trial_done" with
 key "trial_01", see QuestManager.handle), so leaving halfway records nothing.
@@ -205,6 +211,100 @@ class Circuit:
         return total
 
 
+# ------------------------------------------------------------------ PUZZLE 05: THE FORGOTTEN PHOTOGRAPHS
+PHOTOS = ("desk", "build", "game", "friends")         # the order it happened in (never shown to the player)
+PHOTO_SLOTS = 4
+PHOTO_HIDING = {"drawer": "game", "programming": "desk", "homework": "friends", "bedside": "build"}    # where each one is hidden
+# What each picture shows that the others do not, as numbers that only ever grow from one photo to the next. The order is
+# read off these (golden_age_art.photo draws every one of them): the computer is assembled step by step, the game on the
+# screen gets its art, people arrive, the little plant on the desk grows, the idea sheet moves from the desk to the wall.
+PHOTO_FACTS = {
+    "computer": {"desk": 0, "build": 1, "game": 2, "friends": 2},       # none / opened up with parts around it / working
+    "game_art": {"desk": 0, "build": 0, "game": 1, "friends": 2},       # none / plain bricks and debug notes / full colour
+    "people": {"desk": 0, "build": 0, "game": 0, "friends": 3},
+    "plant": {"desk": 1, "build": 2, "game": 3, "friends": 4},          # a sprout, two leaves, three, then a flower
+    "idea_on_wall": {"desk": 0, "build": 1, "game": 1, "friends": 1},
+}
+
+
+def consistent_orders(facts=PHOTO_FACTS):
+    """Every order of the four photos in which no fact ever goes backwards (the 'deduction' the player makes)."""
+    from itertools import permutations
+    out = []
+    for order in permutations(PHOTOS):
+        if all(all(table[a] <= table[b] for a, b in zip(order, order[1:])) for table in facts.values()):
+            out.append(order)
+    return out
+
+
+class PhotoBoard:
+    """The wooden board's four slots. `place(photo, slot)` puts a photo in a slot: a photo that was already on the board
+    swaps places with what was there, a photo from the hand sends the old one back to the hand. No penalty, no limit."""
+
+    def __init__(self, slots=None):
+        slots = list(slots or ())[:PHOTO_SLOTS]
+        slots += [None] * (PHOTO_SLOTS - len(slots))
+        seen = set()
+        self.slots = []
+        for p in slots:                              # (a damaged save never puts a photo twice or an unknown one)
+            ok = p in PHOTOS and p not in seen
+            self.slots.append(p if ok else None)
+            if ok:
+                seen.add(p)
+
+    def place(self, photo, slot):
+        if photo not in PHOTOS or not 0 <= slot < PHOTO_SLOTS:
+            return False
+        src = self.slots.index(photo) if photo in self.slots else None
+        prev = self.slots[slot]
+        self.slots[slot] = photo
+        if src is not None and src != slot:
+            self.slots[src] = prev
+        return True
+
+    def remove(self, photo):
+        if photo in self.slots:
+            self.slots[self.slots.index(photo)] = None
+            return True
+        return False
+
+    @property
+    def full(self):
+        return all(self.slots)
+
+    @property
+    def correct(self):
+        return tuple(self.slots) == PHOTOS
+
+
+# ------------------------------------------------------------------ OPTIONAL: THE CAT'S SECRET
+BELL_SYMBOLS = ("sit", "sleep", "play", "fish")      # what each little dial can show
+BELL_ANSWER = ("sit", "sleep", "play")              # her day: sits by the computer, sleeps on the homework, then plays
+BELL_START = (3, 2, 0)                               # fish, play, sit
+CAT_MARKS = ("sit", "sleep", "play")                 # the three drawings around the room (textbook, cartridge, cabinet)
+
+
+class Bell:
+    """Three dials on the plushie's coin-bell. Turning one shows the next (or previous) little cat. Jingling it tells
+    whether they are right; a wrong jingle costs nothing."""
+
+    def __init__(self, dials=None):
+        dials = list(dials) if isinstance(dials, (list, tuple)) and len(dials) == 3 else list(BELL_START)
+        self.dials = [d % len(BELL_SYMBOLS) if isinstance(d, int) and not isinstance(d, bool) else 0 for d in dials]
+        self.jingles = 0
+
+    def turn(self, i, delta=1):
+        self.dials[i] = (self.dials[i] + delta) % len(BELL_SYMBOLS)
+
+    @property
+    def symbols(self):
+        return tuple(BELL_SYMBOLS[d] for d in self.dials)
+
+    @property
+    def correct(self):
+        return self.symbols == BELL_ANSWER
+
+
 # ------------------------------------------------------------------ the old computer
 BOOT_LINES = ("BOOTING...", "CHECKING DISK...", "LOADING ARCHIVE...")
 
@@ -232,7 +332,8 @@ class Desktop:
             return True
         return False
 
-    def choose(self, cleared):
+    def choose(self, cleared, indexed=True):
+        """indexed: the archive index has been found (or is not needed: a trial finished before the photo board existed)."""
         self.message = ""
         label = self.items[self.cursor]
         if label == "PLAY GAME":
@@ -244,10 +345,14 @@ class Desktop:
         if not cleared:
             self.message = " ".join(C.LOCKED_DENIED)
             return "locked"
+        if not indexed:
+            self.message = " ".join(C.NO_INDEX)
+            return "noindex"
         return "files"
 
 
 # ------------------------------------------------------------------ the run
+CAT_THINGS = ("plushie", "textbook", "cartridges", "bedside_cabinet")       # (hint topic: what counts as looking at cat things)
 OBJECTIVE_ORDER = ("power", "phone", "cabinet", "bookshelf", "computer", "done")      # (internal: the player is never told)
 
 # What a stage says when asked too early
@@ -271,7 +376,10 @@ CLUES = {
     "chart": Clue("chart", "MORSE CODE CHART", ()),             # drawn as a chart, not text
     "note": Clue("note", "NOTE FROM THE CABINET", CABINET_NOTE),
     "journal": Clue("journal", "THE UNTITLED NOTEBOOK", ()),
+    "index": Clue("index", "ARCHIVE INDEX STRIP", ()),
+    "catnote": Clue("catnote", "NOTE FROM THE BEDSIDE CABINET", ()),
 }
+KEEPSAKES_VERSION = 1
 
 
 @dataclass
@@ -296,6 +404,19 @@ class TrialRun:
     books_read: list = field(default_factory=list)       # shelf book keys that were opened
     hints: dict = field(default_factory=dict)            # objective -> how many hints were asked for
     intro_played: bool = False
+    # ---- keepsakes (saved in the profile, see keepsakes()): the photos, the board, the cat puzzle
+    photos_found: list = field(default_factory=list)     # photo keys, in the order they were found
+    board: PhotoBoard = field(default_factory=PhotoBoard)
+    photos_solved: bool = False
+    archive_index: bool = False                          # the index strip from behind the board (needed by the computer)
+    cat_marks: list = field(default_factory=list)        # the cat drawings that have been looked at
+    bell: Bell = field(default_factory=Bell)
+    bell_seen: bool = False
+    bell_solved: bool = False
+    cat_note: bool = False                               # the note in the bedside cabinet has been found
+    sketch_given: bool = False                           # OLD CAT SKETCH went into the profile's collection
+    legacy_archive: bool = False                         # the trial was finished before the photo board existed: no index needed
+    last_looked: str = ""                                # what was inspected last (only Miao's hints read it)
 
     BOOT_DISK = "OLD BOOT DISK"
 
@@ -409,15 +530,138 @@ class TrialRun:
         self.breakout_cleared = True
         return first
 
+    @property
+    def indexed(self):
+        """Can the computer find the memory archive? Only with the index strip from behind the photo board (or on a profile
+        that finished the trial before the board existed)."""
+        return self.archive_index or self.legacy_archive
+
+    @property
+    def archive_open(self):
+        """The two halves of the memory archive: HAPPY BREAKOUT.EXE cleared, and the archive index found."""
+        return self.breakout_cleared and self.indexed
+
     def finish_computer(self):
-        """The locked files were opened and read. Needs the whole chain, and the game cleared."""
-        if self.computer_state() != "ready" or not self.breakout_cleared:
+        """The locked files were opened and read. Needs the whole chain, the game cleared and the archive index."""
+        if self.computer_state() != "ready" or not self.archive_open:
             return False
         self.computer_done = True
         return True
 
+    # ---- PUZZLE 05: the photographs
+    def find_photo(self, place):
+        """Look where a photo is hidden ("drawer", "programming", "homework", "bedside"). Returns the photo the first time,
+        None after (or for a place that hides nothing)."""
+        photo = PHOTO_HIDING.get(place)
+        if photo is None or photo in self.photos_found:
+            return None
+        self.photos_found.append(photo)
+        return photo
+
+    @property
+    def photos_in_hand(self):
+        """Found photos that are not on the board (the order they were found in)."""
+        return [p for p in self.photos_found if p not in self.board.slots]
+
+    def place_photo(self, photo, slot):
+        if self.photos_solved or photo not in self.photos_found:
+            return False
+        return self.board.place(photo, slot)
+
+    def take_photo(self, photo):
+        if self.photos_solved:
+            return False
+        return self.board.remove(photo)
+
+    def check_board(self):
+        """Is the board right? The first time it is, the hidden compartment opens and the archive index is in hand."""
+        if self.photos_solved:
+            return True
+        if not (self.board.full and self.board.correct and set(self.photos_found) == set(PHOTOS)):
+            return False
+        self.photos_solved = True
+        self.take_index()
+        return True
+
+    def take_index(self):
+        """The index strip from behind the board: into the Trial Inventory once, and onto the clue list."""
+        self.archive_index = True
+        self.add_clue("index")
+        if C.ARCHIVE_INDEX not in self.inventory:
+            self.inventory.append(C.ARCHIVE_INDEX)
+            return True
+        return False
+
+    # ---- the cat's secret (optional: nothing here is ever needed to finish the trial)
+    def see_cat_mark(self, mark):
+        if mark in CAT_MARKS and mark not in self.cat_marks:
+            self.cat_marks.append(mark)
+            return True
+        return False
+
+    def jingle(self):
+        """The bell is jingled. "open" the first time the dials are right (the bedside cabinet's hidden compartment opens),
+        "ring" when they are right again later, "dull" when they are not (nothing else happens)."""
+        self.bell.jingles += 1
+        if not self.bell.correct and not self.bell_solved:
+            return "dull"
+        if self.bell_solved:
+            return "ring"
+        self.bell_solved = True
+        return "open"
+
+    def find_cat_note(self):
+        """The note in the bedside cabinet's hidden compartment. True the first time (only once the bell has been rung)."""
+        if not self.bell_solved or self.cat_note:
+            return False
+        self.cat_note = True
+        self.add_clue("catnote")
+        return True
+
+    # ---- what is kept in the profile
+    def keepsakes(self):
+        """The photo board and the cat puzzle, as plain data for the profile."""
+        # (an empty slot is saved as "": the profile's story drops None from lists, which would shift the photos along)
+        return {"v": KEEPSAKES_VERSION, "photos": list(self.photos_found), "board": [p or "" for p in self.board.slots],
+                "photos_solved": self.photos_solved, "archive_index": self.archive_index, "cat_marks": list(self.cat_marks),
+                "bell": list(self.bell.dials), "bell_seen": self.bell_seen, "bell_solved": self.bell_solved,
+                "cat_note": self.cat_note, "sketch": self.sketch_given}
+
+    def load_keepsakes(self, data):
+        """Take saved keepsakes (anything malformed is ignored, so a damaged or old save just starts them fresh). Only ever
+        adds: a solved board or bell is never unsolved by loading."""
+        if not isinstance(data, dict):
+            return
+        photos = data.get("photos")
+        if isinstance(photos, list):
+            for p in photos:
+                if p in PHOTOS and p not in self.photos_found:
+                    self.photos_found.append(p)
+        board = data.get("board")
+        if isinstance(board, list):
+            self.board = PhotoBoard([p if p in self.photos_found else None for p in board])
+        if data.get("photos_solved") is True and set(self.photos_found) == set(PHOTOS):
+            self.photos_solved = True
+            self.board = PhotoBoard(PHOTOS)
+        if data.get("archive_index") is True or self.photos_solved:
+            self.take_index()
+        marks = data.get("cat_marks")
+        if isinstance(marks, list):
+            for m in marks:
+                self.see_cat_mark(m)
+        if isinstance(data.get("bell"), list):
+            self.bell = Bell(data["bell"])
+        self.bell_seen = self.bell_seen or data.get("bell_seen") is True
+        if data.get("bell_solved") is True:
+            self.bell_solved = True
+            self.bell = Bell([BELL_SYMBOLS.index(s) for s in BELL_ANSWER])
+        if data.get("cat_note") is True and self.bell_solved:
+            self.find_cat_note()
+        self.sketch_given = self.sketch_given or data.get("sketch") is True
+
     def see_plushie(self):
         self.plushie_seen = True
+        self.bell_seen = True
 
     # ---- the room's ordinary things
     def inspect(self, key):
@@ -429,9 +673,19 @@ class TrialRun:
         return variants[n % len(variants)]
 
     # ------------------------------------------------------------ hints (asked for, never pushed)
+    def hint_topic(self):
+        """What Miao talks about when asked: the cat's bell right after looking at cat things (only once the bell has been
+        seen, and never after it rang), the photos when the board is what was last looked at or when the game is cleared
+        and only the index is missing, otherwise the room's current stage."""
+        if not self.bell_solved and self.bell_seen and self.last_looked in CAT_THINGS:
+            return "cat"
+        if not self.indexed and (self.last_looked == "photo_board" or (self.objective == "computer" and self.breakout_cleared)):
+            return "photos"
+        return self.objective
+
     def hint(self):
         """The next hint for the current stage, a bit more each time it is asked (the last one repeats)."""
-        key = self.objective
+        key = self.hint_topic()
         tiers = HINTS[key]
         n = self.hints.get(key, 0)
         self.hints[key] = min(n + 1, len(tiers) - 1)
