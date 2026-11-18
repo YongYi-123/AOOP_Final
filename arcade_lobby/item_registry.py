@@ -249,6 +249,15 @@ _CHAPTER_TWO_ITEMS = (
                    icon={"shape": "plush", "color": (255, 204, 70), "accent": (255, 248, 210)}, use_hint=_COLLECT_USE),
 )
 
+# ---- TRIAL 01, THE GOLDEN AGE: the optional cat puzzle's keepsake (found once in the old bedroom's bedside cabinet).
+# A lore collectible: no Tokens, no Tickets, never sold or exchanged, and it does nothing.
+_TRIAL_ONE_ITEMS = (
+    ItemDefinition("old_cat_sketch", "OLD CAT SKETCH",
+                   "A rough pencil sketch of a black cat wearing a tiny crown.",
+                   COLLECTIBLE, RARE, stackable=False,
+                   icon={"shape": "sketch", "color": (240, 232, 210), "accent": (214, 170, 60)}, use_hint=_COLLECT_USE),
+)
+
 # ---- NEON VEND-O-MATIC novelty goods (Arcade Floor). Pure fun: using one only plays a little effect
 # (novelty.py) and never touches scores, tokens, tickets, movement or any minigame.
 NOVELTY_STACK = 9
@@ -288,4 +297,4 @@ _RACING_ITEMS = tuple(
                    if d.id.startswith("racing_decoration_") else d.icon,
                    use_hint=_DECOR_USE if d.id.startswith("racing_decoration_") else "")
     for d in _RACING_ITEMS)
-ITEM_REGISTRY = ItemRegistry(_ITEMS + _SHOP_ITEMS + _CAPSULE_ITEMS + _CLAW_ITEMS + _CHAPTER_TWO_ITEMS + _NOVELTY_ITEMS + _RACING_ITEMS)
+ITEM_REGISTRY = ItemRegistry(_ITEMS + _SHOP_ITEMS + _CAPSULE_ITEMS + _CLAW_ITEMS + _CHAPTER_TWO_ITEMS + _TRIAL_ONE_ITEMS + _NOVELTY_ITEMS + _RACING_ITEMS)
