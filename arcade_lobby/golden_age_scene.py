@@ -10,6 +10,12 @@ The only thing the story ever hears is the end: GameEvent("secret_trial_done", k
 computer's archive has been restored. Leaving halfway sends nothing; the run (what has been done in the room) stays with
 the hub while the game is open, so coming back carries on, and is thrown away when the trial is completed, so a replay
 starts in the dark again. The Memory Fragment is granted by the story on the first completion only.
+
+The photo board (PUZZLE 05) and the plushie's bell (the optional cat puzzle) are the exception: their state is a keepsake
+saved in the profile as it changes (QuestManager.save_trial_progress), so solved boards stay solved for good, and replays
+can look at them again. The archive needs BOTH halves: HAPPY BREAKOUT.EXE cleared and the archive index from behind the
+board (a profile that finished the trial before the board existed never needs the index). The cat puzzle only ever gives
+the OLD CAT SKETCH collectible, once per profile.
 """
 import math
 import random
@@ -31,6 +37,8 @@ from ui import Notice, draw_text
 if "SYSTEM" not in SPEAKERS:
     register_speaker("SYSTEM", Speaker("SYSTEM", Col.GREEN, None, blip="vend_select"))
 
+# where a photo is hidden, by the reader that is open when it turns up (the drawer, a shelf book, the homework, the carving)
+PHOTO_TAGS = {"drawer": "drawer", "programming": "programming", "homework": "homework", "carving": "bedside", "catnote": "bedside"}
 START = (64, 214)                       # just inside the door, looking into the room
 DOOR_ZONE = pygame.Rect(20, 196, 34, 30)
 LOW_ON_SCREEN = 212                     # speakers lower than this: the dialogue box goes to the top
@@ -134,7 +142,10 @@ class GoldenAgeScene(BaseScene):
         run = getattr(self.hub, "trial01_run", None)
         if run is None or run.computer_done:
             run = self.hub.trial01_run = G.TrialRun()
+            run.load_keepsakes(self.manager.trial_progress(G.TRIAL_ID))      # the photos and the bell are kept for good
         self.run = run
+        run.legacy_archive = self.manager.trial_done(G.TRIAL_ID)             # finished before: the archive needs no index
+        self._kept = run.keepsakes()
         if self.manager.state.get("flags", {}).get(G.BREAKOUT_FLAG):
             run.breakout_cleared = True                          # HAPPY BREAKOUT was cleared once: it stays cleared
         self.time = 0.0
@@ -181,8 +192,10 @@ class GoldenAgeScene(BaseScene):
             S("power_box", ins, (196, 50, 18, 24), (194, 88, 24, 22), self.use_power_box),
             S("window", ins, (172, 10, 54, 40), (168, 88, 26, 22), lambda: life("window")),
             S("bookshelf", ins, (122, 20, 46, 66), (122, 88, 44, 22), self.use_bookshelf),
-            S("bedside_lamp", ins, (93, 70, 14, 20), (92, 112, 13, 24), self.use_bedside_lamp),
-            S("alarm_clock", ins, (108, 77, 13, 13), (105, 112, 17, 24), lambda: life("alarm_clock")),
+            S("bedside_lamp", ins, (93, 70, 14, 20), (88, 112, 13, 24), self.use_bedside_lamp),
+            S("bedside_cabinet", ins, (92, 90, 28, 18), (101, 112, 13, 24), self.use_bedside_cabinet),
+            S("alarm_clock", ins, (108, 77, 13, 13), (114, 112, 13, 24), lambda: life("alarm_clock")),
+            S("photo_board", ins, (384, 128, 12, 46), (346, 140, 34, 30), self.use_photo_board),
             S("plushie", ins, (44, 62, 19, 19), (46, 118, 44, 24), lambda: life("plushie")),
             S("photo_frame", ins, (4, 116, 12, 16), (20, 112, 24, 22), lambda: life("photo_frame")),
             S("poster", ins, (4, 140, 12, 32), (20, 136, 26, 34), lambda: life("poster")),
@@ -300,6 +313,13 @@ class GoldenAgeScene(BaseScene):
         """A short, non-blocking card at the top of the room."""
         self.notice.show(title, [(t, Col.TEXT) for t in lines], color)
 
+    def save_keepsakes(self):
+        """Keep the photos, the board and the cat puzzle in the profile (only when something changed)."""
+        now = self.run.keepsakes()
+        if now != self._kept:
+            if self.manager.save_trial_progress(G.TRIAL_ID, now):
+                self._kept = now
+
     def announce_start(self):
         """Coming back into the room (the first visit says the same things in its opening): the title, and nothing else."""
         self.tell("TRIAL 01 - THE GOLDEN AGE", ["Explore the room."], Col.YELLOW)
@@ -340,7 +360,7 @@ class GoldenAgeScene(BaseScene):
             self.play("drawer_open")
         self.run.open_drawer()
         pages = UI.paper_pages("paper") + UI.paper_pages("chart")
-        self.open_panel(UI.PagedPanel(pages, self.play, finish_label="CLOSE DRAWER"))
+        self.open_panel(UI.PagedPanel(pages, self.play, finish_label="CLOSE DRAWER", tag="drawer"))
         self.panel_then = (lambda: self.tell("CLUES ADDED", ["SEE NOTES [TAB]"], Col.CYAN)) if first else None
 
     def use_cabinet(self):
@@ -366,13 +386,96 @@ class GoldenAgeScene(BaseScene):
             self.run.inspect(key)
             self.open_reader(reader)
             return
+        after = (lambda: self.open_reader(reader)) if reader else None
         if key == "plushie":
             self.run.see_plushie()
+            after = self.open_bell
         lines = self.run.inspect(key)
-        self.say(lines, on_done=(lambda: self.open_reader(reader)) if reader else None)
+        self.say(lines, on_done=after)
 
     def open_reader(self, tag):
         self.open_panel(UI.PagedPanel(UI.paper_pages(tag), self.play, finish_label="CLOSE", tag=tag))
+
+    # ---- PUZZLE 05: the photo board
+    def use_photo_board(self):
+        run = self.run
+        first = "photo_board" not in run.inspected and not any(run.board.slots)      # (it only looks empty while it is)
+        run.inspected["photo_board"] = run.inspected.get("photo_board", 0) + 1
+        has_any = bool(run.photos_found)
+        if first:
+            self.say(C.PHOTO_BOARD_FIRST, on_done=self.open_photo_board if has_any else None)
+        elif not has_any:
+            self.say(C.PHOTO_BOARD_EMPTY)
+        else:
+            self.open_photo_board()
+
+    def open_photo_board(self):
+        self.open_panel(UI.PhotoBoardPanel(self.run, self.play))
+
+    def show_found_photo(self, place):
+        """Look in a hiding place: the first time, the photo hidden there is found and shown full size. True if it was."""
+        photo = self.run.find_photo(place)
+        if photo is None:
+            return False
+        self.save_keepsakes()
+        self.play("card")
+        page = UI.photo_page(photo, title=C.PHOTO_FOUND[place])
+        self.open_panel(UI.PagedPanel([page], self.play, finish_label="KEEP IT", tag="photo"))
+        return True
+
+    def _board_solved(self):
+        self.save_keepsakes()
+        self.say(C.INDEX_FOUND, on_done=self._read_index)
+
+    def _read_index(self):
+        self.play("drawer_open")
+        self.open_panel(UI.PagedPanel(UI.paper_pages("index"), self.play, finish_label="KEEP IT", tag="index"))
+        self.panel_then = lambda: self.tell("ITEM FOUND", [C.ARCHIVE_INDEX], Col.YELLOW)
+
+    # ---- OPTIONAL: the cat's secret
+    def open_bell(self):
+        self.run.bell_seen = True
+        self.open_panel(UI.BellPanel(self.run, self.play))
+
+    def use_bedside_cabinet(self):
+        """The little cabinet under the lamp: a carving on its side, a photo inside, and (once the bell has rung) a note in
+        a compartment at the back."""
+        run = self.run
+        first = "bedside_cabinet" not in run.inspected
+        run.inspected["bedside_cabinet"] = run.inspected.get("bedside_cabinet", 0) + 1
+        if run.bell_solved and not run.cat_note:
+            self.say(C.BEDSIDE_OPEN, on_done=self._open_cat_note)
+        elif first:
+            self.say(C.BEDSIDE_FIRST, on_done=self._open_carving)
+        else:
+            self._open_carving()
+
+    def _open_carving(self):
+        pages = UI.paper_pages("carving") + (UI.paper_pages("catnote") if self.run.cat_note else [])
+        self.open_panel(UI.PagedPanel(pages, self.play, finish_label="CLOSE", tag="carving"))
+
+    def _open_cat_note(self):
+        """The hidden compartment: the note (and the sketch on its back). The OLD CAT SKETCH goes to the collection once."""
+        self.play("drawer_open")
+        self.run.find_cat_note()
+        self.give_sketch()
+        self.save_keepsakes()
+        self.open_panel(UI.PagedPanel(UI.paper_pages("catnote"), self.play, finish_label="KEEP THE SKETCH", tag="catnote"))
+        self.panel_then = lambda: self.say(C.CAT_NOTE_TALK, on_done=self._sketch_kept)
+
+    def _sketch_kept(self):
+        self.play("equip")
+        self.tell("ADDED TO YOUR COLLECTION", ["OLD CAT SKETCH"], Col.YELLOW)
+
+    def give_sketch(self):
+        """OLD CAT SKETCH into the profile's inventory (a collectible): once, ever. No Tokens, no Tickets, no story credit."""
+        if self.run.sketch_given:
+            return False
+        inv = self.owner.profile.inventory
+        if not inv.has_item(C.SKETCH_ITEM):
+            inv.add_item(C.SKETCH_ITEM)
+        self.run.sketch_given = True
+        return True
 
     def use_bedside_lamp(self):
         self.say(C.BEDSIDE_ON if self.run.power else C.BEDSIDE_OFF)
@@ -390,7 +493,8 @@ class GoldenAgeScene(BaseScene):
         elif state == "done":
             self.say((("SYSTEM", "PLAYER_000 / SYSTEM ADMINISTRATOR ACCESS", "normal"),))
         else:
-            self.open_panel(UI.ComputerPanel(self.play, cleared=self.run.breakout_cleared, on_clear=self._breakout_cleared))
+            self.open_panel(UI.ComputerPanel(self.play, cleared=self.run.breakout_cleared, on_clear=self._breakout_cleared,
+                                             indexed=self.run.indexed, index_lines=self.run.archive_index))
 
     def _breakout_cleared(self):
         """HAPPY BREAKOUT.EXE was cleared: the locked files open, now and in any later visit."""
@@ -440,8 +544,22 @@ class GoldenAgeScene(BaseScene):
             if isinstance(result, tuple) and result[0] == "book":
                 self._take_book(result[1])
         elif isinstance(panel, UI.PagedPanel):
+            for mark in panel.marks_seen:
+                self.run.see_cat_mark(mark)
+            self.save_keepsakes()
             if result == "finished" and panel.tag == C.NOTEBOOK_KEY:
                 self._journal_read()
+            place = PHOTO_TAGS.get(panel.tag)
+            if place and self.panel is None and self.dialogue is None and self.show_found_photo(place):
+                self.panel_then = after                         # (the shelf / the drawer's card come back after the photo)
+        elif isinstance(panel, UI.PhotoBoardPanel):
+            self.save_keepsakes()
+            if result == "solved":
+                self._board_solved()
+        elif isinstance(panel, UI.BellPanel):
+            self.save_keepsakes()
+            if result == "rang":
+                self.say(C.BELL_RANG)
         elif isinstance(panel, UI.ComputerPanel):
             if result == "done":
                 self._computer_done()
@@ -459,7 +577,7 @@ class GoldenAgeScene(BaseScene):
 
     def _take_book(self, key):
         self.run.open_book(key)
-        tag = C.NOTEBOOK_KEY if key == C.NOTEBOOK_KEY else key
+        tag = C.NOTEBOOK_KEY if key == C.NOTEBOOK_KEY else key           # (the programming book has a photo between its pages)
         pages = UI.paper_pages("journal" if key == C.NOTEBOOK_KEY else key)
         self.open_panel(UI.PagedPanel(pages, self.play, finish_label="CLOSE BOOK", tag=tag))
         self.panel_then = self.use_bookshelf                       # back to the shelf (unless the notebook's ending takes over)
@@ -548,6 +666,8 @@ class GoldenAgeScene(BaseScene):
         elif self.controls.action_for(key) == "interact":
             spot = self.nearby
             if spot is not None:
+                if spot.key != "miao":
+                    self.run.last_looked = spot.key
                 spot.act()
 
     def _skip_intro(self):
@@ -658,6 +778,11 @@ class GoldenAgeScene(BaseScene):
         if self.dialogue is not None:
             self.dialogue.draw(surf)
 
+    def _bedside_look(self):
+        if not self.run.bell_solved:
+            return "shut"
+        return "empty" if self.run.cat_note else "note"
+
     def _computer_look(self):
         if self.run.computer_done:
             return "on"
@@ -671,7 +796,8 @@ class GoldenAgeScene(BaseScene):
         things = [
             (116.0, lambda s: A.put(s, A.bed(), 26, 54)),
             (116.4, lambda s: A.put(s, A.plushie(), 44, 62)),
-            (108.0, lambda s: A.put(s, A.bedside_table(), 92, 82)),
+            (108.0, lambda s: A.put(s, A.bedside_table(self._bedside_look()), 92, 82)),
+            (-0.5, lambda s: A.put(s, A.side_photo_board(tuple(run.board.slots), run.photos_solved), 384, 128)),
             (108.2, lambda s: A.put(s, A.small_lamp(lamps_on), 93, 70)),
             (108.2, lambda s: A.put(s, A.alarm_clock(), 108, 77)),
             (112.0, lambda s: A.put(s, A.desk(), 226, 72)),
