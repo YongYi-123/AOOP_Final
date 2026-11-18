@@ -37,8 +37,9 @@ from ui import Notice, draw_text
 if "SYSTEM" not in SPEAKERS:
     register_speaker("SYSTEM", Speaker("SYSTEM", Col.GREEN, None, blip="vend_select"))
 
-# where a photo is hidden, by the reader that is open when it turns up (the drawer, a shelf book, the homework, the carving)
-PHOTO_TAGS = {"drawer": "drawer", "programming": "programming", "homework": "homework", "carving": "bedside", "catnote": "bedside"}
+# where a photo is hidden, by the reader that is open when it turns up (the drawer, a shelf book, the homework). The bedside
+# cabinet's photo is not here: it turns up as soon as the cabinet is opened, before the carving or the hidden note.
+PHOTO_TAGS = {"drawer": "drawer", "programming": "programming", "homework": "homework"}
 START = (64, 214)                       # just inside the door, looking into the room
 DOOR_ZONE = pygame.Rect(20, 196, 34, 30)
 LOW_ON_SCREEN = 212                     # speakers lower than this: the dialogue box goes to the top
@@ -438,15 +439,26 @@ class GoldenAgeScene(BaseScene):
         self.open_panel(UI.BellPanel(self.run, self.play))
 
     def use_bedside_cabinet(self):
-        """The little cabinet under the lamp: a carving on its side, a photo inside, and (once the bell has rung) a note in
-        a compartment at the back."""
+        """The little cabinet under the lamp: a photo inside (found the moment it is first opened, before anything else), a
+        carving on its side, and (once the bell has rung) a note in a compartment at the back."""
         run = self.run
         first = "bedside_cabinet" not in run.inspected
         run.inspected["bedside_cabinet"] = run.inspected.get("bedside_cabinet", 0) + 1
-        if run.bell_solved and not run.cat_note:
+        if first:
+            self.say(C.BEDSIDE_FIRST, on_done=self._bedside_photo)
+        else:
+            self._bedside_photo()
+
+    def _bedside_photo(self):
+        """The ordinary contents come first: if its photo is still in there, it turns up now, and the rest follows it."""
+        if self.show_found_photo("bedside"):
+            self.panel_then = self._bedside_rest
+        else:
+            self._bedside_rest()
+
+    def _bedside_rest(self):
+        if self.run.bell_solved and not self.run.cat_note:
             self.say(C.BEDSIDE_OPEN, on_done=self._open_cat_note)
-        elif first:
-            self.say(C.BEDSIDE_FIRST, on_done=self._open_carving)
         else:
             self._open_carving()
 
