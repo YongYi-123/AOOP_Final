@@ -11,6 +11,7 @@ Stages (each one starts a new test save at that point of the story):
     routes    Chapter 02 open AND every route already earned: the three secrets are waiting, go and find them
     clues     all three Chapter 02 symbols found: Miao's talk in the hub, then Mochi's maintenance lock
     solved    the lock opened: win the Golden Cat in NEON CLAW (Secret Item 02)
+    trial02   Secret Item 02 owned and 15 Tokens / 150 Tickets earned: Legacy Terminal -> Trial 02 (THE UNBEATEN RECORD)
 
 --keep   continue the last test save instead of starting the stage again (the stage name is then ignored).
 Debug keys are on: F5 +10 tokens, F6 next day, F7 new daily tasks, F8/F9 test items.
@@ -28,7 +29,7 @@ from game import Game  # noqa: E402
 from player_profile import PlayerProfile, ProfileStore  # noqa: E402
 import quests as Q  # noqa: E402
 
-STAGES = ("new", "vending", "ch1", "trial01", "ch2", "routes", "clues", "solved")
+STAGES = ("new", "vending", "ch1", "trial01", "ch2", "routes", "clues", "solved", "trial02")
 TUTORIAL = ("grand_tour", "meet_the_locals", "arcade_explorer", "earn_some_rewards")
 SAVE = os.path.join(tempfile.gettempdir(), "neon_arcade_story_test.json")
 
@@ -57,12 +58,18 @@ def build(stage):
     if stage == "routes":
         for clue in Q.CH2_CLUES:
             m.handle(Q.CLUE_ROUTE_EVENT, clue)
-    if stage in ("clues", "solved"):
+    if stage in ("clues", "solved", "trial02"):
         for clue in Q.CH2_CLUES:
             m.handle(Q.CLUE_FOUND_EVENT, clue)
-    if stage == "solved":
+    if stage in ("solved", "trial02"):
         m.handle(Q.MIAO_CH2_HINT)
         m.handle(Q.CH2_RIDDLE_SOLVED)
+    if stage == "trial02":
+        m.handle("secret_item_found", Q.SECRET_ITEM_CLAW)
+        profile = game.session.primary.profile
+        need_tokens, need_tickets = Q.trial_earnings("trial_02")
+        profile.add_tokens(need_tokens, "STORY TEST")            # really earned (lifetime counters), as play would
+        profile.add_tickets(need_tickets)
     game.store.save(game.session.primary.profile)
 
 
