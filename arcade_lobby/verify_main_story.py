@@ -745,6 +745,10 @@ def main():
     driver.open_cabinet()
     driver.read_note()
     driver.get_boot_disk()
+    driver.close_all()
+    driver.collect_photos()                                         # PUZZLE 05: the four photos and the board
+    driver.solve_photo_board()
+    say(f"  photo board solved, archive index in hand: {scene().run.archive_index}")
     driver.use("computer")
     driver.tap(K.K_e)                                               # INSERT BOOT DISK? YES
     driver.seconds(4.7)
@@ -756,7 +760,7 @@ def main():
     driver.seconds(0.5)
     driver.tap(K.K_e)
     driver.tap(K.K_3)                                               # [3] LOCKED FILES
-    driver.seconds(4.6)
+    driver.seconds(scene().panel.files_ready + 0.6)
     driver.tap(K.K_e)
     driver.seconds(0.5)
     driver.talk_through()
