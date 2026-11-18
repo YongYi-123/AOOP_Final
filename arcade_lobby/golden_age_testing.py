@@ -223,9 +223,7 @@ class Driver:
                 self.tap(K.K_ESCAPE)
         elif place == "bedside":
             self.use("bedside_cabinet")
-            self.talk_through()
-            if isinstance(scene.panel, UI.PagedPanel) and scene.panel.tag in ("carving", "catnote"):
-                self.tap(K.K_ESCAPE)
+            self.talk_through()                                 # (the photo comes first; the carving / the note after it)
         found = self.keep_photo()
         self.close_all()
         return found
@@ -312,11 +310,12 @@ class Driver:
         """After the bell rang: the bedside cabinet's compartment, the note, the sketch, Miao's lines."""
         self.use("bedside_cabinet")
         self.talk_through()
+        if self.keep_photo():                                   # (the cabinet's own photo, if it was still in there)
+            self.talk_through()
         panel = self.scene.panel
         assert isinstance(panel, UI.PagedPanel) and panel.tag == "catnote", panel
         for _ in range(len(panel.pages)):
             self.tap(K.K_e)
-        self.keep_photo()
         self.talk_through()
         self.seconds(0.5)
 
