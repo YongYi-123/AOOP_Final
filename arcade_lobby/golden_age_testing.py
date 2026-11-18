@@ -187,7 +187,138 @@ class Driver:
         self.use("drawer")
         self.tap(K.K_e)
         self.tap(K.K_ESCAPE)
+        self.keep_photo()
         self.seconds(0.3)
+
+    # ------------------------------------------------------------ PUZZLE 05: the photographs
+    def keep_photo(self):
+        """If a found photo is on screen, keep it (E). Returns the photo's key or None."""
+        panel = self.scene.panel
+        if isinstance(panel, UI.PagedPanel) and panel.tag == "photo":
+            key = panel.pages[0]["picture"][len("photo_"):]
+            self.tap(K.K_e)
+            self.frames(4)
+            return key
+        return None
+
+    def find_photo(self, place):
+        """Go and look in one hiding place ("drawer", "programming", "homework", "bedside") the way a player would, keep the
+        photo, and close whatever opens after it. Returns the photo found (None if it had already been found)."""
+        scene = self.scene
+        if place == "drawer":
+            self.use("drawer")
+            self.tap(K.K_ESCAPE)
+        elif place == "programming":
+            self.use("bookshelf")
+            assert isinstance(scene.panel, UI.BookshelfPanel)
+            idx = scene.panel.keys.index("programming")
+            while scene.panel.index != idx:
+                self.tap(K.K_DOWN)
+            self.tap(K.K_e)
+            self.tap(K.K_ESCAPE)
+        elif place == "homework":
+            self.use("homework")
+            self.talk_through()
+            if isinstance(scene.panel, UI.PagedPanel) and scene.panel.tag == "homework":
+                self.tap(K.K_ESCAPE)
+        elif place == "bedside":
+            self.use("bedside_cabinet")
+            self.talk_through()
+            if isinstance(scene.panel, UI.PagedPanel) and scene.panel.tag in ("carving", "catnote"):
+                self.tap(K.K_ESCAPE)
+        found = self.keep_photo()
+        self.close_all()
+        return found
+
+    def close_all(self, limit=12):
+        """ESC out of any reader / shelf / card that is open, and talk through any line (back to walking)."""
+        for _ in range(limit):
+            if self.scene.dialogue is not None:
+                self.talk_through()
+            elif self.scene.panel is not None:
+                self.tap(K.K_ESCAPE)
+                self.frames(4)
+            else:
+                break
+        self.seconds(0.3)
+
+    def collect_photos(self, order=("drawer", "programming", "homework", "bedside")):
+        return [self.find_photo(place) for place in order]
+
+    def arrange_photos(self, target):
+        """On the open photo board: move photos with the keys until the slots hold `target` (a tuple of 4 keys)."""
+        panel = self.scene.panel
+        assert isinstance(panel, UI.PhotoBoardPanel), panel
+        run = panel.run
+        for i, want in enumerate(target):
+            if run.board.slots[i] == want or panel.opening is not None:
+                continue
+            if want in run.board.slots:
+                self._cursor_to(panel, 0, run.board.slots.index(want))
+            else:
+                self._cursor_to(panel, 1, run.photos_in_hand.index(want))
+            self.tap(K.K_e)                                       # pick it up
+            assert panel.held == want, (panel.held, want)
+            self._cursor_to(panel, 0, i)
+            self.tap(K.K_e)                                       # put it down
+        return panel
+
+    def _cursor_to(self, panel, row, col):
+        if panel.row != row:
+            self.tap(K.K_DOWN)
+        assert panel.row == row
+        while panel.col != col:
+            self.tap(K.K_RIGHT)
+
+    def solve_photo_board(self, order=G.PHOTOS):
+        """Walk to the board, open it, arrange the photos, watch it open and read the index strip."""
+        self.use("photo_board")
+        self.talk_through()
+        panel = self.arrange_photos(order)
+        self.seconds(UI.PhotoBoardPanel.OPEN_TIME + 0.3)
+        if panel.run.photos_solved:
+            self.talk_through()                                   # the click, the gap, the label
+            self.tap(K.K_e)                                       # KEEP IT
+            self.seconds(0.3)
+        return panel
+
+    # ------------------------------------------------------------ OPTIONAL: the cat's secret
+    def open_bell(self):
+        """Inspect the plushie and talk through it: the bell comes up."""
+        self.use("plushie")
+        self.talk_through()
+        assert isinstance(self.scene.panel, UI.BellPanel), self.scene.panel
+        return self.scene.panel
+
+    def set_bell(self, symbols, jingle=True):
+        panel = self.scene.panel
+        assert isinstance(panel, UI.BellPanel)
+        for i, want in enumerate(symbols):
+            while panel.cursor != i:
+                self.tap(K.K_RIGHT)
+            while panel.bell.symbols[i] != want:
+                self.tap(K.K_DOWN)
+        if jingle:
+            self.tap(K.K_e)
+        return panel
+
+    def solve_bell(self):
+        self.open_bell()
+        self.set_bell(G.BELL_ANSWER)
+        self.seconds(UI.BellPanel.RING_TIME + 0.3)
+        self.talk_through()
+
+    def take_cat_note(self):
+        """After the bell rang: the bedside cabinet's compartment, the note, the sketch, Miao's lines."""
+        self.use("bedside_cabinet")
+        self.talk_through()
+        panel = self.scene.panel
+        assert isinstance(panel, UI.PagedPanel) and panel.tag == "catnote", panel
+        for _ in range(len(panel.pages)):
+            self.tap(K.K_e)
+        self.keep_photo()
+        self.talk_through()
+        self.seconds(0.5)
 
     def listen_to_phone(self, times=1):
         self.use("phone")
@@ -271,7 +402,7 @@ class Driver:
         self.seconds(0.5)
         self.tap(K.K_e)                         # GAME CLEAR > the desktop
         self.tap(K.K_3)                         # [3] LOCKED FILES
-        self.seconds(4.6)
+        self.seconds(self.scene.panel.files_ready + 0.6)
         self.tap(K.K_e)
         self.seconds(0.5)
         self.talk_through()
@@ -288,11 +419,19 @@ class Driver:
         if plushie:
             self.use("plushie")
             self.talk_through()
+            self.close_all()                    # (the plushie's bell comes up after her lines: put it down)
+        if not self.scene.run.indexed:          # PUZZLE 05: the photos and the board (only what is still missing)
+            for place in ("drawer", "programming", "homework", "bedside"):
+                if G.PHOTO_HIDING[place] not in self.scene.run.photos_found:
+                    self.find_photo(place)
+            self.solve_photo_board()
         self.boot_computer()
 
     def finish_card(self, stay=False):
         """On the finish card: RETURN TO ARCADE (the first button) or STAY IN THE ROOM."""
         assert isinstance(self.scene.panel, UI.CompletePanel), self.scene.panel
+        while not self.scene.panel.ready:                 # (the black, then MEMORY FRAGMENT 01 RECOVERED., then the card)
+            self.frames(1)
         if stay:
             self.tap(K.K_RIGHT)
         self.tap(K.K_e)
