@@ -91,6 +91,15 @@ class TrialCase(unittest.TestCase):
             self.d.watch_intro()
         return scene
 
+    def solve_photos_by_rules(self, run):
+        """PUZZLE 05 done through its rules, for tests about other things: every photo found, the board right, the
+        archive index in hand (test_photo_and_cat_puzzles.py plays it with the keyboard)."""
+        for place in G.PHOTO_HIDING:
+            run.find_photo(place)
+        for i, photo in enumerate(G.PHOTOS):
+            run.place_photo(photo, i)
+        self.assertTrue(run.check_board())
+
     def leave_to_terminal(self):
         """ESC, choose LEAVE, and land back on the Legacy Terminal."""
         self.d.tap(K.K_ESCAPE)
@@ -132,7 +141,8 @@ class EntryTests(TrialCase):
     def test_it_uses_the_existing_code_and_terminal_not_a_second_menu(self):
         self.shop, term = self.open_terminal()
         self.assertEqual(term.trial.id, "trial_01")
-        self.assertEqual(LT.TRIAL_SCENES, {"trial_01": GS.GoldenAgeScene})          # trials 02 and 03 are not built (yet)
+        self.assertIs(LT.TRIAL_SCENES["trial_01"], GS.GoldenAgeScene)
+        self.assertNotIn("trial_03", LT.TRIAL_SCENES)                               # trial 03 is not built (yet)
         import vending_ui
         self.assertTrue(hasattr(vending_ui, "SECRET_FLAG") and hasattr(vending_ui, "LegacyTerminalScene"))
 
@@ -626,6 +636,8 @@ class BookshelfTests(TrialCase):
             self.assertEqual(len(reader.pages), len(C.BOOKS[key][2]))
             for _ in reader.pages:                                                  # page through to the end
                 self.d.tap(K.K_e)
+            if key == "programming":                                                # (a photo slips out of this one)
+                self.assertEqual(self.d.keep_photo(), G.PHOTO_HIDING["programming"])
             self.assertIsInstance(scene.panel, UI.BookshelfPanel)                    # and the shelf is open again
         self.assertEqual(scene.run.books_read, list(C.BOOK_ORDER))
         self.assertFalse(scene.run.has_boot_disk)
@@ -979,6 +991,7 @@ class ComputerTests(TrialCase):
         self.d.listen_to_phone()
         self.d.open_cabinet()
         self.d.read_note()
+        self.solve_photos_by_rules(scene.run)                                       # (PUZZLE 05: its own tests play it)
         return scene
 
     def to_desktop(self):
@@ -1011,6 +1024,8 @@ class ComputerTests(TrialCase):
         self.assertEqual(run.computer_state(), "ready")
         self.assertFalse(run.finish_computer())                                    # the game has not been cleared
         run.clear_breakout()
+        self.assertFalse(run.finish_computer())                                    # nor the archive index found
+        self.solve_photos_by_rules(run)
         self.assertTrue(run.finish_computer())
         self.assertEqual(run.computer_state(), "done")
 
@@ -1177,7 +1192,7 @@ class ComputerTests(TrialCase):
         self.d.seconds(0.5)
         self.d.tap(K.K_e)
         self.d.tap(K.K_3)
-        self.d.seconds(4.6)
+        self.d.seconds(scene.panel.files_ready + 0.6)
         self.assertFalse(self.manager.trial_done("trial_01"))                       # the files are on screen: not yet
         self.d.tap(K.K_e)
         self.d.seconds(0.5)
@@ -1245,6 +1260,8 @@ class PlushieTests(TrialCase):
         scene = self.enter()
         self.d.use("plushie")
         self.d.talk_through()
+        self.assertIsInstance(scene.panel, UI.BellPanel)                             # (her bell comes up after the lines)
+        self.d.tap(K.K_ESCAPE)
         self.d.use("plushie")
         self.assertEqual(len(scene.dialogue.lines), 1)
 
@@ -1441,6 +1458,8 @@ class SaveTests(TrialCase):
         self.d.open_cabinet()
         self.d.read_note()
         self.d.get_boot_disk()
+        self.d.collect_photos()
+        self.d.solve_photo_board()
         self.d.boot_computer()
         loaded = ProfileStore(path).load()
         m2 = quests.QuestManager(LocalSession(loaded))
@@ -1573,6 +1592,8 @@ class RoomTests(TrialCase):
             pages = len(scene.panel.pages)
             for _ in range(pages):
                 self.d.tap(K.K_e)
+            if key == "homework":                                                   # (a photo was under the pile)
+                self.assertEqual(self.d.keep_photo(), G.PHOTO_HIDING["homework"])
             self.assertIsNone(scene.panel)
             self.d.use(key)                                                         # the second time: straight to the pages
             self.assertIsInstance(scene.panel, UI.PagedPanel)
@@ -1829,6 +1850,8 @@ class HintTests(TrialCase):
         run.finish_journal()
         order.append(run.objective)
         run.clear_breakout()
+        self.assertFalse(run.finish_computer())                                     # (the archive index is still missing)
+        self.solve_photos_by_rules(run)
         run.finish_computer()
         order.append(run.objective)
         self.assertEqual(order, ["power", "phone", "cabinet", "bookshelf", "computer", "done"])
@@ -1932,7 +1955,7 @@ class ContentTests(unittest.TestCase):
         for key, (title, colour, pages) in C.BOOKS.items():
             self.assertGreaterEqual(len(pages), 2, key)
             self.assertEqual(len(colour), 3)
-        self.assertEqual(len(C.STICKY_NOTES), 5)
+        self.assertEqual(len(C.STICKY_NOTES), 6)                                     # (the sixth: the cat's daily routine)
         self.assertGreaterEqual(len(C.HOMEWORK_PAGES), 3)
 
     def test_every_page_fits_on_the_paper_without_shrinking_and_wraps_to_the_width(self):
@@ -2003,6 +2026,7 @@ class BreakoutSaveTests(TrialCase):
         self.d.open_cabinet()
         self.d.read_note()
         self.d.get_boot_disk()
+        self.solve_photos_by_rules(scene.run)
         self.assertFalse(self.manager.state.get("flags", {}).get(G.BREAKOUT_FLAG))
         self.d.use("computer")
         self.d.tap(K.K_e)
@@ -2038,6 +2062,7 @@ class BreakoutSaveTests(TrialCase):
         self.d.open_cabinet()
         self.d.read_note()
         self.d.get_boot_disk()
+        self.solve_photos_by_rules(scene.run)
         self.d.use("computer")
         self.d.tap(K.K_e)
         self.d.seconds(4.7)
@@ -2138,6 +2163,7 @@ class SoundTimingTests(TrialCase):
         scene = self.enter()
         self.d.use("drawer")
         self.d.tap(K.K_ESCAPE)
+        self.d.keep_photo()                                                            # (the photo at the back of the drawer)
         self.assertEqual([n for _, n in self.d.sounds].count("drawer_open"), 1)
         self.d.use("drawer")
         self.d.tap(K.K_ESCAPE)
