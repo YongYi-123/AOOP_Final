@@ -1319,6 +1319,41 @@ def sfx_claw_lose():
     return m.finish(peak=0.4, fade=0.03)
 
 
+def sfx_board_click():
+    """The photo board's catch lets go: a soft wooden click, then the board swings a little on its hinge."""
+    m = _sfx(0.6)
+    m.noise(0, 0.03, 0.55, decay=110, bright=0.35, seed=141)
+    m.note(0, 0.06, 240, "tri", 0.45, release=0.05)
+    m.noise(0.12, 0.3, 0.18, decay=8, bright=0.1, seed=142)
+    m.note(0.12, 0.3, 120, "sine", 0.18, attack=0.04, release=0.12, slide=-30)
+    return m.finish(peak=0.45, fade=0.04)
+
+
+def sfx_bell_tick():
+    """One of the coin-bell's tiny dials turns: a very small metal tick."""
+    m = _sfx(0.08)
+    m.note(0, 0.03, 2600, "tri", 0.3, release=0.03)
+    m.noise(0, 0.015, 0.25, decay=200, bright=0.8, seed=151)
+    return m.finish(peak=0.35, fade=0.01)
+
+
+def sfx_bell_dull():
+    """A jingle with the dials wrong: the bell is muffled by the plush, a dull little clink."""
+    m = _sfx(0.22)
+    m.note(0, 0.08, 900, "tri", 0.35, release=0.08)
+    m.noise(0, 0.03, 0.2, decay=90, bright=0.2, seed=152)
+    return m.finish(peak=0.35, fade=0.02)
+
+
+def sfx_bell_ring():
+    """The coin-bell rings clear: two soft, high bell notes and a little shimmer."""
+    m = _sfx(0.78)
+    m.note(0.0, 0.3, hz(midi("E6")), "bell", 0.4, release=0.4)
+    m.note(0.12, 0.3, hz(midi("B6")), "bell", 0.35, release=0.4)
+    m.note(0.24, 0.3, hz(midi("E7")), "bell", 0.2, release=0.3)
+    return m.finish(peak=0.45, fade=0.05)
+
+
 SFX = {"footstep": sfx_footstep, "confirm": sfx_confirm, "cancel": sfx_cancel, "machine": sfx_machine,
        "token": sfx_token, "ticket": sfx_ticket, "purchase": sfx_purchase, "card": sfx_card,
        "equip": sfx_equip, "meow": sfx_meow, "pet": sfx_pet, "pet_b": sfx_pet_b, "pet_c": sfx_pet_c, "purr": sfx_purr, "emote": sfx_emote, "sit": sfx_sit,
@@ -1339,6 +1374,7 @@ SFX = {"footstep": sfx_footstep, "confirm": sfx_confirm, "cancel": sfx_cancel, "
        "crt_boot": sfx_crt_boot, "trial_complete": sfx_trial_complete,
        "breakout_paddle": sfx_breakout_paddle, "breakout_brick": sfx_breakout_brick, "breakout_wall": sfx_breakout_wall,
        "breakout_lose": sfx_breakout_lose, "breakout_clear": sfx_breakout_clear,
+       "board_click": sfx_board_click, "bell_tick": sfx_bell_tick, "bell_dull": sfx_bell_dull, "bell_ring": sfx_bell_ring,
        "claw_move": sfx_claw_move, "claw_drop": sfx_claw_drop, "claw_grab": sfx_claw_grab, "claw_slip": sfx_claw_slip,
        "claw_chute": sfx_claw_chute, "claw_win": sfx_claw_win, "claw_lose": sfx_claw_lose}
 

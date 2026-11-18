@@ -47,6 +47,7 @@ PRIORITY = {"brawl_win": 4, "brawl_loss": 4, "brawl_special": 3, "brawl_hurt": 2
             "circuit_click": 1, "circuit_connect": 3, "power_on": 4, "phone_blip": 2, "morse_dot": 3, "morse_dash": 3,
             "drawer_open": 2, "page_turn": 1, "disk_insert": 3, "crt_boot": 3, "trial_complete": 4,
             "breakout_wall": 0, "breakout_paddle": 1, "breakout_brick": 2, "breakout_lose": 3, "breakout_clear": 4,
+            "bell_tick": 1, "bell_dull": 2, "board_click": 3, "bell_ring": 3,
             # NEON CLAW: the motor never cuts off anything; the grab, the slip and the chute outrank the drop; the reward tops it
             "claw_move": 0, "claw_drop": 1, "claw_grab": 2, "claw_slip": 3, "claw_lose": 3, "claw_chute": 3, "claw_win": 4}
 SFX_FILES = tuple(f"brawl_{name}" for name in ("light","heavy","impact","hurt","special","dodge","jump","defeat","win","loss","warden","relay","overlord")) + ("footstep", "confirm", "cancel", "machine", "token", "ticket", "purchase", "card", "equip",
@@ -60,6 +61,7 @@ SFX_FILES = tuple(f"brawl_{name}" for name in ("light","heavy","impact","hurt","
              "circuit_click", "circuit_connect", "power_on", "phone_blip", "morse_dot", "morse_dash", "drawer_open",
              "page_turn", "disk_insert", "crt_boot", "trial_complete",
              "breakout_paddle", "breakout_brick", "breakout_wall", "breakout_lose", "breakout_clear",
+             "board_click", "bell_tick", "bell_dull", "bell_ring",
              "claw_move", "claw_drop", "claw_grab", "claw_slip", "claw_chute", "claw_win", "claw_lose")
 # some effects are meant to be barely there
 SFX_GAIN = {"footstep": 0.3, "card": 0.7, "confirm": 0.8, "cancel": 0.8, "sit": 0.7, "emote": 0.8, "meow": 0.6, "purr": 1.0, "vend_hum": 0.6, "vend_select": 0.7, "vend_drop": 0.8, "burp": 0.7,
