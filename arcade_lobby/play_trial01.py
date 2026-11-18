@@ -18,7 +18,8 @@ from player_profile import PlayerProfile
 def main(fresh=False):
     profile = PlayerProfile(profile_id="trial-test", display_name="TESTER")
     profile.set_story({"opening_done": True, "completed": ["get_your_bearings", "arcade_explorer", "earn_some_rewards"],
-                       "flags": {"vending_secret": True}})
+                       "flags": {"vending_secret": True},
+                       "stats": {"secret_items": ["retro_racer_reverse_gear"]}})     # (Chapter 01 open: the room's keepsakes save)
     game = Game(session=LocalSession(profile))
     if not fresh:                                       # (the room's own opening is only skipped when its flag is set)
         game.hub.story.manager.handle("trial01_intro")
