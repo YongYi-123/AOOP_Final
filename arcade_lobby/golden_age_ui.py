@@ -376,12 +376,20 @@ class PagedPanel(Panel):
         self.tag = tag                          # what is being read ("notebook", a book key, ...): the scene tells them apart
         self.index = 0
         self.time = 0.0
+        self.marks_seen = []                    # the "mark"s of pages that have been on screen (the cat drawings)
+        self._seen_page()
+
+    def _seen_page(self):
+        mark = self.pages[self.index].get("mark") if self.pages else None
+        if mark and mark not in self.marks_seen:
+            self.marks_seen.append(mark)
 
     def _turn(self, delta):
         i = max(0, min(len(self.pages) - 1, self.index + delta))
         if i != self.index:
             self.index = i
             self.play("page_turn")
+            self._seen_page()
 
     def handle_event(self, event):
         act = nav(event)
@@ -423,6 +431,14 @@ class PagedPanel(Panel):
             self._chart(surf, page)
         else:
             y = page.top + 40
+            if data.get("picture"):
+                pic = A.picture(data["picture"])
+                rect = pic.get_rect(midtop=(page.centerx, page.top + 30))
+                pygame.draw.rect(surf, (30, 18, 12), rect.inflate(4, 4))
+                surf.blit(pic, rect)
+                if data.get("label"):
+                    draw_text(surf, data["label"], (rect.centerx, rect.centery + 1), (90, 70, 100), 1, "midtop")
+                y = rect.bottom + 8
             for row in page_rows(data.get("text", ""), scale):
                 draw_text(surf, row, (page.left + 36, y), ink, scale)
                 y += pitch
@@ -463,9 +479,24 @@ def paper_pages(clue_key):
         return [dict(p) for p in C.TEXTBOOK_PAGES]
     if clue_key == "trash":
         return [dict(p) for p in C.TRASH_PAGES]
+    if clue_key == "cartridge":
+        return [dict(p) for p in C.CARTRIDGE_PAGES]
+    if clue_key == "index":
+        return [dict(C.INDEX_STRIP, picture="index_strip", label=C.INDEX_LOCATION)]
+    if clue_key == "catnote":
+        return [dict(C.CAT_NOTE), dict(C.CAT_SKETCH)]
+    if clue_key == "carving":
+        return [dict(C.CARVING_PAGE)]
+    if clue_key.startswith("photo_"):
+        return [photo_page(clue_key[6:])]
     if clue_key in C.BOOKS:
         return [dict(p) for p in C.BOOKS[clue_key][2]]
     raise KeyError(clue_key)
+
+
+def photo_page(key, title="AN OLD PHOTOGRAPH"):
+    """One photograph, full size, with what is scribbled on its back."""
+    return {"title": title, "picture": f"photo_{key}", "text": C.PHOTO_BACKS[key]}
 
 
 # ------------------------------------------------------------------ the bookshelf
@@ -532,8 +563,10 @@ class ComputerPanel(Panel):
     Playing is free, there is no life limit (a missed ball just goes back on the paddle), and a cleared game stays cleared."""
     LINE_TIME = 0.85
 
-    def __init__(self, play=None, cleared=False, on_clear=None):
+    def __init__(self, play=None, cleared=False, on_clear=None, indexed=True, index_lines=False):
         self.play = play or (lambda name: None)
+        self.indexed = indexed                  # the archive index is in hand (or not needed): LOCKED FILES can find the archive
+        self.files_lines = (C.INDEX_LINES if index_lines else ()) + C.ARCHIVE_LINES
         self.cleared = cleared                  # HAPPY BREAKOUT has been cleared (before, or just now)
         self.on_clear = on_clear or (lambda: None)
         self.stage = "ask"                      # ask > boot > desktop > game / scores / clear / files
@@ -576,7 +609,7 @@ class ComputerPanel(Panel):
             if act in ("ok", "back"):
                 self._go("desktop")
         elif self.stage == "files":
-            if act in ("ok", "back") and self.stage_time > 4.0:
+            if act in ("ok", "back") and self.stage_time > self.files_ready:
                 self.close("done")
 
     def _ask(self, act):
@@ -601,7 +634,7 @@ class ComputerPanel(Panel):
         elif act == "down":
             d.move(1)
         elif act == "ok":
-            what = d.choose(self.cleared)
+            what = d.choose(self.cleared, self.indexed)
             if what == "play":
                 self._start_game()
             elif what == "scores":
@@ -609,7 +642,7 @@ class ComputerPanel(Panel):
             elif what == "files":
                 self.play("confirm")
                 self._go("files")
-            elif what == "locked":
+            elif what in ("locked", "noindex"):
                 self.play("cancel")
                 self.shake = 0.3
             elif what == "exit":
@@ -745,7 +778,7 @@ class ComputerPanel(Panel):
             if sel:
                 pygame.draw.rect(view, (24, 84, 62), (x0 - 4, y - 4, SCREEN.w - 2 * x0 + 8, 16))
             text = f"[{i + 1}] {label}"
-            if label == "LOCKED FILES" and not self.cleared:
+            if label == "LOCKED FILES" and not (self.cleared and self.indexed):
                 text += "  (LOCKED)"
             draw_text(view, ("> " if sel else "  ") + text, (x0, y), PHOSPHOR if sel else PHOSPHOR_DIM)
         if d.message:
@@ -815,20 +848,32 @@ class ComputerPanel(Panel):
             y = (k * 29 + int(t * 50)) % SCREEN.h
             view.fill(BRICK_COLOURS[k % 5], (x, y, 2, 2))
 
+    LINE_GAP = 1.0
+
+    @property
+    def files_ready(self):
+        """Seconds into the files screen before E goes on (every line typed, the card up)."""
+        return self.card_at + 1.6
+
+    @property
+    def card_at(self):
+        return 0.2 + len(self.files_lines) * self.LINE_GAP + 0.2
+
     def _draw_files(self, view, x0):
         t = self.stage_time
-        for i, text in enumerate(C.ARCHIVE_LINES):
-            start = 0.2 + i * 1.0
+        for i, text in enumerate(self.files_lines):
+            start = 0.2 + i * self.LINE_GAP
             if t > start:
                 draw_text(view, "SYSTEM: " + text[:int((t - start) * 40)], (12, 16 + i * 14), PHOSPHOR)
-        if t > 2.4:
-            k = min(1.0, (t - 2.4) / 0.8)
-            card = pygame.Rect(SCREEN.w // 2 - 118, 76, 236, 90)
+        top = 30 + len(self.files_lines) * 14
+        if t > self.card_at:
+            k = min(1.0, (t - self.card_at) / 0.8)
+            card = pygame.Rect(SCREEN.w // 2 - 118, top + 18, 236, 90)
             pygame.draw.rect(view, scale_color((24, 84, 62), k), card)
             pygame.draw.rect(view, scale_color(PHOSPHOR, k), card, 1)
             draw_text(view, C.ADMIN_CARD[0], (card.centerx, card.top + 18), scale_color((200, 255, 225), k), 3, "midtop", glow=scale_color((20, 90, 60), k))
             draw_text(view, C.ADMIN_CARD[1], (card.centerx, card.top + 58), scale_color(PHOSPHOR, k), 1, "midtop")
-        if t > 4.0 and int(self.time * 2) % 2 == 0:
+        if t > self.files_ready and int(self.time * 2) % 2 == 0:
             draw_text(view, "[E] CONTINUE", (SCREEN.w // 2, SCREEN.h - 22), PHOSPHOR_DIM, 1, "midtop")
 
 
@@ -844,6 +889,16 @@ class NotesPanel(Panel):
     @property
     def entries(self):
         return list(self.run.clues)
+
+    def inventory_rows(self):
+        """(icon, label) for the Trial Inventory: the things carried, and the photos still in hand (not on the board)."""
+        rows = []
+        for item in self.run.inventory:
+            rows.append((A.index_icon() if item == C.ARCHIVE_INDEX else A.disk_icon(), item))
+        loose = len(self.run.photos_in_hand) if not self.run.photos_solved else 0
+        if loose:
+            rows.append((A.photo_icon(), "OLD PHOTOGRAPH" + (f" X{loose}" if loose > 1 else "")))
+        return rows
 
     def handle_event(self, event):
         act = nav(event)
@@ -878,10 +933,11 @@ class NotesPanel(Panel):
             draw_text(surf, ("> " if sel else "  ") + names[key], (x, yy), INK if sel else INK_SOFT)
         y = frame.top + 150
         draw_text(surf, "TRIAL INVENTORY", (x, y), INK_SOFT)
-        if not self.run.inventory:
+        rows = self.inventory_rows()
+        if not rows:
             draw_text(surf, "EMPTY", (x, y + 12), (130, 106, 80))
-        for i, item in enumerate(self.run.inventory):
-            surf.blit(A.disk_icon(), (x, y + 12 + i * 16))
+        for i, (icon, item) in enumerate(rows):
+            surf.blit(icon, (x, y + 12 + i * 16))
             draw_text(surf, item, (x + 20, y + 16 + i * 16), INK)
         hint_line(surf, "UP/DOWN PICK A CLUE   [E] READ IT   [TAB] CLOSE", frame.bottom - 18)
 
@@ -917,15 +973,39 @@ class ConfirmPanel(Panel):
 
 
 class CompletePanel(Panel):
-    """TRIAL 01 COMPLETE. THE GOLDEN AGE. REWARD: MEMORY FRAGMENT 01. Then back to the arcade, or stay a little longer."""
+    """The end of a Secret Trial, the same for every trial: the room fades to black, MEMORY FRAGMENT 0N RECOVERED. and
+    TRIAL 0N COMPLETE. come up, then the card (REWARD: MEMORY FRAGMENT 0N) offers the way back, or a little longer here.
+    E during the black skips straight to the card. prelude=False: the scene has already shown the black and the lines."""
+    FADE = 0.8
+    LINE_TIMES = (0.9, 1.9)
+    CARD_AT = 3.4
+    LINE_COLORS = ((255, 230, 170), (180, 230, 255))
 
-    def __init__(self, first_time):
+    def __init__(self, first_time, number=1, title="THE GOLDEN AGE", prelude=True, stay_label="STAY IN THE ROOM"):
         self.first_time = first_time
+        self.number = number
+        self.title = title
+        self.stay_label = stay_label
         self.index = 0
         self.time = 0.0
+        self.card_at = self.CARD_AT if prelude else 0.0
+        self.prelude = prelude
+
+    @property
+    def lines(self):
+        return (f"MEMORY FRAGMENT {self.number:02d} RECOVERED.", f"TRIAL {self.number:02d} COMPLETE.")
+
+    @property
+    def ready(self):
+        """The card is up and takes keys."""
+        return self.time >= self.card_at
 
     def handle_event(self, event):
         act = nav(event)
+        if not self.ready:
+            if act == "ok":
+                self.time = self.card_at                    # skip the black
+            return
         if act in ("up", "down", "left", "right"):
             self.index = 1 - self.index
         elif act == "ok":
@@ -937,24 +1017,34 @@ class CompletePanel(Panel):
         self.time += dt
 
     def draw(self, surf):
-        dim(surf, 190)
-        k = min(1.0, self.time / 0.8)
+        black = pygame.Surface((VIEW_W, VIEW_H))
+        black.set_alpha(int(255 * min(1.0, self.time / self.FADE)) if self.prelude else 255)
+        surf.blit(black, (0, 0))
+        if not self.ready:
+            for i, (line, at) in enumerate(zip(self.lines, self.LINE_TIMES)):
+                k = max(0.0, min(1.0, (self.time - at) / 0.5))
+                if k > 0:
+                    draw_text(surf, line, (VIEW_W // 2, 128 + i * 20), scale_color(self.LINE_COLORS[i], k), 1, "midtop", glow=(80, 50, 20))
+            return
+        k = min(1.0, (self.time - self.card_at) / 0.8)
         frame = pygame.Rect(0, 0, 300, 196)
         frame.center = (VIEW_W // 2, 148)
         warm_panel(surf, frame)
-        draw_text(surf, "TRIAL 01 COMPLETE", (frame.centerx, frame.top + 16), scale_color(A.BRASS_LT, k), 2, "midtop", glow=(90, 56, 20))
-        draw_text(surf, "THE GOLDEN AGE", (frame.centerx, frame.top + 38), scale_color(INK, k), 1, "midtop")
+        draw_text(surf, f"TRIAL {self.number:02d} COMPLETE", (frame.centerx, frame.top + 16), scale_color(A.BRASS_LT, k), 2, "midtop", glow=(90, 56, 20))
+        draw_text(surf, self.title, (frame.centerx, frame.top + 38), scale_color(INK, k), 1, "midtop")
         surf.fill(PANEL_IN, (frame.left + 20, frame.top + 54, frame.w - 40, 1))
         draw_text(surf, "REWARD:", (frame.centerx, frame.top + 64), scale_color(INK_SOFT, k), 1, "midtop")
         cx, cy = frame.centerx, frame.top + 96
         glow = A.soft_light(26, (120, 90, 30))
         surf.blit(glow, glow.get_rect(center=(cx, cy)), special_flags=pygame.BLEND_RGB_ADD)
         bob = int(2 * math.sin(self.time * 3))
-        pygame.draw.polygon(surf, scale_color((255, 214, 90), k), [(cx, cy - 12 + bob), (cx + 9, cy + bob), (cx, cy + 12 + bob), (cx - 9, cy + bob)])
-        pygame.draw.polygon(surf, scale_color((255, 250, 210), k), [(cx, cy - 8 + bob), (cx + 4, cy + bob), (cx, cy + 8 + bob), (cx - 4, cy + bob)])
-        text = "MEMORY FRAGMENT 01" + ("" if self.first_time else "  (ALREADY KEPT)")
+        for i, c in enumerate(((255, 120, 190), (120, 230, 255))):
+            off = -6 + i * 12
+            pygame.draw.polygon(surf, scale_color(c, k), [(cx + off, cy - 12 + bob), (cx + off + 8, cy + bob), (cx + off, cy + 12 + bob), (cx + off - 8, cy + bob)])
+        pygame.draw.polygon(surf, scale_color((255, 250, 220), k), [(cx, cy - 7 + bob), (cx + 4, cy + bob), (cx, cy + 7 + bob), (cx - 4, cy + bob)])
+        text = f"MEMORY FRAGMENT {self.number:02d}" + ("" if self.first_time else "  (ALREADY KEPT)")
         draw_text(surf, text, (frame.centerx, frame.top + 118), scale_color(A.BRASS_LT, k), 1, "midtop")
-        for i, label in enumerate(("RETURN TO ARCADE", "STAY IN THE ROOM")):
+        for i, label in enumerate(("RETURN TO ARCADE", self.stay_label)):
             r = pygame.Rect(0, 0, 124, 18)
             r.center = (frame.centerx - 66 + i * 134, frame.bottom - 24)
             sel = i == self.index
@@ -1008,3 +1098,319 @@ class HintBubble:
         rect = img.get_rect(midbottom=(anchor[0], anchor[1]))
         rect.clamp_ip(pygame.Rect(4, 4, VIEW_W - 8, VIEW_H - 8))
         surf.blit(img, rect)
+
+
+# ------------------------------------------------------------------ PUZZLE 05: the photo board
+class PhotoBoardPanel(Panel):
+    """The wooden photo board, up close: four slots in a row on the board, the photos in hand on the desk below it.
+    Arrows move, E picks a photo up and puts it down (onto a slot, or back on the desk), V looks at one full size, ESC puts
+    a held photo back or closes. No timer, no penalty. When the board is right it clicks and swings open: the panel closes
+    with result "solved". A solved board can still be looked at (nothing moves any more)."""
+    OPEN_TIME = 2.2
+
+    def __init__(self, run, play=None):
+        self.run = run
+        self.play = play or (lambda name: None)
+        self.row, self.col = (0, 0)              # row 0: the board's slots, row 1: the photos in hand
+        self.held = None                         # the photo picked up (it stays where it was until it is put down)
+        self.zoom = None                         # the photo shown full size
+        self.time = 0.0
+        self.opening = None                      # seconds since the board clicked open
+        self.wrong = 0.0                         # a little rattle after a full but wrong board
+        if not run.photos_in_hand and not any(run.board.slots):
+            self.row = 0
+        elif run.photos_in_hand and not run.photos_solved:
+            self.row = 1
+
+    @property
+    def solved(self):
+        return self.run.photos_solved
+
+    @property
+    def hand(self):
+        return self.run.photos_in_hand
+
+    def under_cursor(self):
+        if self.row == 0:
+            return self.run.board.slots[self.col]
+        hand = self.hand
+        return hand[self.col] if self.col < len(hand) else None
+
+    def _width(self, row):
+        return G.PHOTO_SLOTS if row == 0 else max(1, len(self.hand))
+
+    def handle_event(self, event):
+        if event.type != pygame.KEYDOWN or self.opening is not None:
+            return
+        if self.zoom is not None:                                   # any key puts the close look away
+            self.zoom = None
+            return
+        act = nav(event)
+        if event.key == pygame.K_v:
+            photo = self.held or self.under_cursor()
+            if photo:
+                self.zoom = photo
+                self.play("page_turn")
+            return
+        if act == "back":
+            if self.held:
+                self.held = None
+            else:
+                self.close("closed")
+        elif act in ("left", "right"):
+            self.col = (self.col + (1 if act == "right" else -1)) % self._width(self.row)
+        elif act in ("up", "down"):
+            if not self.solved:
+                self.row = 1 - self.row
+                self.col = min(self.col, self._width(self.row) - 1)
+        elif act == "ok":
+            self._use()
+
+    def _use(self):
+        if self.solved:
+            photo = self.under_cursor()
+            if photo:
+                self.zoom = photo
+            return
+        target = self.under_cursor()
+        if self.held is None:
+            if target:
+                self.held = target
+                self.play("card")
+            return
+        if self.row == 0:
+            self.run.place_photo(self.held, self.col)
+            self.play("card")
+        else:
+            self.run.take_photo(self.held)
+            self.play("card")
+            self.col = min(self.col, self._width(1) - 1)
+        self.held = None
+        self._check()
+
+    def _check(self):
+        board = self.run.board
+        if not board.full:
+            return
+        if self.run.check_board():
+            self.opening = 0.0
+            self.play("board_click")
+        else:
+            self.wrong = 0.6
+            self.play("circuit_click")
+
+    def update(self, dt):
+        self.time += dt
+        self.wrong = max(0.0, self.wrong - dt)
+        if self.opening is not None:
+            self.opening += dt
+            if self.opening >= self.OPEN_TIME:
+                self.close("solved")
+
+    # ------------------------------------------------------------ drawing
+    def slot_rect(self, i):
+        w, h = A.PHOTO_SIZE[0] + 8, A.PHOTO_SIZE[1] + 8
+        x0 = VIEW_W // 2 - (4 * w + 3 * 6) // 2
+        return pygame.Rect(x0 + i * (w + 6), 62, w, h)
+
+    def hand_rect(self, i):
+        w, h = A.PHOTO_SIZE[0] + 4, A.PHOTO_SIZE[1] + 4
+        n = max(1, len(self.hand))
+        x0 = VIEW_W // 2 - (n * w + (n - 1) * 8) // 2
+        return pygame.Rect(x0 + i * (w + 8), 160, w, h)
+
+    def _thumb(self, photo, size):
+        return pygame.transform.scale(A.photo(photo), size)
+
+    def draw(self, surf):
+        if self.zoom:
+            self._draw_zoom(surf)
+            return
+        dim(surf, 170)
+        frame = pygame.Rect(0, 0, 344, 232)
+        frame.center = (VIEW_W // 2, 140)
+        warm_panel(surf, frame, C.PHOTO_BOARD_TITLE)
+        board = pygame.Rect(0, 0, 326, 72)
+        board.midtop = (VIEW_W // 2, 54)
+        shake = int(2 * math.sin(self.time * 70)) if self.wrong > 0 else 0
+        if self.solved:                                              # the little drawer that drops out from under the board
+            k = 1.0 if self.opening is None else min(1.0, max(0.0, (self.opening - 0.3) / 0.9))
+            tray = pygame.Rect(0, 0, 150, 44)
+            tray.midtop = (board.centerx, board.bottom - 44 + int(46 * k))
+            pygame.draw.rect(surf, A.WOOD_DK, tray.inflate(4, 2))
+            pygame.draw.rect(surf, (24, 14, 10), tray.inflate(-8, -8))
+            strip = pygame.Rect(0, 0, 112, 20)
+            strip.center = (tray.centerx, tray.centery - 1)
+            surf.fill((250, 244, 222), strip)
+            surf.fill((184, 70, 56), (strip.x, strip.y, strip.w, 4))
+            draw_text(surf, "A:/MEMORY/01", (strip.centerx, strip.y + 8), (90, 70, 100), 1, "midtop")
+            surf.fill(A.WOOD, (tray.x, tray.bottom - 5, tray.w, 5))
+            surf.fill(A.BRASS, (tray.centerx - 5, tray.bottom - 4, 10, 2))
+        b = board.move(shake, 0)
+        pygame.draw.rect(surf, A.WOOD_DK, b.inflate(4, 4), border_radius=2)
+        pygame.draw.rect(surf, A.WOOD_MD, b, border_radius=2)
+        for y in range(b.top + 6, b.bottom, 7):
+            surf.fill(A.mul(A.WOOD_MD, 0.9), (b.left + 3, y, b.w - 6, 1))
+        for i in range(G.PHOTO_SLOTS):
+            r = self.slot_rect(i).move(shake, 0)
+            pygame.draw.rect(surf, (52, 32, 20), r)
+            pygame.draw.rect(surf, A.WOOD_DK, r, 1)
+            photo = self.run.board.slots[i]
+            if photo:
+                img = A.photo(photo).copy()
+                if photo == self.held:
+                    img.set_alpha(80)
+                surf.blit(img, (r.x + 4, r.y + 4))
+            surf.fill(A.BRASS_LT, (r.centerx - 1, r.y - 2, 3, 3))       # the brass pin
+            if self.row == 0 and self.col == i and self.opening is None:
+                self._cursor(surf, r)
+        if not self.solved:                                          # the photos in hand, on the desk under the board
+            draw_text(surf, "IN HAND", (frame.left + 14, 146), INK_SOFT)
+            if not self.hand:
+                draw_text(surf, "NOTHING", (VIEW_W // 2, 178), (130, 106, 80), 1, "midtop")
+            for i, photo in enumerate(self.hand):
+                r = self.hand_rect(i)
+                img = A.photo(photo).copy()
+                if photo == self.held:
+                    img.set_alpha(80)
+                surf.blit(img, (r.x + 2, r.y + 2))
+                if self.row == 1 and self.col == i:
+                    self._cursor(surf, r)
+        if self.held:                                               # the lifted photo floats by the cursor
+            r = self.slot_rect(self.col) if self.row == 0 else self.hand_rect(min(self.col, max(0, len(self.hand) - 1)))
+            img = pygame.transform.scale(A.photo(self.held), (48, 36))
+            bob = int(2 * math.sin(self.time * 5))
+            pygame.draw.rect(surf, (20, 12, 8), (r.centerx - 17, r.top - 19 + bob, 50, 38))
+            surf.blit(img, (r.centerx - 18, r.top - 20 + bob))
+        status = ""
+        if self.opening is not None:
+            status = C.PHOTO_BOARD_CLICK
+        elif self.wrong > 0 or (self.run.board.full and not self.solved):
+            status = C.PHOTO_BOARD_WRONG
+        if status:
+            draw_text(surf, status, (VIEW_W // 2, frame.bottom - 34), INK, 1, "midtop")
+        keys = "ARROWS MOVE  [E] PICK UP/PUT DOWN  [V] LOOK  [ESC] CLOSE"
+        if self.solved:
+            keys = "LEFT/RIGHT MOVE   [E] LOOK CLOSER   [ESC] CLOSE"
+        hint_line(surf, keys, frame.bottom - 18)
+
+    def _cursor(self, surf, r):
+        col = (255, 240, 170) if int(self.time * 3) % 2 == 0 else (210, 170, 70)
+        pygame.draw.rect(surf, col, r.inflate(4, 4), 2)
+
+    def _draw_zoom(self, surf):
+        dim(surf, 236)
+        img = A.photo(self.zoom, 4)
+        rect = img.get_rect(center=(VIEW_W // 2, 128))
+        pygame.draw.rect(surf, (20, 12, 8), rect.inflate(6, 6))
+        surf.blit(img, rect)
+        for i, row in enumerate(wrap_text(C.PHOTO_BACKS[self.zoom], 300)):
+            draw_text(surf, row, (VIEW_W // 2, rect.bottom + 8 + i * 10), INK, 1, "midtop")
+        hint_line(surf, "ANY KEY: BACK", VIEW_H - 18)
+
+
+# ------------------------------------------------------------------ OPTIONAL: the plushie's coin-bell
+class BellPanel(Panel):
+    """The Miao Meow Plushie in your hands, its little coin-bell turned up: three tiny dials, each showing a little cat.
+    LEFT / RIGHT pick a dial, UP / DOWN turn it, E jingles the bell. A wrong jingle is just a dull little clink. Right:
+    the bell rings softly and the panel closes with "rang". Afterwards the dials stay put and the bell still rings."""
+    RING_TIME = 1.6
+    CREAM_BG, STITCH = (250, 232, 220), (214, 150, 150)
+
+    def __init__(self, run, play=None):
+        self.run = run
+        self.play = play or (lambda name: None)
+        self.cursor = 0
+        self.time = 0.0
+        self.ringing = None                     # seconds since the right ring
+        self.wobble = 0.0                       # a wrong jingle
+        self.turned = 0
+        self.last = None                        # "dull" / "ring" / "open"
+
+    @property
+    def bell(self):
+        return self.run.bell
+
+    def handle_event(self, event):
+        if event.type != pygame.KEYDOWN or self.ringing is not None:
+            return
+        act = nav(event)
+        if act == "back":
+            self.close("closed")
+        elif act in ("left", "right"):
+            self.cursor = (self.cursor + (1 if act == "right" else -1)) % 3
+        elif act in ("up", "down") and not self.run.bell_solved:
+            self.bell.turn(self.cursor, -1 if act == "up" else 1)
+            self.turned += 1
+            self.play("bell_tick")
+        elif act == "ok":
+            self.last = self.run.jingle()
+            if self.last == "dull":
+                self.wobble = 0.5
+                self.play("bell_dull")
+            else:
+                self.play("bell_ring")
+                if self.last == "open":
+                    self.ringing = 0.0
+                else:
+                    self.wobble = 0.5
+
+    def update(self, dt):
+        self.time += dt
+        self.wobble = max(0.0, self.wobble - dt)
+        if self.ringing is not None:
+            self.ringing += dt
+            if self.ringing >= self.RING_TIME:
+                self.close("rang")
+
+    def draw(self, surf):
+        dim(surf, 160)
+        frame = pygame.Rect(0, 0, 276, 248)
+        frame.center = (VIEW_W // 2, 146)
+        pygame.draw.rect(surf, (60, 34, 30), frame.inflate(4, 4), border_radius=8)
+        pygame.draw.rect(surf, self.CREAM_BG, frame, border_radius=8)
+        for x in range(frame.left + 6, frame.right - 6, 6):           # a stitched hem, like the plushie's
+            surf.fill(self.STITCH, (x, frame.top + 5, 3, 1))
+            surf.fill(self.STITCH, (x, frame.bottom - 6, 3, 1))
+        draw_text(surf, C.BELL_TITLE, (frame.centerx, frame.top + 11), (150, 80, 70), 1, "midtop")
+        tilt = math.sin(self.time * 30) * self.wobble * 0.6
+        plush = pygame.transform.scale(A.plushie(), (21 * 5, 21 * 5))
+        if self.ringing is not None:
+            tilt = math.sin(self.ringing * 18) * max(0.0, 1.0 - self.ringing / self.RING_TIME) * 6
+        plush = pygame.transform.rotate(plush, tilt)
+        surf.blit(plush, plush.get_rect(midtop=(frame.centerx, frame.top + 26)))
+        # the coin-bell, held up close: gold, with three little windows
+        bell = pygame.Rect(0, 0, 150, 52)
+        bell.center = (frame.centerx, 206)
+        bell.x += int(3 * math.sin(self.time * 40) * self.wobble)
+        glow = 0.0 if self.ringing is None else max(0.0, 1.0 - self.ringing / self.RING_TIME)
+        if glow:
+            g = A.soft_light(60, (120, 90, 30))
+            surf.blit(g, g.get_rect(center=bell.center), special_flags=pygame.BLEND_RGB_ADD)
+        pygame.draw.ellipse(surf, (172, 116, 40), bell.inflate(4, 4))
+        pygame.draw.ellipse(surf, (236, 182, 64), bell)
+        pygame.draw.ellipse(surf, (255, 232, 140), (bell.x + 16, bell.y + 4, 60, 10))
+        for i, sym in enumerate(self.bell.symbols):
+            r = pygame.Rect(0, 0, 40, 40)
+            r.center = (bell.centerx + (i - 1) * 46, bell.centery)
+            pygame.draw.rect(surf, (172, 116, 40), r.inflate(2, 2), border_radius=4)
+            pygame.draw.rect(surf, (255, 246, 220), r, border_radius=4)
+            icon = pygame.transform.scale(A.cat_icon(sym, (60, 46, 52), (255, 246, 220), (150, 120, 200)), (36, 36))
+            surf.blit(icon, icon.get_rect(center=r.center))
+            if i == self.cursor and self.ringing is None:
+                col = (255, 140, 150) if int(self.time * 3) % 2 == 0 else (220, 110, 120)
+                pygame.draw.rect(surf, col, r.inflate(6, 6), 2, border_radius=5)
+                if not self.run.bell_solved:
+                    pygame.draw.polygon(surf, col, [(r.centerx - 4, r.top - 6), (r.centerx + 4, r.top - 6), (r.centerx, r.top - 10)])
+                    pygame.draw.polygon(surf, col, [(r.centerx - 4, r.bottom + 6), (r.centerx + 4, r.bottom + 6), (r.centerx, r.bottom + 10)])
+        status = ""
+        if self.ringing is not None or (self.last in ("ring", "open") and self.wobble > 0):
+            status = "RING... RING..."
+        elif self.last == "dull" and self.wobble > 0:
+            status = "CLINK."
+        if status:
+            draw_text(surf, status, (frame.centerx, frame.bottom - 32), (150, 80, 70), 1, "midtop")
+        keys = "ARROWS PICK / TURN   [E] JINGLE   [ESC] PUT DOWN"
+        if self.run.bell_solved:
+            keys = "[E] JINGLE   [ESC] PUT DOWN"
+        draw_text(surf, keys, (frame.centerx, frame.bottom - 18), (150, 110, 100), 1, "midtop")
