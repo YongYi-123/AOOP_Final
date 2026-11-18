@@ -12,8 +12,8 @@ Trials and shows the shared story's real progress and the real wallet of the pla
 
 Rules live in quests.py (trial_status / exit_status): one trial per chapter, strictly in order, and each asks the
 player to have EARNED Tokens and Tickets in total (settings.SECRET_TRIAL_EARNINGS; lifetime totals, never the wallet). Looking at this screen, or choosing a trial, never takes
-anything from the wallet and never records progress; a completed trial stays open to replay whatever the wallet holds. The three escape rooms are not built yet:
-choosing an available trial shows TRIAL NOT YET AVAILABLE. When one is built it registers a scene factory in
+anything from the wallet and never records progress; a completed trial stays open to replay whatever the wallet holds. The escape rooms are registered below:
+choosing an available trial that has no room yet shows TRIAL NOT YET AVAILABLE (only Trial 03 now). When one is built it registers a scene factory in
 TRIAL_SCENES and the terminal starts it; nothing else here changes.
 
 It is a MenuScene, and answers to the player's keys.
@@ -24,6 +24,7 @@ import pygame
 
 from font import get_font
 from golden_age_scene import GoldenAgeScene
+from unbeaten_scene import TournamentHallScene
 from gfx import scale_color
 from menu_kit import MenuScene
 from quest_ui import _door_icon, _gem_icon
@@ -45,8 +46,9 @@ BOOT_LINES = (("SYSTEM OVERRIDE", 2), ("", 1), ("USER: UNKNOWN", 1), ("ACCESS LE
 BOOT_RATE = 34                      # characters per second (the same typing speed the old page had)
 BOOT_HOLD = 0.7                     # a beat after the last line before the system comes up
 
-# trial id -> factory(game, owner) returning the escape-room scene. Trial 01 (THE GOLDEN AGE) is built; 02 and 03 are not yet.
-TRIAL_SCENES = {"trial_01": GoldenAgeScene}
+# trial id -> factory(game, owner) returning the escape-room scene. Trials 01 (THE GOLDEN AGE) and 02 (THE UNBEATEN RECORD)
+# are built; 03 is not yet.
+TRIAL_SCENES = {"trial_01": GoldenAgeScene, "trial_02": TournamentHallScene}
 
 _static = {}
 
