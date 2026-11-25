@@ -127,16 +127,9 @@ MINIGAME_SCENES = {"neon_brawl": NeonBrawlScene,
                    "puzzle_drop": CatMazeScene}          # retain the old cabinet id for saves
 
 
-# The real minigames (anything not listed is a placeholder screen). NEON CAT MAZE keeps the id "puzzle_drop" of the machine it replaced.
-MINIGAME_DEFINITIONS = {d.game_id: d for d in (
-    MiniGameDefinition("neon_brawl"),
-    MiniGameDefinition("retro_racer"),
-    MiniGameDefinition("puzzle_drop"),      # NEON CAT MAZE
-    MiniGameDefinition("pixel_volleyball"),
-    MiniGameDefinition("cat_minesweeper"),
-    MiniGameDefinition("galaxy_defender"),
-    MiniGameDefinition("puzzle_maze"),
-)}
+# The real minigames (anything not listed is a placeholder screen), built from MINIGAME_SCENES so the two lists can
+# never disagree. NEON CAT MAZE keeps the id "puzzle_drop" of the machine it replaced.
+MINIGAME_DEFINITIONS = {game_id: MiniGameDefinition(game_id) for game_id in MINIGAME_SCENES}
 
 
 def minigame_definition(game_id):
