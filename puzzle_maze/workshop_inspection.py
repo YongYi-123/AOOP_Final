@@ -1,7 +1,7 @@
 """One inspection, many pages. Page turns never select another response."""
 import textwrap
 import pygame
-from puzzle_maze.workshop_content import RESPONSES,RECORDING,ascii_text,paginate,response_for
+from puzzle_maze.workshop_content import RECORDING,ascii_text,paginate,response_for
 
 DOC_ROWS=16
 DOC_LINE_HEIGHT=11

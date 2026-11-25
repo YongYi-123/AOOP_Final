@@ -1,13 +1,10 @@
 """Fourth campaign extension: shared puzzles, pots, escrow, crystals and secrets."""
 from pathlib import Path
-import copy
-from types import SimpleNamespace
 from puzzle_maze.dungeon import DungeonSession
 from puzzle_maze.rooms import MAP_PATH,load_rooms
 from puzzle_maze.advanced_puzzles import AdvancedPuzzleManager,LiftablePot,CrystalSwitch,OrderedSeal
 from puzzle_maze.rewards import DungeonRewardBag,TREASURES
 from puzzle_maze.items import Bomb
-from puzzle_maze.puzzles import Chest,ChestPhase
 from puzzle_maze.orb import IronOrb
 from puzzle_maze.royal_rewards import RoyalClearHistory
 

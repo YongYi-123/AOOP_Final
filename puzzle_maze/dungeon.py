@@ -1,5 +1,4 @@
 """The v3 campaign composes existing rooms, puzzles and combat with global relays and bombs."""
-import copy
 from pathlib import Path
 from puzzle_maze.session import GameSession
 from puzzle_maze.rooms import load_rooms,MAP_PATH

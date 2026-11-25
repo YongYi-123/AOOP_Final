@@ -1,7 +1,6 @@
 """Production studio cinematic: CRT arrival, legal Miao walk and an aged repair memory."""
 import pygame
 from puzzle_maze.studio_layout import MIAO_ROUTE
-from puzzle_maze.miao_adapter import guide_frame
 LINES=(
  ('MIAO MEOW',('He tested every machine.','Then checked my water.')),
  ('MIAO MEOW',('That little grey light...','It always found its way back.')),
