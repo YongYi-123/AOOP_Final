@@ -85,6 +85,11 @@ class Game:
         self.hub.story.opening_enabled = from_menu if opening is None else opening
         self.hub.start(replace=from_menu)
 
+    def _room_debug_key(self, key):
+        """True if the room on top will use `key` as a --debug helper this frame (so it is not also a volume key)."""
+        takes = getattr(self.scenes.current, "takes_debug_key", None)
+        return bool(takes and not self.scenes.transitioning and takes(key))
+
     def step(self, events, dt):
         """Process one frame. Separate from run() so it can be driven by tests."""
         for event in events:
@@ -114,6 +119,8 @@ class Game:
                     elif event.key == pygame.K_ESCAPE:
                         if not own:
                             self.audio.play("cancel")
+                    elif self._room_debug_key(event.key):
+                        pass                                     # --debug: F5-F9 are the room's helpers, not volume
                     elif event.key == pygame.K_F10:
                         self.audio_hud = not self.audio_hud        # developer HUD: off by default, never pauses play
                     elif event.key == pygame.K_F4:

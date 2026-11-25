@@ -53,7 +53,7 @@ from miao_meow import MiaoMeow
 from room import room_walls
 from scene_base import BaseScene
 from scenes import create_minigame_scene
-from settings import (ARRIVAL_GRACE, CATS, Col, DEBUG_COUPON_KEY, DEBUG_NEXT_DAY_KEY,
+from settings import (ARRIVAL_GRACE, CATS, Col, DEBUG_COUPON_KEY, DEBUG_KEYS, DEBUG_NEXT_DAY_KEY,
                       DEBUG_RESET_TASKS_KEY, DEBUG_STICKER_KEY, DEBUG_TOKEN_KEY,
                       DEBUG_TOKENS, ENTRY_INSET, EXIT_DEPTH, INTERACT_FLASH,
                       PLAYER_START, ROOM_IDS, SIDE_DOOR_H, SIDE_DOOR_Y, START_ROOM,
@@ -445,6 +445,12 @@ class BaseRoomScene(BaseScene):
         audio = getattr(self.game, "audio", None)
         if audio is not None:
             audio.play(name)
+
+    def takes_debug_key(self, key):
+        """True when `key` is a debug helper (settings.DEBUG_KEYS) this room would act on right now: a --debug
+        build, nothing modal open, the room not being left and the opening not playing (handle_event's order)."""
+        return (self.game.debug and key in DEBUG_KEYS and self.modal is None and not self.leaving
+                and not self.hub.story.locked)
 
     def _debug_key(self, key):
         """Debug-build helpers. Returns True if `key` was one of them."""

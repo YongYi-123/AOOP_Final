@@ -57,6 +57,9 @@ DEBUG_RESET_TASKS_KEY = pygame.K_F7  # roll a fresh set of daily tasks
 DEBUG_TOKENS = 10
 DEBUG_STICKER_KEY = pygame.K_F8      # add a CAT STICKER
 DEBUG_COUPON_KEY = pygame.K_F9       # add a FREE PLAY COUPON
+# The room takes these first in a --debug build; the window-wide volume keys share F6-F9 and then stay
+# quiet (game.Game.step), so one press never both cheats and changes the saved volume.
+DEBUG_KEYS = (DEBUG_TOKEN_KEY, DEBUG_NEXT_DAY_KEY, DEBUG_RESET_TASKS_KEY, DEBUG_STICKER_KEY, DEBUG_COUPON_KEY)
 
 # ------------------------------------------------------------ economy
 # Every number that shapes the token economy lives here. TOKENS are spent to
