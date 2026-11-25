@@ -23,12 +23,12 @@ Persistence: saves/display.json (mode, scaling, windowed size), separate from th
 import json
 import logging
 import math
-import os
 import time
 from dataclasses import dataclass
 
 import pygame
 
+from save_io import write_json_atomic
 from settings import VIEW_H, VIEW_W
 
 log = logging.getLogger("arcade.display")
@@ -216,12 +216,8 @@ class DisplayManager:
         if not self.prefs_path:
             return False
         data = DisplaySettings(self.settings.mode, self.settings.scaling, tuple(self.windowed_size)).to_dict()
-        tmp = self.prefs_path + ".tmp"
         try:
-            os.makedirs(os.path.dirname(self.prefs_path) or ".", exist_ok=True)
-            with open(tmp, "w", encoding="utf-8") as f:
-                json.dump(data, f)
-            os.replace(tmp, self.prefs_path)
+            write_json_atomic(self.prefs_path, data, make_dirs=True)
         except OSError as exc:
             log.warning("could not save display settings to %s: %s", self.prefs_path, exc)
             return False
