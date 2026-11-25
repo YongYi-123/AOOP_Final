@@ -560,7 +560,7 @@ def one_round(machine_id, cls, start_key, bot, limit_s=600, shot_name=None, **kw
 
 # ------------------------------------------------------------------ RETRO RACER (Secret Item 01)
 def racer_drive(run, sc):
-    """The racer package's own autopilot (test_reverse_road.drive_bot), turned into held arrow keys."""
+    """The racer's autopilot (it began as the racer tests' drive_bot), turned into held arrow keys."""
     p, road = run.player, run.road
     lane = 0.0
     ahead = [c for c in run.traffic.cars if 0 < c.z - p.front_z < 9000]

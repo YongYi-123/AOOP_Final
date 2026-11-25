@@ -199,7 +199,7 @@ HOME, ARCADE, PLAZA = "home", "arcade_floor", "prize_plaza"
 DOOR_Y = 226                                                # the middle of every doorway
 
 # Hand-placed resting spots (her feet), per room. Each one is open floor, outside every machine's prompt area
-# and outside the doorway zones (test_miao_meow checks all of it against the real rooms).
+# and outside the doorway zones.
 SPOTS = {
     HOME: {"hub": (186, 216), "couch": (176, 152), "nook": (70, 150), "corner": (300, 232), "bed": (128, 244)},
     ARCADE: {"corner": (130, 250), "centre": (210, 252), "right": (300, 240)},
