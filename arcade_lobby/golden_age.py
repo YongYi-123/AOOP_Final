@@ -26,7 +26,6 @@ from golden_age_content import (ADMIN_CARD, COMPUTER_AFTER, COMPUTER_DEAD, COMPU
                                 JOURNAL_PAGES, JOURNAL_REACTION, OPENING, PHONE_DEAD, POWER_RESTORED, CABINET_DEAD)
 
 TRIAL_ID = "trial_01"
-MEMORY_FRAGMENT_FLAG = "memory_fragment_01"        # in the story's flags: set once, by the first completion
 INTRO_FLAG = "trial01_intro"                         # in the story's flags: the opening cutscene has played
 BREAKOUT_FLAG = "trial01_breakout"                   # in the story's flags: HAPPY BREAKOUT.EXE has been cleared (kept for good)
 ANSWER = "SHELF"
@@ -354,9 +353,6 @@ class Desktop:
 # ------------------------------------------------------------------ the run
 CAT_THINGS = ("plushie", "textbook", "cartridges", "bedside_cabinet")       # (hint topic: what counts as looking at cat things)
 OBJECTIVE_ORDER = ("power", "phone", "cabinet", "bookshelf", "computer", "done")      # (internal: the player is never told)
-
-# What a stage says when asked too early
-COMPUTER_STANDBY_NODISK = C.COMPUTER_STANDBY
 
 DRAWER_PAPER = ("A folded paper lies in the desk drawer, along with a worn chart.",
                 'It reads: "When words fail, patterns speak."')

@@ -42,8 +42,6 @@ MOVE_KEYS = {
     pygame.K_a: (-1, 0), pygame.K_LEFT: (-1, 0),
     pygame.K_d: (1, 0), pygame.K_RIGHT: (1, 0),
 }
-INTERACT_KEYS = (pygame.K_e,)
-INVENTORY_KEY = pygame.K_i
 CONFIRM_KEYS = (pygame.K_e, pygame.K_RETURN, pygame.K_KP_ENTER, pygame.K_SPACE)
 PREV_KEYS = (pygame.K_UP, pygame.K_w)
 NEXT_KEYS = (pygame.K_DOWN, pygame.K_s)

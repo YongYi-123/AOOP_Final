@@ -376,10 +376,7 @@ class BaseRoomScene(BaseScene):
 
         modal = self.modal
         if modal:
-            if event.type == pygame.KEYDOWN:
-                modal.handle_event(event)
-            else:
-                modal.handle_event(event)
+            modal.handle_event(event)
             return
         if event.type != pygame.KEYDOWN or self.leaving:
             return
