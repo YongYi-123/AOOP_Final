@@ -18,7 +18,6 @@ import pygame  # noqa: E402
 
 import build_lamp as L  # noqa: E402  (sets up paths; reuses the soft light pool and cell drawing)
 import miao_meow_art as art  # noqa: E402
-from gfx import scale_color  # noqa: E402
 from settings import Col  # noqa: E402
 from ui import draw_text  # noqa: E402
 

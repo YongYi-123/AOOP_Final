@@ -18,7 +18,6 @@ try": the game reports it and the hub decides what (if anything) it counts towar
 """
 import math
 
-from .court import FLOOR
 
 TRY_MIN_POINTS = 1              # a lost match with at least this many points counts as a real try
 START = (54.0, 120.0)           # where it slips out of the stands
