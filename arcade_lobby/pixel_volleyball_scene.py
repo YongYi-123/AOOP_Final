@@ -1,6 +1,5 @@
 """Thin player-input and settlement adapter for the independent volleyball package."""
 import pygame
-from audio_manager import GameSoundBus
 from forgotten_games import ClueLink
 from minigame import MinigameScene, MiniGameResult, PlayerResult
 from rewards import RewardBundle
@@ -21,9 +20,10 @@ class PixelVolleyballScene(MinigameScene):
         super().attach_players(players)
         self.volley.audio.stop()
         self.volley = VolleyGame()
-        if hasattr(self.game, "audio"):
+        bus = self.sound_bus()
+        if bus is not None:
             self.volley.audio.stop()
-            self.volley.audio = GameSoundBus(self.game.audio)
+            self.volley.audio = bus
         self._tapped.clear()
         self.volley.hints = self._hints()
 
@@ -57,8 +57,7 @@ class PixelVolleyballScene(MinigameScene):
             self.volley.restart()
         elif action in ("menu", "pause"):
             self.volley.match.toggle_pause()
-        elif action == "interact" or (event.key in (pygame.K_RETURN, pygame.K_KP_ENTER)
-                                      and not self.game.session.player_for_key(event.key)):
+        elif self.is_confirm(event, action):
             self.volley.confirm()
 
     def update(self, dt):

@@ -1,6 +1,5 @@
 """Single-player cat territory adapter; only the starter's profile is rewarded."""
 import pygame
-from audio_manager import GameSoundBus
 from minigame import MinigameScene, MiniGameResult, PlayerResult
 from rewards import RewardBundle
 from cat_territory.game import TerritoryGame
@@ -11,9 +10,10 @@ class CatTerritoryScene(MinigameScene):
     def __init__(self, game, machine):
         super().__init__(game, machine)
         self.territory = TerritoryGame()
-        if hasattr(self.game, "audio"):
+        bus = self.sound_bus()
+        if bus is not None:
             self.territory.audio.stop()
-            self.territory.audio = GameSoundBus(self.game.audio)
+            self.territory.audio = bus
         self.leaving = False
 
     def handle_event(self, event):
@@ -37,8 +37,7 @@ class CatTerritoryScene(MinigameScene):
                 self.territory.clear_marks()
             elif event.key == pygame.K_BACKSPACE:
                 self.territory.restart()
-            elif action == "interact" or (event.key in (pygame.K_RETURN, pygame.K_KP_ENTER)
-                                          and not self.game.session.player_for_key(event.key)):
+            elif self.is_confirm(event, action):
                 self.territory.confirm()
             elif action in ("menu", "pause"):
                 self.territory.toggle_pause()

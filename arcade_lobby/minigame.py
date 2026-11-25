@@ -2,6 +2,9 @@
 minigame reports."""
 from dataclasses import dataclass, field
 
+import pygame
+
+from audio_manager import GameSoundBus
 from rewards import RewardBundle, RewardResult
 from scene_base import BaseScene
 from settings import PLACEHOLDER_REWARD_TICKETS
@@ -67,6 +70,18 @@ class MinigameScene(BaseScene):
     def input(self):
         """The starter's PlayerInput. Games read actions from here, never keys."""
         return self.input_for(self.players[0] if self.players else None)
+
+    def is_confirm(self, event, action):
+        """True for an "OK" press: the player's interact / confirm action, or ENTER when no player's scheme owns
+        it. The embedded games share this so their menus all answer the same keys."""
+        return action in ("interact", "confirm") or (
+            event.key in (pygame.K_RETURN, pygame.K_KP_ENTER) and not self.game.session.player_for_key(event.key))
+
+    def sound_bus(self):
+        """A GameSoundBus that plays an embedded game's effects through the hub's mixer (its volume, mute and
+        channels), or None when this Game has no audio (some test doubles)."""
+        audio = getattr(self.game, "audio", None)
+        return GameSoundBus(audio) if audio is not None else None
 
     @property
     def failed(self):
