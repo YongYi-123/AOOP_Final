@@ -1,6 +1,6 @@
 """The hardware department, sharing the facility shell with distinct copper-blue benches."""
 import pygame
-from .research_art import shell,desk,crt,keyboard,server,sign,text
+from .research_art import shell,desk,crt,keyboard,server,sign
 from .hardware_posters import paint_hardware_displays
 from .ml_lab import lab_motion
 LABELS=('INSTRUCTION FETCH / DECODE','DATAPATH WORKSHOP','CACHE AND MEMORY','PIPELINE CONTROL')

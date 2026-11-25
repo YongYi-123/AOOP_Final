@@ -1,5 +1,4 @@
 """Machine learning department: distinct data, training, networks and failed models."""
-import math
 from functools import lru_cache
 import pygame
 from .research_art import shell,desk,crt,keyboard,server,sign,text

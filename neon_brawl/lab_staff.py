@@ -2,7 +2,6 @@
 from dataclasses import dataclass
 from functools import lru_cache
 import pygame
-from .research_art import text
 CYCLES={
  'programmer':('typing','typing','error','coffee','sleep','wake'),
  'electronics':('solder','solder','inspect','adjust','startle','inspect'),

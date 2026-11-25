@@ -1,6 +1,5 @@
 """Shared native-pixel research equipment, perspective and material language."""
 import pygame
-from functools import lru_cache
 INK=(22,29,44)
 PALETTES=(((64,91,91),(119,156,144),(218,197,146)),
           ((49,69,96),(108,145,172),(208,151,102)),

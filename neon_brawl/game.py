@@ -1,5 +1,4 @@
 """Non-blocking presentation flow and keyboard-driven campaign controller."""
-import math
 import pygame
 from .model import Campaign
 from .data import ROSTER, STAGES, CHECKPOINT_HEAL, BOSS_ENTRY_HEAL

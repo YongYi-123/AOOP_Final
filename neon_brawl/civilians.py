@@ -1,7 +1,6 @@
 """Small deterministic ambient actors. No fighter, damage, collision or wave APIs."""
 from dataclasses import dataclass
 from functools import lru_cache
-import math
 import pygame
 
 @dataclass
