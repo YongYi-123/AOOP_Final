@@ -8,7 +8,6 @@ Quest Log (Q). All pixel-art neon panels from ui.py, drawn on the same 400x300 c
 * QuestLogUI        a room modal: main quest, current objective, completed quests, Miao Meow's hint, secret items
                     and trials, the wallet. Q or ESC closes it. It never opens the quest system's own state: it only reads.
 """
-import math
 from collections import deque
 
 import pygame

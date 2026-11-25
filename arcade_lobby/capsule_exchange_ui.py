@@ -12,7 +12,7 @@ import math
 
 import pygame
 
-from capsule_exchange import ExchangeService, recycle_value
+from capsule_exchange import ExchangeService
 from capsule_ui import _pod_big
 from font import LINE_H, get_font
 from gfx import scale_color

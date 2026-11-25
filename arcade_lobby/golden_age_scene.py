@@ -30,7 +30,7 @@ from gfx import soft_shadow
 from local_session import GameEvent
 from miao_meow import WALK_LEGS, WALK_STEP, facing_frame, miao_frame, point_clear, segment_clear
 from scene_base import BaseScene
-from settings import Col, PLAYER_SPEED, VIEW_H, VIEW_W
+from settings import Col, VIEW_H, VIEW_W
 from story_dialogue import Line, Speaker, SPEAKERS, StoryDialogue, register_speaker
 from ui import Notice, draw_text
 
