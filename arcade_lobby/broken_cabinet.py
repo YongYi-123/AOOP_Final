@@ -16,7 +16,7 @@ import pygame
 
 from font import get_font
 from gfx import scale_color
-from machine import FOOTPRINT_H, H, W, cabinet_footprint
+from machine import H, W, cabinet_footprint
 from settings import Col
 from stations import Station
 

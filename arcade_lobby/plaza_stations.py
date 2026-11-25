@@ -12,7 +12,7 @@ import pygame
 from car_preview import car_image
 from capsule import CAPSULE_MACHINES, CAT, RETRO
 from font import get_font
-from gfx import neon_rect_glow, outlined, scale_color, shade
+from gfx import outlined, scale_color, shade
 from item_icons import item_icon
 from item_registry import ITEM_REGISTRY
 from settings import Col

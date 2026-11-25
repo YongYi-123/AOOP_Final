@@ -1,5 +1,4 @@
 """Abandoned transit architecture and bounded background-only motion."""
-import math
 import pygame
 from functools import lru_cache
 

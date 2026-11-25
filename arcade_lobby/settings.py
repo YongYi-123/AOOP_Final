@@ -12,6 +12,8 @@ SCREEN_W, SCREEN_H = 800, 600
 PIXEL_SCALE = 2
 VIEW_W, VIEW_H = SCREEN_W // PIXEL_SCALE, SCREEN_H // PIXEL_SCALE
 FPS = 60
+MAX_FRAME_DT = 0.05     # seconds: a long frame (dragging the window, a hitch) is simulated as at most this much,
+                        # so nothing jumps through a wall or skips a trigger
 
 # Room layout, in canvas pixels
 FLOOR_TOP = 64          # back wall occupies y < FLOOR_TOP
@@ -40,8 +42,6 @@ MOVE_KEYS = {
     pygame.K_a: (-1, 0), pygame.K_LEFT: (-1, 0),
     pygame.K_d: (1, 0), pygame.K_RIGHT: (1, 0),
 }
-INTERACT_KEYS = (pygame.K_e,)
-INVENTORY_KEY = pygame.K_i
 CONFIRM_KEYS = (pygame.K_e, pygame.K_RETURN, pygame.K_KP_ENTER, pygame.K_SPACE)
 PREV_KEYS = (pygame.K_UP, pygame.K_w)
 NEXT_KEYS = (pygame.K_DOWN, pygame.K_s)
@@ -55,6 +55,9 @@ DEBUG_RESET_TASKS_KEY = pygame.K_F7  # roll a fresh set of daily tasks
 DEBUG_TOKENS = 10
 DEBUG_STICKER_KEY = pygame.K_F8      # add a CAT STICKER
 DEBUG_COUPON_KEY = pygame.K_F9       # add a FREE PLAY COUPON
+# The room takes these first in a --debug build; the window-wide volume keys share F6-F9 and then stay
+# quiet (game.Game.step), so one press never both cheats and changes the saved volume.
+DEBUG_KEYS = (DEBUG_TOKEN_KEY, DEBUG_NEXT_DAY_KEY, DEBUG_RESET_TASKS_KEY, DEBUG_STICKER_KEY, DEBUG_COUPON_KEY)
 
 # ------------------------------------------------------------ economy
 # Every number that shapes the token economy lives here. TOKENS are spent to

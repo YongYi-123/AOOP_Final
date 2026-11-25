@@ -17,7 +17,7 @@ def with_placeholder_minigame(cls, game_id="puzzle_drop"):
 
     Those tests were written when the Puzzle Drop machine had no minigame yet, which made it a cheap stand-in: it loads
     instantly and pays the flat placeholder reward. That machine now runs NEON CAT MAZE, so for these tests only, the
-    registry maps it back to the placeholder scene. (The real game is covered by test_cat_maze.py.)"""
+    registry maps it back to the placeholder scene. (The real game is opened by test_essentials.py.)"""
     from unittest.mock import patch
 
     import scenes

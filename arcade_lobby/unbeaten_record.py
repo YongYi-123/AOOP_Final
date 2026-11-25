@@ -265,7 +265,7 @@ def bracket_ok(bracket, winners, skip=()):
 
 def bracket_solutions(skip=()):
     """Every bracket the evidence allows (with nothing skipped: exactly one)."""
-    from itertools import combinations, permutations, product
+    from itertools import permutations, product
     out = []
     for names in permutations(BRACKET_POOL, len(BRACKET_SLOTS)):
         b = dict(zip(BRACKET_SLOTS, names))

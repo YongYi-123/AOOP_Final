@@ -2,8 +2,8 @@
 import math
 from functools import lru_cache
 import pygame
-from .data import ROSTER, ENEMIES, ATTACKS
-from .outfits import outfit_for, BOSS_NAMES
+from .data import ROSTER
+from .outfits import BOSS_NAMES
 from .characters import fighter_cel
 from .animation import animation_sample
 from .effects import attack_effects, fighter_effects, draw_impact, star

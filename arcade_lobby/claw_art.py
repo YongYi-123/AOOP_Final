@@ -6,7 +6,6 @@ import pygame
 
 from font import get_font
 from gfx import outlined, scale_color, shade
-from settings import Col
 
 PINK = (255, 110, 200)
 HOT_PINK = (255, 70, 170)

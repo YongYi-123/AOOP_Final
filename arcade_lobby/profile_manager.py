@@ -26,6 +26,7 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 
 from player_profile import PlayerProfile, ProfileStore
+from save_io import write_json_atomic
 from settings import PROFILE_NAME_MAX, RECENT_PROFILES
 
 INDEX_VERSION = 2               # 2: single-player (1 had a "last_player_count" for the old 1-2 player menu)
@@ -82,12 +83,9 @@ def normalize_name(name):
 
 
 def _write_json(path, data):
-    """Atomic write: temp file + rename, so a crash cannot leave half a file."""
-    tmp = path + ".tmp"
+    """Atomic write (save_io): a crash cannot leave half a file. False if the disk refused."""
     try:
-        with open(tmp, "w", encoding="utf-8") as f:
-            json.dump(data, f, indent=4)
-        os.replace(tmp, path)
+        write_json_atomic(path, data, indent=4)
     except OSError as e:
         print(f"[save] could not write {path}: {e}")
         return False

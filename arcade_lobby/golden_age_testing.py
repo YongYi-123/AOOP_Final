@@ -1,6 +1,6 @@
 """Helpers that play TRIAL 01 the way a person does: real key events fed to the real Game, one frame at a time.
 
-Used by test_golden_age.py (the automatic tests) and by the screenshot / playthrough run, so "the room can be finished"
+Used by verify_main_story.py (the end-to-end playthrough) and unbeaten_testing.py (Trial 02), so "the room can be finished"
 is proved with the keyboard, not by calling the scene's methods. Walking is real too: a breadth-first search over the
 room's own collision boxes gives a route, and the driver holds the arrow keys along it.
 """

@@ -144,39 +144,33 @@ python3 verify_main_story.py
 
 ## 2. 自動測試
 
-### 主線相關的測試
+測試已精簡成一小組冒煙／回歸測試（約 300 個，一分鐘內跑完）。主線的完整檢查交給上面的 `verify_main_story.py`。
+
+全部測試（在專案根目錄執行）：
 
 ```bash
-python3 -m unittest test_story test_chapters test_vending test_mochi_chat test_reverse_gear test_golden_age test_unbeaten_record test_lifetime_earnings test_capsule test_capsule_exchange test_claw_machine test_forgotten_games test_inventory test_collection test_showcase
+python3 run_tests.py
 ```
 
-`test_golden_age` 要跑大約 6 分鐘。只想快速檢查第二章：
+只跑 Arcade Hub（專案根目錄）：
 
 ```bash
-python3 -m unittest test_forgotten_games test_capsule test_claw_machine test_mochi_chat test_chapters
+python3 run_tests.py arcade_lobby
 ```
+
+### 主線和開發捷徑的測試
+
+在 `arcade_lobby/` 裡執行：
+
+```bash
+python3 -m unittest test_essentials test_chapters test_lifetime_earnings test_maze45_secret
+```
+
+`test_essentials` 會檢查 `play_story.py` 的每一個階段、`play_trial01.py`、`play_trial02.py` 的每一種參數、以及 `--debug` 的 F5～F9 都還能用；Trial 完成只記一次、記憶碎片只給一次。
 
 ### 小遊戲裡的秘密
 
-這三個指令要回到專案根目錄執行：
-
-```bash
-cd ../neon_cat_maze/tests && PYTHONPATH=../.. python3 -m unittest discover; cd -
-```
-
-```bash
-cd ../galaxy_defender/tests && PYTHONPATH=../.. python3 -m unittest discover; cd -
-```
-
-```bash
-cd ../pixel_volleyball/tests && PYTHONPATH=../.. python3 -m unittest discover; cd -
-```
-
-Retro Racer 的 Reverse Road：
-
-```bash
-cd ../retro_racer && PYTHONPATH=.. python3 -m unittest test_reverse_road test_out_of_time; cd -
-```
+Neon Cat Maze、Starfall Assault、Cat Volleyball 的三個符號和 Retro Racer 的 Reverse Road，由 `verify_main_story.py` 用真實按鍵實際玩過一遍來檢查（沒有單獨的自動測試）。
 
 ### Lobby 的貓咪午睡彩蛋
 
@@ -184,17 +178,3 @@ cd ../retro_racer && PYTHONPATH=.. python3 -m unittest test_reverse_road test_ou
 在空地放開方向鍵，連續站著超過 30 秒：目前區域的貓咪會陸續走到腳邊，躺下睡覺並飄出 Z 字。
 走動會解除聚集，貓咪會讓出通路；摸貓、選單、劇情、跳舞或切換房間後，等待時間重新計算。
 不用修改存檔，也不會獲得道具或改變主線進度。
-
-回歸測試（專案根目錄）：
-
-```bash
-PYTHONPATH=arcade_lobby:. .venv/bin/python -m unittest test_idle_cat_nap test_cats
-```
-
-### 完整的 Arcade Hub 測試（每個模組平行跑，約 3–4 分鐘）
-
-```bash
-ls test_*.py | sed 's/\.py$//' | xargs -P 14 -I{} sh -c 'python3 -m unittest {} > {}.log 2>&1 && echo "OK   {}" || echo "FAIL {}"'
-```
-
-有 FAIL 的話，看那個模組的 `.log` 檔（例如 `test_story.log`）。`.log` 檔已在 `.gitignore` 裡。

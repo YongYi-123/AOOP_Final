@@ -15,7 +15,6 @@ import golden_age_art as GA
 from font import get_font
 from gfx import outlined
 from player import PlayerLook, player_sheet
-from settings import Col
 from ui import draw_text
 
 R, put, mul, mix, sprite = GA.R, GA.put, GA.mul, GA.mix, GA.sprite

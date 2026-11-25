@@ -28,6 +28,7 @@ from daily_tasks import DailyTaskManager
 from game_clock import GameClock
 from inventory import Inventory
 from rewards import RewardService
+from save_io import write_json_atomic
 from settings import (COIN_PUSHER_DAILY_TICKET_CAP, PINBALL_DAILY_TICKET_CAP, PINBALL_DAILY_TOKEN_CAP, NEON21_DAILY_TICKET_CAP, STARTING_TICKETS, STARTING_TOKENS,
                       TRANSACTION_HISTORY_SIZE)
 
@@ -983,11 +984,8 @@ class ProfileStore:
     def save(self, profile):
         """Write atomically (temp file + rename) so a crash mid-write cannot
         leave a half-written save. Returns False if the write failed."""
-        tmp = self.path + ".tmp"
         try:
-            with open(tmp, "w", encoding="utf-8") as f:
-                json.dump(profile.to_dict(), f, indent=4)
-            os.replace(tmp, self.path)
+            write_json_atomic(self.path, profile.to_dict(), indent=4)
         except OSError as e:
             print(f"[save] could not write {self.path}: {e}")
             return False

@@ -16,7 +16,6 @@ import golden_age as G
 import golden_age_art as A
 import golden_age_content as C
 import happy_breakout as hb
-from font import get_font
 from gfx import scale_color
 from settings import BACK_KEYS, CONFIRM_KEYS, VIEW_H, VIEW_W
 from ui import draw_text, wrap_text

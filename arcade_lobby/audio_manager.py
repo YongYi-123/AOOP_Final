@@ -7,6 +7,8 @@ import os
 import time
 import pygame
 
+from save_io import write_json_atomic
+
 log = logging.getLogger("arcade.audio")
 
 
@@ -300,13 +302,9 @@ class AudioManager:
     def save_prefs(self):
         if not self.prefs_path:
             return False
-        tmp = self.prefs_path + ".tmp"
+        data = {"music": round(self.bgm_volume, 3), "sfx": round(self.sfx_volume, 3), "muted": self.muted}
         try:
-            os.makedirs(os.path.dirname(self.prefs_path) or ".", exist_ok=True)
-            with open(tmp, "w", encoding="utf-8") as f:
-                json.dump({"music": round(self.bgm_volume, 3), "sfx": round(self.sfx_volume, 3),
-                           "muted": self.muted}, f)
-            os.replace(tmp, self.prefs_path)
+            write_json_atomic(self.prefs_path, data, make_dirs=True)
         except OSError as exc:
             log.warning("could not save audio settings to %s: %s", self.prefs_path, exc)
             return False

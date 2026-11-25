@@ -1,6 +1,6 @@
 """Dedicated production view: no dungeon HUD, compass, tile borders or generic props."""
 import pygame
-from puzzle_maze.studio_layout import FURNITURE,MIAO_TILE
+from puzzle_maze.studio_layout import FURNITURE
 from puzzle_maze.miao_adapter import guide_frame
 
 def draw_studio(renderer,session,visual,controls):

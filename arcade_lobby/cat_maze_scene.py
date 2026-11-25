@@ -3,7 +3,6 @@
 Single-player: the player who started the machine plays, scores and is paid; the best run of the play session is the one reported, so Play Again and Restart can never
 pay twice."""
 import pygame
-from audio_manager import GameSoundBus
 from forgotten_games import ClueLink
 from minigame import MinigameScene, MiniGameResult, PlayerResult
 from rewards import RewardBundle
@@ -26,8 +25,9 @@ class CatMazeScene(MinigameScene):
         self._refresh_keys()
 
     def _wire_audio(self):
-        if hasattr(self.game, "audio"):
-            self.cat_maze.audio = GameSoundBus(self.game.audio)
+        bus = self.sound_bus()
+        if bus is not None:
+            self.cat_maze.audio = bus
 
     def _refresh_keys(self):
         scheme = self.input.scheme
@@ -70,8 +70,7 @@ class CatMazeScene(MinigameScene):
                 game.pause()
             elif game.screen is Screen.PAUSED:
                 game.resume()
-        elif action in ("interact", "confirm") or (
-                event.key in (pygame.K_RETURN, pygame.K_KP_ENTER) and not self.game.session.player_for_key(event.key)):
+        elif self.is_confirm(event, action):
             game.act("confirm")
         if game.wants_exit:
             self.leaving = True
