@@ -889,6 +889,10 @@ class GoldenAgeScene(BaseScene):
                 glow, amount = (40, 120, 90), 1.0
             img = A.tinted_light(26, glow, amount, 0.9)
             lay.blit(img, img.get_rect(center=(288, 66)), special_flags=pygame.BLEND_RGB_ADD)
+        if L > 0:                                            # a warm pool on the photo board, so the side wall does not hide it
+            amount = self._ramp(0.5, 0.9) * (0.75 if self.run.photos_solved else 0.8 + 0.2 * math.sin(self.time * 2.2))
+            img = A.tinted_light(30, (210, 160, 90), amount, 1.6)
+            lay.blit(img, img.get_rect(center=(388, 151)), special_flags=pygame.BLEND_RGB_ADD)
         surf.blit(lay, (0, 0), special_flags=pygame.BLEND_RGB_MULT)
 
     def _ramp(self, a, b):

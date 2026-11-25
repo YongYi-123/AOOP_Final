@@ -778,13 +778,31 @@ class ComputerPanel(Panel):
             if sel:
                 pygame.draw.rect(view, (24, 84, 62), (x0 - 4, y - 4, SCREEN.w - 2 * x0 + 8, 16))
             text = f"[{i + 1}] {label}"
+            r = draw_text(view, ("> " if sel else "  ") + text, (x0, y), PHOSPHOR if sel else PHOSPHOR_DIM)
             if label == "LOCKED FILES" and not (self.cleared and self.indexed):
-                text += "  (LOCKED)"
-            draw_text(view, ("> " if sel else "  ") + text, (x0, y), PHOSPHOR if sel else PHOSPHOR_DIM)
+                draw_text(view, "(LOCKED)", (r.right + 8, y), AMBER)
+            elif label == "PLAY GAME" and not self.cleared and int(self.time * 2.5) % 3:    # a blinking pointer to the way in
+                draw_text(view, "START HERE", (r.right + 8, y), AMBER)
         if d.message:
             for i, row in enumerate(wrap_text(d.message, SCREEN.w - 2 * x0)):
                 draw_text(view, row, (x0, 184 + i * 10), AMBER)
+        else:
+            self._draw_lock_status(view, x0)
         draw_text(view, "UP/DOWN OR 1-4   [E] SELECT   [ESC] LEAVE", (SCREEN.w // 2, SCREEN.h - 18), PHOSPHOR_DIM, 1, "midtop")
+
+    def _draw_lock_status(self, view, x0):
+        """A framed note under the menu that says plainly what the locked files are waiting for."""
+        if not self.cleared:
+            rows, colour = C.DESKTOP_LOCK_GAME, AMBER
+        elif not self.indexed:
+            rows, colour = C.DESKTOP_LOCK_INDEX, AMBER
+        else:
+            rows, colour = C.DESKTOP_UNLOCKED, PHOSPHOR
+        box = pygame.Rect(x0 - 4, 168, SCREEN.w - 2 * x0 + 8, 8 + 11 * len(rows))
+        pygame.draw.rect(view, scale_color(colour, 0.18), box)
+        pygame.draw.rect(view, scale_color(colour, 0.7), box, 1)
+        for i, row in enumerate(rows):
+            draw_text(view, row, (box.centerx, box.y + 5 + i * 11), colour, 1, "midtop")
 
     def _draw_scores(self, view, x0):
         draw_text(view, "HIGH SCORES", (x0, 12), PHOSPHOR, 2, glow=(20, 90, 60))

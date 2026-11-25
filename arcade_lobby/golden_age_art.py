@@ -1252,15 +1252,19 @@ def side_photo_board(slots=(None, None, None, None), opened=False):
     """The wooden photo board on the right-hand wall (seen from the side, like the frames opposite): four slots, one
     above the other, holding whatever is pinned there. Opened: it has swung a little away from the wall; 12x46."""
     s = sprite(12, 46)
-    R(s, WOOD_MD, 0, 0, 12, 46)
-    R(s, WOOD_LT, 0, 0, 12, 1)
-    R(s, WOOD_DK, 0, 45, 12, 1)
+    R(s, WOOD_LT, 0, 0, 12, 46)                                 # a light frame, so it reads against the dark side wall
+    R(s, WOOD_HI, 0, 0, 12, 1)
+    R(s, WOOD_HI, 11, 0, 1, 46)
+    R(s, WOOD_MD, 0, 45, 12, 1)
+    R(s, (206, 154, 100), 1, 1, 10, 44)                         # cork face
+    for (x, y) in ((3, 12), (8, 22), (4, 31), (7, 41), (9, 6)):
+        R(s, (184, 134, 86), x, y)
     tones = {"desk": (214, 186, 140), "build": (170, 168, 150), "game": (110, 170, 140), "friends": (220, 160, 150)}
     for i, p in enumerate(slots):
         y = 3 + i * 10
-        if p is None:
-            R(s, WOOD_DK, 2, y, 8, 8)
-            R(s, mul(WOOD_DK, 0.8), 2, y, 8, 1)
+        if p is None:                                           # an empty paper outline waiting for a photo
+            R(s, CREAM_DK, 2, y, 8, 8)
+            R(s, (150, 106, 66), 3, y + 1, 6, 6)
         else:
             R(s, (244, 238, 222), 2, y, 8, 8)
             R(s, tones[p], 3, y + 1, 6, 6)
