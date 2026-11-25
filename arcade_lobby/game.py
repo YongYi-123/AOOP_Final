@@ -21,8 +21,7 @@ from arcade_style import STYLES
 from local_session import LocalSession
 from room_scene import RoomHub
 from scene_base import SceneManager
-from settings import (DEBUG, FPS, SAVE_FILE, TITLE, VIEW_H,
-                      VIEW_W)
+from settings import DEBUG, FPS, MAX_FRAME_DT, SAVE_FILE, TITLE, VIEW_H, VIEW_W
 
 
 class Game:
@@ -247,7 +246,7 @@ class Game:
 
     def run(self):
         while self.running:
-            dt = min(self.clock.tick(FPS) / 1000.0, 0.05)
+            dt = min(self.clock.tick(FPS) / 1000.0, MAX_FRAME_DT)
             self.step(pygame.event.get(), dt)
             self.display.present()
         self.display.save()

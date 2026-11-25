@@ -12,6 +12,8 @@ SCREEN_W, SCREEN_H = 800, 600
 PIXEL_SCALE = 2
 VIEW_W, VIEW_H = SCREEN_W // PIXEL_SCALE, SCREEN_H // PIXEL_SCALE
 FPS = 60
+MAX_FRAME_DT = 0.05     # seconds: a long frame (dragging the window, a hitch) is simulated as at most this much,
+                        # so nothing jumps through a wall or skips a trigger
 
 # Room layout, in canvas pixels
 FLOOR_TOP = 64          # back wall occupies y < FLOOR_TOP
