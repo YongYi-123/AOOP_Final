@@ -1,7 +1,7 @@
 """Entrance/reward integrity plus resource-state and crate search validation.
 
-The report distinguishes resource search from physical gameplay witnesses in
- tests/test_v4_campaign.py. It does not claim to simulate every enemy trajectory.
+The report distinguishes resource search from physical gameplay witnesses
+(the campaign playthrough tests). It does not claim to simulate every enemy trajectory.
 """
 from puzzle_maze.core import TileMap
 from puzzle_maze.validator import DungeonValidator
